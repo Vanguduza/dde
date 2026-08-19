@@ -1,0 +1,8 @@
+# Working extracts and local scratch
+_blueprint.txt
+*.tmp
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
