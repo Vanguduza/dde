@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/outbox.json",
+  "title": "Outbox",
+  "description": "Transactional outbox row committed with authoritative state.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "outbox",
+    "order": 240,
+    "pk": ["outbox_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "outbox_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "outbox_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "outbox_id",
+    "tenant_id",
+    "project_id",
+    "event_id",
+    "payload",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "outbox_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "event_id": { "type": "string", "format": "uuid" },
+    "payload": { "type": "object", "additionalProperties": true },
+    "published_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/task_graph_edge.json",
+  "title": "TaskGraphEdge",
+  "description": "Directed TaskGraph edge.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "task_graph_edges",
+    "order": 110,
+    "pk": ["edge_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "task_graph_edges_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "task_graph_edges_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "task_graph_edges_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "task_graph_edges_graph_id_fkey",
+        "columns": ["graph_id"],
+        "ref_table": "task_graphs",
+        "ref_columns": ["graph_id"]
+      },
+      {
+        "name": "task_graph_edges_from_task_id_fkey",
+        "columns": ["from_task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "task_graph_edges_to_task_id_fkey",
+        "columns": ["to_task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      }
+    ]
+  },
+  "required": [
+    "edge_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "graph_id",
+    "from_task_id",
+    "to_task_id",
+    "edge_type",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "edge_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "graph_id": { "type": "string", "format": "uuid" },
+    "from_task_id": { "type": "string", "format": "uuid" },
+    "to_task_id": { "type": "string", "format": "uuid" },
+    "edge_type": {
+      "type": "string",
+      "enum": ["depends_on", "produces_contract_for", "verifies", "repairs", "blocks_on_decision"]
+    },
+    "contract_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

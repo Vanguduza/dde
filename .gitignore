@@ -6,3 +6,20 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+
+# Alembic / local data
+*.log

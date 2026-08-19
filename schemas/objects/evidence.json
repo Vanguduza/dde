@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/evidence.json",
+  "title": "Evidence",
+  "description": "Append-only verification evidence bound to an integrated revision.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "evidence",
+    "order": 220,
+    "pk": ["evidence_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "evidence_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "evidence_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "evidence_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "evidence_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "evidence_verification_run_id_fkey",
+        "columns": ["verification_run_id"],
+        "ref_table": "verification_runs",
+        "ref_columns": ["verification_run_id"]
+      }
+    ]
+  },
+  "required": [
+    "evidence_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "verification_run_id",
+    "integrated_revision",
+    "evidence_type",
+    "artifact_refs",
+    "content_hash",
+    "signature",
+    "produced_by",
+    "independence_flags",
+    "recorded_at",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "evidence_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "verification_run_id": { "type": "string", "format": "uuid" },
+    "integrated_revision": { "type": "string" },
+    "oracle_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "outcome_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "evidence_type": { "type": "string" },
+    "artifact_refs": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+    "content_hash": { "type": "string" },
+    "signature": { "type": "string" },
+    "produced_by": { "type": "string" },
+    "independence_flags": { "type": "object", "additionalProperties": true },
+    "recorded_at": { "type": "string", "format": "date-time" },
+    "status": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

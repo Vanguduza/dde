@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/mission.json",
+  "title": "Mission",
+  "description": "Manufacturing mission. Optimistic locking required by Chapter 3.5.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "missions",
+    "order": 80,
+    "pk": ["mission_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [["project_id", "slug"]],
+    "foreign_keys": [
+      {
+        "name": "missions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "missions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "mission_id",
+    "tenant_id",
+    "project_id",
+    "slug",
+    "status",
+    "autonomy_ceiling",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "mission_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "slug": { "type": "string", "minLength": 1 },
+    "status": { "type": "string" },
+    "autonomy_ceiling": { "type": "integer" },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

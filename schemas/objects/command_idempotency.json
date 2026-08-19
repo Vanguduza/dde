@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/command_idempotency.json",
+  "title": "CommandIdempotency",
+  "description": "Command ledger. expires_at must exceed max retry, reconnect and pause windows (Chapter 3.7).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "command_idempotency",
+    "order": 250,
+    "pk": ["command_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "idempotency_key"]],
+    "foreign_keys": [
+      {
+        "name": "command_idempotency_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "command_idempotency_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "command_id",
+    "tenant_id",
+    "project_id",
+    "idempotency_key",
+    "request_hash",
+    "status",
+    "expires_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "command_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string" },
+    "request_hash": { "type": "string" },
+    "status": { "type": "string" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/event.json",
+  "title": "Event",
+  "description": "Authoritative event-store record. Partitioned by occurred_at per Chapter 3.7.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "events",
+    "order": 230,
+    "pk": ["event_id", "occurred_at"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "partition_range": "occurred_at",
+    "foreign_keys": [
+      {
+        "name": "events_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "events_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "event_id",
+    "event_type",
+    "aggregate_type",
+    "aggregate_id",
+    "tenant_id",
+    "project_id",
+    "sequence",
+    "occurred_at",
+    "correlation_id",
+    "payload",
+    "schema_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": { "type": "string" },
+    "aggregate_type": { "type": "string" },
+    "aggregate_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "task_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "sequence": { "type": "integer" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "correlation_id": { "type": "string" },
+    "causation_id": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "payload": { "type": "object", "additionalProperties": true },
+    "schema_version": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

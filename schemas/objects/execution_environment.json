@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/execution_environment.json",
+  "title": "ExecutionEnvironment",
+  "description": "Worker execution environment. Optimistic locking required by Chapter 3.5.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "execution_environments",
+    "order": 140,
+    "pk": ["environment_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "foreign_keys": [
+      {
+        "name": "execution_environments_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "execution_environments_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "environment_id",
+    "tenant_id",
+    "project_id",
+    "class",
+    "type",
+    "os_family",
+    "architecture",
+    "runtime_image",
+    "image_digest",
+    "toolchain_manifest",
+    "toolchain_manifest_hash",
+    "resource_limits",
+    "network_policy",
+    "filesystem_policy",
+    "isolation_level",
+    "capability_compatibility",
+    "worker_compatibility",
+    "status",
+    "health_status",
+    "lifecycle_state",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "environment_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "class": { "type": "string" },
+    "type": { "type": "string" },
+    "os_family": { "type": "string" },
+    "architecture": { "type": "string" },
+    "runtime_image": { "type": "string" },
+    "image_digest": { "type": "string" },
+    "toolchain_manifest": { "type": "object", "additionalProperties": true },
+    "toolchain_manifest_hash": { "type": "string" },
+    "resource_limits": { "type": "object", "additionalProperties": true },
+    "network_policy": { "type": "object", "additionalProperties": true },
+    "filesystem_policy": { "type": "object", "additionalProperties": true },
+    "isolation_level": { "type": "string" },
+    "credential_profile_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "security_profile_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "capability_compatibility": { "type": "object", "additionalProperties": true },
+    "worker_compatibility": { "type": "object", "additionalProperties": true },
+    "status": { "type": "string" },
+    "health_status": { "type": "string" },
+    "lifecycle_state": { "type": "string" },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

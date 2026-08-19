@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/workspace.json",
+  "title": "Workspace",
+  "description": "Isolated worktree bound to an environment. Optimistic locking required by Chapter 3.5.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "workspaces",
+    "order": 150,
+    "pk": ["workspace_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "foreign_keys": [
+      {
+        "name": "workspaces_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "workspaces_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "workspaces_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "required": [
+    "workspace_id",
+    "tenant_id",
+    "project_id",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "base_revision": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

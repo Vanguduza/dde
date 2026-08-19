@@ -1,0 +1,37 @@
+openapi: 3.1.0
+info:
+  title: DDE Core
+  version: 0.1.0
+paths:
+  /healthz:
+    get:
+      operationId: healthz
+      responses:
+        '200':
+          description: Process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: './healthz.json'
+  /readyz:
+    get:
+      operationId: readyz
+      responses:
+        '200':
+          description: Safe to accept work.
+          content:
+            application/json:
+              schema:
+                $ref: './readyz.json'
+        '503':
+          description: Database, Redis or migrations are not ready.
+          content:
+            application/json:
+              schema:
+                $ref: './readyz.json'
+components:
+  schemas:
+    Healthz: { $ref: './healthz.json' }
+    Readyz: { $ref: './readyz.json' }
+    Error: { $ref: './error.json' }
+# source-titles: Healthz, Readyz, Error

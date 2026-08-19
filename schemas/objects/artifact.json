@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/artifact.json",
+  "title": "Artifact",
+  "description": "Artifact metadata. Bytes live in object storage, content-addressed by SHA-256.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "artifacts",
+    "order": 200,
+    "pk": ["artifact_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "artifacts_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "artifacts_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "artifacts_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "project_id",
+    "content_hash",
+    "storage_key",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "artifact_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "task_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "content_hash": { "type": "string" },
+    "storage_key": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

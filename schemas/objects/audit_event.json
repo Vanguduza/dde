@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/audit_event.json",
+  "title": "AuditEvent",
+  "description": "Hash-chained audit ledger. Never detached.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "audit_events",
+    "order": 260,
+    "pk": ["audit_event_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "audit_events_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "audit_events_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "audit_event_id",
+    "tenant_id",
+    "entry_hash",
+    "payload",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "audit_event_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "prev_hash": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "entry_hash": { "type": "string" },
+    "payload": { "type": "object", "additionalProperties": true },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

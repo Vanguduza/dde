@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/route_decision.json",
+  "title": "RouteDecision",
+  "description": "Immutable routing decision with full candidate recording.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "route_decisions",
+    "order": 130,
+    "pk": ["decision_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "route_decisions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "route_decisions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "route_decisions_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "route_decisions_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      }
+    ]
+  },
+  "required": [
+    "decision_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "candidates",
+    "selected_worker_profile_id",
+    "workload_class",
+    "required_capabilities",
+    "required_environment_class",
+    "reason_codes",
+    "selection_source",
+    "selection_propensity",
+    "fallback_plan",
+    "escalation_plan",
+    "policy_version",
+    "decision_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "decision_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "candidates": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "selected_worker_profile_id": { "type": "string" },
+    "workload_class": { "type": "string" },
+    "required_capabilities": { "type": "array", "items": { "type": "string" } },
+    "required_environment_class": { "type": "string" },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "predicted_success": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "predicted_cost": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "predicted_latency": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "confidence": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "selection_source": {
+      "type": "string",
+      "enum": ["deterministic", "shadow", "canary", "promoted_historical", "exploration"]
+    },
+    "selection_propensity": { "type": "number" },
+    "fallback_plan": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "escalation_plan": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "policy_version": { "type": "string" },
+    "decision_hash": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

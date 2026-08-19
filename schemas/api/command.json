@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/api/command.json",
+  "title": "Command",
+  "description": "Command envelope from Chapter 15.2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command_id",
+    "idempotency_key",
+    "principal_id",
+    "target_type",
+    "target_id",
+    "command_type",
+    "parameters",
+    "requested_at",
+    "protocol_version"
+  ],
+  "properties": {
+    "command_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string" },
+    "principal_id": { "type": "string", "format": "uuid" },
+    "client_session_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "target_type": { "type": "string" },
+    "target_id": { "type": "string", "format": "uuid" },
+    "command_type": { "type": "string" },
+    "parameters": { "type": "object", "additionalProperties": true },
+    "requested_at": { "type": "string", "format": "date-time" },
+    "protocol_version": { "type": "string" }
+  }
+}

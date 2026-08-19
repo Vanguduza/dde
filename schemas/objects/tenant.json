@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/tenant.json",
+  "title": "Tenant",
+  "description": "Tenant identity record.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "tenants",
+    "order": 10,
+    "pk": ["tenant_id"],
+    "tenant_scoped": true,
+    "project_scoped": false,
+    "lock_version": false
+  },
+  "required": ["tenant_id", "slug", "created_at", "updated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "slug": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

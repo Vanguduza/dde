@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/product_constitution_version.json",
+  "title": "ProductConstitutionVersion",
+  "description": "Versioned Product Constitution record.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "product_constitution_versions",
+    "order": 50,
+    "pk": ["version_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "version"]],
+    "foreign_keys": [
+      {
+        "name": "product_constitution_versions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "product_constitution_versions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": ["version_id", "tenant_id", "project_id", "version", "created_at", "updated_at"],
+  "properties": {
+    "version_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

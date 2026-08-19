@@ -1,0 +1,17 @@
+{
+  "name": "DDE",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/dde",
+  "forwardPorts": [8000, 5432],
+  "postCreateCommand": "uv sync --group dev",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/workspaces/dde/.venv/bin/python"
+      },
+      "extensions": ["ms-python.python", "charliermarsh.ruff"]
+    }
+  }
+}

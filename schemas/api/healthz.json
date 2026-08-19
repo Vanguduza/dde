@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/api/healthz.json",
+  "title": "Healthz",
+  "description": "Liveness response from Chapter 17.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status"],
+  "properties": {
+    "status": { "type": "string", "const": "ok" }
+  }
+}

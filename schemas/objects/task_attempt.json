@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/task_attempt.json",
+  "title": "TaskAttempt",
+  "description": "Durable attempt. WorkerRun is 1:N via worker_runs.task_attempt_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "task_attempts",
+    "order": 170,
+    "pk": ["attempt_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["task_id", "sequence"]],
+    "foreign_keys": [
+      {
+        "name": "task_attempts_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "task_attempts_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "task_attempts_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "task_attempts_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "task_attempts_execution_plan_id_fkey",
+        "columns": ["execution_plan_id"],
+        "ref_table": "execution_plans",
+        "ref_columns": ["plan_id"]
+      },
+      {
+        "name": "task_attempts_retry_of_fkey",
+        "columns": ["retry_of"],
+        "ref_table": "task_attempts",
+        "ref_columns": ["attempt_id"]
+      }
+    ]
+  },
+  "required": [
+    "attempt_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "sequence",
+    "execution_plan_id",
+    "input_context_hash",
+    "workspace_revision",
+    "result_artifact_refs",
+    "verification_refs",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "attempt_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer" },
+    "execution_plan_id": { "type": "string", "format": "uuid" },
+    "input_context_hash": { "type": "string" },
+    "workspace_revision": { "type": "string" },
+    "result_artifact_refs": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+    "verification_refs": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+    "integration_proposal_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "status": { "type": "string" },
+    "failure_class": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "retry_of": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "checkpoint_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "started_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "ended_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

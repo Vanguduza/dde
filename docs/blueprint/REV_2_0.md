@@ -2463,6 +2463,7 @@ Stage-added scenarios: S2 adds a lease revocation mid-mission; S3 adds a Core re
 | Persistent orchestration, memory, skills, delegation, browser/computer use, scheduling, messaging | Hermes-class harness | long-lived session, own tool plane → **T2 containment**, progressive tool disclosure |
 | Long-context analysis, corpus and batch work, bulk implementation, economical execution | DeepSeek-harness-class | large context capacity, `modality: text` unless a profile declares otherwise, low cost per token |
 | High-value reasoning, architecture, difficult debugging, complex integration, premium review | Claude-Code-class | own tool plane → **T2 containment**, high capability, high cost, escalation target |
+| Cursor models / agent (first certified implementation worker) | `adapters/cursor` over `cursor-sdk` + `cursor-sdk-bridge` | **T2**, local runtime only, `auto_create_pr` forbidden, API key never enters the ExecutionEnvironment |
 | Deterministic verification | Test runners, linters, scanners, invariant checkers | not a model; `T1`; independence guaranteed structurally |
 | Vision and visual evidence | Multimodal model behind a vision capability | `modality: image`; returns structured evidence, not prose |
 | Security | Agentic security platform | isolated target environment, controlled network |

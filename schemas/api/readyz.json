@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/api/readyz.json",
+  "title": "Readyz",
+  "description": "Readiness response from Chapter 17.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "database", "redis", "migrations"],
+  "properties": {
+    "status": { "type": "string", "enum": ["ready", "not_ready"] },
+    "database": { "type": "boolean" },
+    "redis": { "type": "boolean" },
+    "migrations": { "type": "string", "enum": ["head", "behind", "unknown"] }
+  }
+}

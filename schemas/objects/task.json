@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/task.json",
+  "title": "Task",
+  "description": "Materialised TaskGraph node with lifecycle state. Optimistic locking required by Chapter 3.5.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "tasks",
+    "order": 100,
+    "pk": ["task_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "foreign_keys": [
+      {
+        "name": "tasks_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "tasks_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "tasks_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "tasks_graph_id_fkey",
+        "columns": ["graph_id"],
+        "ref_table": "task_graphs",
+        "ref_columns": ["graph_id"]
+      }
+    ]
+  },
+  "required": [
+    "task_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "graph_id",
+    "title",
+    "intent",
+    "task_class",
+    "requirement_refs",
+    "feature_refs",
+    "success_criteria",
+    "expected_write_scope",
+    "expected_read_scope",
+    "blast_radius",
+    "risk_class",
+    "estimated_effort",
+    "autonomy_ceiling",
+    "requires_approval",
+    "status",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "graph_id": { "type": "string", "format": "uuid" },
+    "title": { "type": "string" },
+    "intent": { "type": "string" },
+    "task_class": { "type": "string" },
+    "requirement_refs": { "type": "array", "items": { "type": "string" } },
+    "feature_refs": { "type": "array", "items": { "type": "string" } },
+    "success_criteria": { "type": "array", "items": { "type": "string" } },
+    "expected_write_scope": { "type": "array", "items": { "type": "string" } },
+    "expected_read_scope": { "type": "array", "items": { "type": "string" } },
+    "blast_radius": { "type": "string" },
+    "risk_class": { "type": "string" },
+    "estimated_effort": { "type": "string" },
+    "autonomy_ceiling": { "type": "integer" },
+    "requires_approval": { "type": "boolean" },
+    "verification_profile_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "status": { "type": "string" },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

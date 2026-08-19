@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/execution_plan.json",
+  "title": "ExecutionPlan",
+  "description": "How a selected worker may act. Definition is hashed; status is lifecycle.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "execution_plans",
+    "order": 160,
+    "pk": ["plan_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "execution_plans_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "execution_plans_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "execution_plans_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "execution_plans_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "execution_plans_route_decision_id_fkey",
+        "columns": ["route_decision_id"],
+        "ref_table": "route_decisions",
+        "ref_columns": ["decision_id"]
+      },
+      {
+        "name": "execution_plans_context_package_id_fkey",
+        "columns": ["context_package_id"],
+        "ref_table": "context_packages",
+        "ref_columns": ["package_id"]
+      },
+      {
+        "name": "execution_plans_execution_environment_id_fkey",
+        "columns": ["execution_environment_id"],
+        "ref_table": "execution_environments",
+        "ref_columns": ["environment_id"]
+      }
+    ]
+  },
+  "required": [
+    "plan_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "route_decision_id",
+    "context_package_id",
+    "worker_profile_id",
+    "execution_environment_id",
+    "workspace_policy",
+    "capability_requirements",
+    "enforcement_tier",
+    "autonomy_level",
+    "resource_budget",
+    "time_budget",
+    "token_budget",
+    "network_policy",
+    "filesystem_policy",
+    "checkpoint_policy",
+    "retry_policy",
+    "escalation_policy",
+    "plan_hash",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "plan_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "route_decision_id": { "type": "string", "format": "uuid" },
+    "context_package_id": { "type": "string", "format": "uuid" },
+    "worker_profile_id": { "type": "string" },
+    "execution_environment_id": { "type": "string", "format": "uuid" },
+    "workspace_policy": { "type": "object", "additionalProperties": true },
+    "capability_requirements": { "type": "array", "items": { "type": "string" } },
+    "enforcement_tier": { "type": "string" },
+    "autonomy_level": { "type": "integer" },
+    "resource_budget": { "type": "object", "additionalProperties": true },
+    "time_budget": { "type": "object", "additionalProperties": true },
+    "token_budget": { "type": "object", "additionalProperties": true },
+    "network_policy": { "type": "object", "additionalProperties": true },
+    "filesystem_policy": { "type": "object", "additionalProperties": true },
+    "verification_plan_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "acceptance_oracle_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "write_scope_lease_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "checkpoint_policy": { "type": "object", "additionalProperties": true },
+    "retry_policy": { "type": "object", "additionalProperties": true },
+    "escalation_policy": { "type": "object", "additionalProperties": true },
+    "plan_hash": { "type": "string" },
+    "status": { "type": "string" },
+    "approved_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "started_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "ended_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

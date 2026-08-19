@@ -1,0 +1,41 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/dde:cached
+    command: sleep infinity
+    environment:
+      DDE_DATABASE_URL: postgresql+asyncpg://dde:dde@postgres:5432/dde
+      DDE_REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /workspaces/dde
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: dde
+      POSTGRES_PASSWORD: dde
+      POSTGRES_DB: dde
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dde -d dde"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

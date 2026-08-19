@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dde
+          POSTGRES_PASSWORD: dde
+          POSTGRES_DB: dde
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dde -d dde"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DDE_DATABASE_URL: postgresql+asyncpg://dde:dde@localhost:5432/dde
+      DDE_REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: extractions/setup-just@v2
+      - name: Install
+        run: uv sync --group dev
+      - name: Lint
+        run: just lint
+      - name: Typecheck
+        run: just typecheck
+      - name: Contract drift check
+        run: just contract-test
+      - name: Unit tests
+        run: just test
+      - name: Migration validation (empty database, reversible)
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+      - name: Integration
+        run: uv run pytest tests/integration
+      - name: Fail on generated drift
+        run: |
+          uv run python -m scripts.generate_contracts
+          git diff --exit-code -- engine/contracts schemas/sql schemas/api/openapi.yaml docs/blueprint/generated

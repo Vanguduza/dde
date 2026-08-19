@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/task_graph.json",
+  "title": "TaskGraph",
+  "description": "Versioned task graph. Nodes and edges are stored in tasks and task_graph_edges.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "task_graphs",
+    "order": 90,
+    "pk": ["graph_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [["mission_id", "version"]],
+    "foreign_keys": [
+      {
+        "name": "task_graphs_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "task_graphs_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "task_graphs_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "task_graphs_created_by_principal_fkey",
+        "columns": ["created_by_principal"],
+        "ref_table": "principals",
+        "ref_columns": ["principal_id"]
+      },
+      {
+        "name": "task_graphs_supersedes_id_fkey",
+        "columns": ["supersedes_id"],
+        "ref_table": "task_graphs",
+        "ref_columns": ["graph_id"]
+      }
+    ]
+  },
+  "required": [
+    "graph_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "version",
+    "status",
+    "planning_mode",
+    "planner_policy_version",
+    "rationale",
+    "open_questions",
+    "graph_hash",
+    "created_by_principal",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "graph_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer" },
+    "supersedes_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "status": { "type": "string" },
+    "planning_mode": {
+      "type": "string",
+      "enum": ["template", "model_assisted", "human_authored"]
+    },
+    "planner_policy_version": { "type": "string" },
+    "rationale": { "type": "string" },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "graph_hash": { "type": "string" },
+    "created_by_principal": { "type": "string", "format": "uuid" },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

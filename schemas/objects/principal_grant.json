@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/principal_grant.json",
+  "title": "PrincipalGrant",
+  "description": "Authorization grant for a principal.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "principal_grants",
+    "order": 40,
+    "pk": ["grant_id"],
+    "tenant_scoped": true,
+    "project_scoped": false,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "principal_grants_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "principal_grants_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "principal_grants_principal_id_fkey",
+        "columns": ["principal_id"],
+        "ref_table": "principals",
+        "ref_columns": ["principal_id"]
+      }
+    ]
+  },
+  "required": ["grant_id", "tenant_id", "principal_id", "created_at", "updated_at"],
+  "properties": {
+    "grant_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "principal_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

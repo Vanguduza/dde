@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/requirement.json",
+  "title": "Requirement",
+  "description": "Approved requirement in Project Truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "requirements",
+    "order": 60,
+    "pk": ["requirement_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "slug"]],
+    "foreign_keys": [
+      {
+        "name": "requirements_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "requirements_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": ["requirement_id", "tenant_id", "project_id", "slug", "created_at", "updated_at"],
+  "properties": {
+    "requirement_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "slug": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

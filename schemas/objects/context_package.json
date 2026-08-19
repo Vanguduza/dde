@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/context_package.json",
+  "title": "ContextPackage",
+  "description": "Versioned compiled context. Definition is immutable; lifecycle lives in status.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "context_packages",
+    "order": 120,
+    "pk": ["package_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["task_id", "version"]],
+    "foreign_keys": [
+      {
+        "name": "context_packages_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "context_packages_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "context_packages_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "context_packages_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      }
+    ]
+  },
+  "required": [
+    "package_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "version",
+    "assembly_hash",
+    "index_version",
+    "index_lag_commits",
+    "coverage",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "package_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer" },
+    "assembly_hash": { "type": "string" },
+    "index_version": { "type": "string" },
+    "index_lag_commits": { "type": "integer" },
+    "coverage": { "type": "object", "additionalProperties": true },
+    "status": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

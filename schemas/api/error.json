@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/api/error.json",
+  "title": "Error",
+  "description": "Gateway error contract from Chapter 15.5.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error_code", "message", "retryable", "correlation_id"],
+  "properties": {
+    "error_code": { "type": "string" },
+    "message": { "type": "string" },
+    "retryable": { "type": "boolean" },
+    "details": { "type": "object", "additionalProperties": true },
+    "correlation_id": { "type": "string" }
+  }
+}

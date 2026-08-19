@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/worker_event.json",
+  "title": "WorkerEvent",
+  "description": "Append-only worker lifecycle event. Partitioned by occurred_at per Chapter 3.7.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "worker_events",
+    "order": 190,
+    "pk": ["event_id", "occurred_at"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "partition_range": "occurred_at",
+    "uniques": [["run_id", "sequence", "occurred_at"]],
+    "foreign_keys": [
+      {
+        "name": "worker_events_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "worker_events_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "worker_events_run_id_fkey",
+        "columns": ["run_id"],
+        "ref_table": "worker_runs",
+        "ref_columns": ["run_id"]
+      }
+    ]
+  },
+  "required": [
+    "event_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "run_id",
+    "task_id",
+    "sequence",
+    "event_type",
+    "occurred_at",
+    "actor",
+    "correlation_id",
+    "payload",
+    "schema_version",
+    "integrity_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "run_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer" },
+    "event_type": { "type": "string" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "actor": { "type": "string" },
+    "correlation_id": { "type": "string" },
+    "causation_id": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "payload": { "type": "object", "additionalProperties": true },
+    "schema_version": { "type": "string" },
+    "integrity_hash": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

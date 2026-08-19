@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/worker_run.json",
+  "title": "WorkerRun",
+  "description": "Worker invocation bound to a TaskAttempt. Cardinality is 1:N.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "worker_runs",
+    "order": 180,
+    "pk": ["run_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["task_attempt_id", "sequence"]],
+    "foreign_keys": [
+      {
+        "name": "worker_runs_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "worker_runs_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "worker_runs_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "worker_runs_task_attempt_id_fkey",
+        "columns": ["task_attempt_id"],
+        "ref_table": "task_attempts",
+        "ref_columns": ["attempt_id"]
+      },
+      {
+        "name": "worker_runs_execution_plan_id_fkey",
+        "columns": ["execution_plan_id"],
+        "ref_table": "execution_plans",
+        "ref_columns": ["plan_id"]
+      },
+      {
+        "name": "worker_runs_environment_id_fkey",
+        "columns": ["environment_id"],
+        "ref_table": "execution_environments",
+        "ref_columns": ["environment_id"]
+      },
+      {
+        "name": "worker_runs_workspace_id_fkey",
+        "columns": ["workspace_id"],
+        "ref_table": "workspaces",
+        "ref_columns": ["workspace_id"]
+      },
+      {
+        "name": "worker_runs_context_package_id_fkey",
+        "columns": ["context_package_id"],
+        "ref_table": "context_packages",
+        "ref_columns": ["package_id"]
+      }
+    ]
+  },
+  "required": [
+    "run_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_attempt_id",
+    "sequence",
+    "execution_plan_id",
+    "worker_id",
+    "worker_profile_id",
+    "environment_id",
+    "workspace_id",
+    "context_package_id",
+    "policy_version",
+    "lease_set_hash",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_attempt_id": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer" },
+    "execution_plan_id": { "type": "string", "format": "uuid" },
+    "worker_session_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "worker_id": { "type": "string" },
+    "worker_profile_id": { "type": "string" },
+    "environment_id": { "type": "string", "format": "uuid" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "context_package_id": { "type": "string", "format": "uuid" },
+    "policy_version": { "type": "string" },
+    "lease_set_hash": { "type": "string" },
+    "checkpoint_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "status": { "type": "string" },
+    "failure_class": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "usage_record_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "artifact_manifest_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "started_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "ended_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
