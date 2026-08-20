@@ -594,6 +594,54 @@ CREATE TABLE integration_proposals (
     PRIMARY KEY (proposal_id)
 );
 
+CREATE TABLE diff_gate_reports (
+    report_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    proposal_id uuid NOT NULL,
+    command_id uuid NOT NULL,
+    idempotency_key text NOT NULL,
+    request_hash text NOT NULL,
+    base_revision text NOT NULL,
+    proposed_revision text NOT NULL,
+    changed_paths jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    quarantined boolean NOT NULL,
+    sbom_document jsonb NOT NULL DEFAULT '{}'::jsonb,
+    sbom_content_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (report_id)
+);
+
+CREATE TABLE dependency_admissions (
+    admission_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    report_id uuid NOT NULL,
+    package_name text NOT NULL,
+    package_version text NOT NULL,
+    ecosystem text NOT NULL,
+    is_top_level boolean NOT NULL,
+    licence text,
+    maintenance_signal text NOT NULL,
+    provenance text NOT NULL,
+    vulnerability_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    typosquat_of text,
+    justification jsonb,
+    transitive_delta integer,
+    status text NOT NULL,
+    blocking_reason text,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (admission_id)
+);
+
 CREATE TABLE evidence (
     evidence_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -827,6 +875,19 @@ ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_task_atte
 ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_scope_lease_id_fkey FOREIGN KEY (scope_lease_id) REFERENCES write_scope_leases (lease_id);
 ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_verification_ref_fkey FOREIGN KEY (pre_integration_verification_ref) REFERENCES verification_runs (verification_run_id);
 
+ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_proposal_id_fkey FOREIGN KEY (proposal_id) REFERENCES integration_proposals (proposal_id);
+ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
+
+ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_report_id_fkey FOREIGN KEY (report_id) REFERENCES diff_gate_reports (report_id);
+
 ALTER TABLE evidence ADD CONSTRAINT evidence_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -956,6 +1017,14 @@ CREATE POLICY verification_runs_tenant_isolation ON verification_runs USING (ten
 ALTER TABLE integration_proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integration_proposals FORCE ROW LEVEL SECURITY;
 CREATE POLICY integration_proposals_tenant_isolation ON integration_proposals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE diff_gate_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE diff_gate_reports FORCE ROW LEVEL SECURITY;
+CREATE POLICY diff_gate_reports_tenant_isolation ON diff_gate_reports USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE dependency_admissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE dependency_admissions FORCE ROW LEVEL SECURITY;
+CREATE POLICY dependency_admissions_tenant_isolation ON dependency_admissions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence FORCE ROW LEVEL SECURITY;

@@ -23,15 +23,17 @@ work (Chapter 3.5).
 **Flagged Stage 1 simplification.** Chapter 10.4 step 5 describes running
 full post-integration verification ("build, unit, contract, affected
 integration tests, domain invariants, and the mission's AcceptanceOracle
-subset") against the merge candidate. This mission's acceptance criteria
-instead wires the gate to an already-`PASSED` `VerificationRun` produced
-pre-integration (DDE-012) -- re-running verification against the rebased
-candidate needs a second, post-integration verification pass this mission
-does not build. Chapter 9.7's mandatory diff gates (Gitleaks, Semgrep,
-dependency/licence scanning) are likewise not enforced here: they need new
-third-party tools this mission's constraints forbid adding without flagging,
-so only the scope check (10.3, genuinely enforced) runs as this queue's
-"mandatory diff gate" for Stage 1.
+subset") against the merge candidate. This queue still wires that gate to
+an already-`PASSED` `VerificationRun` produced pre-integration (DDE-012)
+-- re-running verification against the rebased candidate needs a second,
+post-integration verification pass Stage 1 did not build.
+
+**DDE-021.** Chapter 9.7's mandatory diff gates now run at Chapter 10.4
+step 3, inside `VALIDATING`, after the WriteScopeLease scope check and
+before the merge candidate is verified. See
+`engine.integration.gate_service.DiffGateService` for the evaluator, the
+scanner-honesty notes, and the exact deferrals (Gitleaks/Semgrep/Syft/
+Grype CLIs, live OSV, donor taint, DDE-026 approvals).
 
 Deliberately out of Stage 1 scope, per the mission brief: emitting a real
 `repair` task on `CONFLICT(textual)`/`CONFLICT(semantic)` (needs the Task
@@ -66,6 +68,7 @@ from engine.core.ids import uuid7
 from engine.core.state_machine import transition
 from engine.events.service import EventService
 from engine.integration import git
+from engine.integration.gate_service import DiffGateService
 from engine.integration.repository import (
     IntegrationProposalRepository,
     WriteScopeLeaseRepository,
@@ -298,6 +301,7 @@ class IntegrationQueueService:
         proposal_repository: IntegrationProposalRepository | None = None,
         lease_repository: WriteScopeLeaseRepository | None = None,
         verification_run_repository: VerificationRunRepository | None = None,
+        gates: DiffGateService | None = None,
         clock: Clock | None = None,
         root: Path | None = None,
     ) -> None:
@@ -308,6 +312,7 @@ class IntegrationQueueService:
         self._verification_runs = (
             verification_run_repository or VerificationRunRepository()
         )
+        self._gates = gates or DiffGateService(engine, events=self._events)
         self._clock = clock or SystemClock()
         self._root = root or repo_root()
 
@@ -523,6 +528,28 @@ class IntegrationQueueService:
                     "REJECTED",
                     conflict_class="scope_violation",
                     detail=f"changed paths outside lease scope: {out_of_scope}",
+                    event_type="IntegrationRejected",
+                )
+
+            gate_report = await self._gates.evaluate(
+                proposal=current,
+                repo_root=self._root,
+                base_revision=mission_head,
+                proposed_revision=target_revision,
+                changed_paths=changed_paths,
+                uow=active,
+            )
+            if gate_report.status != "PASSED":
+                failed = [item.gate for item in gate_report.findings if not item.passed]
+                return await self._terminal(
+                    active,
+                    current,
+                    "REJECTED",
+                    conflict_class="gate_failed",
+                    detail=(
+                        "mandatory diff gates failed: "
+                        f"{failed}; quarantined={gate_report.quarantined}"
+                    ),
                     event_type="IntegrationRejected",
                 )
 

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/dependency_admission.json",
+  "title": "DependencyAdmission",
+  "description": "Chapter 9.6's governed admission of one package a worker-produced dependency-manifest or lockfile change introduces into the software being built. Owned by engine.integration -- admission is evaluated as part of the mandatory diff gates (Chapter 9.7's Dependency/vulnerability row) before IntegrationProposal merge, not as a capability-registry entry. One row per newly introduced package (top-level or transitive-delta member) under one DiffGateReport. status never regresses: EVALUATING -> ADMITTED | REJECTED. New top-level packages require the AGENTS.md justification (licence, maintenance, why the standard library is insufficient) recorded on justification; missing justification is REJECTED (fail closed). Live OSV/Grype lookups and Syft-generated lockfile transitives are deferred; this row still records the real in-process checks Chapter 9.6 names (licence allow-list, advisory catalog, maintenance signal, provenance, transitive delta, typosquat heuristic).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "dependency_admissions",
+    "order": 217,
+    "pk": ["admission_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "dependency_admissions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "dependency_admissions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "dependency_admissions_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "dependency_admissions_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "dependency_admissions_report_id_fkey",
+        "columns": ["report_id"],
+        "ref_table": "diff_gate_reports",
+        "ref_columns": ["report_id"]
+      }
+    ]
+  },
+  "required": [
+    "admission_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "report_id",
+    "package_name",
+    "package_version",
+    "ecosystem",
+    "is_top_level",
+    "maintenance_signal",
+    "provenance",
+    "vulnerability_ids",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "admission_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "report_id": { "type": "string", "format": "uuid" },
+    "package_name": { "type": "string" },
+    "package_version": { "type": "string" },
+    "ecosystem": {
+      "type": "string",
+      "enum": ["pypi", "npm", "crates", "go", "unknown"]
+    },
+    "is_top_level": { "type": "boolean" },
+    "licence": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "maintenance_signal": {
+      "type": "string",
+      "enum": ["ok", "warn", "unknown", "critical"]
+    },
+    "provenance": {
+      "type": "string",
+      "enum": ["registry", "unsigned", "unknown", "justified"]
+    },
+    "vulnerability_ids": { "type": "array", "items": { "type": "string" } },
+    "typosquat_of": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "justification": {
+      "anyOf": [
+        { "type": "object", "additionalProperties": true },
+        { "type": "null" }
+      ]
+    },
+    "transitive_delta": {
+      "anyOf": [{ "type": "integer" }, { "type": "null" }]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["EVALUATING", "ADMITTED", "REJECTED"]
+    },
+    "blocking_reason": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

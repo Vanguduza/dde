@@ -226,6 +226,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## DiffGateReport
+
+- table: `diff_gate_reports`
+- primary key: report_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DependencyAdmission
+
+- table: `dependency_admissions`
+- primary key: admission_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## Evidence
 
 - table: `evidence`

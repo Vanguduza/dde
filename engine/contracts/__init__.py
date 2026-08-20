@@ -12,6 +12,8 @@ from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.core_event import CoreEvent
 from engine.contracts.credential_handle import CredentialHandle
+from engine.contracts.dependency_admission import DependencyAdmission
+from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.edr import Edr
 from engine.contracts.error import Error
 from engine.contracts.event import Event
@@ -55,6 +57,8 @@ __all__ = [
     "ContextPackage",
     "CoreEvent",
     "CredentialHandle",
+    "DependencyAdmission",
+    "DiffGateReport",
     "Edr",
     "Error",
     "Event",

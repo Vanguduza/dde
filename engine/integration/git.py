@@ -157,3 +157,40 @@ def diff_name_only(
         ["diff", "--name-only", base_revision, target_revision], cwd=repo_root
     )
     return [line for line in result.stdout.splitlines() if line]
+
+
+def diff_name_only_filter(
+    repo_root: Path, base_revision: str, target_revision: str, diff_filter: str
+) -> list[str]:
+    """`git diff --diff-filter` -- used to distinguish newly added paths
+    (licence-header gate) from modified ones."""
+    result = _run(
+        [
+            "diff",
+            "--name-only",
+            f"--diff-filter={diff_filter}",
+            base_revision,
+            target_revision,
+        ],
+        cwd=repo_root,
+    )
+    return [line for line in result.stdout.splitlines() if line]
+
+
+def diff_unified(repo_root: Path, base_revision: str, target_revision: str) -> str:
+    """Unified diff of the real commits Chapter 10.4 step 3 evaluates."""
+    return _run(["diff", base_revision, target_revision], cwd=repo_root).stdout
+
+
+def show_blob(repo_root: Path, revision: str, path: str) -> str | None:
+    """File content at `revision:path`, or `None` if that path does not
+    exist at that revision (deleted, or never present)."""
+    result = _run(["show", f"{revision}:{path}"], cwd=repo_root, check=False)
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def ls_tree_names(repo_root: Path, revision: str) -> list[str]:
+    result = _run(["ls-tree", "-r", "--name-only", revision], cwd=repo_root)
+    return [line for line in result.stdout.splitlines() if line]

@@ -68,6 +68,12 @@ capability-adapter call sites), but the table name `"external_effects"`
 itself is only ever a string literal inside `engine/recovery/`, mirroring
 `credential_handles`' identical split between writer module and calling
 module.
+
+DDE-021 adds `diff_gate_reports` and `dependency_admissions`, owned by
+`engine.integration` (Chapter 9.7: gates are "blocking verification steps
+rather than registry entries"; Chapter 10.4 step 3 runs them on the merge
+queue). Table-name literals live in `engine/integration/tables.py` and
+`engine/integration/repository.py`.
 """
 
 from __future__ import annotations
@@ -102,6 +108,8 @@ TABLE_OWNERS = {
     "capability_leases": "capabilities",
     "credential_handles": "broker",
     "external_effects": "recovery",
+    "diff_gate_reports": "integration",
+    "dependency_admissions": "integration",
 }
 
 

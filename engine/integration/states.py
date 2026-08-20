@@ -38,3 +38,20 @@ INTEGRATION_PROPOSAL_TRANSITIONS: Final[dict[str, frozenset[str]]] = {
 TERMINAL_PROPOSAL_STATES: Final[frozenset[str]] = frozenset(
     {"MERGED", "CONFLICT", "REJECTED", "SUPERSEDED"}
 )
+
+#: Chapter 9.7 names the failure actions (block / quarantine) but not a
+#: status vocabulary. EVALUATING is the durable in-flight row; PASSED and
+#: FAILED are the only terminals -- quarantine is a boolean on the report,
+#: not a third status, because the chapter quarantines the *diff*, not the
+#: evaluation record.
+DIFF_GATE_REPORT_TRANSITIONS: Final[dict[str, frozenset[str]]] = {
+    "EVALUATING": frozenset({"PASSED", "FAILED"}),
+    "PASSED": frozenset(),
+    "FAILED": frozenset(),
+}
+
+DEPENDENCY_ADMISSION_TRANSITIONS: Final[dict[str, frozenset[str]]] = {
+    "EVALUATING": frozenset({"ADMITTED", "REJECTED"}),
+    "ADMITTED": frozenset(),
+    "REJECTED": frozenset(),
+}

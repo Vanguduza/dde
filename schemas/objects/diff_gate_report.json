@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/diff_gate_report.json",
+  "title": "DiffGateReport",
+  "description": "Chapter 9.7's mandatory diff-gate evaluation of one worker-produced diff, run as a blocking verification step on every IntegrationProposal before merge (Chapter 10.4 step 3) rather than as a capability-registry entry. Owned by engine.integration (Chapter 3.8: Integration is the owner of merge-queue state; Chapter 9.7: these gates are not registry entries). status never regresses: EVALUATING -> PASSED | FAILED, enforced by engine.integration.states.DIFF_GATE_REPORT_TRANSITIONS. A FAILED secret-detection finding also sets quarantined=true (Chapter 9.7: 'Block, quarantine the diff, raise a security finding'). sbom_document is a real CycloneDX 1.5 subset generated per integration (Chapter 9.6) and content-addressed by sbom_content_hash -- not a placeholder string. command_id is engine.events.idempotency.CommandLedger's identity at evaluate() time. proposal_id is a real FK: a report is always the evaluation of one queued proposal's actual git diff.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "diff_gate_reports",
+    "order": 216,
+    "pk": ["report_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "diff_gate_reports_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "diff_gate_reports_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "diff_gate_reports_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "diff_gate_reports_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "diff_gate_reports_proposal_id_fkey",
+        "columns": ["proposal_id"],
+        "ref_table": "integration_proposals",
+        "ref_columns": ["proposal_id"]
+      },
+      {
+        "name": "diff_gate_reports_command_id_fkey",
+        "columns": ["command_id"],
+        "ref_table": "command_idempotency",
+        "ref_columns": ["command_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "DiffGateFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate",
+        "tool",
+        "severity",
+        "blocking",
+        "passed",
+        "summary"
+      ],
+      "properties": {
+        "gate": {
+          "type": "string",
+          "enum": [
+            "secret_detection",
+            "static_analysis",
+            "dependency_vulnerability",
+            "licence_header",
+            "forbidden_path"
+          ]
+        },
+        "tool": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warn", "error", "critical"]
+        },
+        "blocking": { "type": "boolean" },
+        "passed": { "type": "boolean" },
+        "summary": { "type": "string" },
+        "details": { "type": "object", "additionalProperties": true }
+      }
+    }
+  },
+  "required": [
+    "report_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "proposal_id",
+    "command_id",
+    "idempotency_key",
+    "request_hash",
+    "base_revision",
+    "proposed_revision",
+    "changed_paths",
+    "status",
+    "findings",
+    "quarantined",
+    "sbom_document",
+    "sbom_content_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "report_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "proposal_id": { "type": "string", "format": "uuid" },
+    "command_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string" },
+    "request_hash": { "type": "string" },
+    "base_revision": { "type": "string" },
+    "proposed_revision": { "type": "string" },
+    "changed_paths": { "type": "array", "items": { "type": "string" } },
+    "status": {
+      "type": "string",
+      "enum": ["EVALUATING", "PASSED", "FAILED"]
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DiffGateFinding" }
+    },
+    "quarantined": { "type": "boolean" },
+    "sbom_document": { "type": "object", "additionalProperties": true },
+    "sbom_content_hash": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
