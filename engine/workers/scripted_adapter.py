@@ -56,10 +56,13 @@ import sys
 from uuid import UUID
 
 from engine.capabilities.lease_service import CapabilityLeaseService
+from engine.capabilities.seed import side_effect_class_for
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.worker_run import WorkerRun
 from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
+from engine.environments.backends.base import CommandResult
+from engine.recovery.hashing import effect_response_hash
 from engine.routing.policy import (
     CAPABILITY_REPOSITORY,
     CAPABILITY_TESTING,
@@ -115,6 +118,12 @@ class ScriptedWorkerAdapter:
     ) -> None:
         self._workspaces = workspaces
         self._leases = leases
+        # DDE-020: shares the exact `ExternalEffectService` instance
+        # `WorkspaceService.snapshot` itself journals `capability.
+        # git_operations` through, rather than constructing a second one
+        # against the same engine (see `WorkspaceService.effects`'s
+        # docstring).
+        self._effects = workspaces.effects
         self._pending_actions: dict[UUID, WorkerAction] = {}
         self._prepared: dict[UUID, tuple[Workspace, WorkerAction]] = {}
         self._handles: dict[UUID, RunHandle] = {}
@@ -216,14 +225,14 @@ class ScriptedWorkerAdapter:
             changed_files = tuple(
                 line[3:] for line in porcelain.splitlines() if line.strip()
             )
-        await self._leases.require_active(
+        lease = await self._leases.require_active(
             tenant_id=worker_run.tenant_id,
             project_id=worker_run.project_id,
             worker_run_id=worker_run.run_id,
             capability_id=CAPABILITY_RUN_LOCAL_PROCESS,
         )
-        result = await self._workspaces.execute(
-            workspace=workspace, command=list(action.command)
+        result = await self._journaled_execute(
+            worker_run, workspace=workspace, lease_id=lease.lease_id, action=action
         )
         diff_text = "\n".join(changed_files)
         handle = RunHandle(
@@ -238,6 +247,109 @@ class ScriptedWorkerAdapter:
         )
         self._handles[worker_run.run_id] = handle
         return handle
+
+    async def _journaled_execute(
+        self,
+        worker_run: WorkerRun,
+        *,
+        workspace: Workspace,
+        lease_id: UUID,
+        action: WorkerAction,
+    ) -> CommandResult:
+        """DDE-020: `WorkspaceService.execute`'s real subprocess spawn
+        (Chapter 7.5/DDE-010) is `capability.run_local_process`'s Chapter
+        12.4 journal call site -- this adapter is the "Capability adapter"
+        role (Chapter 3.8) for that capability, exactly as it already is
+        `require_active`'s own T1 enforcement point (DDE-017).
+
+        Outcome mapping (see `engine.recovery.service`'s module docstring
+        for the full reasoning): `timed_out=True` -> `mark_unknown` (Python
+        killed an already-spawned process; whether its command mutated
+        anything before the kill signal landed is genuinely undetermined,
+        Chapter 12.3's `SIDE_EFFECT_UNKNOWN`). Any other outcome is
+        definite: `exit_code == 0` -> `mark_confirmed`; anything else
+        (including a spawn-level `OSError`, reported as `exit_code=-1` with
+        `timed_out=False`) -> `mark_failed` -- the process either completed
+        and failed, or never started, both of which are known outcomes,
+        not ambiguous ones."""
+        effect = await self._effects.prepare(
+            tenant_id=worker_run.tenant_id,
+            project_id=worker_run.project_id,
+            mission_id=worker_run.mission_id,
+            worker_run_id=worker_run.run_id,
+            capability_lease_id=lease_id,
+            target_system="local_process",
+            target_resource=workspace.workspace_path or str(workspace.workspace_id),
+            operation=" ".join(action.command),
+            side_effect_class=side_effect_class_for(CAPABILITY_RUN_LOCAL_PROCESS),
+            idempotency_key=f"{worker_run.run_id}:effect:{CAPABILITY_RUN_LOCAL_PROCESS}",
+        )
+        if effect.status != "PREPARED":
+            # Chapter 12.5: "it never launches a second mutation." Unlike
+            # `WorkspaceService.snapshot`'s read-only git commands, an
+            # arbitrary caller-supplied local process is not safe to
+            # blindly re-run against an already-mutated workspace -- a
+            # genuine retry is a new WorkerRun (Chapter 3.10: "each
+            # recovery creates a new run within the same attempt"), not a
+            # second `start()` reusing this run's own idempotency key. No
+            # real caller in this codebase reaches this branch today (see
+            # the module docstring); it exists so the guard fails closed
+            # rather than silently re-executing if one ever does.
+            raise DdeError(
+                "VERSION_CONFLICT",
+                "capability.run_local_process was already attempted for "
+                "this worker run -- refusing to repeat a non-idempotent "
+                "local process invocation",
+                details={"effect_id": str(effect.effect_id), "status": effect.status},
+            )
+        await self._effects.mark_sent(
+            tenant_id=worker_run.tenant_id,
+            project_id=worker_run.project_id,
+            effect_id=effect.effect_id,
+        )
+        if action.timeout_seconds is not None:
+            result = await self._workspaces.execute(
+                workspace=workspace,
+                command=list(action.command),
+                timeout_seconds=action.timeout_seconds,
+            )
+        else:
+            result = await self._workspaces.execute(
+                workspace=workspace, command=list(action.command)
+            )
+        if result.timed_out:
+            await self._effects.mark_unknown(
+                tenant_id=worker_run.tenant_id,
+                project_id=worker_run.project_id,
+                effect_id=effect.effect_id,
+                reason=(
+                    "subprocess exceeded its timeout and was killed -- "
+                    "whether its command mutated anything before the kill "
+                    "signal landed cannot be determined from the exit alone"
+                ),
+            )
+        elif result.exit_code == 0:
+            await self._effects.mark_confirmed(
+                tenant_id=worker_run.tenant_id,
+                project_id=worker_run.project_id,
+                effect_id=effect.effect_id,
+                external_reference=None,
+                response_hash=effect_response_hash(
+                    {
+                        "exit_code": result.exit_code,
+                        "stdout": result.stdout,
+                        "stderr": result.stderr,
+                    }
+                ),
+            )
+        else:
+            await self._effects.mark_failed(
+                tenant_id=worker_run.tenant_id,
+                project_id=worker_run.project_id,
+                effect_id=effect.effect_id,
+                reason=f"exit_code={result.exit_code}",
+            )
+        return result
 
     async def status(self, worker_run: WorkerRun) -> RunStatus:
         handle = self._handles.get(worker_run.run_id)

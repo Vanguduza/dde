@@ -44,6 +44,15 @@ class WorkerAction:
 
     command: tuple[str, ...]
     write_files: dict[str, bytes] = field(default_factory=dict)
+    #: `None` defers to `engine.workspaces.service.WorkspaceService.execute`'s
+    #: own default (Chapter 7.5's `execute(command)` names no per-call
+    #: timeout override). Exposed here -- rather than hard-coded in
+    #: `engine.workers.scripted_adapter` -- so a caller can genuinely
+    #: request a short-lived command whose real `subprocess.TimeoutExpired`
+    #: produces DDE-020's real, reachable `SIDE_EFFECT_UNKNOWN` path (see
+    #: `engine.recovery.service`'s module docstring) without editing
+    #: production code to manufacture one.
+    timeout_seconds: float | None = None
 
 
 @dataclass(frozen=True)

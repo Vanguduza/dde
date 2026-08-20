@@ -58,6 +58,16 @@ material") and Chapter 3.8's matrix give "Credential handle" its own row,
 distinct from `CapabilityLease`'s: owner module `capabilities/broker`,
 created by "Credential Broker". `owner in path.parts` matches this exactly,
 since `broker` is a real subdirectory, not merely a table-owner label.
+
+DDE-020 adds `external_effects`, owned by `engine.recovery` (Chapter 3.6's
+repository layout: "checkpoints, effects, replay"; Chapter 3.8's matrix
+gives `ExternalEffect` its own row: owner module `recovery`, created by
+"Capability adapter"). The actual insert/transition calls are made from
+`engine.workers.scripted_adapter`/`engine.workspaces.service` (the real
+capability-adapter call sites), but the table name `"external_effects"`
+itself is only ever a string literal inside `engine/recovery/`, mirroring
+`credential_handles`' identical split between writer module and calling
+module.
 """
 
 from __future__ import annotations
@@ -91,6 +101,7 @@ TABLE_OWNERS = {
     "capabilities": "capabilities",
     "capability_leases": "capabilities",
     "credential_handles": "broker",
+    "external_effects": "recovery",
 }
 
 

@@ -124,6 +124,25 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
 )
 
 
+_SEED_BY_CAPABILITY_ID: dict[str, SeedCapability] = {
+    spec.capability_id: spec for spec in SEED_CAPABILITIES
+}
+
+
+def side_effect_class_for(capability_id: str) -> str:
+    """DDE-020: the one place `engine.workers.scripted_adapter` and
+    `engine.workspaces.service`'s real Chapter 12.4 journal call sites read
+    a capability's declared `side_effect_class` from -- the same seeded
+    portfolio their own `require_active` calls are already gated against,
+    never a second, independently-maintained mapping."""
+    spec = _SEED_BY_CAPABILITY_ID.get(capability_id)
+    if spec is None:
+        raise KeyError(
+            f"No seeded capability {capability_id!r} to read side_effect_class from"
+        )
+    return spec.side_effect_class
+
+
 async def seed_capabilities(
     service: CapabilityRegistryService,
     *,

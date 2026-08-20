@@ -45,6 +45,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.lease_service import CapabilityLeaseService
+from engine.capabilities.seed import side_effect_class_for
 from engine.context.repo import repo_root
 from engine.contracts.workspace import Workspace
 from engine.core.clock import Clock, SystemClock
@@ -54,6 +55,8 @@ from engine.core.state_machine import transition
 from engine.environments.backends.base import CommandResult, EnvironmentBackend
 from engine.environments.backends.local_process import LocalProcessBackend
 from engine.events.service import EventService
+from engine.recovery.hashing import effect_response_hash
+from engine.recovery.service import ExternalEffectService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.workspaces import git
 from engine.workspaces.paths import resolve_within_workspace
@@ -84,6 +87,7 @@ class WorkspaceService:
         backend: EnvironmentBackend | None = None,
         root: Path | None = None,
         leases: CapabilityLeaseService | None = None,
+        effects: ExternalEffectService | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -92,6 +96,15 @@ class WorkspaceService:
         self._backend: EnvironmentBackend = backend or LocalProcessBackend()
         self._root = root or repo_root()
         self._leases = leases or CapabilityLeaseService(engine, clock=self._clock)
+        self._effects = effects or ExternalEffectService(engine, clock=self._clock)
+
+    @property
+    def effects(self) -> ExternalEffectService:
+        """Shared with `engine.workers.scripted_adapter.ScriptedWorkerAdapter`
+        (DDE-020) so both real capability-adapter call sites journal
+        through the exact same `ExternalEffectService` instance rather than
+        each constructing an independent one against the same engine."""
+        return self._effects
 
     async def _run(
         self,
@@ -456,19 +469,84 @@ class WorkspaceService:
         DDE-017: gated behind a real, granted `capability.git_operations`
         lease bound to `worker_run_id` (Chapter 7.2's T1 enforcement point
         for this module — see the module docstring). `require_active` fails
-        closed before either real git subprocess call runs."""
+        closed before either real git subprocess call runs.
+
+        DDE-020: this module's real git subprocess calls are also the
+        Chapter 12.4 journal call site for `capability.git_operations` --
+        `snapshot()` is already this module's sole enforcement point for
+        that capability, so it is also the "Capability adapter" role
+        Chapter 3.8 assigns `ExternalEffect`'s writer to (the row itself is
+        still written solely by `engine.recovery`, see that module's
+        docstring). `target_system="git"` mutates nothing external to this
+        repository's own worktree, but both real git calls here are read
+        commands (`rev-parse`, `status --porcelain`) with no external
+        reference of their own to reconcile against beyond the revision
+        they observe -- `mark_confirmed` records that revision as
+        `external_reference`."""
         root = self._require_root(workspace)
-        await self._leases.require_active(
+        lease = await self._leases.require_active(
             tenant_id=workspace.tenant_id,
             project_id=workspace.project_id,
             worker_run_id=worker_run_id,
             capability_id=CAPABILITY_GIT_OPERATIONS,
             uow=uow,
         )
-        return {
-            "revision": git.rev_parse_head(root),
-            "status_porcelain": git.status_porcelain(root),
+        effect = await self._effects.prepare(
+            tenant_id=workspace.tenant_id,
+            project_id=workspace.project_id,
+            mission_id=lease.mission_id,
+            worker_run_id=worker_run_id,
+            capability_lease_id=lease.lease_id,
+            target_system="git",
+            target_resource=str(root),
+            operation="git_snapshot",
+            side_effect_class=side_effect_class_for(CAPABILITY_GIT_OPERATIONS),
+            idempotency_key=f"{worker_run_id}:effect:{CAPABILITY_GIT_OPERATIONS}",
+            uow=uow,
+        )
+        if effect.status != "PREPARED":
+            # Chapter 12.5 idempotent replay: this exact idempotency key was
+            # already carried through the journal by an earlier call. Both
+            # real git commands here are read-only (`rev-parse`, `status
+            # --porcelain`) -- safe to simply re-issue directly, without a
+            # second `mark_sent`/`mark_confirmed` pair against an
+            # already-terminal row (which `engine.core.state_machine.
+            # transition` would correctly refuse as an illegal transition).
+            return {
+                "revision": git.rev_parse_head(root),
+                "status_porcelain": git.status_porcelain(root),
+            }
+        await self._effects.mark_sent(
+            tenant_id=workspace.tenant_id,
+            project_id=workspace.project_id,
+            effect_id=effect.effect_id,
+            uow=uow,
+        )
+        try:
+            revision = git.rev_parse_head(root)
+            status_porcelain = git.status_porcelain(root)
+        except git.GitCommandError as exc:
+            await self._effects.mark_failed(
+                tenant_id=workspace.tenant_id,
+                project_id=workspace.project_id,
+                effect_id=effect.effect_id,
+                reason=str(exc),
+                uow=uow,
+            )
+            raise
+        snapshot: dict[str, object] = {
+            "revision": revision,
+            "status_porcelain": status_porcelain,
         }
+        await self._effects.mark_confirmed(
+            tenant_id=workspace.tenant_id,
+            project_id=workspace.project_id,
+            effect_id=effect.effect_id,
+            external_reference=revision,
+            response_hash=effect_response_hash(snapshot),
+            uow=uow,
+        )
+        return snapshot
 
     async def cleanup(
         self,

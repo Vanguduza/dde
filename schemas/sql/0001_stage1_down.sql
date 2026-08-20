@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS integration_proposals CASCADE;
 DROP TABLE IF EXISTS verification_runs CASCADE;
 DROP TABLE IF EXISTS acceptance_oracles CASCADE;
 DROP TABLE IF EXISTS artifacts CASCADE;
+DROP TABLE IF EXISTS external_effects CASCADE;
 DROP TABLE IF EXISTS credential_handles CASCADE;
 DROP TABLE IF EXISTS capability_leases CASCADE;
 DROP TABLE IF EXISTS worker_events CASCADE;
