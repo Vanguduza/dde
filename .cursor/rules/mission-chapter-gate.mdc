@@ -31,3 +31,7 @@ Never “tests pass ⇒ chapter closed.” Do not trust overclaiming docstrings 
 ## No blind chaining
 
 Do not start DDE-(N+1) until DDE-N’s chapter gate is signed off in the mission report. If a **correction mission** is open, freeze further Stage progression.
+
+## Standing auto-resume
+
+User standing order: **"auto resume if gates are passed."** When that phrase (or equivalent standing authorization) is in force, the coordinator may launch DDE-(N+1) after an independent chapter-gate returns **PASS** or **PASS-WITH-EDR**, without re-asking. Still freeze on **FAIL**, an open correction mission, or a human decision the mission itself says is not a gate.
