@@ -178,6 +178,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## CredentialHandle
+
+- table: `credential_handles`
+- primary key: handle_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## Artifact
 
 - table: `artifacts`

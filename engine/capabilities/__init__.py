@@ -6,7 +6,11 @@ side-effect taxonomy enforced as a real enum, and this module's lifecycle
 and its Chapter 7.2 T1 "brokered" enforcement guard (`lease_service.
 CapabilityLeaseService.require_active`), wired into the real Stage 1 side
 effects that need it (`engine.workers.scripted_adapter.ScriptedWorkerAdapter`,
-`engine.workspaces.service.WorkspaceService.snapshot`). T2 containment (7.2)
-and the Credential Broker (14.3) remain later, separately scoped missions --
-see `engine.capabilities.service`/`engine.capabilities.lease_service`'s
-module docstrings for the exact deferral lists."""
+`engine.workspaces.service.WorkspaceService.snapshot`). DDE-018 investigates
+Chapter 7.2 T2 containment and finds none of Stage 1's real capabilities need
+it, and closes a real ambient-environment-variable credential leak in
+`engine.environments.backends.local_process.LocalProcessBackend`. DDE-019
+adds the Credential Broker (14.3): `engine.capabilities.broker` -- see that
+subpackage's module docstring for the full scope determination and design
+choices, and `engine.capabilities.service`/`engine.capabilities.lease_service`'s
+own module docstrings for what each of those two missions still defers."""

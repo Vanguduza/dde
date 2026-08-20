@@ -461,6 +461,33 @@ CREATE TABLE capability_leases (
     PRIMARY KEY (lease_id)
 );
 
+CREATE TABLE credential_handles (
+    handle_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    worker_run_id uuid,
+    lease_id uuid NOT NULL,
+    capability_id text NOT NULL,
+    provider_id text NOT NULL,
+    provider_ref text,
+    resource_scope jsonb NOT NULL DEFAULT '{}'::jsonb,
+    issued_by_policy_version text NOT NULL,
+    secret_hash text NOT NULL,
+    status text NOT NULL,
+    issued_at timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL,
+    revoked_at timestamptz,
+    revocation_reason text,
+    supersedes_handle_id uuid,
+    superseded_by_handle_id uuid,
+    requested_by text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (handle_id)
+);
+
 CREATE TABLE artifacts (
     artifact_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -736,6 +763,14 @@ ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_mission_id_fkey F
 ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
 
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_lease_id_fkey FOREIGN KEY (lease_id) REFERENCES capability_leases (lease_id);
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_supersedes_handle_id_fkey FOREIGN KEY (supersedes_handle_id) REFERENCES credential_handles (handle_id);
+ALTER TABLE credential_handles ADD CONSTRAINT credential_handles_superseded_by_handle_id_fkey FOREIGN KEY (superseded_by_handle_id) REFERENCES credential_handles (handle_id);
+
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -867,6 +902,10 @@ CREATE POLICY worker_events_tenant_isolation ON worker_events USING (tenant_id =
 ALTER TABLE capability_leases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE capability_leases FORCE ROW LEVEL SECURITY;
 CREATE POLICY capability_leases_tenant_isolation ON capability_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE credential_handles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credential_handles FORCE ROW LEVEL SECURITY;
+CREATE POLICY credential_handles_tenant_isolation ON credential_handles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts FORCE ROW LEVEL SECURITY;

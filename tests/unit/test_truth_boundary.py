@@ -50,6 +50,14 @@ DDE-017 adds `capability_leases`, also owned by `engine.capabilities`
 broker" -- and Chapter 3.8's matrix gives `CapabilityLease` its own
 `engine.capabilities` row, "Lease manager"), tenant/project-scoped unlike
 its sibling `capabilities` table.
+
+DDE-019 adds `credential_handles`, owned by the `broker` subpackage of
+`engine.capabilities` (`engine/capabilities/broker/`) -- AGENTS.md's literal
+boundary rule ("Nothing except `engine/capabilities/broker/**` reads secret
+material") and Chapter 3.8's matrix give "Credential handle" its own row,
+distinct from `CapabilityLease`'s: owner module `capabilities/broker`,
+created by "Credential Broker". `owner in path.parts` matches this exactly,
+since `broker` is a real subdirectory, not merely a table-owner label.
 """
 
 from __future__ import annotations
@@ -82,6 +90,7 @@ TABLE_OWNERS = {
     "integration_proposals": "integration",
     "capabilities": "capabilities",
     "capability_leases": "capabilities",
+    "credential_handles": "broker",
 }
 
 
