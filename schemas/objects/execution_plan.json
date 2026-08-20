@@ -54,6 +54,12 @@
         "columns": ["execution_environment_id"],
         "ref_table": "execution_environments",
         "ref_columns": ["environment_id"]
+      },
+      {
+        "name": "execution_plans_write_scope_lease_id_fkey",
+        "columns": ["write_scope_lease_id"],
+        "ref_table": "write_scope_leases",
+        "ref_columns": ["lease_id"]
       }
     ]
   },

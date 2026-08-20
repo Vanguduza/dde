@@ -30,6 +30,18 @@
         "columns": ["mission_id"],
         "ref_table": "missions",
         "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "workspaces_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "workspaces_execution_environment_id_fkey",
+        "columns": ["execution_environment_id"],
+        "ref_table": "execution_environments",
+        "ref_columns": ["environment_id"]
       }
     ]
   },
@@ -37,6 +49,8 @@
     "workspace_id",
     "tenant_id",
     "project_id",
+    "policy",
+    "status",
     "lock_version",
     "created_at",
     "updated_at"
@@ -48,8 +62,25 @@
     "mission_id": {
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
+    "task_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "execution_environment_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
     "base_revision": {
       "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "current_revision": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "workspace_path": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "policy": { "type": "object", "additionalProperties": true },
+    "status": {
+      "type": "string",
+      "enum": ["PROVISIONING", "READY", "IN_USE", "CLEANED_UP", "FAILED"]
     },
     "lock_version": { "type": "integer" },
     "created_at": { "type": "string", "format": "date-time" },
