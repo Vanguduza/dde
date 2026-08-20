@@ -117,6 +117,5 @@ class CapabilityLeaseRepository:
             .order_by(capability_leases.c.created_at.asc())
         )
         return [
-            CapabilityLease.model_validate(dict(row))
-            for row in result.mappings().all()
+            CapabilityLease.model_validate(dict(row)) for row in result.mappings().all()
         ]

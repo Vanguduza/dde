@@ -99,9 +99,7 @@ async def test_negative_start_without_a_lease_is_denied(tmp_path: Path) -> None:
         workspaces = WorkspaceService(engine, root=root)
         leases = CapabilityLeaseService(engine)
         adapter = ScriptedWorkerAdapter(workspaces, leases)
-        action = WorkerAction(
-            command=[sys.executable, "-c", "print('must-not-run')"]
-        )
+        action = WorkerAction(command=[sys.executable, "-c", "print('must-not-run')"])
         adapter.bind_action(plan.plan_id, action)
         await adapter.prepare(
             execution_plan=plan, context_ref=plan.context_package_id, env_ref=workspace
