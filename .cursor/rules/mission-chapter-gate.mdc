@@ -1,0 +1,33 @@
+---
+description: CI green is not mission done. Require a blueprint chapter gate before declaring any DDE-xxx complete or launching the next mission.
+alwaysApply: true
+---
+
+# Mission chapter gate (CI is not done)
+
+**CI green ≠ done.** `ruff` / `mypy` / `pytest` / `just check` + commit is a **CI gate**, not a **blueprint chapter gate**. Tests passing does not close a chapter.
+
+How DDE-020 failed: the autonomous chain treated CI green as “mission done,” shipped a real schema/journal while Chapter 12.4’s recovery rule (“UNKNOWN never blind-retried; only verified absence permits a new mutation”) was not operational, trusted the docstring “wired at both call sites,” and launched DDE-021 anyway.
+
+## Before declaring DDE-N complete
+
+Re-read the **chartered** blueprint chapter(s). For every MUST / shall / recovery rule in scope, either:
+
+- (a) name the **production mutation call site** that enforces it, or
+- (b) list it as **deferred** with a proposed EDR.
+
+Never “tests pass ⇒ chapter closed.” Do not trust overclaiming docstrings — open the call site.
+
+```
+❌ BAD: journal exists, tests green, docstring says “wired at both call sites” → ship DDE-N, start DDE-(N+1)
+✅ GOOD: Ch.12.4 recovery rule named at the retry/mutation site (or deferred + EDR) → then, and only then, close DDE-N
+```
+
+## Adversarial self-check (before commit)
+
+- Could a **new WorkerRun** or **new idempotency key** bypass this control?
+- Is every claimed call site a **real mutation**, not a read/helper?
+
+## No blind chaining
+
+Do not start DDE-(N+1) until DDE-N’s chapter gate is signed off in the mission report. If a **correction mission** is open, freeze further Stage progression.
