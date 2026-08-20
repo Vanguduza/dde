@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/verification_run.json",
   "title": "VerificationRun",
-  "description": "Independent verification run over durable artifacts.",
+  "description": "Independent verification run over durable artifacts (Chapter 11.1). Append-only result: once terminal, a row is never mutated again; a re-verification creates a new run.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -12,6 +12,7 @@
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
+    "uniques": [["worker_run_id", "sequence"]],
     "foreign_keys": [
       {
         "name": "verification_runs_tenant_id_fkey",
@@ -36,8 +37,83 @@
         "columns": ["task_id"],
         "ref_table": "tasks",
         "ref_columns": ["task_id"]
+      },
+      {
+        "name": "verification_runs_task_attempt_id_fkey",
+        "columns": ["task_attempt_id"],
+        "ref_table": "task_attempts",
+        "ref_columns": ["attempt_id"]
+      },
+      {
+        "name": "verification_runs_worker_run_id_fkey",
+        "columns": ["worker_run_id"],
+        "ref_table": "worker_runs",
+        "ref_columns": ["run_id"]
+      },
+      {
+        "name": "verification_runs_workspace_id_fkey",
+        "columns": ["workspace_id"],
+        "ref_table": "workspaces",
+        "ref_columns": ["workspace_id"]
+      },
+      {
+        "name": "verification_runs_oracle_id_fkey",
+        "columns": ["oracle_id"],
+        "ref_table": "acceptance_oracles",
+        "ref_columns": ["oracle_id"]
       }
     ]
+  },
+  "$defs": {
+    "CheckResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_ref",
+        "kind",
+        "command",
+        "exit_code",
+        "stdout",
+        "stderr",
+        "duration_ms",
+        "timed_out",
+        "status"
+      ],
+      "properties": {
+        "check_ref": { "type": "string" },
+        "kind": { "type": "string" },
+        "command": { "type": "array", "items": { "type": "string" } },
+        "exit_code": { "type": "integer" },
+        "stdout": { "type": "string" },
+        "stderr": { "type": "string" },
+        "duration_ms": { "type": "integer" },
+        "timed_out": { "type": "boolean" },
+        "status": { "type": "string" }
+      }
+    },
+    "ObservableOutcomeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome_id",
+        "statement",
+        "is_negative_case",
+        "check_ref",
+        "status",
+        "evaluated_at"
+      ],
+      "properties": {
+        "outcome_id": { "type": "string", "format": "uuid" },
+        "statement": { "type": "string" },
+        "is_negative_case": { "type": "boolean" },
+        "check_ref": { "type": "string" },
+        "status": { "type": "string" },
+        "evidence_id": {
+          "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+        },
+        "evaluated_at": { "type": "string", "format": "date-time" }
+      }
+    }
   },
   "required": [
     "verification_run_id",
@@ -45,7 +121,18 @@
     "project_id",
     "mission_id",
     "task_id",
+    "task_attempt_id",
+    "worker_run_id",
+    "workspace_id",
+    "oracle_id",
+    "sequence",
     "status",
+    "confidence",
+    "check_results",
+    "outcome_results",
+    "negative_case_results",
+    "evidence_refs",
+    "started_at",
     "created_at",
     "updated_at"
   ],
@@ -55,7 +142,30 @@
     "project_id": { "type": "string", "format": "uuid" },
     "mission_id": { "type": "string", "format": "uuid" },
     "task_id": { "type": "string", "format": "uuid" },
+    "task_attempt_id": { "type": "string", "format": "uuid" },
+    "worker_run_id": { "type": "string", "format": "uuid" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "oracle_id": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer" },
     "status": { "type": "string" },
+    "confidence": { "type": "number" },
+    "check_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CheckResult" }
+    },
+    "outcome_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ObservableOutcomeResult" }
+    },
+    "negative_case_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ObservableOutcomeResult" }
+    },
+    "evidence_refs": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

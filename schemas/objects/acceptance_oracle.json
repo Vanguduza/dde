@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/acceptance_oracle.json",
+  "title": "AcceptanceOracle",
+  "description": "Chapter 11.2 executable acceptance definition, bound to evidence producers. Immutable definition; oracle_version is a content hash over definition fields only (Chapter 3.10).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "acceptance_oracles",
+    "order": 205,
+    "pk": ["oracle_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "acceptance_oracles_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "acceptance_oracles_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "acceptance_oracles_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "acceptance_oracles_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "EvidenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "test",
+            "db_assertion",
+            "api_probe",
+            "visual_diff",
+            "invariant",
+            "judge",
+            "human"
+          ]
+        },
+        "ref": { "type": "string" },
+        "command": { "type": "array", "items": { "type": "string" } },
+        "independence": { "type": "string" },
+        "assertion_id": { "type": "string" }
+      }
+    },
+    "ObservableOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "statement", "evidence_binding"],
+      "properties": {
+        "outcome_id": { "type": "string", "format": "uuid" },
+        "statement": { "type": "string" },
+        "evidence_binding": { "$ref": "#/$defs/EvidenceBinding" }
+      }
+    }
+  },
+  "required": [
+    "oracle_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "oracle_version",
+    "scope",
+    "requirement_refs",
+    "feature_refs",
+    "observable_outcomes",
+    "domain_invariants",
+    "negative_cases",
+    "minimum_confidence",
+    "human_assertions",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "oracle_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "oracle_version": { "type": "string" },
+    "scope": { "type": "string", "enum": ["task", "mission"] },
+    "requirement_refs": { "type": "array", "items": { "type": "string" } },
+    "feature_refs": { "type": "array", "items": { "type": "string" } },
+    "observable_outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ObservableOutcome" }
+    },
+    "domain_invariants": { "type": "array", "items": { "type": "string" } },
+    "negative_cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ObservableOutcome" }
+    },
+    "minimum_confidence": { "type": "number" },
+    "human_assertions": { "type": "array", "items": { "type": "string" } },
+    "approved_by": { "type": "string" },
+    "approved_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
