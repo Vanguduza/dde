@@ -35,6 +35,17 @@ before the merge candidate is verified. See
 scanner-honesty notes, and the exact deferrals (Gitleaks/Semgrep/Syft/
 Grype CLIs, live OSV, donor taint, DDE-026 approvals).
 
+**DDE-020 correction.** `submit()` journals its real git mutation
+(`commit_all` plus `update-ref` / `create_branch` of the task branch)
+through `ExternalEffectService`. That is the Chapter 12.4
+EXTERNAL_IDEMPOTENT proof -- not `WorkspaceService.snapshot`'s git read.
+A new lease is requested for `capability.git_operations` bound to the
+attempt's latest `WorkerRun` because the worker's original lease is
+already `CONSUMED` by the time integration runs. `integrate()`'s later
+mission-branch `update-ref` is not journaled in this correction (one
+production mutation path is the required minimum; wiring every integrate
+ref move is deferred).
+
 Deliberately out of Stage 1 scope, per the mission brief: emitting a real
 `repair` task on `CONFLICT(textual)`/`CONFLICT(semantic)` (needs the Task
 Planner's replan machinery, Chapter 4.6, not wired to this module),
@@ -58,8 +69,11 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
+from engine.capabilities.seed import side_effect_class_for
 from engine.context.repo import repo_root
 from engine.contracts.integration_proposal import IntegrationProposal
+from engine.contracts.worker_run import WorkerRun
 from engine.contracts.workspace import Workspace
 from engine.contracts.write_scope_lease import WriteScopeLease
 from engine.core.clock import Clock, SystemClock
@@ -78,8 +92,16 @@ from engine.integration.states import (
     INTEGRATION_PROPOSAL_TRANSITIONS,
     WRITE_SCOPE_LEASE_TRANSITIONS,
 )
+from engine.recovery.hashing import effect_response_hash
+from engine.recovery.scope import (
+    GIT_SYSTEM,
+    GIT_UPDATE_REF_OPERATION,
+    git_ref_resource,
+)
+from engine.recovery.service import ExternalEffectService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.verification.repository import VerificationRunRepository
+from engine.workers.repository import WorkerRunRepository
 
 T = TypeVar("T")
 
@@ -90,6 +112,7 @@ T = TypeVar("T")
 DEFAULT_LEASE_TTL = timedelta(hours=24)
 
 HELD_LEASE_STATUSES: frozenset[str] = frozenset({"RESERVED", "ACTIVE"})
+CAPABILITY_GIT_OPERATIONS = "capability.git_operations"
 
 
 class WriteScopeLeaseService:
@@ -304,6 +327,9 @@ class IntegrationQueueService:
         gates: DiffGateService | None = None,
         clock: Clock | None = None,
         root: Path | None = None,
+        capability_leases: CapabilityLeaseService | None = None,
+        effects: ExternalEffectService | None = None,
+        worker_run_repository: WorkerRunRepository | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -315,6 +341,13 @@ class IntegrationQueueService:
         self._gates = gates or DiffGateService(engine, events=self._events)
         self._clock = clock or SystemClock()
         self._root = root or repo_root()
+        self._capability_leases = capability_leases or CapabilityLeaseService(
+            engine, events=self._events, clock=self._clock
+        )
+        self._effects = effects or ExternalEffectService(
+            engine, events=self._events, clock=self._clock
+        )
+        self._worker_runs = worker_run_repository or WorkerRunRepository()
 
     async def _run(
         self,
@@ -392,14 +425,16 @@ class IntegrationQueueService:
         worktree_path = Path(workspace.workspace_path)
         base_revision = workspace.base_revision or git.rev_parse(self._root, "HEAD")
         branch = self.task_branch_name(task_id, attempt_label)
-        proposed_revision = git.commit_all(
-            worktree_path,
-            f"Integrate task {task_id} attempt {attempt_label}",
+        proposed_revision = await self._publish_task_ref(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            task_id=task_id,
+            task_attempt_id=task_attempt_id,
+            worktree_path=worktree_path,
+            branch=branch,
+            attempt_label=attempt_label,
         )
-        if git.branch_exists(self._root, branch):
-            git.update_ref(self._root, branch, proposed_revision)
-        else:
-            git.create_branch(self._root, branch, proposed_revision)
         changed_paths = git.diff_name_only(self._root, base_revision, proposed_revision)
         diff_summary = f"{len(changed_paths)} file(s) changed"
 
@@ -592,6 +627,140 @@ class IntegrationQueueService:
                 git.delete_branch(self._root, candidate_ref)
 
         return await self._run(uow, proposal.tenant_id, proposal.project_id, _op)
+
+    async def _latest_run_for_attempt(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_attempt_id: UUID,
+    ) -> WorkerRun:
+        async def _op(active: PostgresUnitOfWork) -> WorkerRun:
+            runs = await self._worker_runs.list_for_attempt(
+                active.connection, task_attempt_id
+            )
+            if not runs:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "Cannot journal a git mutation without a WorkerRun on this attempt",
+                    details={"task_attempt_id": str(task_attempt_id)},
+                )
+            return runs[-1]
+
+        return await self._run(None, tenant_id, project_id, _op)
+
+    async def _publish_task_ref(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        task_id: UUID,
+        task_attempt_id: UUID,
+        worktree_path: Path,
+        branch: str,
+        attempt_label: str,
+    ) -> str:
+        """Chapter 12.4 journal around the real git mutation `submit()`
+        performs: `commit_all` then `update-ref`/`create_branch` of the
+        task branch. `prepare()`/`mark_sent()` commit before the git
+        calls so a crash mid-mutation leaves SENT for `abandon_sent`."""
+        run = await self._latest_run_for_attempt(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            task_attempt_id=task_attempt_id,
+        )
+        git_lease = await self._capability_leases.request(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            task_id=task_id,
+            execution_plan_id=run.execution_plan_id,
+            worker_run_id=run.run_id,
+            environment_id=run.environment_id,
+            capability_id=CAPABILITY_GIT_OPERATIONS,
+            capability_version="1",
+            requested_by="engine.integration.service.IntegrationQueueService",
+            idempotency_key=(
+                f"{run.run_id}:integration:{CAPABILITY_GIT_OPERATIONS}:"
+                f"{attempt_label}:{uuid7()}"
+            ),
+        )
+        if git_lease.status == "DENIED":
+            raise DdeError(
+                "POLICY_DENIED",
+                "capability.git_operations lease denied for integration "
+                f"submit: {git_lease.denied_reason}",
+                details={"lease_id": str(git_lease.lease_id)},
+            )
+        active_lease = await self._capability_leases.require_active(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            worker_run_id=run.run_id,
+            capability_id=CAPABILITY_GIT_OPERATIONS,
+        )
+        ref = git_ref_resource(branch)
+        effect = await self._effects.prepare(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            worker_run_id=run.run_id,
+            capability_lease_id=active_lease.lease_id,
+            target_system=GIT_SYSTEM,
+            target_resource=ref,
+            operation=GIT_UPDATE_REF_OPERATION,
+            side_effect_class=side_effect_class_for(CAPABILITY_GIT_OPERATIONS),
+            idempotency_key=f"{run.run_id}:effect:{GIT_UPDATE_REF_OPERATION}:{branch}",
+            evidence_ref=ref,
+        )
+        if effect.status != "PREPARED":
+            raise DdeError(
+                "VERSION_CONFLICT",
+                "git update-ref was already attempted for this worker run "
+                "and task branch -- refusing to repeat the mutation",
+                details={"effect_id": str(effect.effect_id), "status": effect.status},
+            )
+        await self._effects.mark_sent(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            effect_id=effect.effect_id,
+        )
+        try:
+            proposed_revision = git.commit_all(
+                worktree_path,
+                f"Integrate task {task_id} attempt {attempt_label}",
+            )
+            if git.branch_exists(self._root, branch):
+                git.update_ref(self._root, branch, proposed_revision)
+            else:
+                git.create_branch(self._root, branch, proposed_revision)
+        except git.GitCommandError as exc:
+            if exc.returncode == -1:
+                await self._effects.mark_unknown(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    effect_id=effect.effect_id,
+                    reason=str(exc),
+                )
+            else:
+                await self._effects.mark_failed(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    effect_id=effect.effect_id,
+                    reason=str(exc),
+                )
+            raise
+        await self._effects.mark_confirmed(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            effect_id=effect.effect_id,
+            external_reference=proposed_revision,
+            response_hash=effect_response_hash(
+                {"ref": ref, "revision": proposed_revision}
+            ),
+        )
+        await self._capability_leases.consume(lease=active_lease)
+        return proposed_revision
 
     async def _acquire_project_lock(
         self, active: PostgresUnitOfWork, project_id: UUID

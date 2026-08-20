@@ -63,6 +63,11 @@ from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
 from engine.environments.backends.base import CommandResult
 from engine.recovery.hashing import effect_response_hash
+from engine.recovery.scope import (
+    LOCAL_PROCESS_SYSTEM,
+    local_process_operation,
+    local_process_resource,
+)
 from engine.routing.policy import (
     CAPABILITY_REPOSITORY,
     CAPABILITY_TESTING,
@@ -262,27 +267,32 @@ class ScriptedWorkerAdapter:
         role (Chapter 3.8) for that capability, exactly as it already is
         `require_active`'s own T1 enforcement point (DDE-017).
 
-        Outcome mapping (see `engine.recovery.service`'s module docstring
-        for the full reasoning): `timed_out=True` -> `mark_unknown` (Python
-        killed an already-spawned process; whether its command mutated
-        anything before the kill signal landed is genuinely undetermined,
-        Chapter 12.3's `SIDE_EFFECT_UNKNOWN`). Any other outcome is
-        definite: `exit_code == 0` -> `mark_confirmed`; anything else
-        (including a spawn-level `OSError`, reported as `exit_code=-1` with
-        `timed_out=False`) -> `mark_failed` -- the process either completed
-        and failed, or never started, both of which are known outcomes,
-        not ambiguous ones."""
+        `prepare()` itself queries live `external_effects` for this
+        logical scope (mission + local_process + workspace + argv) and
+        refuses a new mutation while UNKNOWN/RECONCILING/SENT-abandoned or
+        verified-present RECONCILED rows exist. A new WorkerRun with a new
+        idempotency key still hits this gate.
+
+        Outcome mapping: `timed_out=True` -> `mark_unknown` (Python killed
+        an already-spawned process; whether its command mutated anything
+        before the kill signal landed is genuinely undetermined,
+        Chapter 12.3's `SIDE_EFFECT_UNKNOWN`, which
+        `WorkerManagerService` also stamps on the run). Any other outcome
+        is definite: `exit_code == 0` -> `mark_confirmed`; anything else
+        (including a spawn-level `OSError`, reported as `exit_code=-1`
+        with `timed_out=False`) -> `mark_failed`."""
         effect = await self._effects.prepare(
             tenant_id=worker_run.tenant_id,
             project_id=worker_run.project_id,
             mission_id=worker_run.mission_id,
             worker_run_id=worker_run.run_id,
             capability_lease_id=lease_id,
-            target_system="local_process",
-            target_resource=workspace.workspace_path or str(workspace.workspace_id),
-            operation=" ".join(action.command),
+            target_system=LOCAL_PROCESS_SYSTEM,
+            target_resource=local_process_resource(workspace),
+            operation=local_process_operation(action.command),
             side_effect_class=side_effect_class_for(CAPABILITY_RUN_LOCAL_PROCESS),
             idempotency_key=f"{worker_run.run_id}:effect:{CAPABILITY_RUN_LOCAL_PROCESS}",
+            evidence_ref=action.expected_artifact,
         )
         if effect.status != "PREPARED":
             # Chapter 12.5: "it never launches a second mutation." Unlike

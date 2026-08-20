@@ -1,6 +1,8 @@
 """`engine.recovery` durability (Chapter 19.1): a fresh session/engine
 reads back the exact committed `ExternalEffect` the writing process
-produced around a real `WorkerManagerService.invoke_run`."""
+produced around a real `WorkerManagerService.invoke_run`, including a
+crash-abandoned SENT row recovered via `abandon_sent`.
+"""
 
 from __future__ import annotations
 
@@ -74,6 +76,95 @@ async def test_second_session_sees_the_exact_committed_effect_row(
             worker_run_id=run.run_id,
         )
         assert listed == [committed]
+    finally:
+        if workspace is not None:
+            await WorkspaceService(reader_engine, root=root).cleanup(
+                workspace=workspace
+            )
+        await reader_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_second_session_sees_abandon_sent_unknown(
+    tmp_path: Path,
+) -> None:
+    """A SENT row marked unknown by production recovery is visible to a
+    fresh engine -- the crash-abandoned SENT -> UNKNOWN path is durable."""
+    root = repo_root()
+    writer_engine = new_engine()
+    workspace = None
+    tenant_id = None
+    project_id = None
+    effect_id = None
+    try:
+        fixture = await build_worker_fixture(
+            writer_engine, tmp_path, mission_slug="MISSION-EFFECT-ABANDON-RECOVERY"
+        )
+        workspace = fixture.workspace
+        tenant_id = fixture.tenant.tenant_id
+        project_id = fixture.tenant.project_id
+        workspaces = WorkspaceService(writer_engine, root=root)
+        leases = CapabilityLeaseService(writer_engine)
+        registry = WorkerProfileRegistry()
+        await registry.register_profile(ScriptedWorkerAdapter(workspaces, leases))
+        manager = WorkerManagerService(writer_engine, registry, leases=leases)
+        run = await manager.invoke_run(
+            task=fixture.task,
+            execution_plan=fixture.execution_plan,
+            workspace=fixture.workspace,
+            input_context_hash=fixture.context_package.assembly_hash,
+            action=WorkerAction(command=[sys.executable, "-c", "pass"]),
+            idempotency_key="effect-abandon-recovery-invoke",
+        )
+        effects = workspaces.effects
+        journaled = await effects.list_for_run(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            worker_run_id=run.run_id,
+        )
+        prepared = await effects.prepare(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=fixture.mission.mission_id,
+            worker_run_id=run.run_id,
+            capability_lease_id=journaled[0].capability_lease_id,
+            target_system="git",
+            target_resource="refs/heads/dde-abandon-recovery",
+            operation="update-ref",
+            side_effect_class="EXTERNAL_IDEMPOTENT",
+            idempotency_key="effect-abandon-recovery-sent",
+        )
+        await effects.mark_sent(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            effect_id=prepared.effect_id,
+        )
+        abandoned = await effects.abandon_sent(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            effect_id=prepared.effect_id,
+            reason="crash after SENT",
+        )
+        assert abandoned.status == "UNKNOWN"
+        effect_id = abandoned.effect_id
+    finally:
+        await writer_engine.dispose()
+
+    reader_engine = new_engine()
+    try:
+        reader = ExternalEffectService(reader_engine)
+        reloaded = await reader.get_effect(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            effect_id=effect_id,
+        )
+        assert reloaded.status == "UNKNOWN"
+        listed = await reader.list_unreconciled(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=reloaded.mission_id,
+        )
+        assert any(row.effect_id == effect_id for row in listed)
     finally:
         if workspace is not None:
             await WorkspaceService(reader_engine, root=root).cleanup(

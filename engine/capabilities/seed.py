@@ -131,10 +131,12 @@ _SEED_BY_CAPABILITY_ID: dict[str, SeedCapability] = {
 
 def side_effect_class_for(capability_id: str) -> str:
     """DDE-020: the one place `engine.workers.scripted_adapter` and
-    `engine.workspaces.service`'s real Chapter 12.4 journal call sites read
-    a capability's declared `side_effect_class` from -- the same seeded
-    portfolio their own `require_active` calls are already gated against,
-    never a second, independently-maintained mapping."""
+    `engine.workspaces.service`'s snapshot journal (optional extra git
+    read) and `engine.integration.service`'s update-ref journal (the
+    Chapter 12.4 EXTERNAL_IDEMPOTENT mutation) read a capability's
+    declared `side_effect_class` from -- the same seeded portfolio their
+    own `require_active` calls are already gated against, never a second,
+    independently-maintained mapping."""
     spec = _SEED_BY_CAPABILITY_ID.get(capability_id)
     if spec is None:
         raise KeyError(

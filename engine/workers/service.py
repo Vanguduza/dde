@@ -67,6 +67,15 @@ now-real leases once granted would need either a second row update after
 `request()` or reordering creation, neither of which this mission's scope
 covers.
 
+**DDE-020 correction.** Before inserting a new `WorkerRun`, `invoke_run`
+queries live `external_effects` for the `run_local_process` logical scope
+and raises `EFFECT_CONFLICT` if an unreconciled `SENT`/`UNKNOWN`/
+`RECONCILING` row (or a verified-present `RECONCILED` row) exists -- a new
+idempotency key does not bypass Chapter 12.4. A subprocess timeout is
+classified as `SIDE_EFFECT_UNKNOWN` (Chapter 12.3), not only
+`WORKER_COMMAND_TIMEOUT`. `WORKER_COMMAND_TIMEOUT` remains defined for
+payload/legacy readers but is no longer the timeout failure_class.
+
 Deliberately out of Stage 1 scope, per the mission brief: `WorkerSession`
 (Chapter 8.6 — `worker_session_id` stays `None`), checkpoint/pause/resume
 (Chapter 8.2's `CHECKPOINTING`/`PAUSING`/`PAUSED`/`RESUMING` branches are
@@ -104,6 +113,12 @@ from engine.environments.service import ExecutionEnvironmentService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
 from engine.missions.attempts import TaskAttemptService
+from engine.recovery.scope import (
+    LOCAL_PROCESS_SYSTEM,
+    local_process_operation,
+    local_process_resource,
+)
+from engine.recovery.service import EFFECT_CONFLICT, ExternalEffectService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.workers.adapter import (
     ActionBindableWorkerAdapter,
@@ -134,6 +149,10 @@ WORKER_PREPARE_FAILED = "WORKER_PREPARE_FAILED"
 WORKER_COMMAND_FAILED = "WORKER_COMMAND_FAILED"
 WORKER_COMMAND_TIMEOUT = "WORKER_COMMAND_TIMEOUT"
 WORKER_CAPABILITY_DENIED = "WORKER_CAPABILITY_DENIED"
+#: Chapter 12.3 -- subprocess timeout of a journaled side effect is not
+#: classified as a generic command timeout alone; recovery dispatches on
+#: this class ("Reconcile before any retry").
+SIDE_EFFECT_UNKNOWN = "SIDE_EFFECT_UNKNOWN"
 
 #: DDE-016's real, seeded `capability_id`s -- see the module docstring's
 #: DDE-017 addition for which of these a given `action` actually needs.
@@ -197,6 +216,7 @@ class WorkerManagerService:
         attempts: TaskAttemptService | None = None,
         clock: Clock | None = None,
         leases: CapabilityLeaseService | None = None,
+        effects: ExternalEffectService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -210,6 +230,9 @@ class WorkerManagerService:
         self._attempts = attempts or TaskAttemptService(engine, events=self._events)
         self._clock = clock or SystemClock()
         self._leases = leases or CapabilityLeaseService(
+            engine, events=self._events, clock=self._clock
+        )
+        self._effects = effects or ExternalEffectService(
             engine, events=self._events, clock=self._clock
         )
 
@@ -283,6 +306,16 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            await self._effects.assert_clear_to_mutate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=execution_plan.mission_id,
+                target_system=LOCAL_PROCESS_SYSTEM,
+                target_resource=local_process_resource(workspace),
+                operation=local_process_operation(action.command),
+                uow=active,
+            )
 
             environment = await self._environments.get_environment(
                 tenant_id=tenant_id,
@@ -468,11 +501,16 @@ class WorkerManagerService:
         try:
             handle = await adapter.start(run)
         except DdeError as exc:
+            failure_class = (
+                SIDE_EFFECT_UNKNOWN
+                if exc.error_code == EFFECT_CONFLICT
+                else WORKER_CAPABILITY_DENIED
+            )
             return await self._fail(
                 active,
                 run,
                 task_id=task_id,
-                failure_class=WORKER_CAPABILITY_DENIED,
+                failure_class=failure_class,
                 payload={"error_code": exc.error_code, "message": exc.message},
             )
 
@@ -494,7 +532,7 @@ class WorkerManagerService:
             )
 
         failure_class = (
-            WORKER_COMMAND_TIMEOUT if handle.timed_out else WORKER_COMMAND_FAILED
+            SIDE_EFFECT_UNKNOWN if handle.timed_out else WORKER_COMMAND_FAILED
         )
         return await self._fail(
             active,
@@ -507,6 +545,7 @@ class WorkerManagerService:
                 "stderr": handle.stderr,
                 "duration_ms": handle.duration_ms,
                 "timed_out": handle.timed_out,
+                "timeout_signal": WORKER_COMMAND_TIMEOUT if handle.timed_out else None,
             },
         )
 

@@ -53,6 +53,12 @@ class WorkerAction:
     #: `engine.recovery.service`'s module docstring) without editing
     #: production code to manufacture one.
     timeout_seconds: float | None = None
+    #: Workspace-relative path the command is expected to write. Journaled
+    #: as `ExternalEffect.external_reference` so production
+    #: `reconcile_journaled` can stat it (verified presence = exists,
+    #: verified absence = missing). `None` means the resolver cannot
+    #: determine either answer from the argv alone.
+    expected_artifact: str | None = None
 
 
 @dataclass(frozen=True)

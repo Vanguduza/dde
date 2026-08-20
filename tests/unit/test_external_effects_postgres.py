@@ -3,9 +3,9 @@ negative and recovery tests (Chapter 19.1) -- DDE-020's ExternalEffect
 journal acceptance proof.
 
 Wiring is exercised through the real `WorkerManagerService.invoke_run` /
-`ScriptedWorkerAdapter.start` / `WorkspaceService.snapshot` call sites, not
-a parallel unused helper -- unlike DDE-019's broker, this journal has
-genuine side-effecting callers.
+`ScriptedWorkerAdapter.start` / `IntegrationQueueService.submit` call sites.
+`WorkspaceService.snapshot` may still journal a git read as optional extra
+audit -- that is not the Chapter 12.4 mutation proof.
 """
 
 from __future__ import annotations
@@ -23,16 +23,22 @@ from engine.context.repo import repo_root
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.worker_run import WorkerRun
 from engine.core.errors import DdeError
+from engine.events.repository import EventsRepository
+from engine.integration.service import IntegrationQueueService
+from engine.recovery.scope import GIT_UPDATE_REF_OPERATION, git_ref_resource
 from engine.recovery.service import (
+    EFFECT_CONFLICT,
     ExternalEffectService,
     ReconciliationOutcome,
 )
+from engine.truth.db import open_unit_of_work
 from engine.workers.adapter import WorkerAction
 from engine.workers.registry import WorkerProfileRegistry
 from engine.workers.scripted_adapter import ScriptedWorkerAdapter
 from engine.workers.service import WorkerManagerService
 from engine.workspaces.service import WorkspaceService
 from tests.support.db import TenantFixture, new_engine
+from tests.support.integration_fixtures import advance_task_to_verified
 from tests.support.worker_fixtures import WorkerFixture, build_worker_fixture
 
 
@@ -344,13 +350,27 @@ async def test_negative_irreversible_reconciliation_failure_escalates(
                 method="provider_status_api",
                 resolver=undeterminable,
             )
-        assert excinfo.value.error_code == "EFFECT_UNKNOWN"
+        assert excinfo.value.error_code == "EFFECT_IRREVERSIBLE"
         stuck = await fixture.effects.get_effect(
             tenant_id=fixture.tenant.tenant_id,
             project_id=fixture.tenant.project_id,
             effect_id=prepared.effect_id,
         )
         assert stuck.status == "RECONCILING"
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            events = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "external_effect", prepared.effect_id
+            )
+        assert any(
+            event.event_type == "ExternalEffectIrreversibleEscalated"
+            for event in events
+        )
+        assert excinfo.value.details is not None
+        assert excinfo.value.details.get("escalation") == "human"
     finally:
         if workspace is not None:
             await WorkspaceService(engine, root=repo_root()).cleanup(
@@ -392,11 +412,12 @@ async def test_state_transition_unknown_reconciling_reconciled_via_real_timeout(
                     ),
                 ],
                 timeout_seconds=0.3,
+                expected_artifact=marker,
             ),
             idempotency_key="effect-timeout-invoke-1",
         )
         assert run.status == "FAILED"
-        assert run.failure_class == "WORKER_COMMAND_TIMEOUT"
+        assert run.failure_class == "SIDE_EFFECT_UNKNOWN"
 
         effects = await workspaces.effects.list_for_run(
             tenant_id=worker.tenant.tenant_id,
@@ -407,26 +428,15 @@ async def test_state_transition_unknown_reconciling_reconciled_via_real_timeout(
         assert len(local) == 1
         assert local[0].status == "UNKNOWN"
 
-        root = Path(worker.workspace.workspace_path or "")
-
-        async def marker_absent() -> ReconciliationOutcome:
-            present = (root / marker).exists()
-            return ReconciliationOutcome(
-                verified=True,
-                present=present,
-                detail="workspace marker file after killed sleep",
-            )
-
-        result = await workspaces.effects.reconcile(
+        result = await workspaces.effects.reconcile_journaled(
             tenant_id=worker.tenant.tenant_id,
             project_id=worker.tenant.project_id,
             effect_id=local[0].effect_id,
-            method="workspace_marker_stat",
-            resolver=marker_absent,
         )
         assert result.effect.status == "RECONCILED"
         assert result.verified_absent is True
-        assert result.effect.reconciliation_method == "workspace_marker_stat"
+        assert result.effect.reconciliation_method == "workspace_artifact_stat"
+        assert result.effect.confirmed_at is None
     finally:
         if workspace is not None:
             await WorkspaceService(engine, root=repo_root()).cleanup(
@@ -439,8 +449,10 @@ async def test_state_transition_unknown_reconciling_reconciled_via_real_timeout(
 async def test_end_to_end_invoke_run_journals_real_git_and_process_effects(
     tmp_path: Path,
 ) -> None:
-    """WorkerManagerService.invoke_run through ScriptedWorkerAdapter
-    journals both real call sites: git snapshot and local-process execute."""
+    """WorkerManagerService.invoke_run journals run_local_process and
+    the optional extra git_snapshot read. The Chapter 12.4 git mutation
+    proof is IntegrationQueueService.submit's update-ref, tested
+    separately."""
     engine = new_engine()
     workspace = None
     try:
@@ -481,4 +493,342 @@ async def test_end_to_end_invoke_run_journals_real_git_and_process_effects(
             await WorkspaceService(engine, root=repo_root()).cleanup(
                 workspace=workspace
             )
+        await engine.dispose()
+
+
+_TIMEOUT_COMMAND = (
+    "import time, pathlib; time.sleep(30); "
+    "pathlib.Path('dde-effect-timeout-marker.txt').write_text('x')"
+)
+
+
+@pytest.mark.asyncio
+async def test_second_invoke_run_refused_while_unknown_then_allowed_after_absence(
+    tmp_path: Path,
+) -> None:
+    """A new WorkerRun / new idempotency key cannot bypass Chapter 12.4
+    while UNKNOWN exists; verified-absence reconcile permits a retry."""
+    engine = new_engine()
+    workspace = None
+    try:
+        worker = await build_worker_fixture(
+            engine, tmp_path, mission_slug="MISSION-EFFECT-BLOCK-RETRY"
+        )
+        workspace = worker.workspace
+        workspaces = WorkspaceService(engine, root=repo_root())
+        manager = await _manager_with_scripted_adapter(engine, workspaces)
+        action = WorkerAction(
+            command=[sys.executable, "-c", _TIMEOUT_COMMAND],
+            timeout_seconds=0.3,
+            expected_artifact="dde-effect-timeout-marker.txt",
+        )
+        first = await manager.invoke_run(
+            task=worker.task,
+            execution_plan=worker.execution_plan,
+            workspace=worker.workspace,
+            input_context_hash=worker.context_package.assembly_hash,
+            action=action,
+            idempotency_key="effect-block-retry-1",
+        )
+        assert first.failure_class == "SIDE_EFFECT_UNKNOWN"
+
+        with pytest.raises(DdeError) as blocked:
+            await manager.invoke_run(
+                task=worker.task,
+                execution_plan=worker.execution_plan,
+                workspace=worker.workspace,
+                input_context_hash=worker.context_package.assembly_hash,
+                action=action,
+                idempotency_key="effect-block-retry-2",
+            )
+        assert blocked.value.error_code == EFFECT_CONFLICT
+
+        effects = await workspaces.effects.list_unreconciled(
+            tenant_id=worker.tenant.tenant_id,
+            project_id=worker.tenant.project_id,
+            mission_id=worker.mission.mission_id,
+        )
+        unknown = [row for row in effects if row.status == "UNKNOWN"]
+        assert len(unknown) == 1
+        result = await workspaces.effects.reconcile_journaled(
+            tenant_id=worker.tenant.tenant_id,
+            project_id=worker.tenant.project_id,
+            effect_id=unknown[0].effect_id,
+        )
+        assert result.verified_absent is True
+
+        retry = await manager.invoke_run(
+            task=worker.task,
+            execution_plan=worker.execution_plan,
+            workspace=worker.workspace,
+            input_context_hash=worker.context_package.assembly_hash,
+            action=action,
+            idempotency_key="effect-block-retry-3",
+        )
+        assert retry.failure_class == "SIDE_EFFECT_UNKNOWN"
+    finally:
+        if workspace is not None:
+            await WorkspaceService(engine, root=repo_root()).cleanup(
+                workspace=workspace
+            )
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_verified_present_reconcile_does_not_permit_duplicate_mutation(
+    tmp_path: Path,
+) -> None:
+    """Verified presence resolves to RECONCILED with confirmed_at set and
+    refuses a second mutation of the same scope."""
+    engine = new_engine()
+    workspace = None
+    try:
+        worker = await build_worker_fixture(
+            engine, tmp_path, mission_slug="MISSION-EFFECT-PRESENT"
+        )
+        workspace = worker.workspace
+        workspaces = WorkspaceService(engine, root=repo_root())
+        manager = await _manager_with_scripted_adapter(engine, workspaces)
+        marker = "dde-effect-timeout-marker.txt"
+        action = WorkerAction(
+            command=[sys.executable, "-c", _TIMEOUT_COMMAND],
+            timeout_seconds=0.3,
+            expected_artifact=marker,
+        )
+        run = await manager.invoke_run(
+            task=worker.task,
+            execution_plan=worker.execution_plan,
+            workspace=worker.workspace,
+            input_context_hash=worker.context_package.assembly_hash,
+            action=action,
+            idempotency_key="effect-present-1",
+        )
+        assert run.failure_class == "SIDE_EFFECT_UNKNOWN"
+        root = Path(worker.workspace.workspace_path or "")
+        (root / marker).write_text("happened", encoding="utf-8")
+
+        effects = await workspaces.effects.list_for_run(
+            tenant_id=worker.tenant.tenant_id,
+            project_id=worker.tenant.project_id,
+            worker_run_id=run.run_id,
+        )
+        local = [row for row in effects if row.target_system == "local_process"]
+        result = await workspaces.effects.reconcile_journaled(
+            tenant_id=worker.tenant.tenant_id,
+            project_id=worker.tenant.project_id,
+            effect_id=local[0].effect_id,
+        )
+        assert result.verified_absent is False
+        assert result.effect.status == "RECONCILED"
+        assert result.effect.confirmed_at is not None
+
+        with pytest.raises(DdeError) as blocked:
+            await manager.invoke_run(
+                task=worker.task,
+                execution_plan=worker.execution_plan,
+                workspace=worker.workspace,
+                input_context_hash=worker.context_package.assembly_hash,
+                action=action,
+                idempotency_key="effect-present-2",
+            )
+        assert blocked.value.error_code == EFFECT_CONFLICT
+    finally:
+        if workspace is not None:
+            await WorkspaceService(engine, root=repo_root()).cleanup(
+                workspace=workspace
+            )
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_abandon_sent_moves_crash_abandoned_row_to_unknown(
+    tmp_path: Path,
+) -> None:
+    """Chapter 12.4 SENT -> UNKNOWN: production recovery can mark a
+    crash-abandoned SENT row unknown, after which the scope is blocked
+    until reconcile."""
+    engine = new_engine()
+    workspace = None
+    try:
+        fixture = await _journal_fixture(
+            engine, tmp_path, mission_slug="MISSION-EFFECT-ABANDON"
+        )
+        workspace = fixture.worker.workspace
+        prepared = await _prepare(fixture, idempotency_key="effect-abandon-1")
+        await fixture.effects.mark_sent(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            effect_id=prepared.effect_id,
+        )
+        abandoned = await fixture.effects.abandon_sent(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            effect_id=prepared.effect_id,
+            reason="process crashed after mark_sent with no observed outcome",
+        )
+        assert abandoned.status == "UNKNOWN"
+        with pytest.raises(DdeError) as excinfo:
+            await fixture.effects.abandon_sent(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                effect_id=prepared.effect_id,
+                reason="already unknown",
+            )
+        assert excinfo.value.error_code == "VERSION_CONFLICT"
+        listed = await fixture.effects.list_unreconciled(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            mission_id=fixture.worker.mission.mission_id,
+        )
+        assert any(row.effect_id == abandoned.effect_id for row in listed)
+    finally:
+        if workspace is not None:
+            await WorkspaceService(engine, root=repo_root()).cleanup(
+                workspace=workspace
+            )
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_git_update_ref_is_journaled_and_blocked_while_unknown(
+    tmp_path: Path,
+) -> None:
+    """A real git mutation (submit's update-ref) is journaled. A second
+    attempt is refused while UNKNOWN; verified-absence reconcile permits
+    the publish."""
+    engine = new_engine()
+    root = repo_root()
+    workspace = None
+    task_branch = None
+    mission_branch = None
+    try:
+        from engine.integration import git as integration_git
+        from engine.workers.repository import WorkerRunRepository
+        from tests.support.execution_fixtures import build_execution_fixture
+
+        execution = await build_execution_fixture(
+            engine,
+            tmp_path,
+            mission_slug="MISSION-EFFECT-GIT-MUT",
+            task_class="verification",
+        )
+        advanced = await advance_task_to_verified(
+            engine,
+            tmp_path,
+            tenant=execution.tenant,
+            task=execution.task,
+            context_package=execution.context_package,
+            route_decision=execution.route_decision,
+            write_files={
+                "engine/routing/dde020-git-mutation.txt": b"git mutation proof\n"
+            },
+            idempotency_prefix="effect-git-mut",
+        )
+        workspace = advanced.workspace
+        task_branch = f"task/{advanced.task.task_id}-a"
+        mission_branch = f"mission/{advanced.task.mission_id}"
+        ref = git_ref_resource(task_branch)
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+        ) as uow:
+            runs = await WorkerRunRepository().list_for_attempt(
+                uow.connection, advanced.task_attempt_id
+            )
+        assert runs
+        run = runs[-1]
+        effects = ExternalEffectService(engine)
+        journaled = await effects.list_for_run(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            worker_run_id=run.run_id,
+        )
+        lease_id = journaled[0].capability_lease_id
+        prepared = await effects.prepare(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            mission_id=advanced.task.mission_id,
+            worker_run_id=run.run_id,
+            capability_lease_id=lease_id,
+            target_system="git",
+            target_resource=ref,
+            operation=GIT_UPDATE_REF_OPERATION,
+            side_effect_class="EXTERNAL_IDEMPOTENT",
+            idempotency_key="effect-git-mut-unknown",
+            evidence_ref=ref,
+        )
+        await effects.mark_sent(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            effect_id=prepared.effect_id,
+        )
+        await effects.abandon_sent(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            effect_id=prepared.effect_id,
+            reason="simulated crash after SENT before update-ref",
+        )
+
+        queue = IntegrationQueueService(engine, root=root)
+        with pytest.raises(DdeError) as blocked:
+            await queue.submit(
+                tenant_id=advanced.task.tenant_id,
+                project_id=advanced.task.project_id,
+                mission_id=advanced.task.mission_id,
+                task_id=advanced.task.task_id,
+                task_attempt_id=advanced.task_attempt_id,
+                workspace=advanced.workspace,
+                lease=advanced.lease,
+                verification_run_id=advanced.verification_run.verification_run_id,
+                attempt_label="a",
+            )
+        assert blocked.value.error_code == EFFECT_CONFLICT
+
+        result = await effects.reconcile_journaled(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            effect_id=prepared.effect_id,
+            repo_root=root,
+        )
+        assert result.verified_absent is True
+
+        proposal = await queue.submit(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            mission_id=advanced.task.mission_id,
+            task_id=advanced.task.task_id,
+            task_attempt_id=advanced.task_attempt_id,
+            workspace=advanced.workspace,
+            lease=advanced.lease,
+            verification_run_id=advanced.verification_run.verification_run_id,
+            attempt_label="a",
+        )
+        assert proposal.status == "QUEUED"
+        published = await effects.list_for_run(
+            tenant_id=advanced.task.tenant_id,
+            project_id=advanced.task.project_id,
+            worker_run_id=run.run_id,
+        )
+        mut = [
+            row
+            for row in published
+            if row.operation == GIT_UPDATE_REF_OPERATION and row.status == "CONFIRMED"
+        ]
+        assert mut
+        assert mut[0].side_effect_class == "EXTERNAL_IDEMPOTENT"
+        assert mut[0].external_reference
+        assert mut[0].target_resource == ref
+    finally:
+        if workspace is not None:
+            await WorkspaceService(engine, root=root).cleanup(workspace=workspace)
+        if task_branch is not None:
+            from engine.integration import git as integration_git
+
+            integration_git.delete_branch(root, task_branch)
+        if mission_branch is not None:
+            from engine.integration import git as integration_git
+
+            integration_git.delete_branch(root, mission_branch)
         await engine.dispose()

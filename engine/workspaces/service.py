@@ -16,10 +16,10 @@ a workspace-root path jail (Chapter 7.2's other T2 guarantees need
 container/microVM isolation the `local_process` backend does not have).
 
 **DDE-017 addition.** `snapshot()` is the one call site in this module that
-performs a real `capability.git_operations` side effect (`engine.
+performs a real `capability.git_operations` *read* (`engine.
 workspaces.git.rev_parse_head`/`status_porcelain`) on behalf of an in-flight
 `WorkerRun` (`engine.workers.scripted_adapter.ScriptedWorkerAdapter.start`
-calls it after writing a worker's files) — so it is now this module's
+calls it after writing a worker's files) — so it is this module's
 Chapter 7.2 T1 enforcement point: a `require_active(...)` guard against a
 real, granted `CapabilityLease` before the real git subprocess calls run.
 `create()`/`cleanup()`/`capture_revision()` also invoke `engine.
@@ -31,6 +31,14 @@ own infrastructure bookkeeping would either contradict Chapter 3.9's
 creation order or require inventing a lease phase the blueprint does not
 describe. This is a flagged, narrower scope than "every git operation";
 see the mission summary.
+
+**DDE-020 correction.** `snapshot()` may still journal those git *reads*
+as optional extra audit (`operation=git_snapshot`). That is NOT the
+Chapter 12.4 EXTERNAL_IDEMPOTENT mutation proof — a `rev-parse` /
+`status --porcelain` pair mutates nothing. The production git mutation
+that is journaled is `IntegrationQueueService.submit`'s `update-ref` of
+the task branch. Workspace `worktree add`/`remove` are not journaled:
+they run before a `WorkerRun`/`CapabilityLease` exist.
 """
 
 from __future__ import annotations
@@ -101,9 +109,9 @@ class WorkspaceService:
     @property
     def effects(self) -> ExternalEffectService:
         """Shared with `engine.workers.scripted_adapter.ScriptedWorkerAdapter`
-        (DDE-020) so both real capability-adapter call sites journal
-        through the exact same `ExternalEffectService` instance rather than
-        each constructing an independent one against the same engine."""
+        so both journal through the same `ExternalEffectService` instance.
+        Snapshot journaling is optional extra audit of a git read, not the
+        Chapter 12.4 mutation proof."""
         return self._effects
 
     async def _run(
@@ -471,18 +479,12 @@ class WorkspaceService:
         for this module — see the module docstring). `require_active` fails
         closed before either real git subprocess call runs.
 
-        DDE-020: this module's real git subprocess calls are also the
-        Chapter 12.4 journal call site for `capability.git_operations` --
-        `snapshot()` is already this module's sole enforcement point for
-        that capability, so it is also the "Capability adapter" role
-        Chapter 3.8 assigns `ExternalEffect`'s writer to (the row itself is
-        still written solely by `engine.recovery`, see that module's
-        docstring). `target_system="git"` mutates nothing external to this
-        repository's own worktree, but both real git calls here are read
-        commands (`rev-parse`, `status --porcelain`) with no external
-        reference of their own to reconcile against beyond the revision
-        they observe -- `mark_confirmed` records that revision as
-        `external_reference`."""
+        DDE-020: optional extra journal of these git *reads*, not the
+        Chapter 12.4 EXTERNAL_IDEMPOTENT mutation proof. Both real git
+        calls here are read commands (`rev-parse`, `status --porcelain`).
+        The production git mutation that is journaled is
+        `IntegrationQueueService.submit`'s `update-ref`. `mark_confirmed`
+        records the observed revision as `external_reference`."""
         root = self._require_root(workspace)
         lease = await self._leases.require_active(
             tenant_id=workspace.tenant_id,

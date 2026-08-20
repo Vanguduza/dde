@@ -1,97 +1,64 @@
 """Production `ExternalEffect` journal (Chapter 12.4) -- the sole writer of
-`external_effects` rows in PostgreSQL (Chapter 3.5, 3.8), wired around DDE's
-two already-real, lease-gated side effects: `engine.workers.
-scripted_adapter.ScriptedWorkerAdapter.start`'s local-process subprocess
-spawn (`capability.run_local_process`) and `engine.workspaces.service.
-WorkspaceService.snapshot`'s real git commands (`capability.git_operations`)
--- see both modules' own docstrings for the exact call-site wiring. Unlike
-DDE-019's Credential Broker, which had no real caller to wire (no capability
-needed a credential), this journal has two genuine, already-shipped
-side-effecting call sites and is wired into both, not merely built and left
-unused.
+`external_effects` rows in PostgreSQL (Chapter 3.5, 3.8).
 
-**Journaling scope (flagged interpretation).** Chapter 9.3's taxonomy table
-marks `WORKSPACE_LOCAL` (`capability.run_local_process`'s own declared
-class, `engine.capabilities.seed.SEED_CAPABILITIES`) "Journal: No" --
-mandatory journaling is reserved for `EXTERNAL_IDEMPOTENT`,
-`EXTERNAL_NON_IDEMPOTENT` and `IRREVERSIBLE`. This mission's own brief
-explicitly directs wiring the journal around BOTH real call sites
-regardless -- a superset of the mandatory minimum, not a violation of it:
-every `EXTERNAL_IDEMPOTENT`/`EXTERNAL_NON_IDEMPOTENT`/`IRREVERSIBLE` effect
-Chapter 9.3 requires is still journaled, and `capability.run_local_process`
-additionally gets a real, reconciliable audit trail even though the
-taxonomy does not strictly require one for a workspace-local mutation. Nothing
-in Chapter 9.3 forbids journaling more than the mandatory subset.
+**Enforced now.** `prepare()` queries live `external_effects` for the
+logical mutation scope (`engine.recovery.scope`) and refuses a NEW
+mutation (`EFFECT_CONFLICT`) while any `SENT` / `UNKNOWN` / `RECONCILING`
+row, or a `RECONCILED` verified-present row (`confirmed_at` set), exists
+for that scope. A new `WorkerRun` / new `idempotency_key` does not bypass
+this: `WorkerManagerService.invoke_run` checks the same scope before
+creating a run, and `ScriptedWorkerAdapter._journaled_execute` /
+`IntegrationQueueService.submit` check again at `prepare()`. Same-key
+ledger replay (Chapter 12.5) still returns the stored row without a second
+mutation. Timeout of a journaled subprocess is `mark_unknown` AND
+`WorkerRun.failure_class=SIDE_EFFECT_UNKNOWN` (Chapter 12.3), not only
+`WORKER_COMMAND_TIMEOUT`. Crash-abandoned `SENT` is recovered by
+`abandon_sent` (`SENT -> UNKNOWN`). `reconcile_journaled` dispatches a
+real resolver for `run_local_process` and git `update-ref` (see
+`engine.recovery.resolvers`). `IRREVERSIBLE` reconciliation failure emits
+`ExternalEffectIrreversibleEscalated` and raises `EFFECT_IRREVERSIBLE` --
+distinct from the generic `EFFECT_UNKNOWN` fail-closed path.
 
-**A genuine, reachable `UNKNOWN` path -- not a synthesized one in
-production code.** `engine.workspaces.service.WorkspaceService.execute`
-already distinguishes three real, observably different subprocess outcomes:
-a clean exit (`exit_code == 0`), a definite non-zero exit or a spawn-level
-`OSError` (`timed_out is False` -- the process either ran to completion and
-failed, in a genuinely-known way, or never started at all, which is also a
-genuinely-known "nothing happened"), and a real `subprocess.TimeoutExpired`
-(`timed_out is True` -- Python killed the process after it was already
-spawned, and the exit code the backend fabricates for this case, `-1`, is
-not a real observed exit status). Only the last of these is genuine
-ambiguity about whether the external mutation happened before the kill
-signal landed -- so `ScriptedWorkerAdapter.start` maps `timed_out=True` to
-`mark_unknown`, a non-zero-but-not-timed-out exit to `mark_failed`, and
-`exit_code == 0` to `mark_confirmed`. This is a real path through
-production code, reachable with a real, short `timeout_seconds` and a
-real command that outlives it (`tests/unit/test_external_effects_postgres.
-py`'s `test_state_transition_unknown_reconciling_reconciled_via_real_timeout`)
--- not a state machine exercised only through a mock.
+**Journaled production mutations.** `capability.run_local_process` (the
+scripted adapter's real subprocess) and `capability.git_operations`
+`update-ref` / `create_branch` in `IntegrationQueueService.submit` (the
+Stage 1 EXTERNAL_IDEMPOTENT git mutation). `WorkspaceService.snapshot` may
+still journal `git_snapshot` as optional extra audit of a git *read*; that
+row is not the Chapter 12.4 mutation proof.
 
-**Reconciliation (`reconcile`).** Chapter 12.4's recovery rule -- "the
-capability adapter reconciles using the idempotency key, the external
-reference, a read-after-write query, or a provider-specific method" -- is
-generic across providers, so this service accepts the actual check as a
-caller-supplied async `resolver` rather than hard-coding one provider's
-query. A `ReconciliationOutcome` distinguishes three real answers:
-genuinely verified present, genuinely verified absent, or genuinely
-undeterminable (`verified=False`). Only the first two ever move the row to
-`RECONCILED` -- Chapter 12.4 names exactly one resolved status for both a
-present and an absent finding, so which one occurred is carried on the
-return value (`ReconciliationResult.verified_absent`), the caller-facing
-fact that governs whether a NEW mutation attempt (Chapter 12.4: "only a
-verified absence permits a new mutation attempt") is safe, not a second
-`ExternalEffect.status` value the chapter never names. An undeterminable
-outcome always raises `DdeError("EFFECT_UNKNOWN", ...)` (Chapter 15.5's
-SIDE_EFFECT family) rather than resolving. Chapter 12.3's own
-`SIDE_EFFECT_UNKNOWN` failure class already states this as the general
-escalation condition ("Reconciliation impossible -> human"), and
-Chapter 12.4 restates
-it specifically for `IRREVERSIBLE` effects; this service does not treat
-`IRREVERSIBLE` as a special case needing different code, only as the class
-this mission's own negative test exercises. The row itself is left
-`RECONCILING` (not reset to `UNKNOWN`) so a later, better-informed
-`reconcile()` call can retry without losing the fact that reconciliation is
-already in progress.
+**Deferred.** No seeded `IRREVERSIBLE` capability exists (Chapter 9.3
+approval-per-invocation wiring is not built). Workspace `git worktree
+add`/`remove` happen before a `WorkerRun`/`CapabilityLease` exist
+(Chapter 3.9 steps 9 vs 10/11) so they cannot be journaled against
+Chapter 12.4's required `worker_run_id`/`capability_lease_id` without a
+schema divergence -- that is not silently faked. T2 egress-proxy effect
+records (Chapter 12.4 last paragraph) are out of scope. Checkpoints (12.1)
+and replay beyond `CommandLedger` reuse (12.5/12.6) are out of scope.
 
-**Idempotency (Chapter 12.5).** `prepare()` is guarded by `engine.events.
-idempotency.CommandLedger` on a caller-supplied `idempotency_key`, exactly
-as `engine.capabilities.broker.service.CredentialBrokerService.issue` and
-`engine.capabilities.lease_service.CapabilityLeaseService.request` already
-do -- not a second idempotency mechanism. `command_id` on the persisted row
-IS that ledger record's own identity.
+**Journaling scope (flagged interpretation).** Chapter 9.3 marks
+`WORKSPACE_LOCAL` "Journal: No". `run_local_process` is still journaled so
+the recovery rule has a reachable UNKNOWN path; that is a superset of the
+mandatory EXTERNAL_* / IRREVERSIBLE minimum, not a substitute for
+journaling the git mutation.
 
-**Standard columns.** `tenant_id`/`project_id`/`updated_at` are added per
-this mission's own brief (not named in Chapter 12.4's literal field list,
-but every Stage 1/2 durable row carries them, per `engine.capabilities.
-broker.tables.credential_handles`'s identical addition). `mission_id` is
-added because Chapter 3.2 mandates it for "every runtime/execution table"
--- an `ExternalEffect` is exactly that, bound to a `WorkerRun`. No
-`lock_version`: Chapter 3.5 does not name `external_effects` among the
-tables carrying one, and neither `capability_leases` nor `credential_
-handles` (the two closest sibling "status only" lifecycle tables) use one
-either -- a plain rowcount check on the transitioning `UPDATE` is this
-codebase's established pattern for that gap.
+**Reconciliation.** Caller-supplied `resolver` remains the generic
+Chapter 12.4 hook. Production call sites should use `reconcile_journaled`.
+Verified-present sets `confirmed_at` so the recovery gate can refuse a
+duplicate without a second status value the chapter never names.
+Undeterminable outcomes leave the row `RECONCILING`. For `IRREVERSIBLE`,
+that failure is the distinguishable escalation above; for every other
+class it is `EFFECT_UNKNOWN`.
+
+**Idempotency (Chapter 12.5).** `prepare()` is still guarded by
+`CommandLedger` on the caller-supplied key. That ledger is not the
+recovery rule: a different key for the same logical scope is a new
+mutation attempt and is refused while the scope is blocked.
 """
 
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from pathlib import Path
 from typing import TypeVar
 from uuid import UUID
 
@@ -107,42 +74,26 @@ from engine.core.state_machine import transition
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
 from engine.recovery.hashing import effect_request_hash
+from engine.recovery.outcomes import ReconciliationOutcome, ReconciliationResult
 from engine.recovery.repository import ExternalEffectRepository
+from engine.recovery.scope import (
+    GIT_REF_RESOLVER_METHOD,
+    GIT_SYSTEM,
+    LOCAL_PROCESS_RESOLVER_METHOD,
+    LOCAL_PROCESS_SYSTEM,
+)
 from engine.recovery.states import EXTERNAL_EFFECT_TRANSITIONS
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
 T = TypeVar("T")
 
-#: Chapter 9.3's `IRREVERSIBLE` class -- the one whose reconciliation
-#: failure Chapter 12.4 explicitly names as escalating rather than
-#: resolving. See module docstring: every class escalates identically;
-#: this constant exists only to name the class in the one place a
-#: docstring/test needs to refer to it, not to branch on it specially.
+#: Chapter 9.3's `IRREVERSIBLE` class -- reconciliation failure Chapter
+#: 12.4 names as escalating to a human rather than resolving automatically.
 IRREVERSIBLE = "IRREVERSIBLE"
 
-
-@dataclass(frozen=True)
-class ReconciliationOutcome:
-    """A provider-specific `resolver`'s real answer to "did the external
-    mutation actually happen?". `verified=False` means the resolver could
-    not determine either answer with confidence -- the only condition
-    under which `reconcile()` raises rather than resolving. `present` is
-    meaningful only when `verified=True`."""
-
-    verified: bool
-    present: bool
-    detail: str
-
-
-@dataclass(frozen=True)
-class ReconciliationResult:
-    """`reconcile()`'s return value. `verified_absent` is the Chapter
-    12.4-governing fact a caller needs: `True` only when reconciliation
-    positively confirmed the mutation never happened, the one condition
-    under which a NEW mutation attempt is permitted."""
-
-    effect: ExternalEffect
-    verified_absent: bool
+EFFECT_CONFLICT = "EFFECT_CONFLICT"
+EFFECT_UNKNOWN = "EFFECT_UNKNOWN"
+EFFECT_IRREVERSIBLE = "EFFECT_IRREVERSIBLE"
 
 
 class ExternalEffectService:
@@ -197,13 +148,16 @@ class ExternalEffectService:
         operation: str,
         side_effect_class: str,
         idempotency_key: str,
+        evidence_ref: str | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> ExternalEffect:
         """Chapter 12.4's initial `PREPARED` row -- inserted BEFORE the
         real side effect runs, so a crash between `prepare()` and the
         actual subprocess/git call leaves durable evidence recovery can
         reconcile. Idempotent on `idempotency_key`: a repeated call with
-        the same key never inserts a second row (Chapter 12.5)."""
+        the same key never inserts a second row (Chapter 12.5). A NEW key
+        for a blocked logical scope raises `EFFECT_CONFLICT` rather than
+        preparing a second mutation."""
         if side_effect_class not in SIDE_EFFECT_CLASSES:
             raise DdeError(
                 "POLICY_DENIED",
@@ -229,6 +183,16 @@ class ExternalEffectService:
             if not is_new:
                 return await self._replay_or_raise(active, record)
 
+            await self._refuse_if_blocked(
+                active,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                target_system=target_system,
+                target_resource=target_resource,
+                operation=operation,
+            )
+
             now = self._clock.now()
             effect = ExternalEffect(
                 effect_id=uuid7(),
@@ -245,7 +209,7 @@ class ExternalEffectService:
                 idempotency_key=idempotency_key,
                 request_hash=digest,
                 status="PREPARED",
-                external_reference=None,
+                external_reference=evidence_ref,
                 response_hash=None,
                 reconciliation_method=None,
                 created_at=now,
@@ -291,7 +255,8 @@ class ExternalEffectService:
         """Chapter 12.4's `PREPARED -> SENT`: called right as the real
         subprocess/git command is about to launch. A crash after this
         commits but before the outcome is observed is exactly the
-        `SENT -> UNKNOWN` gap Chapter 12.4 describes."""
+        `SENT -> UNKNOWN` gap Chapter 12.4 describes -- recover with
+        `abandon_sent`."""
 
         async def _op(active: PostgresUnitOfWork) -> ExternalEffect:
             current = await self._require_effect(active, effect_id)
@@ -317,17 +282,19 @@ class ExternalEffectService:
         async def _op(active: PostgresUnitOfWork) -> ExternalEffect:
             current = await self._require_effect(active, effect_id)
             now = self._clock.now()
+            fields: dict[str, object] = {
+                "response_hash": response_hash,
+                "confirmed_at": now,
+            }
+            if external_reference is not None:
+                fields["external_reference"] = external_reference
             return await self._transition(
                 active,
                 current,
                 "CONFIRMED",
                 event_type="ExternalEffectConfirmed",
                 payload={"external_reference": external_reference},
-                extra_fields={
-                    "external_reference": external_reference,
-                    "response_hash": response_hash,
-                    "confirmed_at": now,
-                },
+                extra_fields=fields,
             )
 
         return await self._run(uow, tenant_id, project_id, _op)
@@ -384,6 +351,41 @@ class ExternalEffectService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def abandon_sent(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        effect_id: UUID,
+        reason: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> ExternalEffect:
+        """Production recovery path for a crash that left `SENT` with no
+        observed outcome (Chapter 12.4 diagram: `SENT -> UNKNOWN`).
+        Refuses any status other than `SENT` so a caller cannot launder a
+        `CONFIRMED`/`FAILED` row into `UNKNOWN`."""
+
+        async def _op(active: PostgresUnitOfWork) -> ExternalEffect:
+            current = await self._require_effect(active, effect_id)
+            if current.status != "SENT":
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    f"abandon_sent requires status SENT (got {current.status})",
+                    details={
+                        "effect_id": str(effect_id),
+                        "status": current.status,
+                    },
+                )
+            return await self._transition(
+                active,
+                current,
+                "UNKNOWN",
+                event_type="ExternalEffectUnknown",
+                payload={"reason": reason, "abandoned_from": "SENT"},
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def reconcile(
         self,
         *,
@@ -431,19 +433,18 @@ class ExternalEffectService:
         current = await self._run(uow, tenant_id, project_id, _enter)
         outcome = await resolver()
         if not outcome.verified:
-            raise DdeError(
-                "EFFECT_UNKNOWN",
-                "Reconciliation could not determine the true external "
-                "state -- escalating rather than resolving "
-                f"(side_effect_class={current.side_effect_class!r}): "
-                f"{outcome.detail}",
-                retryable=False,
-                details={
-                    "effect_id": str(effect_id),
-                    "side_effect_class": current.side_effect_class,
-                    "method": method,
-                },
+            await self._escalate_undeterminable(
+                current,
+                method=method,
+                detail=outcome.detail,
+                uow=uow,
             )
+
+        extra_fields: dict[str, object] = {}
+        if outcome.present:
+            extra_fields["confirmed_at"] = self._clock.now()
+            if current.external_reference is None and outcome.detail:
+                extra_fields["external_reference"] = outcome.detail[:512]
 
         async def _finish(active: PostgresUnitOfWork) -> ReconciliationResult:
             live = await self._require_effect(active, effect_id)
@@ -453,12 +454,116 @@ class ExternalEffectService:
                 "RECONCILED",
                 event_type="ExternalEffectReconciled",
                 payload={"present": outcome.present, "detail": outcome.detail},
+                extra_fields=extra_fields or None,
             )
             return ReconciliationResult(
                 effect=reconciled, verified_absent=not outcome.present
             )
 
         return await self._run(uow, tenant_id, project_id, _finish)
+
+    async def reconcile_journaled(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        effect_id: UUID,
+        repo_root: Path | None = None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> ReconciliationResult:
+        """Production reconcile: pick the real resolver for this row's
+        `target_system` rather than requiring a test-supplied callable."""
+        from engine.context.repo import repo_root as default_repo_root
+        from engine.recovery.resolvers import (
+            resolve_git_ref,
+            resolve_local_process_artifact,
+        )
+
+        effect = await self.get_effect(
+            tenant_id=tenant_id, project_id=project_id, effect_id=effect_id, uow=uow
+        )
+        if effect.target_system == LOCAL_PROCESS_SYSTEM:
+
+            async def local_resolver() -> ReconciliationOutcome:
+                return resolve_local_process_artifact(
+                    workspace_root=Path(effect.target_resource),
+                    expected_artifact=effect.external_reference,
+                )
+
+            method = LOCAL_PROCESS_RESOLVER_METHOD
+            resolver: Callable[[], Awaitable[ReconciliationOutcome]] = local_resolver
+        elif effect.target_system == GIT_SYSTEM:
+            root = repo_root if repo_root is not None else default_repo_root()
+
+            async def git_resolver() -> ReconciliationOutcome:
+                return resolve_git_ref(repo_root=root, ref_name=effect.target_resource)
+
+            method = GIT_REF_RESOLVER_METHOD
+            resolver = git_resolver
+        else:
+            raise DdeError(
+                "POLICY_DENIED",
+                "No production resolver for this target_system",
+                details={"target_system": effect.target_system},
+            )
+        return await self.reconcile(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            effect_id=effect_id,
+            method=method,
+            resolver=resolver,
+            uow=uow,
+        )
+
+    async def assert_clear_to_mutate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        target_system: str,
+        target_resource: str,
+        operation: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> None:
+        """Refuse a new mutation of this logical scope while an
+        unreconciled or verified-present effect exists. Called from
+        `prepare()` and from `WorkerManagerService.invoke_run`."""
+
+        async def _op(active: PostgresUnitOfWork) -> None:
+            await self._refuse_if_blocked(
+                active,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                target_system=target_system,
+                target_resource=target_resource,
+                operation=operation,
+            )
+
+        await self._run(uow, tenant_id, project_id, _op)
+
+    async def list_unreconciled(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> list[ExternalEffect]:
+        """`SENT` / `UNKNOWN` / `RECONCILING` rows for a mission -- the
+        inventory production recovery walks before `abandon_sent` /
+        `reconcile_journaled`."""
+
+        async def _op(active: PostgresUnitOfWork) -> list[ExternalEffect]:
+            return await self._repository.list_unreconciled_for_mission(
+                active.connection,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
 
     async def list_for_run(
         self,
@@ -485,6 +590,99 @@ class ExternalEffectService:
             return await self._require_effect(active, effect_id)
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _escalate_undeterminable(
+        self,
+        current: ExternalEffect,
+        *,
+        method: str,
+        detail: str,
+        uow: PostgresUnitOfWork | None,
+    ) -> None:
+        if current.side_effect_class == IRREVERSIBLE:
+
+            async def _event(active: PostgresUnitOfWork) -> None:
+                await self._events.append(
+                    tenant_id=current.tenant_id,
+                    project_id=current.project_id,
+                    event_type="ExternalEffectIrreversibleEscalated",
+                    aggregate_type="external_effect",
+                    aggregate_id=current.effect_id,
+                    mission_id=current.mission_id,
+                    task_id=None,
+                    payload={
+                        "method": method,
+                        "detail": detail,
+                        "escalation": "human",
+                    },
+                    uow=active,
+                )
+
+            await self._run(uow, current.tenant_id, current.project_id, _event)
+            raise DdeError(
+                EFFECT_IRREVERSIBLE,
+                "IRREVERSIBLE effect could not be reconciled -- "
+                "escalating to a human rather than resolving "
+                f"(side_effect_class={current.side_effect_class!r}): {detail}",
+                retryable=False,
+                details={
+                    "effect_id": str(current.effect_id),
+                    "side_effect_class": current.side_effect_class,
+                    "method": method,
+                    "escalation": "human",
+                },
+            )
+        raise DdeError(
+            EFFECT_UNKNOWN,
+            "Reconciliation could not determine the true external "
+            "state -- escalating rather than resolving "
+            f"(side_effect_class={current.side_effect_class!r}): {detail}",
+            retryable=False,
+            details={
+                "effect_id": str(current.effect_id),
+                "side_effect_class": current.side_effect_class,
+                "method": method,
+            },
+        )
+
+    async def _refuse_if_blocked(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        target_system: str,
+        target_resource: str,
+        operation: str,
+    ) -> None:
+        blockers = await self._repository.list_blocking_for_scope(
+            active.connection,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            target_system=target_system,
+            target_resource=target_resource,
+            operation=operation,
+        )
+        if not blockers:
+            return
+        lead = blockers[0]
+        raise DdeError(
+            EFFECT_CONFLICT,
+            "Refusing a new mutation while an unreconciled or "
+            "verified-present external effect exists for this scope "
+            f"(status={lead.status}, effect_id={lead.effect_id})",
+            retryable=False,
+            details={
+                "effect_id": str(lead.effect_id),
+                "status": lead.status,
+                "target_system": target_system,
+                "target_resource": target_resource,
+                "operation": operation,
+                "blocking_effect_ids": [str(row.effect_id) for row in blockers],
+            },
+        )
 
     async def _transition(
         self,
