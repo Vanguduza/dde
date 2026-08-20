@@ -15,6 +15,7 @@ from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.mission import Mission
@@ -53,9 +54,10 @@ async def build_verification_fixture(
     a real worker's diff would have landed them."""
     worker_fixture = await build_worker_fixture(engine, root, mission_slug=mission_slug)
     workspaces = WorkspaceService(engine, root=root)
+    leases = CapabilityLeaseService(engine)
     registry = WorkerProfileRegistry()
-    await registry.register_profile(ScriptedWorkerAdapter(workspaces))
-    manager = WorkerManagerService(engine, registry)
+    await registry.register_profile(ScriptedWorkerAdapter(workspaces, leases))
+    manager = WorkerManagerService(engine, registry, leases=leases)
     action = WorkerAction(
         command=[sys.executable, "-c", "print('dde-verification-fixture-worker')"]
     )

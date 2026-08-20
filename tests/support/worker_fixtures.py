@@ -28,6 +28,7 @@ from engine.contracts.route_decision import RouteDecision
 from engine.contracts.task import Task
 from engine.contracts.workspace import Workspace
 from engine.execution.service import ExecutionPlanService
+from tests.support.capability_fixtures import ensure_capabilities_seeded
 from tests.support.db import TenantFixture
 from tests.support.execution_fixtures import build_execution_fixture
 
@@ -51,6 +52,11 @@ async def build_worker_fixture(
 ) -> WorkerFixture:
     execution_fixture = await build_execution_fixture(
         engine, root, mission_slug=mission_slug, task_class="verification"
+    )
+    await ensure_capabilities_seeded(
+        engine,
+        tenant_id=execution_fixture.tenant.tenant_id,
+        project_id=execution_fixture.tenant.project_id,
     )
     plan_service = ExecutionPlanService(engine)
     plan = await plan_service.plan(

@@ -15,7 +15,9 @@ import sys
 from pathlib import Path
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.context.repo import repo_root
 from engine.core.errors import DdeError
 from engine.environments.service import ExecutionEnvironmentService
@@ -31,12 +33,13 @@ from tests.support.db import new_engine
 from tests.support.worker_fixtures import build_worker_fixture
 
 
-async def _registry_with_scripted_adapter(
-    workspaces: WorkspaceService,
-) -> WorkerProfileRegistry:
+async def _manager_with_scripted_adapter(
+    db_engine: AsyncEngine, workspaces: WorkspaceService
+) -> tuple[WorkerManagerService, CapabilityLeaseService]:
+    leases = CapabilityLeaseService(db_engine)
     registry = WorkerProfileRegistry()
-    await registry.register_profile(ScriptedWorkerAdapter(workspaces))
-    return registry
+    await registry.register_profile(ScriptedWorkerAdapter(workspaces, leases))
+    return WorkerManagerService(db_engine, registry, leases=leases), leases
 
 
 @pytest.mark.asyncio
@@ -52,8 +55,7 @@ async def test_schema_state_transition_and_idempotent_full_lifecycle(
         )
         workspace = fixture.workspace
         workspaces = WorkspaceService(db_engine, root=root)
-        registry = await _registry_with_scripted_adapter(workspaces)
-        manager = WorkerManagerService(db_engine, registry)
+        manager, _leases = await _manager_with_scripted_adapter(db_engine, workspaces)
 
         action = WorkerAction(
             command=[sys.executable, "-c", "print('dde-worker-run-proof')"],
@@ -166,8 +168,7 @@ async def test_negative_failing_scripted_command_is_captured_not_raised(
         )
         workspace = fixture.workspace
         workspaces = WorkspaceService(db_engine, root=root)
-        registry = await _registry_with_scripted_adapter(workspaces)
-        manager = WorkerManagerService(db_engine, registry)
+        manager, _leases = await _manager_with_scripted_adapter(db_engine, workspaces)
 
         action = WorkerAction(command=[sys.executable, "-c", "import sys; sys.exit(7)"])
 
@@ -268,8 +269,7 @@ async def test_negative_mismatched_workspace_is_rejected(tmp_path: Path) -> None
         first_workspace = first.workspace
         second_workspace = second.workspace
         workspaces = WorkspaceService(db_engine, root=root)
-        registry = await _registry_with_scripted_adapter(workspaces)
-        manager = WorkerManagerService(db_engine, registry)
+        manager, _leases = await _manager_with_scripted_adapter(db_engine, workspaces)
         action = WorkerAction(command=[sys.executable, "-c", "print('unused')"])
 
         with pytest.raises(DdeError) as excinfo:

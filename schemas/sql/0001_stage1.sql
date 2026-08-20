@@ -432,6 +432,35 @@ CREATE TABLE worker_events (
 ) PARTITION BY RANGE (occurred_at);
 CREATE TABLE worker_events_default PARTITION OF worker_events DEFAULT;
 
+CREATE TABLE capability_leases (
+    lease_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    execution_plan_id uuid NOT NULL,
+    worker_run_id uuid,
+    environment_id uuid,
+    capability_id text NOT NULL,
+    capability_version text NOT NULL,
+    resource_scope jsonb NOT NULL DEFAULT '{}'::jsonb,
+    operation_scope text NOT NULL,
+    constraints jsonb NOT NULL DEFAULT '{}'::jsonb,
+    issued_by_policy_version text NOT NULL,
+    issued_at timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL,
+    revocable boolean NOT NULL,
+    status text NOT NULL,
+    denied_reason text,
+    revoked_at timestamptz,
+    revocation_reason text,
+    lease_hash text NOT NULL,
+    requested_by text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (lease_id)
+);
+
 CREATE TABLE artifacts (
     artifact_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -701,6 +730,12 @@ ALTER TABLE worker_events ADD CONSTRAINT worker_events_tenant_id_fkey FOREIGN KE
 ALTER TABLE worker_events ADD CONSTRAINT worker_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE worker_events ADD CONSTRAINT worker_events_run_id_fkey FOREIGN KEY (run_id) REFERENCES worker_runs (run_id);
 
+ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE capability_leases ADD CONSTRAINT capability_leases_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
+
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -828,6 +863,10 @@ CREATE POLICY worker_runs_tenant_isolation ON worker_runs USING (tenant_id = CAS
 ALTER TABLE worker_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE worker_events FORCE ROW LEVEL SECURITY;
 CREATE POLICY worker_events_tenant_isolation ON worker_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE capability_leases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capability_leases FORCE ROW LEVEL SECURITY;
+CREATE POLICY capability_leases_tenant_isolation ON capability_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts FORCE ROW LEVEL SECURITY;

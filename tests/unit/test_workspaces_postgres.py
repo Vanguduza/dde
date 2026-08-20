@@ -14,12 +14,15 @@ from uuid import UUID
 
 import pytest
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.context.repo import repo_root
 from engine.core.errors import DdeError
+from engine.core.ids import uuid7
 from engine.truth.db import open_unit_of_work
 from engine.workspaces.repository import WorkspaceRepository
 from engine.workspaces.service import WorkspaceService
 from tests.support.db import new_engine, seed_tenant
+from tests.support.worker_fixtures import build_worker_fixture
 
 
 def _list_git_worktrees(root: Path) -> str:
@@ -283,32 +286,83 @@ async def test_cleanup_leaves_no_orphaned_directory_or_worktree() -> None:
 
 
 @pytest.mark.asyncio
-async def test_capture_revision_and_snapshot_reflect_real_worktree_state() -> None:
+async def test_capture_revision_and_snapshot_reflect_real_worktree_state(
+    tmp_path: Path,
+) -> None:
     """Chapter 7.5's `capture_revision()`/`snapshot()`: real `git`
-    introspection of the worktree, not a fabricated value."""
+    introspection of the worktree, not a fabricated value.
+
+    DDE-017: `snapshot()` is now gated behind a real, granted
+    `capability.git_operations` lease bound to a `worker_run_id` -- granted
+    here through the real `CapabilityLeaseService.request()` path, exactly
+    as `engine.workers.service.WorkerManagerService.invoke_run` does for a
+    real worker run.
+
+    `build_worker_fixture` takes `tmp_path`, not the real `repo_root()`, as
+    its own fixture-root argument -- that argument is `tests.support.
+    context_fixtures.build_fake_repo`'s isolated stand-in repo for context
+    retrieval, entirely separate from the real repository `WorkspaceService`
+    itself always operates against (`root`, passed explicitly below).
+    Passing the real `repo_root()` there would let `build_fake_repo`
+    overwrite real files under it."""
     engine = new_engine()
     root = repo_root()
     service = WorkspaceService(engine, root=root)
     workspace = None
     try:
-        tenant = await seed_tenant(engine)
-        workspace = await service.create(
-            tenant_id=tenant.tenant_id,
-            project_id=tenant.project_id,
-            mission_id=None,
-            task_id=None,
-            execution_environment_id=None,
-            base_revision="HEAD",
-            policy={},
+        fixture = await build_worker_fixture(
+            engine, tmp_path, mission_slug="MISSION-WORKSPACE-SNAPSHOT"
         )
+        workspace = fixture.workspace
         service.write(workspace, "dde-snapshot-proof.txt", b"proof")
 
-        snapshot = service.snapshot(workspace)
+        leases = CapabilityLeaseService(engine)
+        worker_run_id = uuid7()
+        granted = await leases.request(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            mission_id=fixture.mission.mission_id,
+            task_id=fixture.task.task_id,
+            execution_plan_id=fixture.execution_plan.plan_id,
+            worker_run_id=worker_run_id,
+            capability_id="capability.git_operations",
+            capability_version="1",
+            requested_by="system:test",
+            idempotency_key=f"{worker_run_id}:capability.git_operations",
+        )
+        assert granted.status == "GRANTED"
+
+        snapshot = await service.snapshot(workspace, worker_run_id=worker_run_id)
         assert snapshot["revision"] == workspace.current_revision
         assert "dde-snapshot-proof.txt" in str(snapshot["status_porcelain"])
 
         recaptured = await service.capture_revision(workspace=workspace)
         assert recaptured.current_revision == workspace.current_revision
+    finally:
+        if workspace is not None:
+            await service.cleanup(workspace=workspace)
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_negative_snapshot_without_a_lease_is_denied(tmp_path: Path) -> None:
+    """Chapter 7.2's T1 brokered enforcement, proven directly against
+    `WorkspaceService.snapshot()`: no granted `capability.git_operations`
+    lease for this `worker_run_id` means the real git subprocess calls
+    never run -- fails closed, not silently allowed."""
+    engine = new_engine()
+    root = repo_root()
+    service = WorkspaceService(engine, root=root)
+    workspace = None
+    try:
+        fixture = await build_worker_fixture(
+            engine, tmp_path, mission_slug="MISSION-WORKSPACE-SNAPSHOT-DENIED"
+        )
+        workspace = fixture.workspace
+
+        with pytest.raises(DdeError) as excinfo:
+            await service.snapshot(workspace, worker_run_id=uuid7())
+        assert excinfo.value.error_code == "POLICY_DENIED"
     finally:
         if workspace is not None:
             await service.cleanup(workspace=workspace)

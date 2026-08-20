@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.context.repo import repo_root
 from engine.missions.attempts import TaskAttemptRepository
 from engine.truth.db import open_unit_of_work
@@ -36,9 +37,10 @@ async def test_second_session_sees_committed_run_events_and_attempt(
         )
         workspace = fixture.workspace
         workspaces = WorkspaceService(writer_engine, root=root)
+        leases = CapabilityLeaseService(writer_engine)
         registry = WorkerProfileRegistry()
-        await registry.register_profile(ScriptedWorkerAdapter(workspaces))
-        manager = WorkerManagerService(writer_engine, registry)
+        await registry.register_profile(ScriptedWorkerAdapter(workspaces, leases))
+        manager = WorkerManagerService(writer_engine, registry, leases=leases)
 
         action = WorkerAction(
             command=[sys.executable, "-c", "print('dde-worker-recovery-proof')"]

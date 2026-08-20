@@ -44,6 +44,12 @@ DDE-016 adds `capabilities`, owned by `engine.capabilities` (Chapter 3.6's
 repository layout: "registry, leases, proxy, broker"). Unlike every table
 above, `capabilities` is a Chapter 3.2 global registry with no `tenant_id`/
 `project_id` columns of its own.
+
+DDE-017 adds `capability_leases`, also owned by `engine.capabilities`
+(same Chapter 3.6 repository-layout line -- "registry, leases, proxy,
+broker" -- and Chapter 3.8's matrix gives `CapabilityLease` its own
+`engine.capabilities` row, "Lease manager"), tenant/project-scoped unlike
+its sibling `capabilities` table.
 """
 
 from __future__ import annotations
@@ -75,6 +81,7 @@ TABLE_OWNERS = {
     "write_scope_leases": "integration",
     "integration_proposals": "integration",
     "capabilities": "capabilities",
+    "capability_leases": "capabilities",
 }
 
 

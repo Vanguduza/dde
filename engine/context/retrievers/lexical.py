@@ -57,10 +57,24 @@ def _search_with_ripgrep(root: Path, terms: tuple[str, ...]) -> MatchesByFile:
             cwd=root,
             capture_output=True,
             text=True,
+            # Explicit UTF-8 with replacement, not the platform default (Windows'
+            # cp1252 raises mid-read on non-cp1252 byte sequences ripgrep can
+            # legitimately emit from binary/non-UTF-8 files elsewhere in the
+            # tree, crashing the subprocess pipe reader thread and leaving
+            # `result.stdout` unset rather than a real, if imperfect, match set).
+            encoding="utf-8",
+            errors="replace",
             timeout=RIPGREP_TIMEOUT_SECONDS,
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
+        return {}
+    # `text=True` types `stdout` as `str`, but Windows' subprocess pipe
+    # reader can still leave it falsy (empty/`None` at runtime) on a
+    # decode failure the `encoding="utf-8", errors="replace"` above
+    # otherwise prevents -- `not result.stdout` catches both that and the
+    # legitimate "no matches" case identically (both mean `{}`).
+    if not result.stdout:
         return {}
     matches: MatchesByFile = {}
     for line in result.stdout.splitlines():

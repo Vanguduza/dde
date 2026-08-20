@@ -21,10 +21,54 @@ invocation with the same key never creates a second `TaskAttempt` or
 first call's stored, completed `WorkerRun` instead, matching
 `engine.governance.records.GovernanceRecords`'s exact pattern.
 
+**DDE-017 addition.** `invoke_run()` now requests and grants a real
+`CapabilityLease` (`engine.capabilities.lease_service.
+CapabilityLeaseService`) for every concrete Stage 1 side effect the bound
+`ScriptedWorkerAdapter.start()` call will actually perform for this
+specific `action` -- `capability.run_local_process` always, plus
+`capability.workspace_filesystem`/`capability.git_operations` when
+`action.write_files` is non-empty -- bound to the real `run.run_id`, before
+driving the lifecycle. This is the resolution the mission brief for DDE-016
+explicitly deferred ("nothing reads `capability_requirements` and resolves
+it against this table"): note it resolves against the *concrete side
+effects this action will perform*, not against `ExecutionPlan.
+capability_requirements[]` (routing's `capability.repository`/
+`capability.testing` tags are a different, `engine.routing.policy`-owned
+namespace -- see `engine.capabilities.service`'s module docstring -- and
+resolving that separate namespace is out of this mission's scope). A
+denied lease is not raised here; it surfaces naturally when `adapter.
+start()` calls `require_active` and fails closed, which `_drive_lifecycle`
+now catches and captures as a durable `WORKER_CAPABILITY_DENIED` `FAILED`
+run rather than losing it to a rolled-back transaction. Once the run
+reaches a terminal state, every lease it was granted is consumed
+(`CapabilityLeaseService.consume_all_for_run`, Chapter 9.2's `ACTIVE ->
+CONSUMED`).
+
+Each `leases.request()` call here deliberately runs in its own, separately
+committed unit of work rather than sharing `active` (the still-open
+transaction created the `WorkerRun` row): `adapter.start()` -- invoked
+later, still inside `active` -- calls `require_active()` on its own,
+different connection (Chapter 7.2's guard has no access to a caller's
+in-flight transaction), and PostgreSQL's READ COMMITTED isolation only
+ever sees data another transaction has *committed*, never another
+transaction's uncommitted writes. Granting the lease inside `active` and
+checking it from a second connection before `active` commits would
+therefore always fail closed on a lease that was, in fact, really granted
+-- a false negative, not the real Chapter 9.2 decision. `consume_all_for_run`
+does not need the same treatment: it runs after `require_active` has
+already committed the `ACTIVE` transition it read, so `active`'s own
+statement-level READ COMMITTED snapshot sees it.
+
+`lease_set_hash` still stays `EMPTY_LEASE_SET_HASH`, even after this
+mission: Chapter 3.9 step 11 issues leases bound to a `worker_run_id`
+*after* step 10 already created that run, so the real granted set cannot
+be known yet at the moment this field is written; recomputing it from the
+now-real leases once granted would need either a second row update after
+`request()` or reordering creation, neither of which this mission's scope
+covers.
+
 Deliberately out of Stage 1 scope, per the mission brief: `WorkerSession`
-(Chapter 8.6 — `worker_session_id` stays `None`), `CapabilityLease`
-issuance (Chapter 9/10, DDE-016/017 — `lease_set_hash` is computed over the
-real, currently-empty lease set, not fabricated), checkpoint/pause/resume
+(Chapter 8.6 — `worker_session_id` stays `None`), checkpoint/pause/resume
 (Chapter 8.2's `CHECKPOINTING`/`PAUSING`/`PAUSED`/`RESUMING` branches are
 real transitions in `engine.workers.states` but nothing in this mission
 drives a run into them — the one certified profile is synchronous), and
@@ -44,6 +88,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.task import Task
@@ -88,6 +133,27 @@ EMPTY_LEASE_SET_HASH = sha256_hex(canonical_json([]))
 WORKER_PREPARE_FAILED = "WORKER_PREPARE_FAILED"
 WORKER_COMMAND_FAILED = "WORKER_COMMAND_FAILED"
 WORKER_COMMAND_TIMEOUT = "WORKER_COMMAND_TIMEOUT"
+WORKER_CAPABILITY_DENIED = "WORKER_CAPABILITY_DENIED"
+
+#: DDE-016's real, seeded `capability_id`s -- see the module docstring's
+#: DDE-017 addition for which of these a given `action` actually needs.
+CAPABILITY_RUN_LOCAL_PROCESS = "capability.run_local_process"
+CAPABILITY_WORKSPACE_FILESYSTEM = "capability.workspace_filesystem"
+CAPABILITY_GIT_OPERATIONS = "capability.git_operations"
+
+
+def _required_capability_ids(action: WorkerAction) -> tuple[str, ...]:
+    """The exact, concrete `capability_id`s this action's real `start()`
+    call will exercise (see `ScriptedWorkerAdapter.start`): a subprocess
+    execution always, plus a workspace write and its git status snapshot
+    only when the action actually writes files."""
+    if action.write_files:
+        return (
+            CAPABILITY_WORKSPACE_FILESYSTEM,
+            CAPABILITY_GIT_OPERATIONS,
+            CAPABILITY_RUN_LOCAL_PROCESS,
+        )
+    return (CAPABILITY_RUN_LOCAL_PROCESS,)
 
 
 def _invoke_request_hash(
@@ -130,6 +196,7 @@ class WorkerManagerService:
         environments: ExecutionEnvironmentService | None = None,
         attempts: TaskAttemptService | None = None,
         clock: Clock | None = None,
+        leases: CapabilityLeaseService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -142,6 +209,9 @@ class WorkerManagerService:
         )
         self._attempts = attempts or TaskAttemptService(engine, events=self._events)
         self._clock = clock or SystemClock()
+        self._leases = leases or CapabilityLeaseService(
+            engine, events=self._events, clock=self._clock
+        )
 
     async def _run(
         self,
@@ -293,6 +363,26 @@ class WorkerManagerService:
                 uow=active,
             )
 
+            for capability_id in _required_capability_ids(action):
+                # No `uow=active`: see the module docstring -- this must be
+                # a real, separately committed transaction so the lease is
+                # actually visible to `require_active()`'s own connection
+                # inside `adapter.start()`, called later still within
+                # `active`'s own open transaction.
+                await self._leases.request(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=run.mission_id,
+                    task_id=task.task_id,
+                    execution_plan_id=execution_plan.plan_id,
+                    worker_run_id=run.run_id,
+                    environment_id=execution_plan.execution_environment_id,
+                    capability_id=capability_id,
+                    capability_version="1",
+                    requested_by="engine.workers.service.WorkerManagerService",
+                    idempotency_key=f"{run.run_id}:{capability_id}",
+                )
+
             run = await self._drive_lifecycle(
                 active,
                 run,
@@ -301,6 +391,13 @@ class WorkerManagerService:
                 workspace=workspace,
                 action=action,
                 task_id=task.task_id,
+            )
+
+            await self._leases.consume_all_for_run(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=run.run_id,
+                uow=active,
             )
 
             await self._commands.complete(
@@ -368,7 +465,16 @@ class WorkerManagerService:
             payload={},
         )
 
-        handle = await adapter.start(run)
+        try:
+            handle = await adapter.start(run)
+        except DdeError as exc:
+            return await self._fail(
+                active,
+                run,
+                task_id=task_id,
+                failure_class=WORKER_CAPABILITY_DENIED,
+                payload={"error_code": exc.error_code, "message": exc.message},
+            )
 
         if handle.exit_code == 0 and not handle.timed_out:
             return await self._transition(

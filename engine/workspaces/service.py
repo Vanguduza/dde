@@ -14,6 +14,23 @@ integration branch (Ch.10/DDE-013 does not exist yet — worktrees branch
 directly from a caller-supplied revision instead) and any isolation beyond
 a workspace-root path jail (Chapter 7.2's other T2 guarantees need
 container/microVM isolation the `local_process` backend does not have).
+
+**DDE-017 addition.** `snapshot()` is the one call site in this module that
+performs a real `capability.git_operations` side effect (`engine.
+workspaces.git.rev_parse_head`/`status_porcelain`) on behalf of an in-flight
+`WorkerRun` (`engine.workers.scripted_adapter.ScriptedWorkerAdapter.start`
+calls it after writing a worker's files) — so it is now this module's
+Chapter 7.2 T1 enforcement point: a `require_active(...)` guard against a
+real, granted `CapabilityLease` before the real git subprocess calls run.
+`create()`/`cleanup()`/`capture_revision()` also invoke `engine.
+workspaces.git`, but on DDE's own behalf as workspace *lifecycle*
+management (Chapter 3.9 places workspace allocation at step 9, before any
+`CapabilityLease` can exist at step 11) rather than as an operation a
+worker's run requested — they are deliberately left ungated; gating DDE's
+own infrastructure bookkeeping would either contradict Chapter 3.9's
+creation order or require inventing a lease phase the blueprint does not
+describe. This is a flagged, narrower scope than "every git operation";
+see the mission summary.
 """
 
 from __future__ import annotations
@@ -27,6 +44,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.context.repo import repo_root
 from engine.contracts.workspace import Workspace
 from engine.core.clock import Clock, SystemClock
@@ -46,6 +64,10 @@ T = TypeVar("T")
 
 DEFAULT_EXECUTE_TIMEOUT_SECONDS = 60.0
 
+#: DDE-016's real, seeded `capability_id` this module's `snapshot()` performs
+#: -- see the module docstring's DDE-017 addition.
+CAPABILITY_GIT_OPERATIONS = "capability.git_operations"
+
 
 class WorkspaceService:
     """Async, PostgreSQL-backed writer for `workspaces` (Chapter 3.8). Each
@@ -61,6 +83,7 @@ class WorkspaceService:
         clock: Clock | None = None,
         backend: EnvironmentBackend | None = None,
         root: Path | None = None,
+        leases: CapabilityLeaseService | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -68,6 +91,7 @@ class WorkspaceService:
         self._clock = clock or SystemClock()
         self._backend: EnvironmentBackend = backend or LocalProcessBackend()
         self._root = root or repo_root()
+        self._leases = leases or CapabilityLeaseService(engine, clock=self._clock)
 
     async def _run(
         self,
@@ -419,10 +443,28 @@ class WorkspaceService:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
 
-    def snapshot(self, workspace: Workspace) -> dict[str, object]:
+    async def snapshot(
+        self,
+        workspace: Workspace,
+        *,
+        worker_run_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> dict[str, object]:
         """Chapter 7.5's `snapshot()`: a real, unpersisted read of the
-        worktree's current revision and working-tree status."""
+        worktree's current revision and working-tree status.
+
+        DDE-017: gated behind a real, granted `capability.git_operations`
+        lease bound to `worker_run_id` (Chapter 7.2's T1 enforcement point
+        for this module — see the module docstring). `require_active` fails
+        closed before either real git subprocess call runs."""
         root = self._require_root(workspace)
+        await self._leases.require_active(
+            tenant_id=workspace.tenant_id,
+            project_id=workspace.project_id,
+            worker_run_id=worker_run_id,
+            capability_id=CAPABILITY_GIT_OPERATIONS,
+            uow=uow,
+        )
         return {
             "revision": git.rev_parse_head(root),
             "status_porcelain": git.status_porcelain(root),

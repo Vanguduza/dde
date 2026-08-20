@@ -35,6 +35,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.context.model import ContextBudgetExceeded
 from engine.context.service import ContextService
 from engine.contracts.context_package import ContextPackage
@@ -61,6 +62,7 @@ from engine.workers.registry import WorkerProfileRegistry
 from engine.workers.scripted_adapter import ScriptedWorkerAdapter
 from engine.workers.service import WorkerManagerService
 from engine.workspaces.service import WorkspaceService
+from tests.support.capability_fixtures import ensure_capabilities_seeded
 from tests.support.context_fixtures import build_fake_repo
 from tests.support.db import TenantFixture, seed_tenant
 
@@ -92,6 +94,9 @@ async def advance_task_to_verified(
     check_command: list[str] | None = None,
     expect_verification_status: str = "PASSED",
 ) -> AdvancedTask:
+    await ensure_capabilities_seeded(
+        engine, tenant_id=tenant.tenant_id, project_id=tenant.project_id
+    )
     plan_service = ExecutionPlanService(engine)
     plan = await plan_service.plan(
         task=task,
@@ -104,9 +109,10 @@ async def advance_task_to_verified(
     )
 
     workspaces = WorkspaceService(engine, root=root)
+    leases = CapabilityLeaseService(engine)
     registry = WorkerProfileRegistry()
-    await registry.register_profile(ScriptedWorkerAdapter(workspaces))
-    manager = WorkerManagerService(engine, registry)
+    await registry.register_profile(ScriptedWorkerAdapter(workspaces, leases))
+    manager = WorkerManagerService(engine, registry, leases=leases)
     action = WorkerAction(
         command=(sys.executable, "-c", "pass"), write_files=write_files
     )

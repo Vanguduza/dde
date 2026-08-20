@@ -19,6 +19,23 @@ this mission's explicit constraint against wiring a real hosted AI call.
 Real AI worker integration is deferred to a later, separately-scoped and
 credentialed mission (`adapters/cursor/**`, per AGENTS.md's boundary rule).
 
+**DDE-017 addition.** `start()` is the first real Stage 1 code path that
+performs the exact side effects DDE-016's descriptor catalog names --
+`capability.workspace_filesystem` (`WorkspaceService.write`),
+`capability.git_operations` (`WorkspaceService.snapshot`) and
+`capability.run_local_process` (`WorkspaceService.execute`) -- so it is now
+the Chapter 7.2 T1 "brokered" enforcement point for all three: a
+`require_active(...)` guard against a real, granted `CapabilityLease`
+(`engine.capabilities.lease_service.CapabilityLeaseService`), called
+immediately before each real side effect, in the same order the side
+effects themselves occur. A missing, denied, expired, revoked or consumed
+lease fails the run closed (`POLICY_DENIED`) rather than silently
+proceeding; a lease revoked between two of these calls in the same `start()`
+invocation is caught by the second call -- the real, achievable "mid-run
+revocation" granularity documented in the mission summary (there is no
+per-syscall interception inside a single subprocess without T2 containment,
+DDE-018).
+
 Chapter 8.1's literal `prepare(execution_plan, context_ref, env_ref)` has no
 slot for "what to do" — a real AI adapter derives that from its own
 model+context; this scripted profile has no model, so it receives its
@@ -38,6 +55,7 @@ import subprocess
 import sys
 from uuid import UUID
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.worker_run import WorkerRun
 from engine.contracts.workspace import Workspace
@@ -69,6 +87,14 @@ from engine.workspaces.service import WorkspaceService
 WORKER_ID = "worker.scripted-deterministic-v1"
 DECLARED_CAPABILITIES = frozenset({CAPABILITY_REPOSITORY, CAPABILITY_TESTING})
 
+#: DDE-016's real, seeded `capability_id`s this adapter's real side effects
+#: perform -- transcribed from `engine.capabilities.seed.SEED_CAPABILITIES`,
+#: not re-declared independently, so the two never drift silently.
+#: `capability.git_operations` is checked inside `WorkspaceService.snapshot`
+#: itself (see that module), not here.
+CAPABILITY_WORKSPACE_FILESYSTEM = "capability.workspace_filesystem"
+CAPABILITY_RUN_LOCAL_PROCESS = "capability.run_local_process"
+
 _SYNCHRONOUS_BACKEND_REASON = (
     "ScriptedWorkerAdapter executes its action synchronously inside "
     "start() and returns only once terminal; there is no in-flight window "
@@ -84,8 +110,11 @@ class ScriptedWorkerAdapter:
     is derived from that real execution — nothing here is fabricated to
     satisfy a field."""
 
-    def __init__(self, workspaces: WorkspaceService) -> None:
+    def __init__(
+        self, workspaces: WorkspaceService, leases: CapabilityLeaseService
+    ) -> None:
         self._workspaces = workspaces
+        self._leases = leases
         self._pending_actions: dict[UUID, WorkerAction] = {}
         self._prepared: dict[UUID, tuple[Workspace, WorkerAction]] = {}
         self._handles: dict[UUID, RunHandle] = {}
@@ -170,15 +199,29 @@ class ScriptedWorkerAdapter:
                 details={"execution_plan_id": str(worker_run.execution_plan_id)},
             )
         workspace, action = prepared
-        for relative_path, content in action.write_files.items():
-            self._workspaces.write(workspace, relative_path, content)
         changed_files: tuple[str, ...] = ()
         if action.write_files:
-            snapshot = self._workspaces.snapshot(workspace)
+            await self._leases.require_active(
+                tenant_id=worker_run.tenant_id,
+                project_id=worker_run.project_id,
+                worker_run_id=worker_run.run_id,
+                capability_id=CAPABILITY_WORKSPACE_FILESYSTEM,
+            )
+            for relative_path, content in action.write_files.items():
+                self._workspaces.write(workspace, relative_path, content)
+            snapshot = await self._workspaces.snapshot(
+                workspace, worker_run_id=worker_run.run_id
+            )
             porcelain = str(snapshot["status_porcelain"])
             changed_files = tuple(
                 line[3:] for line in porcelain.splitlines() if line.strip()
             )
+        await self._leases.require_active(
+            tenant_id=worker_run.tenant_id,
+            project_id=worker_run.project_id,
+            worker_run_id=worker_run.run_id,
+            capability_id=CAPABILITY_RUN_LOCAL_PROCESS,
+        )
         result = await self._workspaces.execute(
             workspace=workspace, command=list(action.command)
         )
