@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/write_scope_lease.json",
+  "title": "WriteScopeLease",
+  "description": "Chapter 10.3's structural conflict prevention: reserved by the Task Planner before scheduling, owned by engine.integration. Status only is mutable; scope_patterns are immutable once reserved.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "write_scope_leases",
+    "order": 155,
+    "pk": ["lease_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "write_scope_leases_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "write_scope_leases_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "write_scope_leases_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "write_scope_leases_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      }
+    ]
+  },
+  "required": [
+    "lease_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "scope_patterns",
+    "exclusive",
+    "status",
+    "acquired_at",
+    "expires_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "lease_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "scope_patterns": { "type": "array", "items": { "type": "string" } },
+    "exclusive": { "type": "boolean" },
+    "status": { "type": "string" },
+    "acquired_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "released_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

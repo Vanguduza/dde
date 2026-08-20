@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/integration_proposal.json",
+  "title": "IntegrationProposal",
+  "description": "Chapter 10.4's merge queue entry: one real task branch rebased, gated and (if it clears every gate) fast-forwarded onto its mission integration branch. Owned by engine.integration.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "integration_proposals",
+    "order": 215,
+    "pk": ["proposal_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "integration_proposals_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "integration_proposals_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "integration_proposals_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "integration_proposals_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "integration_proposals_task_attempt_id_fkey",
+        "columns": ["task_attempt_id"],
+        "ref_table": "task_attempts",
+        "ref_columns": ["attempt_id"]
+      },
+      {
+        "name": "integration_proposals_scope_lease_id_fkey",
+        "columns": ["scope_lease_id"],
+        "ref_table": "write_scope_leases",
+        "ref_columns": ["lease_id"]
+      },
+      {
+        "name": "integration_proposals_verification_ref_fkey",
+        "columns": ["pre_integration_verification_ref"],
+        "ref_table": "verification_runs",
+        "ref_columns": ["verification_run_id"]
+      }
+    ]
+  },
+  "required": [
+    "proposal_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "task_attempt_id",
+    "source_branch",
+    "base_revision",
+    "proposed_revision",
+    "diff_summary",
+    "changed_paths",
+    "scope_lease_id",
+    "pre_integration_verification_ref",
+    "status",
+    "attempts",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "proposal_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "task_attempt_id": { "type": "string", "format": "uuid" },
+    "source_branch": { "type": "string" },
+    "base_revision": { "type": "string" },
+    "proposed_revision": { "type": "string" },
+    "diff_summary": { "type": "string" },
+    "changed_paths": { "type": "array", "items": { "type": "string" } },
+    "scope_lease_id": { "type": "string", "format": "uuid" },
+    "pre_integration_verification_ref": { "type": "string", "format": "uuid" },
+    "status": { "type": "string" },
+    "conflict_class": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "attempts": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
