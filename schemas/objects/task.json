@@ -36,6 +36,12 @@
         "columns": ["graph_id"],
         "ref_table": "task_graphs",
         "ref_columns": ["graph_id"]
+      },
+      {
+        "name": "tasks_parent_task_id_fkey",
+        "columns": ["parent_task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
       }
     ]
   },
@@ -69,23 +75,69 @@
     "project_id": { "type": "string", "format": "uuid" },
     "mission_id": { "type": "string", "format": "uuid" },
     "graph_id": { "type": "string", "format": "uuid" },
+    "parent_task_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
     "title": { "type": "string" },
     "intent": { "type": "string" },
-    "task_class": { "type": "string" },
+    "task_class": {
+      "type": "string",
+      "enum": [
+        "discovery",
+        "specification",
+        "decision",
+        "enabling",
+        "implementation",
+        "integration",
+        "verification",
+        "repair",
+        "documentation"
+      ]
+    },
     "requirement_refs": { "type": "array", "items": { "type": "string" } },
     "feature_refs": { "type": "array", "items": { "type": "string" } },
     "success_criteria": { "type": "array", "items": { "type": "string" } },
     "expected_write_scope": { "type": "array", "items": { "type": "string" } },
     "expected_read_scope": { "type": "array", "items": { "type": "string" } },
-    "blast_radius": { "type": "string" },
-    "risk_class": { "type": "string" },
-    "estimated_effort": { "type": "string" },
-    "autonomy_ceiling": { "type": "integer" },
+    "blast_radius": {
+      "type": "string",
+      "enum": ["none", "local", "module", "cross_module", "systemic"]
+    },
+    "risk_class": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "estimated_effort": {
+      "type": "string",
+      "enum": ["xs", "s", "m", "l"]
+    },
+    "autonomy_ceiling": { "type": "integer", "minimum": 0, "maximum": 6 },
     "requires_approval": { "type": "boolean" },
     "verification_profile_ref": {
       "anyOf": [{ "type": "string" }, { "type": "null" }]
     },
-    "status": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "BLOCKED",
+        "READY",
+        "CONTEXT_READY",
+        "ROUTED",
+        "PLANNED",
+        "EXECUTING",
+        "VERIFYING",
+        "INTEGRATING",
+        "COMPLETED",
+        "REPAIR_REQUIRED",
+        "MERGE_CONFLICT",
+        "RETRYING",
+        "REROUTING",
+        "BLOCKED_ON_DECISION",
+        "SUPERSEDED",
+        "RETIRED"
+      ]
+    },
     "lock_version": { "type": "integer" },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }

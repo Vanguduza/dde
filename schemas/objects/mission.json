@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/mission.json",
   "title": "Mission",
-  "description": "Manufacturing mission. Optimistic locking required by Chapter 3.5.",
+  "description": "Manufacturing mission. Optimistic locking required by Chapter 3.5. Status values are those named by Chapters 4.9, 12.6 and 15.4.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -33,6 +33,11 @@
     "tenant_id",
     "project_id",
     "slug",
+    "title",
+    "intent",
+    "success_definition",
+    "scope",
+    "requirement_refs",
     "status",
     "autonomy_ceiling",
     "lock_version",
@@ -44,8 +49,24 @@
     "tenant_id": { "type": "string", "format": "uuid" },
     "project_id": { "type": "string", "format": "uuid" },
     "slug": { "type": "string", "minLength": 1 },
-    "status": { "type": "string" },
-    "autonomy_ceiling": { "type": "integer" },
+    "title": { "type": "string", "minLength": 1 },
+    "intent": { "type": "string", "minLength": 1 },
+    "success_definition": { "type": "string", "minLength": 1 },
+    "scope": { "type": "array", "items": { "type": "string" } },
+    "requirement_refs": { "type": "array", "items": { "type": "string" } },
+    "status": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "ACTIVE",
+        "PARTIAL",
+        "PAUSED",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "autonomy_ceiling": { "type": "integer", "minimum": 0, "maximum": 6 },
     "lock_version": { "type": "integer" },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }

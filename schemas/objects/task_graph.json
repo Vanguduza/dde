@@ -68,11 +68,24 @@
     "tenant_id": { "type": "string", "format": "uuid" },
     "project_id": { "type": "string", "format": "uuid" },
     "mission_id": { "type": "string", "format": "uuid" },
-    "version": { "type": "integer" },
+    "version": { "type": "integer", "minimum": 1 },
     "supersedes_id": {
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
-    "status": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "VALIDATING",
+        "APPROVED",
+        "ACTIVE",
+        "COMPLETED",
+        "REJECTED",
+        "AMENDING",
+        "REPLANNING",
+        "SUPERSEDED"
+      ]
+    },
     "planning_mode": {
       "type": "string",
       "enum": ["template", "model_assisted", "human_authored"]

@@ -22,7 +22,17 @@ class TaskGraph(BaseModel):
     mission_id: UUID
     version: int
     supersedes_id: UUID | None = None
-    status: str
+    status: Literal[
+        "DRAFT",
+        "VALIDATING",
+        "APPROVED",
+        "ACTIVE",
+        "COMPLETED",
+        "REJECTED",
+        "AMENDING",
+        "REPLANNING",
+        "SUPERSEDED",
+    ]
     planning_mode: Literal["template", "model_assisted", "human_authored"]
     planner_policy_version: str
     rationale: str
