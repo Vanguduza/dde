@@ -32,6 +32,7 @@
     "tenant_id",
     "project_id",
     "event_id",
+    "status",
     "payload",
     "created_at",
     "updated_at"
@@ -44,6 +45,10 @@
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
     "event_id": { "type": "string", "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "published"]
+    },
     "payload": { "type": "object", "additionalProperties": true },
     "published_at": {
       "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]

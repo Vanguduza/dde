@@ -45,7 +45,16 @@
     "project_id": { "type": "string", "format": "uuid" },
     "idempotency_key": { "type": "string" },
     "request_hash": { "type": "string" },
-    "status": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["first_seen", "in_progress", "completed", "failed"]
+    },
+    "result": {
+      "anyOf": [
+        { "type": "object", "additionalProperties": true },
+        { "type": "null" }
+      ]
+    },
     "expires_at": { "type": "string", "format": "date-time" },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }

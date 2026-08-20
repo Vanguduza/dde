@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -18,6 +19,7 @@ class Outbox(BaseModel):
     project_id: UUID
     mission_id: UUID | None = None
     event_id: UUID
+    status: Literal["pending", "published"]
     payload: dict[str, object]
     published_at: datetime | None = None
     created_at: datetime
