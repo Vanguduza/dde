@@ -9,7 +9,10 @@ from pydantic import BaseModel, ConfigDict
 
 
 class AuditEvent(BaseModel):
-    """Hash-chained audit ledger. Never detached."""
+    """
+    Hash-chained audit ledger. Never detached. Tenant-wide chain (Chapter 3.7), so
+    project_id is optional correlation, not an RLS axis.
+    """
 
     model_config = ConfigDict(extra="forbid")
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/audit_event.json",
   "title": "AuditEvent",
-  "description": "Hash-chained audit ledger. Never detached.",
+  "description": "Hash-chained audit ledger. Never detached. Tenant-wide chain (Chapter 3.7), so project_id is optional correlation, not an RLS axis.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -10,7 +10,7 @@
     "order": 260,
     "pk": ["audit_event_id"],
     "tenant_scoped": true,
-    "project_scoped": true,
+    "project_scoped": false,
     "lock_version": false,
     "foreign_keys": [
       {

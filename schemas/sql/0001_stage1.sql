@@ -908,140 +908,140 @@ ALTER TABLE audit_events ADD CONSTRAINT audit_events_project_id_fkey FOREIGN KEY
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants FORCE ROW LEVEL SECURITY;
-CREATE POLICY tenants_tenant_isolation ON tenants USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY tenants_tenant_isolation ON tenants USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects FORCE ROW LEVEL SECURITY;
-CREATE POLICY projects_tenant_isolation ON projects USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY projects_tenant_isolation ON projects USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE principals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE principals FORCE ROW LEVEL SECURITY;
-CREATE POLICY principals_tenant_isolation ON principals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY principals_tenant_isolation ON principals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE principal_grants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE principal_grants FORCE ROW LEVEL SECURITY;
-CREATE POLICY principal_grants_tenant_isolation ON principal_grants USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY principal_grants_tenant_isolation ON principal_grants USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE capabilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE capabilities FORCE ROW LEVEL SECURITY;
-CREATE POLICY capabilities_tenant_isolation ON capabilities USING (visibility = 'global' OR owner_tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY capabilities_tenant_isolation ON capabilities USING (visibility = 'global' OR owner_tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (visibility = 'global' OR owner_tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE product_constitution_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_constitution_versions FORCE ROW LEVEL SECURITY;
-CREATE POLICY product_constitution_versions_tenant_isolation ON product_constitution_versions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY product_constitution_versions_tenant_isolation ON product_constitution_versions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE requirements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE requirements FORCE ROW LEVEL SECURITY;
-CREATE POLICY requirements_tenant_isolation ON requirements USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY requirements_tenant_isolation ON requirements USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE edrs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE edrs FORCE ROW LEVEL SECURITY;
-CREATE POLICY edrs_tenant_isolation ON edrs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY edrs_tenant_isolation ON edrs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE missions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE missions FORCE ROW LEVEL SECURITY;
-CREATE POLICY missions_tenant_isolation ON missions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY missions_tenant_isolation ON missions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE task_graphs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_graphs FORCE ROW LEVEL SECURITY;
-CREATE POLICY task_graphs_tenant_isolation ON task_graphs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY task_graphs_tenant_isolation ON task_graphs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks FORCE ROW LEVEL SECURITY;
-CREATE POLICY tasks_tenant_isolation ON tasks USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY tasks_tenant_isolation ON tasks USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE task_graph_edges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_graph_edges FORCE ROW LEVEL SECURITY;
-CREATE POLICY task_graph_edges_tenant_isolation ON task_graph_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY task_graph_edges_tenant_isolation ON task_graph_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE context_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE context_packages FORCE ROW LEVEL SECURITY;
-CREATE POLICY context_packages_tenant_isolation ON context_packages USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY context_packages_tenant_isolation ON context_packages USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE route_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE route_decisions FORCE ROW LEVEL SECURITY;
-CREATE POLICY route_decisions_tenant_isolation ON route_decisions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY route_decisions_tenant_isolation ON route_decisions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE execution_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_environments FORCE ROW LEVEL SECURITY;
-CREATE POLICY execution_environments_tenant_isolation ON execution_environments USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY execution_environments_tenant_isolation ON execution_environments USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspaces FORCE ROW LEVEL SECURITY;
-CREATE POLICY workspaces_tenant_isolation ON workspaces USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY workspaces_tenant_isolation ON workspaces USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE write_scope_leases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE write_scope_leases FORCE ROW LEVEL SECURITY;
-CREATE POLICY write_scope_leases_tenant_isolation ON write_scope_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY write_scope_leases_tenant_isolation ON write_scope_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE execution_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_plans FORCE ROW LEVEL SECURITY;
-CREATE POLICY execution_plans_tenant_isolation ON execution_plans USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY execution_plans_tenant_isolation ON execution_plans USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE task_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE task_attempts FORCE ROW LEVEL SECURITY;
-CREATE POLICY task_attempts_tenant_isolation ON task_attempts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY task_attempts_tenant_isolation ON task_attempts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE worker_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE worker_runs FORCE ROW LEVEL SECURITY;
-CREATE POLICY worker_runs_tenant_isolation ON worker_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY worker_runs_tenant_isolation ON worker_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE worker_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE worker_events FORCE ROW LEVEL SECURITY;
-CREATE POLICY worker_events_tenant_isolation ON worker_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY worker_events_tenant_isolation ON worker_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE capability_leases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE capability_leases FORCE ROW LEVEL SECURITY;
-CREATE POLICY capability_leases_tenant_isolation ON capability_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY capability_leases_tenant_isolation ON capability_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE credential_handles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credential_handles FORCE ROW LEVEL SECURITY;
-CREATE POLICY credential_handles_tenant_isolation ON credential_handles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY credential_handles_tenant_isolation ON credential_handles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE external_effects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE external_effects FORCE ROW LEVEL SECURITY;
-CREATE POLICY external_effects_tenant_isolation ON external_effects USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY external_effects_tenant_isolation ON external_effects USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts FORCE ROW LEVEL SECURITY;
-CREATE POLICY artifacts_tenant_isolation ON artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY artifacts_tenant_isolation ON artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE acceptance_oracles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE acceptance_oracles FORCE ROW LEVEL SECURITY;
-CREATE POLICY acceptance_oracles_tenant_isolation ON acceptance_oracles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY acceptance_oracles_tenant_isolation ON acceptance_oracles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE verification_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_runs FORCE ROW LEVEL SECURITY;
-CREATE POLICY verification_runs_tenant_isolation ON verification_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY verification_runs_tenant_isolation ON verification_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE integration_proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integration_proposals FORCE ROW LEVEL SECURITY;
-CREATE POLICY integration_proposals_tenant_isolation ON integration_proposals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY integration_proposals_tenant_isolation ON integration_proposals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE diff_gate_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE diff_gate_reports FORCE ROW LEVEL SECURITY;
-CREATE POLICY diff_gate_reports_tenant_isolation ON diff_gate_reports USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY diff_gate_reports_tenant_isolation ON diff_gate_reports USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE dependency_admissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dependency_admissions FORCE ROW LEVEL SECURITY;
-CREATE POLICY dependency_admissions_tenant_isolation ON dependency_admissions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY dependency_admissions_tenant_isolation ON dependency_admissions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence FORCE ROW LEVEL SECURITY;
-CREATE POLICY evidence_tenant_isolation ON evidence USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY evidence_tenant_isolation ON evidence USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events FORCE ROW LEVEL SECURITY;
-CREATE POLICY events_tenant_isolation ON events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY events_tenant_isolation ON events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE outbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE outbox FORCE ROW LEVEL SECURITY;
-CREATE POLICY outbox_tenant_isolation ON outbox USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY outbox_tenant_isolation ON outbox USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE command_idempotency ENABLE ROW LEVEL SECURITY;
 ALTER TABLE command_idempotency FORCE ROW LEVEL SECURITY;
-CREATE POLICY command_idempotency_tenant_isolation ON command_idempotency USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY command_idempotency_tenant_isolation ON command_idempotency USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
-CREATE POLICY audit_events_tenant_isolation ON audit_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+CREATE POLICY audit_events_tenant_isolation ON audit_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));

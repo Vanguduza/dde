@@ -1,10 +1,23 @@
 """PostgreSQL unit of work for Project Truth writes (Chapter 3.2, 3.5).
 
-One transaction per unit of work, scoped to a tenant/project via `SELECT
-set_config(..., true)` (the `SET LOCAL` equivalent that supports bind
-parameters). The GUCs reset at transaction end; a caller that never sets them
-gets a connection where `current_setting('dde.tenant_id', true)` is NULL, so
-the fail-closed RLS predicate in `schemas/sql/0001_stage1.sql` matches no rows.
+**Production GUC call site.** `_set_tenant_scope` is the only request-path
+writer of `dde.tenant_id` / `dde.project_id`. Every domain service that
+opens its own transaction goes through `open_unit_of_work` (capability
+registry, leases, broker, missions, recovery, integration, …). The GUCs
+reset at transaction end. An unset `dde.tenant_id` is NULL, so the
+fail-closed RLS predicates in `schemas/sql/0001_stage1.sql` match no rows
+(Chapter 3.2). An unset `dde.project_id` likewise matches no rows on
+project-scoped tables.
+
+**Not claimed.** This does not derive tenant identity from an
+authenticated principal (Chapter 13.9 / 3.2: "never from a client-supplied
+target identifier"). Callers still pass `tenant_id` / `project_id`; this
+module binds those values onto the transaction. Principal-grant
+authorization before domain operations is DDE-027 / DDE-051. The local
+dev `dde` role is a superuser and bypasses RLS regardless of these GUCs;
+see `tests/support/db.py`. The outbox dispatcher
+(`engine.events.dispatcher.open_dispatch_unit_of_work`) deliberately does
+not call this helper.
 """
 
 from __future__ import annotations

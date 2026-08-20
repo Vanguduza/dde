@@ -339,25 +339,60 @@ def _fk_sql(schema: dict[str, Any]) -> list[str]:
     return statements
 
 
+def _tenant_guc_predicate() -> str:
+    return "tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)"
+
+
+def _project_guc_predicate() -> str:
+    return "project_id = CAST(current_setting('dde.project_id', true) AS uuid)"
+
+
 def _rls_sql(schema: dict[str, Any]) -> list[str]:
-    """Chapter 3.2's RLS predicate. Most tables are simply tenant-scoped
-    (`tenant_scoped: true`), but a global registry (`capabilities`,
-    `worker_profiles`, `policies` -- Chapter 3.2) carries `visibility`/
-    `owner_tenant_id` instead of `tenant_id` and needs a different
-    predicate: visible if globally published, or owned by the caller's own
-    tenant. `rls_predicate` lets a schema declare that predicate literally
-    rather than this generator guessing a table's column shape."""
+    """Chapter 3.2 RLS policies emitted into migration 0001 -- the
+    production enforcement site, not a test helper.
+
+    Enforced now. ENABLE + FORCE RLS on every tenant-scoped table and on
+    global registries that declare `rls_predicate`. USING and WITH CHECK
+    bind `tenant_id` to `current_setting('dde.tenant_id', true)` (unset GUC
+    is NULL and matches no rows -- fail-closed, Chapter 3.2: "an unset GUC
+    yields no rows"). Project-scoped tables also bind `project_id` to
+    `dde.project_id` the same way (Chapter 3.2: project_id carries an RLS
+    predicate, not only a foreign key).
+
+    The local dev `dde` role is a superuser and therefore bypasses these
+    policies regardless of FORCE (see `tests/support/db.py`). Enforcement
+    is observable only through a NOSUPERUSER NOBYPASSRLS role such as
+    `dde_rls_probe`. Production application roles must never be granted
+    BYPASSRLS.
+
+    Deferred. Principal-derived tenant identity (Chapter 13.9: never from
+    a client-supplied target id) requires a session/auth layer (DDE-027 /
+    DDE-051); `open_unit_of_work` still sets GUCs from caller-supplied
+    UUIDs. Object-storage key prefixes, project-scoped Git credentials,
+    and telemetry-scoped dashboards are the other three Chapter 13.9
+    isolation layers and are not this mission. `worker_profiles` and
+    `policies` global registries are not in the Stage 1 table set. Outbox
+    dispatch (`engine.events.dispatcher`) is a system process that today
+    relies on the superuser bypass; a dedicated dispatcher role is not
+    created here.
+    """
     storage = schema["x-dde-storage"]
     table = storage["table"]
     predicate = storage.get("rls_predicate")
     if predicate is None:
         if not storage.get("tenant_scoped"):
             return []
-        predicate = "tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)"
+        parts = [_tenant_guc_predicate()]
+        if storage.get("project_scoped"):
+            parts.append(_project_guc_predicate())
+        predicate = " AND ".join(parts)
     return [
         f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;",
         f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY;",
-        f"CREATE POLICY {table}_tenant_isolation ON {table} USING ({predicate});",
+        (
+            f"CREATE POLICY {table}_tenant_isolation ON {table} "
+            f"USING ({predicate}) WITH CHECK ({predicate});"
+        ),
     ]
 
 

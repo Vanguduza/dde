@@ -7,12 +7,17 @@ using the same fail-closed RLS path production code goes through.
 
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import make_url, text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from engine.core.ids import uuid7
 from engine.gateway.settings import get_settings
@@ -57,7 +62,13 @@ async def ensure_rls_probe_role(engine: AsyncEngine) -> str:
                 )
             )
         await connection.execute(
-            text(f"GRANT SELECT ON ALL TABLES IN SCHEMA public TO {RLS_PROBE_ROLE}")
+            text(f"GRANT USAGE ON SCHEMA public TO {RLS_PROBE_ROLE}")  # noqa: S608
+        )
+        await connection.execute(
+            text(
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "  # noqa: S608
+                f"IN SCHEMA public TO {RLS_PROBE_ROLE}"
+            )
         )
         await connection.commit()
     probe_url = make_url(get_settings().database_url).set(
@@ -128,3 +139,43 @@ async def seed_tenant(engine: AsyncEngine) -> TenantFixture:
     return TenantFixture(
         tenant_id=tenant_id, project_id=project_id, principal_id=principal_id
     )
+
+
+def load_stored_object_schemas() -> list[dict[str, Any]]:
+    """Object schemas that declare `x-dde-storage`, in generator order."""
+    objects_dir = Path(__file__).resolve().parents[2] / "schemas" / "objects"
+    stored: list[dict[str, Any]] = []
+    for path in sorted(objects_dir.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if "x-dde-storage" in payload:
+            stored.append(payload)
+    stored.sort(key=lambda item: int(item["x-dde-storage"]["order"]))
+    return stored
+
+
+@asynccontextmanager
+async def open_rls_probe(
+    probe_engine: AsyncEngine,
+    *,
+    tenant_id: UUID | None = None,
+    project_id: UUID | None = None,
+) -> AsyncIterator[AsyncConnection]:
+    """One probe-role transaction. GUCs are set only when the caller passes
+    them, so omitting both is the Chapter 3.2 missing-setting case. Always
+    rolled back -- probe writes are assertions, not fixtures."""
+    async with probe_engine.connect() as connection:
+        transaction = await connection.begin()
+        try:
+            if tenant_id is not None:
+                await connection.execute(
+                    text("SELECT set_config('dde.tenant_id', :value, true)"),
+                    {"value": str(tenant_id)},
+                )
+            if project_id is not None:
+                await connection.execute(
+                    text("SELECT set_config('dde.project_id', :value, true)"),
+                    {"value": str(project_id)},
+                )
+            yield connection
+        finally:
+            await transaction.rollback()
