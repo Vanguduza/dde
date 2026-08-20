@@ -16,6 +16,8 @@ class AuditEvent(BaseModel):
     audit_event_id: UUID
     tenant_id: UUID
     project_id: UUID | None = None
+    event_type: str
+    sequence: int
     prev_hash: str | None = None
     entry_hash: str
     payload: dict[str, object]

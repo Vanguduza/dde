@@ -25,15 +25,60 @@
         "columns": ["project_id"],
         "ref_table": "projects",
         "ref_columns": ["project_id"]
+      },
+      {
+        "name": "edrs_supersedes_id_fkey",
+        "columns": ["supersedes_id"],
+        "ref_table": "edrs",
+        "ref_columns": ["edr_id"]
+      },
+      {
+        "name": "edrs_decided_by_principal_fkey",
+        "columns": ["decided_by_principal"],
+        "ref_table": "principals",
+        "ref_columns": ["principal_id"]
       }
     ]
   },
-  "required": ["edr_id", "tenant_id", "project_id", "slug", "created_at", "updated_at"],
+  "required": [
+    "edr_id",
+    "tenant_id",
+    "project_id",
+    "slug",
+    "context",
+    "alternatives",
+    "decision",
+    "rationale",
+    "consequences",
+    "affected_requirement_slugs",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
     "edr_id": { "type": "string", "format": "uuid" },
     "tenant_id": { "type": "string", "format": "uuid" },
     "project_id": { "type": "string", "format": "uuid" },
     "slug": { "type": "string", "minLength": 1 },
+    "context": { "type": "string" },
+    "alternatives": { "type": "array", "items": { "type": "string" } },
+    "decision": { "type": "string" },
+    "rationale": { "type": "string" },
+    "consequences": { "type": "array", "items": { "type": "string" } },
+    "affected_requirement_slugs": { "type": "array", "items": { "type": "string" } },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "accepted", "rejected", "superseded"]
+    },
+    "supersedes_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "decided_by_principal": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "decided_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/product_constitution_version.json",
   "title": "ProductConstitutionVersion",
-  "description": "Versioned Product Constitution record.",
+  "description": "Versioned Product Constitution record. Changes only through change control.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -25,15 +25,37 @@
         "columns": ["project_id"],
         "ref_table": "projects",
         "ref_columns": ["project_id"]
+      },
+      {
+        "name": "product_constitution_versions_supersedes_id_fkey",
+        "columns": ["supersedes_id"],
+        "ref_table": "product_constitution_versions",
+        "ref_columns": ["version_id"]
       }
     ]
   },
-  "required": ["version_id", "tenant_id", "project_id", "version", "created_at", "updated_at"],
+  "required": [
+    "version_id",
+    "tenant_id",
+    "project_id",
+    "version",
+    "status",
+    "body_markdown",
+    "content_hash",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
     "version_id": { "type": "string", "format": "uuid" },
     "tenant_id": { "type": "string", "format": "uuid" },
     "project_id": { "type": "string", "format": "uuid" },
-    "version": { "type": "integer" },
+    "version": { "type": "integer", "minimum": 1 },
+    "status": { "type": "string", "enum": ["draft", "active", "superseded"] },
+    "body_markdown": { "type": "string" },
+    "content_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "supersedes_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

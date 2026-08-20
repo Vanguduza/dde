@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/requirement.json",
   "title": "Requirement",
-  "description": "Approved requirement in Project Truth.",
+  "description": "Stable, testable statement of intended behaviour with constraints and acceptance conditions.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -25,15 +25,42 @@
         "columns": ["project_id"],
         "ref_table": "projects",
         "ref_columns": ["project_id"]
+      },
+      {
+        "name": "requirements_supersedes_id_fkey",
+        "columns": ["supersedes_id"],
+        "ref_table": "requirements",
+        "ref_columns": ["requirement_id"]
       }
     ]
   },
-  "required": ["requirement_id", "tenant_id", "project_id", "slug", "created_at", "updated_at"],
+  "required": [
+    "requirement_id",
+    "tenant_id",
+    "project_id",
+    "slug",
+    "statement",
+    "constraints",
+    "acceptance_conditions",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
     "requirement_id": { "type": "string", "format": "uuid" },
     "tenant_id": { "type": "string", "format": "uuid" },
     "project_id": { "type": "string", "format": "uuid" },
     "slug": { "type": "string", "minLength": 1 },
+    "statement": { "type": "string", "minLength": 1 },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "acceptance_conditions": { "type": "array", "items": { "type": "string" } },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "approved", "retired", "superseded"]
+    },
+    "supersedes_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

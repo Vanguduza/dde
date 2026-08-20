@@ -30,6 +30,8 @@
   "required": [
     "audit_event_id",
     "tenant_id",
+    "event_type",
+    "sequence",
     "entry_hash",
     "payload",
     "created_at",
@@ -41,10 +43,12 @@
     "project_id": {
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
+    "event_type": { "type": "string" },
+    "sequence": { "type": "integer", "minimum": 1 },
     "prev_hash": {
       "anyOf": [{ "type": "string" }, { "type": "null" }]
     },
-    "entry_hash": { "type": "string" },
+    "entry_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
     "payload": { "type": "object", "additionalProperties": true },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
