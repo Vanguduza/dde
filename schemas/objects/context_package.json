@@ -52,6 +52,7 @@
     "index_lag_commits",
     "coverage",
     "status",
+    "retrievers_used",
     "created_at",
     "updated_at"
   ],
@@ -67,6 +68,7 @@
     "index_lag_commits": { "type": "integer" },
     "coverage": { "type": "object", "additionalProperties": true },
     "status": { "type": "string" },
+    "retrievers_used": { "type": "array", "items": { "type": "string" } },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

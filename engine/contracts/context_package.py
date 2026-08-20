@@ -26,5 +26,6 @@ class ContextPackage(BaseModel):
     index_lag_commits: int
     coverage: dict[str, object]
     status: str
+    retrievers_used: list[str]
     created_at: datetime
     updated_at: datetime
