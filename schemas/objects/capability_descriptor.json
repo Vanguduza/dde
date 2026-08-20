@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/capability_descriptor.json",
+  "title": "CapabilityDescriptor",
+  "description": "Chapter 9.1's capability descriptor -- a declared, admitted, versioned side-effecting operation. Chapter 3.2 names this table's storage `capabilities` and lists it as one of the three named global registries, tenant-agnostic by design: it carries `visibility`/`owner_tenant_id` instead of a mandatory `tenant_id`/`project_id`. Definition fields are immutable per version (Chapter 3.10's general principle); only `lifecycle_status`/`certification_status`/`supersedes_descriptor_id`/`superseded_by_descriptor_id`/`deprecated_at`/`retired_at` change after creation.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "capabilities",
+    "order": 45,
+    "pk": ["descriptor_id"],
+    "tenant_scoped": false,
+    "project_scoped": false,
+    "lock_version": false,
+    "uniques": [["capability_id", "version"]],
+    "rls_predicate": "visibility = 'global' OR owner_tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)",
+    "foreign_keys": [
+      {
+        "name": "capabilities_owner_tenant_id_fkey",
+        "columns": ["owner_tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "capabilities_supersedes_descriptor_id_fkey",
+        "columns": ["supersedes_descriptor_id"],
+        "ref_table": "capabilities",
+        "ref_columns": ["descriptor_id"]
+      },
+      {
+        "name": "capabilities_superseded_by_descriptor_id_fkey",
+        "columns": ["superseded_by_descriptor_id"],
+        "ref_table": "capabilities",
+        "ref_columns": ["descriptor_id"]
+      }
+    ]
+  },
+  "required": [
+    "descriptor_id",
+    "capability_id",
+    "version",
+    "category",
+    "summary",
+    "implementations",
+    "supported_worker_profiles",
+    "supported_environments",
+    "supported_workloads",
+    "risk_class",
+    "side_effect_class",
+    "enforcement_tier",
+    "permission_model",
+    "cost_model",
+    "network_requirements",
+    "dependencies",
+    "provenance",
+    "certification_status",
+    "lifecycle_status",
+    "visibility",
+    "descriptor_hash",
+    "registered_by",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "descriptor_id": { "type": "string", "format": "uuid" },
+    "capability_id": { "type": "string" },
+    "version": { "type": "string" },
+    "category": { "type": "string" },
+    "summary": { "type": "string" },
+    "interface_schema_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "input_schema_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "output_schema_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "implementations": { "type": "array", "items": { "type": "string" } },
+    "supported_worker_profiles": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "supported_environments": { "type": "array", "items": { "type": "string" } },
+    "supported_workloads": { "type": "array", "items": { "type": "string" } },
+    "risk_class": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "side_effect_class": {
+      "type": "string",
+      "enum": [
+        "PURE_READ",
+        "WORKSPACE_LOCAL",
+        "EXTERNAL_IDEMPOTENT",
+        "EXTERNAL_NON_IDEMPOTENT",
+        "IRREVERSIBLE"
+      ]
+    },
+    "enforcement_tier": { "type": "string", "enum": ["T1", "T2"] },
+    "permission_model": { "type": "object", "additionalProperties": true },
+    "cost_model": { "type": "object", "additionalProperties": true },
+    "network_requirements": { "type": "object", "additionalProperties": true },
+    "dependencies": { "type": "array", "items": { "type": "string" } },
+    "provenance": { "type": "object", "additionalProperties": true },
+    "certification_status": {
+      "type": "string",
+      "enum": ["PENDING", "CERTIFIED", "REJECTED", "STALE"]
+    },
+    "lifecycle_status": {
+      "type": "string",
+      "enum": ["ACTIVE", "DEPRECATED", "RETIRED"]
+    },
+    "visibility": { "type": "string", "enum": ["global", "tenant"] },
+    "owner_tenant_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "supersedes_descriptor_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "superseded_by_descriptor_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "descriptor_hash": { "type": "string" },
+    "registered_by": { "type": "string" },
+    "deprecated_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "retired_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

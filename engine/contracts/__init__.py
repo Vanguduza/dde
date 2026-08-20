@@ -5,6 +5,7 @@ from __future__ import annotations
 from engine.contracts.acceptance_oracle import AcceptanceOracle
 from engine.contracts.artifact import Artifact
 from engine.contracts.audit_event import AuditEvent
+from engine.contracts.capability_descriptor import CapabilityDescriptor
 from engine.contracts.command import Command
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.context_package import ContextPackage
@@ -44,6 +45,7 @@ __all__ = [
     "AcceptanceOracle",
     "Artifact",
     "AuditEvent",
+    "CapabilityDescriptor",
     "Command",
     "CommandIdempotency",
     "ContextPackage",

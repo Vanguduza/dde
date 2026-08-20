@@ -34,6 +34,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: false
 - lock_version: false
 
+## CapabilityDescriptor
+
+- table: `capabilities`
+- primary key: descriptor_id
+- tenant scoped: false
+- project scoped: false
+- lock_version: false
+
 ## ProductConstitutionVersion
 
 - table: `product_constitution_versions`

@@ -1,0 +1,161 @@
+"""Chapter 9.8's initial capability portfolio, narrowed to the three real,
+already-implemented Stage 1 mechanisms this mission's brief names as
+needing a descriptor home: running a local process (Chapter 7.5's
+`execute()`, DDE-010's `engine.environments.backends.local_process.
+LocalProcessBackend`), workspace filesystem read/write (Chapter 7.5's
+`read()`/`write()`, `engine.workspaces.service.WorkspaceService`), and git
+operations (Chapter 10's `engine.integration.git`/`engine.workspaces.git`).
+
+This is a real registration path: `seed_capabilities()` calls
+`CapabilityRegistryService.register()` for each entry -- the same validated
+service call any other caller uses, never a hand-written SQL `INSERT`
+bypassing the Chapter 9.3 taxonomy check. It stands in for whatever future
+ops/bootstrap step invokes it for real; wiring it into that bootstrap step
+is out of this mission's scope (no such bootstrap entrypoint exists yet in
+Stage 1/2, and inventing one would be building ahead of the mission that
+needs it).
+
+**Flagged interpretation.** Chapter 9 does not classify these three concrete
+operations against 9.3's taxonomy or assign them a `risk_class` -- that
+mapping is this mission's own judgement call, stated here so it can be
+checked:
+  - `capability.run_local_process` / `capability.workspace_filesystem`:
+    `WORKSPACE_LOCAL` -- both mutate only the task's own workspace
+    (Chapter 7.5), never anything outside it.
+  - `capability.git_operations`: `EXTERNAL_IDEMPOTENT` -- branch/ref
+    mutations reach the shared mission-integration repository state
+    (Chapter 10.2), beyond a single task's isolated workspace, but every
+    operation `engine.integration.git`/`engine.workspaces.git` performs
+    (`update-ref`, `branch -D`, a rebase re-run after abort) is safe to
+    repeat with the same inputs -- 9.3's "provider honours an idempotency
+    key" condition, with git's own ref-update semantics standing in for
+    that key.
+  - `enforcement_tier = "T1"` for all three: each is invoked directly by
+    DDE's own code (`engine.workspaces`/`engine.environments`/
+    `engine.integration`), never by a third-party harness -- Chapter 7.2's
+    T1 definition ("DDE-native capabilities").
+  - `certification_status = "CERTIFIED"`: these three are real,
+    already-shipped Stage 1 mechanisms with existing test coverage, not
+    novel or untrusted tools awaiting Chapter 9.5's admission pipeline
+    (out of this mission's scope -- see `engine.capabilities.service`'s
+    module docstring).
+
+Visibility is left at `register()`'s default (`"global"`): all three are
+native DDE mechanisms available to every tenant, not a tenant-private tool.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from uuid import UUID
+
+from engine.capabilities.service import CapabilityRegistryService
+from engine.contracts.capability_descriptor import CapabilityDescriptor
+from engine.truth.db import PostgresUnitOfWork
+
+SEEDED_BY = "system:capability_registry_seed_v1"
+
+
+@dataclass(frozen=True)
+class SeedCapability:
+    capability_id: str
+    version: str
+    category: str
+    summary: str
+    side_effect_class: str
+    risk_class: str
+    enforcement_tier: str
+    implementations: tuple[str, ...] = ()
+    supported_workloads: tuple[str, ...] = ()
+    dependencies: tuple[str, ...] = ()
+    network_requirements: dict[str, object] = field(default_factory=dict)
+
+
+SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
+    SeedCapability(
+        capability_id="capability.run_local_process",
+        version="1",
+        category="process",
+        summary=(
+            "Execute a command inside a provisioned workspace via a local "
+            "OS subprocess (Chapter 7.5 execute())."
+        ),
+        side_effect_class="WORKSPACE_LOCAL",
+        risk_class="low",
+        enforcement_tier="T1",
+        implementations=(
+            "engine.environments.backends.local_process.LocalProcessBackend",
+        ),
+        supported_workloads=("bulk_implementation", "verification"),
+        network_requirements={"egress": "none"},
+    ),
+    SeedCapability(
+        capability_id="capability.workspace_filesystem",
+        version="1",
+        category="filesystem",
+        summary=(
+            "Read and write files inside a task's provisioned workspace "
+            "(Chapter 7.5 read()/write())."
+        ),
+        side_effect_class="WORKSPACE_LOCAL",
+        risk_class="low",
+        enforcement_tier="T1",
+        implementations=("engine.workspaces.service.WorkspaceService",),
+        supported_workloads=("bulk_implementation", "verification"),
+        network_requirements={"egress": "none"},
+    ),
+    SeedCapability(
+        capability_id="capability.git_operations",
+        version="1",
+        category="repository",
+        summary=(
+            "Run git branch, rebase, commit and ref-update operations "
+            "against a workspace or the mission integration branch "
+            "(Chapter 10)."
+        ),
+        side_effect_class="EXTERNAL_IDEMPOTENT",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("engine.integration.git", "engine.workspaces.git"),
+        dependencies=("git",),
+        supported_workloads=("bulk_implementation", "verification"),
+        network_requirements={"egress": "none"},
+    ),
+)
+
+
+async def seed_capabilities(
+    service: CapabilityRegistryService,
+    *,
+    tenant_id: UUID,
+    project_id: UUID,
+    registered_by: str = SEEDED_BY,
+    uow: PostgresUnitOfWork | None = None,
+) -> list[CapabilityDescriptor]:
+    """Registers Chapter 9.8's Stage-1-relevant portfolio through the same
+    validated `register()` path any other caller uses. Idempotent:
+    re-running it returns the already-registered rows unchanged
+    (`register()`'s own content-hash idempotency)."""
+    registered: list[CapabilityDescriptor] = []
+    for spec in SEED_CAPABILITIES:
+        descriptor = await service.register(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            capability_id=spec.capability_id,
+            version=spec.version,
+            category=spec.category,
+            summary=spec.summary,
+            side_effect_class=spec.side_effect_class,
+            risk_class=spec.risk_class,
+            enforcement_tier=spec.enforcement_tier,
+            implementations=list(spec.implementations),
+            supported_workloads=list(spec.supported_workloads),
+            dependencies=list(spec.dependencies),
+            provenance={"source": "native", "mission": "DDE-016"},
+            network_requirements=dict(spec.network_requirements),
+            certification_status="CERTIFIED",
+            registered_by=registered_by,
+            uow=uow,
+        )
+        registered.append(descriptor)
+    return registered

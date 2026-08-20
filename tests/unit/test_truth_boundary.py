@@ -39,6 +39,11 @@ DDE-013 adds `write_scope_leases` and `integration_proposals`, owned by
 `engine.integration` (Chapter 3.6's repository layout: "merge queue + write
 scopes"; Chapter 3.8's matrix gives `WriteScopeLease` its own explicit
 `integration` row).
+
+DDE-016 adds `capabilities`, owned by `engine.capabilities` (Chapter 3.6's
+repository layout: "registry, leases, proxy, broker"). Unlike every table
+above, `capabilities` is a Chapter 3.2 global registry with no `tenant_id`/
+`project_id` columns of its own.
 """
 
 from __future__ import annotations
@@ -69,6 +74,7 @@ TABLE_OWNERS = {
     "evidence": "verification",
     "write_scope_leases": "integration",
     "integration_proposals": "integration",
+    "capabilities": "capabilities",
 }
 
 

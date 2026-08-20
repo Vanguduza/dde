@@ -340,17 +340,24 @@ def _fk_sql(schema: dict[str, Any]) -> list[str]:
 
 
 def _rls_sql(schema: dict[str, Any]) -> list[str]:
+    """Chapter 3.2's RLS predicate. Most tables are simply tenant-scoped
+    (`tenant_scoped: true`), but a global registry (`capabilities`,
+    `worker_profiles`, `policies` -- Chapter 3.2) carries `visibility`/
+    `owner_tenant_id` instead of `tenant_id` and needs a different
+    predicate: visible if globally published, or owned by the caller's own
+    tenant. `rls_predicate` lets a schema declare that predicate literally
+    rather than this generator guessing a table's column shape."""
     storage = schema["x-dde-storage"]
-    if not storage.get("tenant_scoped"):
-        return []
     table = storage["table"]
+    predicate = storage.get("rls_predicate")
+    if predicate is None:
+        if not storage.get("tenant_scoped"):
+            return []
+        predicate = "tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)"
     return [
         f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;",
         f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY;",
-        (
-            f"CREATE POLICY {table}_tenant_isolation ON {table} "
-            "USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));"
-        ),
+        f"CREATE POLICY {table}_tenant_isolation ON {table} USING ({predicate});",
     ]
 
 

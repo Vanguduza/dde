@@ -38,6 +38,43 @@ CREATE TABLE principal_grants (
     PRIMARY KEY (grant_id)
 );
 
+CREATE TABLE capabilities (
+    descriptor_id uuid NOT NULL,
+    capability_id text NOT NULL,
+    version text NOT NULL,
+    category text NOT NULL,
+    summary text NOT NULL,
+    interface_schema_ref text,
+    input_schema_ref text,
+    output_schema_ref text,
+    implementations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    supported_worker_profiles jsonb NOT NULL DEFAULT '[]'::jsonb,
+    supported_environments jsonb NOT NULL DEFAULT '[]'::jsonb,
+    supported_workloads jsonb NOT NULL DEFAULT '[]'::jsonb,
+    risk_class text NOT NULL,
+    side_effect_class text NOT NULL,
+    enforcement_tier text NOT NULL,
+    permission_model jsonb NOT NULL DEFAULT '{}'::jsonb,
+    cost_model jsonb NOT NULL DEFAULT '{}'::jsonb,
+    network_requirements jsonb NOT NULL DEFAULT '{}'::jsonb,
+    dependencies jsonb NOT NULL DEFAULT '[]'::jsonb,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    certification_status text NOT NULL,
+    lifecycle_status text NOT NULL,
+    visibility text NOT NULL,
+    owner_tenant_id uuid,
+    supersedes_descriptor_id uuid,
+    superseded_by_descriptor_id uuid,
+    descriptor_hash text NOT NULL,
+    registered_by text NOT NULL,
+    deprecated_at timestamptz,
+    retired_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (descriptor_id),
+    UNIQUE (capability_id, version)
+);
+
 CREATE TABLE product_constitution_versions (
     version_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -572,6 +609,10 @@ ALTER TABLE principal_grants ADD CONSTRAINT principal_grants_tenant_id_fkey FORE
 ALTER TABLE principal_grants ADD CONSTRAINT principal_grants_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE principal_grants ADD CONSTRAINT principal_grants_principal_id_fkey FOREIGN KEY (principal_id) REFERENCES principals (principal_id);
 
+ALTER TABLE capabilities ADD CONSTRAINT capabilities_owner_tenant_id_fkey FOREIGN KEY (owner_tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE capabilities ADD CONSTRAINT capabilities_supersedes_descriptor_id_fkey FOREIGN KEY (supersedes_descriptor_id) REFERENCES capabilities (descriptor_id);
+ALTER TABLE capabilities ADD CONSTRAINT capabilities_superseded_by_descriptor_id_fkey FOREIGN KEY (superseded_by_descriptor_id) REFERENCES capabilities (descriptor_id);
+
 ALTER TABLE product_constitution_versions ADD CONSTRAINT product_constitution_versions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE product_constitution_versions ADD CONSTRAINT product_constitution_versions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE product_constitution_versions ADD CONSTRAINT product_constitution_versions_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES product_constitution_versions (version_id);
@@ -719,6 +760,10 @@ CREATE POLICY principals_tenant_isolation ON principals USING (tenant_id = CAST(
 ALTER TABLE principal_grants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE principal_grants FORCE ROW LEVEL SECURITY;
 CREATE POLICY principal_grants_tenant_isolation ON principal_grants USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE capabilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capabilities FORCE ROW LEVEL SECURITY;
+CREATE POLICY capabilities_tenant_isolation ON capabilities USING (visibility = 'global' OR owner_tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE product_constitution_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_constitution_versions FORCE ROW LEVEL SECURITY;
