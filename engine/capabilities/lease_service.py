@@ -494,6 +494,19 @@ class CapabilityLeaseService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def list_for_run(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> list[CapabilityLease]:
+        async def _op(active: PostgresUnitOfWork) -> list[CapabilityLease]:
+            return await self._repository.list_for_run(active.connection, worker_run_id)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def _transition(
         self,
         active: PostgresUnitOfWork,

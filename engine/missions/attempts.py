@@ -1,39 +1,22 @@
-"""TaskAttempt — Chapter 3.3/3.8/3.9's `task_attempts` table, owned by
+"""TaskAttempt — Chapter 3.3/3.8/3.9/12.2's `task_attempts` table, owned by
 `engine.missions` ("TaskAttempt | missions | Attempt creator | Append-only").
 
-No prior mission built this: `engine.missions.service.MissionService` writes
-only `missions`/`tasks` (Chapter 3.8 splits `task_graphs`/`task_graph_edges`
-off to `engine.planning`), and DDE-010's `engine.execution.service.
-ExecutionPlanService` explicitly deferred TaskAttempt creation to "whatever
-future TaskAttempt-creation caller" (its own module docstring), since Chapter
-3.9 step 8 ("TaskAttempt created (worker_run_id NULL)") precedes step 9
-(workspace/environment) in the chapter's literal order while DDE-010's real
-implementation performs environment/workspace provisioning first. DDE-011
-(this mission) is that caller: `worker_runs.task_attempt_id` is `NOT NULL`
-(Chapter 8.2), so a real, persisted `WorkerRun` cannot exist without a real,
-persisted `TaskAttempt` first.
+Chapter 12.2: an attempt becomes durable when its result, artifact
+references and state are committed. Chapter 3.8's "Append-only" means a
+retry is a new row (`retry_of`), not that the current row is frozen at
+IN_PROGRESS forever. `commit_results` writes artifact refs + checkpoint_id
+without finalising; `finalize` is Chapter 3.9 step 15 (after verification);
+`fail` records a durable FAILED result when the worker run fails.
 
-This is a new, additive file — it does not modify
-`engine/missions/{service,repository,tables,states}.py` at all, consistent
-with the mission brief's constraint against refactoring `engine.missions`
-beyond read-only calls into its *existing* public methods. `engine.workers.
-service.WorkerManagerService` composes `TaskAttemptService.create()` under
-its own shared transaction exactly as `engine.execution.service.
-ExecutionPlanService` composes `engine.environments`/`engine.workspaces`
-despite not owning those tables (Chapter 3.5: a transaction may span module
-boundaries).
-
-Deliberately minimal, per this mission's scope: only `create()` exists.
-Chapter 3.9 step 15 ("TaskAttempt finalised") happens only after
-verification (step 14, Chapter 11/DDE-012, out of this mission's scope), so
-no status-transition surface is built here — the row is inserted once, with
-`status = "IN_PROGRESS"`, and this mission never mutates it again. That
-matches Chapter 3.8's "Append-only" mutability note for TaskAttempt (unlike
-`ExecutionPlan`'s explicit "status mutable").
+`create()` refuses a second attempt while a COMPLETED attempt exists for
+the same task -- completed sibling work is never re-run because a later
+task failed (Chapter 12.2).
 """
 
 from __future__ import annotations
 
+import json
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
@@ -56,8 +39,17 @@ from engine.contracts.task_attempt import TaskAttempt
 from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
+from engine.core.state_machine import transition
 from engine.events.service import EventService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
+
+ATTEMPT_TRANSITIONS: dict[str, frozenset[str]] = {
+    "IN_PROGRESS": frozenset({"COMPLETED", "FAILED"}),
+    "COMPLETED": frozenset(),
+    "FAILED": frozenset(),
+}
+
+ATTEMPT_COMPLETED = "ATTEMPT_COMPLETED"
 
 # A dedicated, independent `MetaData()` — matching every other Stage 1
 # module's `tables.py` (e.g. `engine.execution.tables`), never the metadata
@@ -112,6 +104,48 @@ class TaskAttemptRepository:
         if row is None:
             return None
         return TaskAttempt.model_validate(dict(row))
+
+    async def list_for_task(
+        self, connection: AsyncConnection, task_id: UUID
+    ) -> list[TaskAttempt]:
+        result = await connection.execute(
+            select(task_attempts)
+            .where(task_attempts.c.task_id == task_id)
+            .order_by(task_attempts.c.sequence.asc())
+        )
+        return [
+            TaskAttempt.model_validate(dict(row)) for row in result.mappings().all()
+        ]
+
+    async def list_for_mission(
+        self, connection: AsyncConnection, mission_id: UUID
+    ) -> list[TaskAttempt]:
+        result = await connection.execute(
+            select(task_attempts)
+            .where(task_attempts.c.mission_id == mission_id)
+            .order_by(task_attempts.c.created_at.asc())
+        )
+        return [
+            TaskAttempt.model_validate(dict(row)) for row in result.mappings().all()
+        ]
+
+    async def update_fields(
+        self,
+        connection: AsyncConnection,
+        attempt_id: UUID,
+        *,
+        fields: dict[str, Any],
+    ) -> int:
+        payload = dict(fields)
+        for key in ("result_artifact_refs", "verification_refs"):
+            if key in payload and isinstance(payload[key], list):
+                payload[key] = json.loads(json.dumps(payload[key], default=str))
+        result = await connection.execute(
+            task_attempts.update()
+            .where(task_attempts.c.attempt_id == attempt_id)
+            .values(**payload)
+        )
+        return int(result.rowcount)
 
     async def next_sequence(self, connection: AsyncConnection, task_id: UUID) -> int:
         """Chapter 3.9: `task_attempts.sequence` is attempt ordinality
@@ -175,6 +209,22 @@ class TaskAttemptService:
             )
 
         async def _op(active: PostgresUnitOfWork) -> TaskAttempt:
+            existing = await self._repository.list_for_task(
+                active.connection, task.task_id
+            )
+            completed = [row for row in existing if row.status == "COMPLETED"]
+            if completed:
+                lead = completed[0]
+                raise DdeError(
+                    ATTEMPT_COMPLETED,
+                    "Refusing to re-run a completed TaskAttempt "
+                    f"(attempt_id={lead.attempt_id})",
+                    retryable=False,
+                    details={
+                        "task_id": str(task.task_id),
+                        "attempt_id": str(lead.attempt_id),
+                    },
+                )
             sequence = await self._repository.next_sequence(
                 active.connection, task.task_id
             )
@@ -249,3 +299,225 @@ class TaskAttemptService:
             result = await _op(owned)
             await owned.commit()
             return result
+
+    async def list_for_task(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> list[TaskAttempt]:
+        async def _op(active: PostgresUnitOfWork) -> list[TaskAttempt]:
+            return await self._repository.list_for_task(active.connection, task_id)
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
+    async def list_for_mission(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> list[TaskAttempt]:
+        async def _op(active: PostgresUnitOfWork) -> list[TaskAttempt]:
+            return await self._repository.list_for_mission(
+                active.connection, mission_id
+            )
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
+    async def commit_results(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        attempt_id: UUID,
+        result_artifact_refs: list[UUID],
+        checkpoint_id: UUID | None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> TaskAttempt:
+        """Chapter 12.2 durability of results without Chapter 3.9 step 15
+        finalisation -- verification has not run yet."""
+
+        async def _op(active: PostgresUnitOfWork) -> TaskAttempt:
+            current = await self._require(active, attempt_id)
+            if current.status != "IN_PROGRESS":
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    f"commit_results requires IN_PROGRESS (got {current.status})",
+                    details={"attempt_id": str(attempt_id), "status": current.status},
+                )
+            now = self._clock.now()
+            fields: dict[str, Any] = {
+                "result_artifact_refs": result_artifact_refs,
+                "checkpoint_id": checkpoint_id,
+                "updated_at": now,
+            }
+            rowcount = await self._repository.update_fields(
+                active.connection, attempt_id, fields=fields
+            )
+            if rowcount != 1:
+                raise DdeError("POLICY_DENIED", "Unknown task attempt")
+            updated = await self._require(active, attempt_id)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="TaskAttemptResultsCommitted",
+                aggregate_type="task_attempt",
+                aggregate_id=attempt_id,
+                mission_id=updated.mission_id,
+                task_id=updated.task_id,
+                payload={
+                    "checkpoint_id": str(checkpoint_id) if checkpoint_id else None
+                },
+                uow=active,
+            )
+            return updated
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
+    async def finalize(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        attempt_id: UUID,
+        verification_refs: list[UUID],
+        checkpoint_id: UUID | None = None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> TaskAttempt:
+        """Chapter 3.9 step 15 / 12.2: attempt becomes COMPLETED after
+        verification PASSED. Production call site:
+        `VerificationRunnerService.run`.
+        """
+
+        async def _op(active: PostgresUnitOfWork) -> TaskAttempt:
+            current = await self._require(active, attempt_id)
+            next_status = transition(current.status, "COMPLETED", ATTEMPT_TRANSITIONS)
+            now = self._clock.now()
+            fields: dict[str, Any] = {
+                "status": next_status,
+                "verification_refs": verification_refs,
+                "ended_at": now,
+                "updated_at": now,
+            }
+            if checkpoint_id is not None:
+                fields["checkpoint_id"] = checkpoint_id
+            rowcount = await self._repository.update_fields(
+                active.connection, attempt_id, fields=fields
+            )
+            if rowcount != 1:
+                raise DdeError("POLICY_DENIED", "Unknown task attempt")
+            updated = await self._require(active, attempt_id)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="TaskAttemptFinalised",
+                aggregate_type="task_attempt",
+                aggregate_id=attempt_id,
+                mission_id=updated.mission_id,
+                task_id=updated.task_id,
+                payload={
+                    "verification_refs": [str(item) for item in verification_refs]
+                },
+                uow=active,
+            )
+            return updated
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
+    async def fail(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        attempt_id: UUID,
+        failure_class: str,
+        checkpoint_id: UUID | None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> TaskAttempt:
+        """Durable FAILED result when the worker run fails (no
+        verification). A later invoke_run may create a new attempt
+        (retry_of is DDE-024); this row is not replayed as success.
+        """
+
+        async def _op(active: PostgresUnitOfWork) -> TaskAttempt:
+            current = await self._require(active, attempt_id)
+            next_status = transition(current.status, "FAILED", ATTEMPT_TRANSITIONS)
+            now = self._clock.now()
+            fields: dict[str, Any] = {
+                "status": next_status,
+                "failure_class": failure_class,
+                "checkpoint_id": checkpoint_id,
+                "ended_at": now,
+                "updated_at": now,
+            }
+            rowcount = await self._repository.update_fields(
+                active.connection, attempt_id, fields=fields
+            )
+            if rowcount != 1:
+                raise DdeError("POLICY_DENIED", "Unknown task attempt")
+            updated = await self._require(active, attempt_id)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="TaskAttemptFailed",
+                aggregate_type="task_attempt",
+                aggregate_id=attempt_id,
+                mission_id=updated.mission_id,
+                task_id=updated.task_id,
+                payload={"failure_class": failure_class},
+                uow=active,
+            )
+            return updated
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
+    async def _require(
+        self, active: PostgresUnitOfWork, attempt_id: UUID
+    ) -> TaskAttempt:
+        record = await self._repository.get_attempt(active.connection, attempt_id)
+        if record is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "Unknown task attempt",
+                details={"attempt_id": str(attempt_id)},
+            )
+        return record

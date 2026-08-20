@@ -44,3 +44,21 @@ def effect_request_hash(
 
 def effect_response_hash(payload: dict[str, object]) -> str:
     return sha256_hex(canonical_json(payload))
+
+
+def mutation_scope_token(
+    *, target_system: str, target_resource: str, operation: str
+) -> str:
+    """Logical mutation identity stored on Checkpoint.do_not_repeat.
+
+    An idempotency key is caller-chosen and would be bypassed by a new
+    WorkerRun; this token is not.
+    """
+    return f"{target_system}:{target_resource}:{operation}"
+
+
+def checkpoint_integrity_hash(payload: dict[str, object]) -> str:
+    """Chapter 12.1 integrity_hash -- reconstructible fields only, no
+    identity/timestamps, so a later identical continuation hashes the same.
+    """
+    return sha256_hex(canonical_json(payload))

@@ -51,10 +51,16 @@ from engine.core.ids import uuid7
 from engine.core.state_machine import transition
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.missions.attempts import TaskAttemptService
+from engine.recovery.checkpoint_service import (
+    CheckpointService,
+    do_not_repeat_from_effects,
+)
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.verification.checks import CheckSpec, run_check
 from engine.verification.repository import EvidenceRepository, VerificationRunRepository
 from engine.verification.states import VERIFICATION_RUN_TRANSITIONS
+from engine.workers.repository import WorkerEventRepository
 from engine.workspaces.service import WorkspaceService
 
 T = TypeVar("T")
@@ -126,6 +132,9 @@ class VerificationRunnerService:
         run_repository: VerificationRunRepository | None = None,
         evidence_repository: EvidenceRepository | None = None,
         clock: Clock | None = None,
+        attempts: TaskAttemptService | None = None,
+        checkpoints: CheckpointService | None = None,
+        worker_events: WorkerEventRepository | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -134,6 +143,11 @@ class VerificationRunnerService:
         self._run_repository = run_repository or VerificationRunRepository()
         self._evidence_repository = evidence_repository or EvidenceRepository()
         self._clock = clock or SystemClock()
+        self._attempts = attempts or TaskAttemptService(engine, events=self._events)
+        self._checkpoints = checkpoints or CheckpointService(
+            engine, events=self._events, clock=self._clock
+        )
+        self._worker_events = worker_events or WorkerEventRepository()
 
     async def _run_uow(
         self,
@@ -342,6 +356,15 @@ class VerificationRunnerService:
                 payload={"status": next_status, "confidence": confidence},
                 uow=active,
             )
+            if next_status == "PASSED":
+                await self._finalise_passed_attempt(
+                    active,
+                    task=task,
+                    worker_run=worker_run,
+                    workspace=workspace,
+                    evidence_refs=evidence_refs,
+                    verification_run_id=finished.verification_run_id,
+                )
             await self._commands.complete(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -352,6 +375,54 @@ class VerificationRunnerService:
             return finished
 
         return await self._run_uow(uow, tenant_id, project_id, _op)
+
+    async def _finalise_passed_attempt(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        task: Task,
+        worker_run: WorkerRun,
+        workspace: Workspace,
+        evidence_refs: list[UUID],
+        verification_run_id: UUID,
+    ) -> None:
+        """Chapter 3.9 step 15: TaskAttempt finalised after verification."""
+        effects = await self._workspaces.effects.list_for_run(
+            tenant_id=task.tenant_id,
+            project_id=task.project_id,
+            worker_run_id=worker_run.run_id,
+            uow=active,
+        )
+        worker_events = await self._worker_events.list_for_run(
+            active.connection, worker_run.run_id
+        )
+        sequence = worker_events[-1].sequence if worker_events else 0
+        checkpoint = await self._checkpoints.record(
+            run=worker_run,
+            task_id=task.task_id,
+            workspace_revision=workspace.current_revision
+            or workspace.base_revision
+            or "",
+            event_sequence=sequence,
+            completed_work=[str(task.task_id)],
+            verified_work=[str(task.task_id)],
+            pending_work=[],
+            known_failures=[],
+            next_action="integrate",
+            do_not_repeat=do_not_repeat_from_effects(effects),
+            artifact_refs=[],
+            lease_refs=[],
+            idempotency_key=f"{verification_run_id}:attempt-finalise",
+            uow=active,
+        )
+        await self._attempts.finalize(
+            tenant_id=task.tenant_id,
+            project_id=task.project_id,
+            attempt_id=worker_run.task_attempt_id,
+            verification_refs=evidence_refs,
+            checkpoint_id=checkpoint.checkpoint_id,
+            uow=active,
+        )
 
     async def _execute_outcome(
         self,

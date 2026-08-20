@@ -22,6 +22,7 @@ from engine.context.repo import repo_root
 from engine.contracts.task import Task
 from engine.core.errors import DdeError
 from engine.events.repository import EventsRepository
+from engine.missions.attempts import TaskAttemptService
 from engine.truth.db import open_unit_of_work
 from engine.verification.checks import CheckSpec
 from engine.verification.oracle import AcceptanceOracleService, validate_definition
@@ -163,6 +164,15 @@ async def test_schema_state_transition_pass_verdict_and_recovery(
         assert all(item.status == "PASSED" for item in run.negative_case_results)
         assert len(run.evidence_refs) == 3
         assert run.ended_at is not None
+
+        attempt = await TaskAttemptService(db_engine).get_attempt(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            attempt_id=fixture.worker_run.task_attempt_id,
+        )
+        assert attempt.status == "COMPLETED"
+        assert attempt.verification_refs == run.evidence_refs
+        assert attempt.checkpoint_id is not None
 
         lint_result = next(
             item

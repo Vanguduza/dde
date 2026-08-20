@@ -74,6 +74,10 @@ DDE-021 adds `diff_gate_reports` and `dependency_admissions`, owned by
 rather than registry entries"; Chapter 10.4 step 3 runs them on the merge
 queue). Table-name literals live in `engine/integration/tables.py` and
 `engine/integration/repository.py`.
+
+DDE-023 adds `checkpoints`, owned by `engine.recovery` (Chapter 3.6:
+"checkpoints, effects, replay"). Table-name literals live in
+`engine/recovery/tables.py` and `engine/recovery/checkpoint_repository.py`.
 """
 
 from __future__ import annotations
@@ -110,6 +114,7 @@ TABLE_OWNERS = {
     "external_effects": "recovery",
     "diff_gate_reports": "integration",
     "dependency_admissions": "integration",
+    "checkpoints": "recovery",
 }
 
 

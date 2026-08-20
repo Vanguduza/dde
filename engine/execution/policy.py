@@ -64,8 +64,9 @@ def budget_for_effort(estimated_effort: str) -> EffortBudget:
 
 def checkpoint_policy_json() -> dict[str, object]:
     return {
-        "enabled": False,
-        "reason": "Chapter 12's checkpoint engine is deferred to DDE-023 (Stage 3)",
+        "enabled": True,
+        "engine": "engine.recovery.checkpoint_service",
+        "reason": "Chapter 12.1 reconstructible continuation contract (DDE-023)",
     }
 
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/task_attempt.json",
   "title": "TaskAttempt",
-  "description": "Durable attempt. WorkerRun is 1:N via worker_runs.task_attempt_id.",
+  "description": "Durable attempt (Chapter 12.2). WorkerRun is 1:N via worker_runs.task_attempt_id. Result, artifact refs and state are committed on the same row (Attempt commit); a retry is a new row (retry_of), which is what Chapter 3.8's Append-only note means. status is IN_PROGRESS | COMPLETED | FAILED. COMPLETED is written only after verification (Chapter 3.9 step 15). A COMPLETED attempt is never re-run because a later task failed.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -83,7 +83,10 @@
     "integration_proposal_id": {
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
-    "status": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["IN_PROGRESS", "COMPLETED", "FAILED"]
+    },
     "failure_class": {
       "anyOf": [{ "type": "string" }, { "type": "null" }]
     },

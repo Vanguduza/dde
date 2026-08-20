@@ -1,11 +1,11 @@
-"""Chapter 12's recovery module: the external effect journal (12.4).
+"""Chapter 12's recovery module: external effect journal (12.4),
+checkpoints (12.1), TaskAttempt-aware replay (12.5), and MissionWorkflow
+v1 (12.6).
 
-What is enforced: the live-journal recovery rule (no new mutation of a
-blocked scope), `SIDE_EFFECT_UNKNOWN` on subprocess timeout, `abandon_sent`
-for crash-abandoned `SENT`, production resolvers for `run_local_process`
-and git `update-ref`, and a distinct `IRREVERSIBLE` escalation branch.
-Checkpoints (12.1) and replay (12.5/12.6) beyond `CommandLedger` reuse are
-out of this mission's scope -- see `engine.recovery.service`.
+What is enforced: reconstructible checkpoints with load-bearing
+do_not_repeat; completed TaskAttempt / COMPLETED WorkerRun not re-run;
+EVENT_WINDOW_EXPIRED fallback to checkpoint plus durable attempts; generic
+retry refused. Chapter 12.3 recovery matrix is DDE-024.
 """
 
 from __future__ import annotations

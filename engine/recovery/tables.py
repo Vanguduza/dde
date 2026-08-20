@@ -20,7 +20,8 @@ isolation reason `capability_leases.worker_run_id` is a soft reference
 
 from __future__ import annotations
 
-from sqlalchemy import TIMESTAMP, Column, MetaData, Table, Text, Uuid
+from sqlalchemy import TIMESTAMP, Column, Integer, MetaData, Table, Text, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 
 metadata = MetaData()
 
@@ -46,5 +47,34 @@ external_effects = Table(
     Column("reconciliation_method", Text, nullable=True),
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("confirmed_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+checkpoints = Table(
+    "checkpoints",
+    metadata,
+    Column("checkpoint_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=False),
+    Column("task_id", Uuid(as_uuid=True), nullable=False),
+    Column("task_attempt_id", Uuid(as_uuid=True), nullable=False),
+    Column("worker_run_id", Uuid(as_uuid=True), nullable=False),
+    Column("context_package_id", Uuid(as_uuid=True), nullable=False),
+    Column("execution_plan_id", Uuid(as_uuid=True), nullable=False),
+    Column("completed_work", JSONB, nullable=False),
+    Column("verified_work", JSONB, nullable=False),
+    Column("pending_work", JSONB, nullable=False),
+    Column("known_failures", JSONB, nullable=False),
+    Column("next_action", Text, nullable=False),
+    Column("do_not_repeat", JSONB, nullable=False),
+    Column("artifact_refs", JSONB, nullable=False),
+    Column("lease_refs", JSONB, nullable=False),
+    Column("workspace_revision", Text, nullable=False),
+    Column("integration_state", Text, nullable=False),
+    Column("event_sequence", Integer, nullable=False),
+    Column("integrity_hash", Text, nullable=False),
+    Column("command_id", Uuid(as_uuid=True), nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )

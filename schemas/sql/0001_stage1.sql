@@ -512,6 +512,34 @@ CREATE TABLE external_effects (
     PRIMARY KEY (effect_id)
 );
 
+CREATE TABLE checkpoints (
+    checkpoint_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    task_attempt_id uuid NOT NULL,
+    worker_run_id uuid NOT NULL,
+    context_package_id uuid NOT NULL,
+    execution_plan_id uuid NOT NULL,
+    completed_work jsonb NOT NULL DEFAULT '[]'::jsonb,
+    verified_work jsonb NOT NULL DEFAULT '[]'::jsonb,
+    pending_work jsonb NOT NULL DEFAULT '[]'::jsonb,
+    known_failures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    next_action text NOT NULL,
+    do_not_repeat jsonb NOT NULL DEFAULT '[]'::jsonb,
+    artifact_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    lease_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    workspace_revision text NOT NULL,
+    integration_state text NOT NULL,
+    event_sequence integer NOT NULL,
+    integrity_hash text NOT NULL,
+    command_id uuid NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (checkpoint_id)
+);
+
 CREATE TABLE artifacts (
     artifact_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -849,6 +877,16 @@ ALTER TABLE external_effects ADD CONSTRAINT external_effects_mission_id_fkey FOR
 ALTER TABLE external_effects ADD CONSTRAINT external_effects_capability_lease_id_fkey FOREIGN KEY (capability_lease_id) REFERENCES capability_leases (lease_id);
 ALTER TABLE external_effects ADD CONSTRAINT external_effects_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
 
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_task_attempt_id_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_context_package_id_fkey FOREIGN KEY (context_package_id) REFERENCES context_packages (package_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
+ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
+
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1001,6 +1039,10 @@ CREATE POLICY credential_handles_tenant_isolation ON credential_handles USING (t
 ALTER TABLE external_effects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE external_effects FORCE ROW LEVEL SECURITY;
 CREATE POLICY external_effects_tenant_isolation ON external_effects USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE checkpoints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE checkpoints FORCE ROW LEVEL SECURITY;
+CREATE POLICY checkpoints_tenant_isolation ON checkpoints USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts FORCE ROW LEVEL SECURITY;

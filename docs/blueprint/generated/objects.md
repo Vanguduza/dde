@@ -194,6 +194,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## Checkpoint
+
+- table: `checkpoints`
+- primary key: checkpoint_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## Artifact
 
 - table: `artifacts`

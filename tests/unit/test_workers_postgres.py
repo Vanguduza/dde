@@ -81,6 +81,7 @@ async def test_schema_state_transition_and_idempotent_full_lifecycle(
         assert run.sequence == 1
         assert run.started_at is not None
         assert run.ended_at is not None
+        assert run.checkpoint_id is not None
 
         # Schema round trip (Chapter 19.1): a fresh read reproduces the
         # exact committed row.
@@ -104,6 +105,7 @@ async def test_schema_state_transition_and_idempotent_full_lifecycle(
         assert attempt.task_id == fixture.task.task_id
         assert attempt.sequence == 1
         assert attempt.status == "IN_PROGRESS"
+        assert attempt.checkpoint_id == run.checkpoint_id
         assert attempt.input_context_hash == fixture.context_package.assembly_hash
 
         # State-transition (Chapter 8.2's real lifecycle, in real sequence).

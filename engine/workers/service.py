@@ -76,7 +76,15 @@ classified as `SIDE_EFFECT_UNKNOWN` (Chapter 12.3), not only
 `WORKER_COMMAND_TIMEOUT`. `WORKER_COMMAND_TIMEOUT` remains defined for
 payload/legacy readers but is no longer the timeout failure_class.
 
-Deliberately out of Stage 1 scope, per the mission brief: `WorkerSession`
+**DDE-023.** After a terminal run, `invoke_run` records a Chapter 12.1
+checkpoint, commits attempt results (or fails the attempt), and stamps
+`checkpoint_id` on the run. `invoke_run` refuses a new attempt when a
+COMPLETED attempt or COMPLETED WorkerRun already exists for the task, and
+refuses a mutation listed in the latest valid checkpoint's `do_not_repeat`.
+`resume_run` creates a new WorkerRun on the same IN_PROGRESS attempt
+(Chapter 3.9 1:N) after a non-terminal/FAILED predecessor.
+
+Deliberately out of this mission: `WorkerSession`
 (Chapter 8.6 — `worker_session_id` stays `None`), checkpoint/pause/resume
 (Chapter 8.2's `CHECKPOINTING`/`PAUSING`/`PAUSED`/`RESUMING` branches are
 real transitions in `engine.workers.states` but nothing in this mission
@@ -113,6 +121,11 @@ from engine.environments.service import ExecutionEnvironmentService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
 from engine.missions.attempts import TaskAttemptService
+from engine.recovery.checkpoint_service import (
+    CheckpointService,
+    do_not_repeat_from_effects,
+)
+from engine.recovery.replay import MUTATION_ALREADY_DONE, ReplayService
 from engine.recovery.scope import (
     LOCAL_PROCESS_SYSTEM,
     local_process_operation,
@@ -148,6 +161,7 @@ EMPTY_LEASE_SET_HASH = sha256_hex(canonical_json([]))
 WORKER_PREPARE_FAILED = "WORKER_PREPARE_FAILED"
 WORKER_COMMAND_FAILED = "WORKER_COMMAND_FAILED"
 WORKER_COMMAND_TIMEOUT = "WORKER_COMMAND_TIMEOUT"
+WORKER_FAILURE = "WORKER_FAILURE"
 WORKER_CAPABILITY_DENIED = "WORKER_CAPABILITY_DENIED"
 #: Chapter 12.3 -- subprocess timeout of a journaled side effect is not
 #: classified as a generic command timeout alone; recovery dispatches on
@@ -217,6 +231,8 @@ class WorkerManagerService:
         clock: Clock | None = None,
         leases: CapabilityLeaseService | None = None,
         effects: ExternalEffectService | None = None,
+        checkpoints: CheckpointService | None = None,
+        replay: ReplayService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -234,6 +250,15 @@ class WorkerManagerService:
         )
         self._effects = effects or ExternalEffectService(
             engine, events=self._events, clock=self._clock
+        )
+        self._checkpoints = checkpoints or CheckpointService(
+            engine, events=self._events, clock=self._clock
+        )
+        self._replay = replay or ReplayService(
+            engine,
+            checkpoints=self._checkpoints,
+            attempts=self._attempts,
+            clock=self._clock,
         )
 
     async def _run(
@@ -306,6 +331,19 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            await self._replay.assert_clear_to_start_attempt(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_id=task.task_id,
+                target_system=LOCAL_PROCESS_SYSTEM,
+                target_resource=local_process_resource(workspace),
+                operation=local_process_operation(action.command),
+                uow=active,
+            )
+            await self._refuse_completed_worker_result(
+                active, tenant_id=tenant_id, project_id=project_id, task_id=task.task_id
+            )
 
             await self._effects.assert_clear_to_mutate(
                 tenant_id=tenant_id,
@@ -425,6 +463,14 @@ class WorkerManagerService:
                 action=action,
                 task_id=task.task_id,
             )
+            run = await self._checkpoint_terminal_run(
+                active,
+                run,
+                task_id=task.task_id,
+                workspace_revision=workspace.current_revision
+                or workspace.base_revision
+                or "unknown",
+            )
 
             await self._leases.consume_all_for_run(
                 tenant_id=tenant_id,
@@ -443,6 +489,296 @@ class WorkerManagerService:
             return run
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def resume_run(
+        self,
+        *,
+        task: Task,
+        execution_plan: ExecutionPlan,
+        workspace: Workspace,
+        input_context_hash: str,
+        action: WorkerAction,
+        attempt_id: UUID,
+        idempotency_key: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> WorkerRun:
+        """Chapter 3.9 1:N recovery: a new WorkerRun on an existing
+        IN_PROGRESS attempt. Does not create a second attempt.
+        """
+        tenant_id = execution_plan.tenant_id
+        project_id = execution_plan.project_id
+        request_hash = _invoke_request_hash(
+            task_id=task.task_id,
+            execution_plan_id=execution_plan.plan_id,
+            workspace_id=workspace.workspace_id,
+            action=action,
+        )
+
+        async def _op(active: PostgresUnitOfWork) -> WorkerRun:
+            record, is_new = await self._commands.begin(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                uow=active,
+            )
+            if not is_new:
+                return self._replay_or_raise(record)
+
+            attempt = await self._attempts.get_attempt(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                attempt_id=attempt_id,
+                uow=active,
+            )
+            if attempt.task_id != task.task_id:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "TaskAttempt does not belong to this task",
+                    details={"attempt_id": str(attempt_id)},
+                )
+            if attempt.status != "IN_PROGRESS":
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "resume_run requires an IN_PROGRESS attempt",
+                    details={"status": attempt.status},
+                )
+
+            await self._replay.assert_clear_to_start_attempt(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_id=task.task_id,
+                target_system=LOCAL_PROCESS_SYSTEM,
+                target_resource=local_process_resource(workspace),
+                operation=local_process_operation(action.command),
+                uow=active,
+            )
+            await self._refuse_completed_worker_result(
+                active, tenant_id=tenant_id, project_id=project_id, task_id=task.task_id
+            )
+            await self._effects.assert_clear_to_mutate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=execution_plan.mission_id,
+                target_system=LOCAL_PROCESS_SYSTEM,
+                target_resource=local_process_resource(workspace),
+                operation=local_process_operation(action.command),
+                uow=active,
+            )
+
+            prior_runs = await self._run_repository.list_for_attempt(
+                active.connection, attempt.attempt_id
+            )
+            if prior_runs and prior_runs[-1].status not in TERMINAL_STATES:
+                await self._fail(
+                    active,
+                    prior_runs[-1],
+                    task_id=task.task_id,
+                    failure_class=WORKER_FAILURE,
+                    payload={"reason": "replaced_by_resume_run"},
+                )
+
+            environment = await self._environments.get_environment(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                environment_id=execution_plan.execution_environment_id,
+                uow=active,
+            )
+            self._environments.assert_schedulable(environment)
+            adapter = self._registry.get_certified_adapter(
+                execution_plan.worker_profile_id
+            )
+            registration = await adapter.register()
+            sequence = await self._run_repository.next_sequence(
+                active.connection, attempt.attempt_id
+            )
+            now = self._clock.now()
+            run = WorkerRun(
+                run_id=uuid7(),
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=execution_plan.mission_id,
+                task_attempt_id=attempt.attempt_id,
+                sequence=sequence,
+                execution_plan_id=execution_plan.plan_id,
+                worker_session_id=None,
+                worker_id=registration.worker_id,
+                worker_profile_id=execution_plan.worker_profile_id,
+                environment_id=execution_plan.execution_environment_id,
+                workspace_id=workspace.workspace_id,
+                context_package_id=execution_plan.context_package_id,
+                policy_version=WORKER_MANAGER_POLICY_VERSION,
+                lease_set_hash=EMPTY_LEASE_SET_HASH,
+                checkpoint_id=attempt.checkpoint_id,
+                status="PLANNED",
+                failure_class=None,
+                usage_record_id=None,
+                artifact_manifest_id=None,
+                started_at=None,
+                ended_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+            await self._run_repository.insert_run(active.connection, run)
+            await self._append_worker_event(
+                active,
+                run,
+                task_id=task.task_id,
+                event_type="WorkerRunCreated",
+                payload={
+                    "worker_id": run.worker_id,
+                    "resume_of_attempt": str(attempt.attempt_id),
+                },
+            )
+            for capability_id in _required_capability_ids(action):
+                await self._leases.request(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=run.mission_id,
+                    task_id=task.task_id,
+                    execution_plan_id=execution_plan.plan_id,
+                    worker_run_id=run.run_id,
+                    environment_id=execution_plan.execution_environment_id,
+                    capability_id=capability_id,
+                    capability_version="1",
+                    requested_by="engine.workers.service.WorkerManagerService",
+                    idempotency_key=f"{run.run_id}:{capability_id}",
+                )
+            run = await self._drive_lifecycle(
+                active,
+                run,
+                adapter=adapter,
+                execution_plan=execution_plan,
+                workspace=workspace,
+                action=action,
+                task_id=task.task_id,
+            )
+            run = await self._checkpoint_terminal_run(
+                active,
+                run,
+                task_id=task.task_id,
+                workspace_revision=workspace.current_revision
+                or workspace.base_revision
+                or input_context_hash,
+            )
+            await self._leases.consume_all_for_run(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=run.run_id,
+                uow=active,
+            )
+            await self._commands.complete(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                command_id=record.command_id,
+                result=run.model_dump(mode="json"),
+                uow=active,
+            )
+            return run
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _refuse_completed_worker_result(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+    ) -> None:
+        attempts = await self._attempts.list_for_task(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            task_id=task_id,
+            uow=active,
+        )
+        for attempt in attempts:
+            runs = await self._run_repository.list_for_attempt(
+                active.connection, attempt.attempt_id
+            )
+            completed = [item for item in runs if item.status == "COMPLETED"]
+            if completed:
+                raise DdeError(
+                    MUTATION_ALREADY_DONE,
+                    "Refusing to re-run a task whose WorkerRun already "
+                    f"COMPLETED (run_id={completed[0].run_id})",
+                    retryable=False,
+                    details={
+                        "task_id": str(task_id),
+                        "run_id": str(completed[0].run_id),
+                    },
+                )
+
+    async def _checkpoint_terminal_run(
+        self,
+        active: PostgresUnitOfWork,
+        run: WorkerRun,
+        *,
+        task_id: UUID,
+        workspace_revision: str,
+    ) -> WorkerRun:
+        effects = await self._effects.list_for_run(
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            worker_run_id=run.run_id,
+            uow=active,
+        )
+        leases = await self._leases.list_for_run(
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            worker_run_id=run.run_id,
+            uow=active,
+        )
+        events = await self._event_repository.list_for_run(
+            active.connection, run.run_id
+        )
+        sequence = events[-1].sequence if events else 0
+        completed = [str(task_id)] if run.status == "COMPLETED" else []
+        pending = [] if run.status == "COMPLETED" else [str(task_id)]
+        failures = [run.failure_class] if run.failure_class else []
+        next_action = "verify" if run.status == "COMPLETED" else "recover"
+        checkpoint = await self._checkpoints.record(
+            run=run,
+            task_id=task_id,
+            workspace_revision=workspace_revision,
+            event_sequence=sequence,
+            completed_work=completed,
+            verified_work=[],
+            pending_work=pending,
+            known_failures=failures,
+            next_action=next_action,
+            do_not_repeat=do_not_repeat_from_effects(effects),
+            artifact_refs=[],
+            lease_refs=[item.lease_id for item in leases],
+            idempotency_key=f"{run.run_id}:checkpoint",
+            uow=active,
+        )
+        now = self._clock.now()
+        await self._run_repository.update_run(
+            active.connection,
+            run.run_id,
+            fields={"checkpoint_id": checkpoint.checkpoint_id, "updated_at": now},
+        )
+        updated = await self._require_run(active, run.run_id)
+        if run.status == "COMPLETED":
+            await self._attempts.commit_results(
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                attempt_id=run.task_attempt_id,
+                result_artifact_refs=[],
+                checkpoint_id=checkpoint.checkpoint_id,
+                uow=active,
+            )
+        elif run.status == "FAILED":
+            await self._attempts.fail(
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                attempt_id=run.task_attempt_id,
+                failure_class=run.failure_class or WORKER_FAILURE,
+                checkpoint_id=checkpoint.checkpoint_id,
+                uow=active,
+            )
+        return updated
 
     async def _drive_lifecycle(
         self,
