@@ -212,7 +212,7 @@ Use [Cursor cloud agents](https://docs.cursor.com/) for missions that are wide b
 
 ### 1.5.4 MCP during bootstrap
 
-Once DDE has an MCP server (Stage 3), point Cursor at it so you can query missions and evidence from the editor. Until then, do not add MCP servers to Cursor for this project — they add context pressure with no benefit. See the [MCP specification](https://modelcontextprotocol.io/).
+Once DDE has an MCP server (`DDE-042`, Stage 5 — Ch.18.3), point Cursor at it so you can query missions and evidence from the editor. Until then, do not add MCP servers to Cursor for this project — they add context pressure with no benefit. Stage 5 is correct, not an earlier stage: Ch.15.6 requires every MCP tool call to pass through the same Mission Kernel, capability leases, certification and verification pipeline as a native call, so the MCP server cannot be safely exposed before the Gateway (`DDE-027`, S3), the capability/lease enforcement plane (`DDE-016`–`018`, S2) and durable run/approval semantics (S3) all exist under it. See the [MCP specification](https://modelcontextprotocol.io/).
 
 ## 1.6 The master Cursor prompts
 

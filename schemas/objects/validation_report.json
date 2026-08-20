@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/validation_report.json",
+  "title": "ValidationReport",
+  "description": "Deterministic TaskGraph validation result from Chapter 4.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["valid", "error_codes", "messages"],
+  "properties": {
+    "valid": { "type": "boolean" },
+    "error_codes": { "type": "array", "items": { "type": "string" } },
+    "messages": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -40,6 +40,53 @@ curl localhost:8000/readyz
 
 Copy `.env.example` when running outside compose. Use `DDE_DATABASE_URL` (async SQLAlchemy URL) and `DDE_REDIS_URL`.
 
+## Windows complete product (installer)
+
+Codespaces remain the default cloud path. For a single Windows install, build and run the complete installer under [`packaging/windows`](packaging/windows/README.md).
+
+The installer bundles:
+
+- **DDE Code** (Electron desktop UI under `Program Files\DDE\dde-code\`)
+- **DDE Core** (Docker image)
+- **PostgreSQL + Redis**
+- **Database migrations** (Alembic via Core entrypoint)
+- **GUI setup wizard** (`DdeSetupWizard.exe`)
+- **Optional Authenticode signing** when cert secrets are configured
+
+After install, open **DDE Code**. First run offers the wizard if needed:
+
+1. Detects Docker and offers **download/install** if missing
+2. Asks **local vs cloud** mode
+3. Collects **admin login and provider API keys**
+4. Loads Core, migrates DB, starts services, verifies `/healthz`
+
+```powershell
+powershell.exe -File packaging/windows/scripts/Build-Installer.ps1 -Version 0.1.0
+# Primary Windows product:
+#   dist\windows\DDE-Complete-Setup-0.1.0.exe
+# (DDE Code UI + Core image + wizard; reuse tar with -SkipDocker)
+```
+
+CI: `.github/workflows/windows-installer.yml` (set `DDE_SIGNING_CERT_BASE64` + `DDE_SIGNING_CERT_PASSWORD` for signed releases).
+
+## DDE Code (VS Code / Cursor extension suite)
+
+Package [`interfaces/dde-studio`](interfaces/dde-studio/README.md) (display name **DDE Code**). **Primary Windows distribution** is the complete installer above. Optional clients: VS Code/Cursor **extension**, and UI-only Electron NSIS/portable for hosts that already have Core. Same dashboards (Hermes / Claude Code / DeepSeek + stubs). Live `/healthz` / `/readyz`. Plan amendment: [`docs/planning/dde-vscode-extension-suite.md`](docs/planning/dde-vscode-extension-suite.md) §3.2.
+
+```powershell
+cd interfaces\dde-studio
+npm install
+npm run compile
+# Extension: F5 in that folder (optional Cursor host)
+npm run desktop:install
+$env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+npm run dist:win
+# UI-only (optional): interfaces\dde-studio\desktop\dist\DDE-Code-Setup-0.1.0.exe
+```
+
+`justfile` does not load dotenv. Export `DDE_DATABASE_URL` and `DDE_REDIS_URL` in the same shell if recipes cannot reach the database.
+
+
 ## Cursor worker (models via SDK bridge)
 
 Workers reach Cursor models through `adapters/cursor`, which owns a local `cursor-sdk-bridge` process. The Cursor API key stays on the adapter host; it is never given to a WorkerRun environment. v1 is **local runtime only** so Cursor cannot clone or open PRs outside the DDE merge queue.

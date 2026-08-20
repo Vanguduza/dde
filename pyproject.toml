@@ -27,6 +27,14 @@ cursor = [
   "cursor-sdk",
 ]
 
+[project.scripts]
+# DDE-015's general command surface: `mission {create,status,trace}`,
+# `task {list}` -- see `interfaces/cli/__main__.py` for the full subcommand
+# structure and dispatch. No `mission run` orchestration command exists;
+# see that module's docstring for why (no Chapter-chartered orchestrator
+# component exists yet at Stage 1).
+dde = "interfaces.cli.__main__:main"
+
 [dependency-groups]
 dev = [
   "pytest",
@@ -58,7 +66,7 @@ select = ["E", "F", "I", "N", "UP", "B", "S", "ASYNC"]
 known-first-party = ["engine", "adapters", "interfaces", "scripts"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S108"]
+"tests/**" = ["S101", "S108", "ASYNC240"]
 "scripts/**" = ["S101"]
 "migrations/**" = ["S608"]
 
@@ -66,6 +74,7 @@ known-first-party = ["engine", "adapters", "interfaces", "scripts"]
 quote-style = "double"
 
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 python_version = "3.12"
 files = ["engine"]
 strict = true

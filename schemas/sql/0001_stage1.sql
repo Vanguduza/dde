@@ -43,6 +43,10 @@ CREATE TABLE product_constitution_versions (
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     version integer NOT NULL,
+    status text NOT NULL,
+    body_markdown text NOT NULL,
+    content_hash text NOT NULL,
+    supersedes_id uuid,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (version_id),
@@ -54,6 +58,11 @@ CREATE TABLE requirements (
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     slug text NOT NULL,
+    statement text NOT NULL,
+    constraints jsonb NOT NULL DEFAULT '[]'::jsonb,
+    acceptance_conditions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    supersedes_id uuid,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (requirement_id),
@@ -65,6 +74,16 @@ CREATE TABLE edrs (
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     slug text NOT NULL,
+    context text NOT NULL,
+    alternatives jsonb NOT NULL DEFAULT '[]'::jsonb,
+    decision text NOT NULL,
+    rationale text NOT NULL,
+    consequences jsonb NOT NULL DEFAULT '[]'::jsonb,
+    affected_requirement_slugs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    supersedes_id uuid,
+    decided_by_principal uuid,
+    decided_at timestamptz,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (edr_id),
@@ -76,6 +95,11 @@ CREATE TABLE missions (
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     slug text NOT NULL,
+    title text NOT NULL,
+    intent text NOT NULL,
+    success_definition text NOT NULL,
+    scope jsonb NOT NULL DEFAULT '[]'::jsonb,
+    requirement_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
     status text NOT NULL,
     autonomy_ceiling integer NOT NULL,
     lock_version integer NOT NULL DEFAULT 1,
@@ -112,6 +136,7 @@ CREATE TABLE tasks (
     project_id uuid NOT NULL,
     mission_id uuid NOT NULL,
     graph_id uuid NOT NULL,
+    parent_task_id uuid,
     title text NOT NULL,
     intent text NOT NULL,
     task_class text NOT NULL,
@@ -160,6 +185,7 @@ CREATE TABLE context_packages (
     index_lag_commits integer NOT NULL,
     coverage jsonb NOT NULL DEFAULT '{}'::jsonb,
     status text NOT NULL,
+    retrievers_used jsonb NOT NULL DEFAULT '[]'::jsonb,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (package_id),
@@ -227,11 +253,34 @@ CREATE TABLE workspaces (
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     mission_id uuid,
+    task_id uuid,
+    execution_environment_id uuid,
     base_revision text,
+    current_revision text,
+    workspace_path text,
+    policy jsonb NOT NULL DEFAULT '{}'::jsonb,
+    status text NOT NULL,
     lock_version integer NOT NULL DEFAULT 1,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (workspace_id)
+);
+
+CREATE TABLE write_scope_leases (
+    lease_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    scope_patterns jsonb NOT NULL DEFAULT '[]'::jsonb,
+    exclusive boolean NOT NULL,
+    status text NOT NULL,
+    acquired_at timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL,
+    released_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (lease_id)
 );
 
 CREATE TABLE execution_plans (
@@ -359,16 +408,73 @@ CREATE TABLE artifacts (
     PRIMARY KEY (artifact_id)
 );
 
+CREATE TABLE acceptance_oracles (
+    oracle_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    oracle_version text NOT NULL,
+    scope text NOT NULL,
+    requirement_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    feature_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    observable_outcomes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    domain_invariants jsonb NOT NULL DEFAULT '[]'::jsonb,
+    negative_cases jsonb NOT NULL DEFAULT '[]'::jsonb,
+    minimum_confidence numeric NOT NULL,
+    human_assertions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    approved_by text,
+    approved_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (oracle_id)
+);
+
 CREATE TABLE verification_runs (
     verification_run_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     mission_id uuid NOT NULL,
     task_id uuid NOT NULL,
+    task_attempt_id uuid NOT NULL,
+    worker_run_id uuid NOT NULL,
+    workspace_id uuid NOT NULL,
+    oracle_id uuid NOT NULL,
+    sequence integer NOT NULL,
     status text NOT NULL,
+    confidence numeric NOT NULL,
+    check_results jsonb NOT NULL DEFAULT '[]'::jsonb,
+    outcome_results jsonb NOT NULL DEFAULT '[]'::jsonb,
+    negative_case_results jsonb NOT NULL DEFAULT '[]'::jsonb,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    started_at timestamptz NOT NULL,
+    ended_at timestamptz,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
-    PRIMARY KEY (verification_run_id)
+    PRIMARY KEY (verification_run_id),
+    UNIQUE (worker_run_id, sequence)
+);
+
+CREATE TABLE integration_proposals (
+    proposal_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    task_attempt_id uuid NOT NULL,
+    source_branch text NOT NULL,
+    base_revision text NOT NULL,
+    proposed_revision text NOT NULL,
+    diff_summary text NOT NULL,
+    changed_paths jsonb NOT NULL DEFAULT '[]'::jsonb,
+    scope_lease_id uuid NOT NULL,
+    pre_integration_verification_ref uuid NOT NULL,
+    status text NOT NULL,
+    conflict_class text,
+    attempts integer NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (proposal_id)
 );
 
 CREATE TABLE evidence (
@@ -421,6 +527,7 @@ CREATE TABLE outbox (
     project_id uuid NOT NULL,
     mission_id uuid,
     event_id uuid NOT NULL,
+    status text NOT NULL,
     payload jsonb NOT NULL DEFAULT '{}'::jsonb,
     published_at timestamptz,
     created_at timestamptz NOT NULL,
@@ -435,6 +542,7 @@ CREATE TABLE command_idempotency (
     idempotency_key text NOT NULL,
     request_hash text NOT NULL,
     status text NOT NULL,
+    result jsonb,
     expires_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
@@ -446,6 +554,8 @@ CREATE TABLE audit_events (
     audit_event_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
     project_id uuid,
+    event_type text NOT NULL,
+    sequence integer NOT NULL,
     prev_hash text,
     entry_hash text NOT NULL,
     payload jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -464,12 +574,16 @@ ALTER TABLE principal_grants ADD CONSTRAINT principal_grants_principal_id_fkey F
 
 ALTER TABLE product_constitution_versions ADD CONSTRAINT product_constitution_versions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE product_constitution_versions ADD CONSTRAINT product_constitution_versions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE product_constitution_versions ADD CONSTRAINT product_constitution_versions_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES product_constitution_versions (version_id);
 
 ALTER TABLE requirements ADD CONSTRAINT requirements_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE requirements ADD CONSTRAINT requirements_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE requirements ADD CONSTRAINT requirements_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES requirements (requirement_id);
 
 ALTER TABLE edrs ADD CONSTRAINT edrs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE edrs ADD CONSTRAINT edrs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE edrs ADD CONSTRAINT edrs_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES edrs (edr_id);
+ALTER TABLE edrs ADD CONSTRAINT edrs_decided_by_principal_fkey FOREIGN KEY (decided_by_principal) REFERENCES principals (principal_id);
 
 ALTER TABLE missions ADD CONSTRAINT missions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE missions ADD CONSTRAINT missions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -484,6 +598,7 @@ ALTER TABLE tasks ADD CONSTRAINT tasks_tenant_id_fkey FOREIGN KEY (tenant_id) RE
 ALTER TABLE tasks ADD CONSTRAINT tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE tasks ADD CONSTRAINT tasks_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE tasks ADD CONSTRAINT tasks_graph_id_fkey FOREIGN KEY (graph_id) REFERENCES task_graphs (graph_id);
+ALTER TABLE tasks ADD CONSTRAINT tasks_parent_task_id_fkey FOREIGN KEY (parent_task_id) REFERENCES tasks (task_id);
 
 ALTER TABLE task_graph_edges ADD CONSTRAINT task_graph_edges_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE task_graph_edges ADD CONSTRAINT task_graph_edges_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -508,6 +623,13 @@ ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_project
 ALTER TABLE workspaces ADD CONSTRAINT workspaces_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE workspaces ADD CONSTRAINT workspaces_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE workspaces ADD CONSTRAINT workspaces_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE workspaces ADD CONSTRAINT workspaces_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE workspaces ADD CONSTRAINT workspaces_execution_environment_id_fkey FOREIGN KEY (execution_environment_id) REFERENCES execution_environments (environment_id);
+
+ALTER TABLE write_scope_leases ADD CONSTRAINT write_scope_leases_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE write_scope_leases ADD CONSTRAINT write_scope_leases_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE write_scope_leases ADD CONSTRAINT write_scope_leases_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE write_scope_leases ADD CONSTRAINT write_scope_leases_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -516,6 +638,7 @@ ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_task_id_fkey FOREIGN 
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_route_decision_id_fkey FOREIGN KEY (route_decision_id) REFERENCES route_decisions (decision_id);
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_context_package_id_fkey FOREIGN KEY (context_package_id) REFERENCES context_packages (package_id);
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_execution_environment_id_fkey FOREIGN KEY (execution_environment_id) REFERENCES execution_environments (environment_id);
+ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_write_scope_lease_id_fkey FOREIGN KEY (write_scope_lease_id) REFERENCES write_scope_leases (lease_id);
 
 ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -541,10 +664,27 @@ ALTER TABLE artifacts ADD CONSTRAINT artifacts_tenant_id_fkey FOREIGN KEY (tenan
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 
+ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_task_attempt_id_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_oracle_id_fkey FOREIGN KEY (oracle_id) REFERENCES acceptance_oracles (oracle_id);
+
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_task_attempt_id_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_scope_lease_id_fkey FOREIGN KEY (scope_lease_id) REFERENCES write_scope_leases (lease_id);
+ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_verification_ref_fkey FOREIGN KEY (pre_integration_verification_ref) REFERENCES verification_runs (verification_run_id);
 
 ALTER TABLE evidence ADD CONSTRAINT evidence_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -624,6 +764,10 @@ ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspaces FORCE ROW LEVEL SECURITY;
 CREATE POLICY workspaces_tenant_isolation ON workspaces USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
+ALTER TABLE write_scope_leases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE write_scope_leases FORCE ROW LEVEL SECURITY;
+CREATE POLICY write_scope_leases_tenant_isolation ON write_scope_leases USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
 ALTER TABLE execution_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_plans FORCE ROW LEVEL SECURITY;
 CREATE POLICY execution_plans_tenant_isolation ON execution_plans USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
@@ -644,9 +788,17 @@ ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts FORCE ROW LEVEL SECURITY;
 CREATE POLICY artifacts_tenant_isolation ON artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
+ALTER TABLE acceptance_oracles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE acceptance_oracles FORCE ROW LEVEL SECURITY;
+CREATE POLICY acceptance_oracles_tenant_isolation ON acceptance_oracles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
 ALTER TABLE verification_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_runs FORCE ROW LEVEL SECURITY;
 CREATE POLICY verification_runs_tenant_isolation ON verification_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE integration_proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE integration_proposals FORCE ROW LEVEL SECURITY;
+CREATE POLICY integration_proposals_tenant_isolation ON integration_proposals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence FORCE ROW LEVEL SECURITY;

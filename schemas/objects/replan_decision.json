@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/replan_decision.json",
+  "title": "ReplanDecision",
+  "description": "Per-node dispositions produced by TaskPlanner.replan (Chapter 4.6).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["graph_id", "trigger", "dispositions"],
+  "properties": {
+    "graph_id": { "type": "string", "format": "uuid" },
+    "trigger": { "type": "string" },
+    "dispositions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["PRESERVE", "QUIESCE", "SUPERSEDE", "RETIRE", "REVERT"]
+      }
+    }
+  }
+}

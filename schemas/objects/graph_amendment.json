@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/graph_amendment.json",
+  "title": "GraphAmendment",
+  "description": "Proposed TaskGraph amendment. Workers may propose; only the Task Planner mutates the graph.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "amendment_id",
+    "graph_id",
+    "proposed_by",
+    "amendment_type",
+    "justification",
+    "evidence_refs",
+    "affected_task_ids",
+    "requested_write_scope"
+  ],
+  "properties": {
+    "amendment_id": { "type": "string", "format": "uuid" },
+    "graph_id": { "type": "string", "format": "uuid" },
+    "proposed_by": { "type": "string" },
+    "amendment_type": {
+      "type": "string",
+      "enum": ["add_task", "split_task", "add_edge", "retire_task", "widen_scope"]
+    },
+    "justification": { "type": "string" },
+    "evidence_refs": { "type": "array", "items": { "type": "string" } },
+    "affected_task_ids": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" }
+    },
+    "requested_write_scope": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -122,6 +122,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: true
 
+## WriteScopeLease
+
+- table: `write_scope_leases`
+- primary key: lease_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## ExecutionPlan
 
 - table: `execution_plans`
@@ -162,10 +170,26 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## AcceptanceOracle
+
+- table: `acceptance_oracles`
+- primary key: oracle_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## VerificationRun
 
 - table: `verification_runs`
 - primary key: verification_run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## IntegrationProposal
+
+- table: `integration_proposals`
+- primary key: proposal_id
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
