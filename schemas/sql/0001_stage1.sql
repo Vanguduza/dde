@@ -764,6 +764,23 @@ CREATE TABLE attention_items (
     PRIMARY KEY (attention_id)
 );
 
+CREATE TABLE client_sessions (
+    session_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    principal_id uuid NOT NULL,
+    client_type text NOT NULL,
+    device_id uuid,
+    protocol_version text NOT NULL,
+    scopes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    connected_at timestamptz NOT NULL,
+    last_seen_at timestamptz NOT NULL,
+    subscriptions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (session_id)
+);
+
 CREATE TABLE events (
     event_id uuid NOT NULL,
     event_type text NOT NULL,
@@ -1016,6 +1033,9 @@ ALTER TABLE attention_items ADD CONSTRAINT attention_items_tenant_id_fkey FOREIG
 ALTER TABLE attention_items ADD CONSTRAINT attention_items_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE attention_items ADD CONSTRAINT attention_items_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 
+ALTER TABLE client_sessions ADD CONSTRAINT client_sessions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE client_sessions ADD CONSTRAINT client_sessions_principal_id_fkey FOREIGN KEY (principal_id) REFERENCES principals (principal_id);
+
 ALTER TABLE events ADD CONSTRAINT events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE events ADD CONSTRAINT events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1167,6 +1187,10 @@ CREATE POLICY evidence_tenant_isolation ON evidence USING (tenant_id = CAST(curr
 ALTER TABLE attention_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attention_items FORCE ROW LEVEL SECURITY;
 CREATE POLICY attention_items_tenant_isolation ON attention_items USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE client_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_sessions FORCE ROW LEVEL SECURITY;
+CREATE POLICY client_sessions_tenant_isolation ON client_sessions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events FORCE ROW LEVEL SECURITY;

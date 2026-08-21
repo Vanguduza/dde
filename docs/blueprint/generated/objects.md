@@ -282,6 +282,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## ClientSession
+
+- table: `client_sessions`
+- primary key: session_id
+- tenant scoped: true
+- project scoped: false
+- lock_version: false
+
 ## Event
 
 - table: `events`

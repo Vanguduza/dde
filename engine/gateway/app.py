@@ -19,6 +19,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from engine.contracts.healthz import Healthz
 from engine.contracts.readyz import Readyz
+from engine.core.errors import DdeError
+from engine.gateway.api import dde_error_handler, router
 from engine.gateway.settings import Settings, get_settings
 from engine.governance.config import RuntimeFlags, validate_configuration
 
@@ -80,6 +82,8 @@ def create_app() -> FastAPI:
     validate_configuration(RuntimeFlags())
     application = FastAPI(title="DDE Core", version="0.1.0")
     FastAPIInstrumentor.instrument_app(application)
+    application.include_router(router)
+    application.add_exception_handler(DdeError, dde_error_handler)
 
     @application.get("/healthz")
     async def healthz() -> Healthz:

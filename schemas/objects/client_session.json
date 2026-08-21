@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/client_session.json",
+  "title": "ClientSession",
+  "description": "Gateway session identity for Chapter 15.1. Identifies a connected client, not a manufacturing mission; many sessions may observe one mission and vice versa, subject to authorization. tenant_id is derived from the authenticated principal, never from a client-supplied target id (Chapter 13.9). scopes are the principal's baseline scopes for its client_type (Chapter 14.2), enforced before any command reaches Core. Owned by engine.gateway.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "client_sessions",
+    "order": 222,
+    "pk": ["session_id"],
+    "tenant_scoped": true,
+    "project_scoped": false,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "client_sessions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "client_sessions_principal_id_fkey",
+        "columns": ["principal_id"],
+        "ref_table": "principals",
+        "ref_columns": ["principal_id"]
+      }
+    ]
+  },
+  "required": [
+    "session_id",
+    "tenant_id",
+    "principal_id",
+    "client_type",
+    "protocol_version",
+    "scopes",
+    "connected_at",
+    "last_seen_at",
+    "subscriptions",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "session_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "principal_id": { "type": "string", "format": "uuid" },
+    "client_type": { "type": "string" },
+    "device_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "protocol_version": { "type": "string" },
+    "scopes": { "type": "array", "items": { "type": "string" } },
+    "connected_at": { "type": "string", "format": "date-time" },
+    "last_seen_at": { "type": "string", "format": "date-time" },
+    "subscriptions": { "type": "array", "items": { "type": "string" } },
+    "status": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

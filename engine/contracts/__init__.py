@@ -10,6 +10,7 @@ from engine.contracts.audit_event import AuditEvent
 from engine.contracts.capability_descriptor import CapabilityDescriptor
 from engine.contracts.capability_lease import CapabilityLease
 from engine.contracts.checkpoint import Checkpoint
+from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.context_package import ContextPackage
@@ -59,6 +60,7 @@ __all__ = [
     "CapabilityDescriptor",
     "CapabilityLease",
     "Checkpoint",
+    "ClientSession",
     "Command",
     "CommandIdempotency",
     "ContextPackage",
