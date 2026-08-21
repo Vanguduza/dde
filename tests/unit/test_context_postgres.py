@@ -11,10 +11,19 @@ from pathlib import Path
 import pytest
 
 from engine.context.model import ContextBudgetExceeded
-from engine.context.repository import ContextRepository
+from engine.context.repository import (
+    ContextConflictRepository,
+    ContextCriticFindingRepository,
+    ContextRepository,
+)
 from engine.context.service import ContextService
+from engine.events.repository import EventsRepository
 from engine.truth.db import open_unit_of_work
-from tests.support.context_fixtures import build_context_fixture, build_fake_repo
+from tests.support.context_fixtures import (
+    build_conflicting_edr_context_fixture,
+    build_context_fixture,
+    build_fake_repo,
+)
 from tests.support.db import new_engine
 
 
@@ -228,5 +237,119 @@ async def test_authority_retriever_resolves_real_requirement_and_edr(
         assert not isinstance(compiled, ContextBudgetExceeded)
         assert compiled.coverage["authoritative_requirements"] == "satisfied"
         assert compiled.coverage["applicable_domain_rules"] == "satisfied"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_overlapping_accepted_edrs_forces_conflicted_status_and_persists(
+    tmp_path: Path,
+) -> None:
+    """Chapter 5.6, exercised at the real `ContextService.compile()` call
+    site (not just the pure `detect_conflicts()` unit test): two
+    independently accepted EDRs sharing an `affected_requirement_slugs`
+    entry, with no supersession link, force `status="CONFLICTED"` on the
+    persisted `ContextPackage`, write a real `context_conflicts` row, and
+    append a real `ContextConflictDetected` event through the same
+    event/outbox mechanism every other module in this codebase uses --
+    not an in-memory-only result and not an ad-hoc side channel."""
+    engine = new_engine()
+    try:
+        build_fake_repo(tmp_path)
+        fixture = await build_conflicting_edr_context_fixture(
+            engine, mission_slug="MISSION-CTX-CONFLICT"
+        )
+        service = ContextService(engine, root=tmp_path)
+
+        compiled = await service.compile(task=fixture.task)
+        assert not isinstance(compiled, ContextBudgetExceeded)
+        assert compiled.status == "CONFLICTED"
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            conflicts = await ContextConflictRepository().list_for_package(
+                uow.connection, compiled.package_id
+            )
+            findings = await ContextCriticFindingRepository().list_for_package(
+                uow.connection, compiled.package_id
+            )
+            events = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "context_package", compiled.package_id
+            )
+            await uow.commit()
+
+        assert len(conflicts) == 1
+        conflict = conflicts[0]
+        assert conflict.contradiction_type == "overlapping_accepted_edrs"
+        assert conflict.status == "open"
+        assert conflict.tenant_id == fixture.tenant.tenant_id
+        assert conflict.project_id == fixture.tenant.project_id
+        assert conflict.package_id == compiled.package_id
+
+        # Chapter 5.9: the critic must never run once a conflict is found.
+        assert findings == []
+
+        event_types = [event.event_type for event in events]
+        assert "ContextPackageCompiled" in event_types
+        assert "ContextConflictDetected" in event_types
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_high_risk_task_triggers_critic_and_persists_finding(
+    tmp_path: Path,
+) -> None:
+    """Chapter 5.9, exercised at the real `compile()` call site: a
+    `risk_class="high"` task with no conflicts triggers the critic, and
+    the resulting `ContextCriticFinding` -- and its `ContextCriticTriggered`
+    event -- are genuinely persisted through the same repository/event
+    machinery every other `compile()` write uses."""
+    engine = new_engine()
+    try:
+        build_fake_repo(tmp_path)
+        fixture = await build_context_fixture(
+            engine, mission_slug="MISSION-CTX-CRITIC", risk_class="high"
+        )
+        service = ContextService(engine, root=tmp_path)
+
+        compiled = await service.compile(task=fixture.task)
+        assert not isinstance(compiled, ContextBudgetExceeded)
+        assert compiled.status != "CONFLICTED"
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            conflicts = await ContextConflictRepository().list_for_package(
+                uow.connection, compiled.package_id
+            )
+            findings = await ContextCriticFindingRepository().list_for_package(
+                uow.connection, compiled.package_id
+            )
+            events = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "context_package", compiled.package_id
+            )
+            await uow.commit()
+
+        assert conflicts == []
+        assert len(findings) == 1
+        finding = findings[0]
+        assert "risk_class_high_or_above" in finding.trigger_reasons
+        assert finding.action in (
+            "requested_additional_retrieval",
+            "raised_finding",
+        )
+        assert finding.tenant_id == fixture.tenant.tenant_id
+        assert finding.project_id == fixture.tenant.project_id
+        assert finding.package_id == compiled.package_id
+
+        event_types = [event.event_type for event in events]
+        assert "ContextPackageCompiled" in event_types
+        assert "ContextCriticTriggered" in event_types
     finally:
         await engine.dispose()
