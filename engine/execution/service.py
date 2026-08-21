@@ -19,8 +19,9 @@ committed" (step 7). `ExecutionPlan`'s own field list (7.1) has no
 `workspace_id` column, only `execution_environment_id` — consistent with
 workspace allocation happening later, at attempt-creation time, not at
 plan-creation time. This service resolves the tension in favour of 3.9's
-explicit ordering: `plan()` selects/provisions the `ExecutionEnvironment`
-(binding `execution_environment_id`) but does not allocate a `Workspace`;
+explicit ordering: `plan()` acquires the `ExecutionEnvironment` (Chapter 7.4 warm pool:
+reuse a pooled READY environment or cold-provision, then lease it `ACTIVE`,
+binding `execution_environment_id`) but does not allocate a `Workspace`;
 `provision_workspace()` does that separately, standing in for whatever
 future `TaskAttempt`-creation caller performs 3.9 step 9 (`TaskAttempt` is
 owned by `engine.missions`, out of this mission's scope to create for real).
@@ -166,7 +167,7 @@ class ExecutionPlanService:
                 "workspace_root_only": True,
                 "size_cap_mb": DEFAULT_WORKSPACE_SIZE_CAP_MB,
             }
-            environment = await self._environments.provision(
+            acquired = await self._environments.acquire(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 environment_class=planned.environment_class,
@@ -175,6 +176,7 @@ class ExecutionPlanService:
                 filesystem_policy=filesystem_policy,
                 uow=active,
             )
+            environment = acquired.environment
             self._environments.assert_schedulable(environment)
 
             write_scope_lease_id: UUID | None = None

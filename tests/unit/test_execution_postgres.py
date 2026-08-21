@@ -66,7 +66,7 @@ async def test_schema_round_trip_and_acceptance_full_lifecycle(tmp_path: Path) -
             project_id=fixture.tenant.project_id,
             environment_id=plan.execution_environment_id,
         )
-        assert environment.lifecycle_state == "READY"
+        assert environment.lifecycle_state == "ACTIVE"
         assert environment.type == "local"
 
         async with open_unit_of_work(
@@ -102,20 +102,14 @@ async def test_schema_round_trip_and_acceptance_full_lifecycle(tmp_path: Path) -
         )
         assert active_plan.started_at is not None
 
-        # Teardown: real environment drain/retire, real workspace cleanup.
-        active_env = await environments.transition(
-            tenant_id=fixture.tenant.tenant_id,
-            project_id=fixture.tenant.project_id,
-            environment_id=environment.environment_id,
-            target_lifecycle_state="ACTIVE",
-            lock_version=environment.lock_version,
-        )
+        # Teardown: the plan's environment is already ACTIVE (leased by
+        # acquire()), so drain/retire it directly, then clean up the workspace.
         draining_env = await environments.transition(
             tenant_id=fixture.tenant.tenant_id,
             project_id=fixture.tenant.project_id,
             environment_id=environment.environment_id,
             target_lifecycle_state="DRAINING",
-            lock_version=active_env.lock_version,
+            lock_version=environment.lock_version,
         )
         retired_env = await environments.transition(
             tenant_id=fixture.tenant.tenant_id,

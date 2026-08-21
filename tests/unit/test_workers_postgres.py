@@ -239,14 +239,16 @@ async def test_negative_uncertified_profile_is_rejected(tmp_path: Path) -> None:
         assert excinfo.value.error_code == "PROFILE_STALE"
 
         # Rolled back entirely: no attempt or run was created for the
-        # rejected invocation.
+        # rejected invocation, and the plan-leased environment is untouched
+        # (still ACTIVE — `plan()` acquires it via the Chapter 7.4 warm pool,
+        # and the rejected `invoke_run` never consumed or retired it).
         environments = ExecutionEnvironmentService(db_engine)
         environment = await environments.get_environment(
             tenant_id=fixture.tenant.tenant_id,
             project_id=fixture.tenant.project_id,
             environment_id=fixture.execution_plan.execution_environment_id,
         )
-        assert environment.lifecycle_state == "READY"
+        assert environment.lifecycle_state == "ACTIVE"
     finally:
         if workspace is not None:
             await WorkspaceService(db_engine, root=root).cleanup(workspace=workspace)
