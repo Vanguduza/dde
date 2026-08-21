@@ -323,12 +323,44 @@ async def test_compile_wires_semantic_retriever_when_index_present(
             tenant_id=fixture.tenant.tenant_id,
             project_id=fixture.tenant.project_id,
         )
-        service = ContextService(engine, root=tmp_path, index_service=index_service)
+        service = ContextService(
+            engine,
+            root=tmp_path,
+            index_service=index_service,
+            semantic_retrieval_enabled=True,
+        )
 
         compiled = await service.compile(task=fixture.task)
 
         assert not isinstance(compiled, ContextBudgetExceeded)
         assert "semantic" in compiled.retrievers_used
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_compile_does_not_use_semantic_by_default(tmp_path: Path) -> None:
+    """Chapter 5.2: semantic retrieval must demonstrate eval-corpus uplift
+    before it is enabled by default (Stage 3 / Chapter 5.13, EDR-0002). An
+    active index existing must not be enough to turn it on."""
+    engine = new_engine()
+    try:
+        build_fake_repo(tmp_path)
+        fixture = await build_context_fixture(
+            engine, mission_slug="MISSION-CTX-DEFAULT"
+        )
+        index_service = ContextIndexService(engine, root=tmp_path)
+        await index_service.build_index(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        )
+        service = ContextService(engine, root=tmp_path, index_service=index_service)
+
+        compiled = await service.compile(task=fixture.task)
+
+        assert not isinstance(compiled, ContextBudgetExceeded)
+        assert "semantic" not in compiled.retrievers_used
+        assert compiled.index_lag_commits == 0
     finally:
         await engine.dispose()
 
@@ -344,7 +376,12 @@ async def test_compile_blocks_when_index_stale(tmp_path: Path) -> None:
             project_id=fixture.tenant.project_id,
         )
         stale_service = _FixedLagIndexService(engine, index, lag_commits=1000)
-        service = ContextService(engine, root=tmp_path, index_service=stale_service)
+        service = ContextService(
+            engine,
+            root=tmp_path,
+            index_service=stale_service,
+            semantic_retrieval_enabled=True,
+        )
 
         with pytest.raises(DdeError) as exc_info:
             await service.compile(task=fixture.task)

@@ -9,7 +9,14 @@ Chapter 5.7's eviction priority order -> the Chapter 5.8 coverage
 contract -> a versioned, hashed `ContextPackage` row (Chapter 3.10).
 
 The semantic retriever and its Chapter 5.4 index lifecycle are wired
-here: `compile()` consults the active semantic index, runs the semantic
+here, but gated behind `semantic_retrieval_enabled` (default `False`):
+Chapter 5.2 requires semantic retrieval to "demonstrate uplift on the
+eval corpus against a lexical+structural baseline before it is enabled
+by default" (Stage 3, Chapter 5.13). No eval corpus/promotion gate
+exists yet (EDR-0002, `docs/truth/edr/EDR-0002-semantic-retriever-
+default-gating.md`), so `compile()` never consults the index or the
+semantic retriever unless a caller explicitly opts in. When opted in,
+`compile()` consults the active semantic index, runs the semantic
 retriever when one exists, and applies the Chapter 5.4 staleness gate
 (`block` past `DEFAULT_INDEX_LAG_BLOCK_COMMITS`, `warn` past
 `DEFAULT_INDEX_LAG_WARN_COMMITS`). See `engine.context.index_service`
@@ -86,6 +93,7 @@ class ContextService:
         index_service: ContextIndexService | None = None,
         index_lag_warn_commits: int = DEFAULT_INDEX_LAG_WARN_COMMITS,
         index_lag_block_commits: int = DEFAULT_INDEX_LAG_BLOCK_COMMITS,
+        semantic_retrieval_enabled: bool = False,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -98,6 +106,7 @@ class ContextService:
         )
         self._index_lag_warn_commits = index_lag_warn_commits
         self._index_lag_block_commits = index_lag_block_commits
+        self._semantic_retrieval_enabled = semantic_retrieval_enabled
 
     async def _run(
         self,
@@ -164,8 +173,12 @@ class ContextService:
                 root=self._root,
                 expected_write_scope=expected_write_scope,
             )
-            index_state = await self._index_service.load_state(
-                tenant_id=tenant_id, project_id=project_id, uow=active
+            index_state = (
+                await self._index_service.load_state(
+                    tenant_id=tenant_id, project_id=project_id, uow=active
+                )
+                if self._semantic_retrieval_enabled
+                else None
             )
             semantic_items: list[ContextItem] = []
             if index_state is not None:
