@@ -27,6 +27,8 @@ DROP TABLE IF EXISTS write_scope_leases CASCADE;
 DROP TABLE IF EXISTS workspaces CASCADE;
 DROP TABLE IF EXISTS execution_environments CASCADE;
 DROP TABLE IF EXISTS route_decisions CASCADE;
+DROP TABLE IF EXISTS context_critic_findings CASCADE;
+DROP TABLE IF EXISTS context_conflicts CASCADE;
 DROP TABLE IF EXISTS promotion_gate_runs CASCADE;
 DROP TABLE IF EXISTS eval_cases CASCADE;
 DROP TABLE IF EXISTS context_chunks CASCADE;

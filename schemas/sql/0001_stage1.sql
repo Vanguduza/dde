@@ -302,6 +302,48 @@ CREATE TABLE promotion_gate_runs (
     UNIQUE (tenant_id, idempotency_key)
 );
 
+CREATE TABLE context_conflicts (
+    conflict_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    package_id uuid NOT NULL,
+    item_a_key text NOT NULL,
+    item_a_authority_rank integer NOT NULL,
+    item_b_key text NOT NULL,
+    item_b_authority_rank integer NOT NULL,
+    contradiction_type text NOT NULL,
+    affected_success_criteria jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    resolution_method text,
+    resolved_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (conflict_id),
+    UNIQUE (package_id, item_a_key, item_b_key)
+);
+
+CREATE TABLE context_critic_findings (
+    finding_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    package_id uuid NOT NULL,
+    trigger_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
+    confidence numeric NOT NULL,
+    action text NOT NULL,
+    outcome_summary text NOT NULL,
+    requires_human_review boolean NOT NULL,
+    reviewed boolean NOT NULL,
+    reviewed_at timestamptz,
+    cost_tokens_estimate integer NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (finding_id)
+);
+
 CREATE TABLE route_decisions (
     decision_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -985,6 +1027,18 @@ ALTER TABLE eval_cases ADD CONSTRAINT eval_cases_source_proposal_id_fkey FOREIGN
 ALTER TABLE promotion_gate_runs ADD CONSTRAINT promotion_gate_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE promotion_gate_runs ADD CONSTRAINT promotion_gate_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
+ALTER TABLE context_conflicts ADD CONSTRAINT context_conflicts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE context_conflicts ADD CONSTRAINT context_conflicts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE context_conflicts ADD CONSTRAINT context_conflicts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE context_conflicts ADD CONSTRAINT context_conflicts_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE context_conflicts ADD CONSTRAINT context_conflicts_package_id_fkey FOREIGN KEY (package_id) REFERENCES context_packages (package_id);
+
+ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_package_id_fkey FOREIGN KEY (package_id) REFERENCES context_packages (package_id);
+
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1203,6 +1257,14 @@ CREATE POLICY eval_cases_tenant_isolation ON eval_cases USING (tenant_id = CAST(
 ALTER TABLE promotion_gate_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE promotion_gate_runs FORCE ROW LEVEL SECURITY;
 CREATE POLICY promotion_gate_runs_tenant_isolation ON promotion_gate_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE context_conflicts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_conflicts FORCE ROW LEVEL SECURITY;
+CREATE POLICY context_conflicts_tenant_isolation ON context_conflicts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE context_critic_findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_critic_findings FORCE ROW LEVEL SECURITY;
+CREATE POLICY context_critic_findings_tenant_isolation ON context_critic_findings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE route_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE route_decisions FORCE ROW LEVEL SECURITY;

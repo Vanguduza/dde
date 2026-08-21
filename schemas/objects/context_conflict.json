@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/context_conflict.json",
+  "title": "ContextConflict",
+  "description": "Chapter 5.6 conflict adjudication record. Written once, alongside the ContextPackage it names, whenever the DCE finds two authority-rank<=6 items that contradict each other -- the package's status is CONFLICTED and the DCE must not merge or silently prefer one. `status` tracks whether the conflict has been resolved (retrieved resolving evidence, a raised EDR/decision task, or human escalation, per Chapter 5.6); autonomous execution on the affected task stays blocked while `status` is `open`. Owned by engine.context (Chapter 3.8, alongside ContextPackage).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "context_conflicts",
+    "order": 125,
+    "pk": ["conflict_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["package_id", "item_a_key", "item_b_key"]],
+    "foreign_keys": [
+      {
+        "name": "context_conflicts_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "context_conflicts_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "context_conflicts_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "context_conflicts_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "context_conflicts_package_id_fkey",
+        "columns": ["package_id"],
+        "ref_table": "context_packages",
+        "ref_columns": ["package_id"]
+      }
+    ]
+  },
+  "required": [
+    "conflict_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "package_id",
+    "item_a_key",
+    "item_a_authority_rank",
+    "item_b_key",
+    "item_b_authority_rank",
+    "contradiction_type",
+    "affected_success_criteria",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "conflict_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "package_id": { "type": "string", "format": "uuid" },
+    "item_a_key": { "type": "string", "minLength": 1 },
+    "item_a_authority_rank": { "type": "integer" },
+    "item_b_key": { "type": "string", "minLength": 1 },
+    "item_b_authority_rank": { "type": "integer" },
+    "contradiction_type": {
+      "type": "string",
+      "enum": ["overlapping_accepted_edrs", "superseded_item_still_authoritative"]
+    },
+    "affected_success_criteria": { "type": "array", "items": { "type": "string" } },
+    "status": { "type": "string", "enum": ["open", "resolved"] },
+    "resolution_method": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "retrieved_resolving_evidence",
+            "decision_task_raised",
+            "escalated_to_human"
+          ]
+        },
+        { "type": "null" }
+      ]
+    },
+    "resolved_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

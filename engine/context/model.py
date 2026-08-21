@@ -121,3 +121,44 @@ class CoverageReport:
         payload: dict[str, object] = dict(self.required_statuses())
         payload["known_unresolved_questions"] = list(self.known_unresolved_questions)
         return payload
+
+
+@dataclass(frozen=True)
+class DetectedConflict:
+    """Chapter 5.6: one rank<=6 contradiction found between two items of
+    authority the DCE resolved for the same package. Naming both items
+    plus the contradiction type and affected success criteria is the
+    blueprint's own `ContextConflict` shape; this is the in-process value
+    before it is persisted as a durable `ContextConflict` row."""
+
+    item_a_key: str
+    item_a_authority_rank: int
+    item_b_key: str
+    item_b_authority_rank: int
+    contradiction_type: str
+    affected_success_criteria: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CriticTriggerResult:
+    """Chapter 5.9: whether the Context Critic fires this compile() call,
+    which of the five trigger conditions held, and the real (Stage 1
+    proxy) confidence signal that fed the last of them."""
+
+    triggered: bool
+    reasons: tuple[str, ...]
+    confidence: float
+
+
+@dataclass(frozen=True)
+class CriticOutcome:
+    """Chapter 5.9: what the critic did once triggered. It may only
+    request additional retrieval (`reassembled` carries the recovered
+    `AssembledContext`) or raise a Context Finding (`reassembled` is
+    `None`) -- it can never alter Project Truth and never approves its
+    own request."""
+
+    action: str
+    reassembled: AssembledContext | None
+    outcome_summary: str
+    cost_tokens_estimate: int

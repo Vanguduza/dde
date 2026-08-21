@@ -22,13 +22,33 @@ retriever when one exists, and applies the Chapter 5.4 staleness gate
 `DEFAULT_INDEX_LAG_WARN_COMMITS`). See `engine.context.index_service`
 and `engine.context.retrievers.semantic`.
 
+Conflict adjudication (Chapter 5.6, `engine.context.conflict`) and the
+Context Critic (Chapter 5.9, `engine.context.critic`) are wired in after
+assembly and coverage: `detect_conflicts()` runs over the authority
+retriever's resolved Requirements/EDRs and, if it finds a rank<=6
+contradiction, forces `status="CONFLICTED"` and persists one
+`ContextConflict` row per contradiction (Chapter 5.6: "the DCE must not
+merge or silently prefer one... Autonomous execution... is blocked until
+resolved"). Absent a conflict, `evaluate_trigger()` checks Chapter 5.9's
+five conditions and, if any hold, `run_critic()` either recovers already-
+fused-but-evicted evidence for a `partial` category (persisted as a
+`requested_additional_retrieval` `ContextCriticFinding`, and folded back
+into this same package's assembled set / coverage) or raises a
+`raised_finding` `ContextCriticFinding` when it cannot. See
+`engine.context.critic` for exactly which of the five conditions are
+computed from real signals versus explicitly parameterised because no
+real data source exists yet (Chapter 5.11 failure attribution).
+
 Deliberately out of scope, per the mission brief: dependency/graph/
-temporal/documentation/visual retrievers, the Context Critic (needs
-risk/blast-radius/confidence signals this slice does not compute),
-conflict adjudication (needs a genuine rank<=6 contradiction to trigger
-— no fixture here manufactures one), just-in-time expansion (needs worker
-runs, Chapter 5.12/DDE-011+), and the knowledge-graph derived/asserted
-split (Chapter 5.10/DDE-033).
+temporal/documentation/visual retrievers, just-in-time expansion (needs
+worker runs, Chapter 5.12/DDE-011+), and the knowledge-graph derived/
+asserted split (Chapter 5.10/DDE-033). Chapter 5.6's "raise an EDR/
+decision task (`blocks_on_decision` edge in the graph)" resolution path
+is not wired here: `engine.missions.kernel` only recognises `depends_on`/
+`produces_contract_for` edges today (no `blocks_on_decision` edge type
+exists to raise), so a conflict's only real, honest effect this mission
+delivers is the blocking `CONFLICTED` status plus the durable
+`ContextConflict` record a human or a future mission resolves against.
 """
 
 from __future__ import annotations
@@ -41,7 +61,13 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.context.assembly import DEFAULT_CONTEXT_BUDGET_TOKENS, assemble
+from engine.context.conflict import detect_conflicts
 from engine.context.coverage import compute_coverage
+from engine.context.critic import (
+    DEFAULT_CRITIC_CONFIDENCE_THRESHOLD,
+    evaluate_trigger,
+    run_critic,
+)
 from engine.context.discovery import discover
 from engine.context.fusion import fuse
 from engine.context.hashing import assembly_hash
@@ -51,10 +77,21 @@ from engine.context.index_service import (
     ContextIndexService,
     staleness_action,
 )
-from engine.context.model import ContextBudgetExceeded, ContextItem
+from engine.context.model import (
+    AUTHORITY_RANK_EDR,
+    AUTHORITY_RANK_REQUIREMENT,
+    ContextBudgetExceeded,
+    ContextItem,
+)
 from engine.context.repo import current_commit_sha, repo_root
-from engine.context.repository import ContextRepository
+from engine.context.repository import (
+    ContextConflictRepository,
+    ContextCriticFindingRepository,
+    ContextRepository,
+)
 from engine.context.retrievers import authority, explicit, lexical, semantic, structural
+from engine.contracts.context_conflict import ContextConflict
+from engine.contracts.context_critic_finding import ContextCriticFinding
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.task import Task
 from engine.core.clock import Clock, SystemClock
@@ -94,6 +131,9 @@ class ContextService:
         index_lag_warn_commits: int = DEFAULT_INDEX_LAG_WARN_COMMITS,
         index_lag_block_commits: int = DEFAULT_INDEX_LAG_BLOCK_COMMITS,
         semantic_retrieval_enabled: bool = False,
+        conflict_repository: ContextConflictRepository | None = None,
+        critic_finding_repository: ContextCriticFindingRepository | None = None,
+        critic_confidence_threshold: float = DEFAULT_CRITIC_CONFIDENCE_THRESHOLD,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -107,6 +147,11 @@ class ContextService:
         self._index_lag_warn_commits = index_lag_warn_commits
         self._index_lag_block_commits = index_lag_block_commits
         self._semantic_retrieval_enabled = semantic_retrieval_enabled
+        self._conflict_repository = conflict_repository or ContextConflictRepository()
+        self._critic_finding_repository = (
+            critic_finding_repository or ContextCriticFindingRepository()
+        )
+        self._critic_confidence_threshold = critic_confidence_threshold
 
     async def _run(
         self,
@@ -129,6 +174,7 @@ class ContextService:
         *,
         task: Task,
         context_budget_tokens: int | None = None,
+        previously_context_attributed_failure: bool = False,
         uow: PostgresUnitOfWork | None = None,
     ) -> ContextPackage | ContextBudgetExceeded:
         """Compile and persist a new `ContextPackage` version for `task`.
@@ -140,7 +186,16 @@ class ContextService:
         its existing public surface. The caller (whoever resolves a Task
         for compilation — a future execution/scheduling module) is
         expected to have already read the `Task` row through
-        `engine.missions`' existing methods."""
+        `engine.missions`' existing methods.
+
+        `previously_context_attributed_failure` feeds Chapter 5.9's fifth
+        Context Critic trigger condition ("the task is a repair of a
+        previously context-attributed failure"). It defaults to `False`
+        because no module in this codebase yet implements Chapter 5.11's
+        failure-attribution pipeline — the real source of truth for that
+        signal. A caller that does not hold genuine Chapter 5.11
+        attribution data must never pass `True` here (see
+        `engine.context.critic` for the full explanation)."""
         tenant_id = task.tenant_id
         project_id = task.project_id
         mission_id = task.mission_id
@@ -207,15 +262,56 @@ class ContextService:
             coverage = compute_coverage(
                 task, discovery, authority_result, fused, assembled
             )
-            coverage_json = coverage.to_json()
-            status = (
-                "INCOMPLETE"
-                if any(
-                    coverage.required_statuses()[category] == "missing"
-                    for category in REQUIRED_COVERAGE_CATEGORIES
-                )
-                else "COMPLETE"
+
+            detected_conflicts = detect_conflicts(
+                authority_result,
+                requirement_authority_rank=AUTHORITY_RANK_REQUIREMENT,
+                edr_authority_rank=AUTHORITY_RANK_EDR,
             )
+
+            critic_trigger = None
+            critic_outcome = None
+            if not detected_conflicts:
+                critic_trigger = evaluate_trigger(
+                    task=task,
+                    coverage=coverage,
+                    assembled=assembled,
+                    confidence_threshold=self._critic_confidence_threshold,
+                    previously_context_attributed_failure=(
+                        previously_context_attributed_failure
+                    ),
+                )
+                if critic_trigger.triggered:
+                    critic_outcome = run_critic(
+                        coverage=coverage, assembled=assembled, budget_tokens=budget
+                    )
+                    if critic_outcome.reassembled is not None:
+                        assembled = critic_outcome.reassembled
+                        coverage = compute_coverage(
+                            task, discovery, authority_result, fused, assembled
+                        )
+
+            coverage_json = coverage.to_json()
+            if critic_outcome is not None and critic_outcome.action == "raised_finding":
+                cast(list[str], coverage_json["known_unresolved_questions"]).append(
+                    "Context Critic triggered ("
+                    + ", ".join(critic_trigger.reasons if critic_trigger else ())
+                    + ") and could not resolve the gap from already-retrieved "
+                    "evidence; escalated as a Context Finding for human/other-"
+                    "system review (Chapter 5.9)."
+                )
+
+            if detected_conflicts:
+                status = "CONFLICTED"
+            else:
+                status = (
+                    "INCOMPLETE"
+                    if any(
+                        coverage.required_statuses()[category] == "missing"
+                        for category in REQUIRED_COVERAGE_CATEGORIES
+                    )
+                    else "COMPLETE"
+                )
             if index_state is None:
                 index_version = current_commit_sha(self._root)
                 index_lag_commits = 0
@@ -260,8 +356,9 @@ class ContextService:
             retrievers_used = list(RETRIEVERS_USED)
             if index_state is not None:
                 retrievers_used.append("semantic")
+            package_id = uuid7()
             package = ContextPackage(
-                package_id=uuid7(),
+                package_id=package_id,
                 tenant_id=tenant_id,
                 project_id=project_id,
                 mission_id=mission_id,
@@ -292,6 +389,85 @@ class ContextService:
                 },
                 uow=active,
             )
+
+            for detected in detected_conflicts:
+                conflict = ContextConflict(
+                    conflict_id=uuid7(),
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=mission_id,
+                    task_id=task.task_id,
+                    package_id=package_id,
+                    item_a_key=detected.item_a_key,
+                    item_a_authority_rank=detected.item_a_authority_rank,
+                    item_b_key=detected.item_b_key,
+                    item_b_authority_rank=detected.item_b_authority_rank,
+                    contradiction_type=detected.contradiction_type,
+                    affected_success_criteria=list(detected.affected_success_criteria),
+                    status="open",
+                    resolution_method=None,
+                    resolved_at=None,
+                    created_at=now,
+                    updated_at=now,
+                )
+                await self._conflict_repository.insert_conflict(
+                    active.connection, conflict
+                )
+            if detected_conflicts:
+                await self._events.append(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    event_type="ContextConflictDetected",
+                    aggregate_type="context_package",
+                    aggregate_id=package_id,
+                    mission_id=mission_id,
+                    task_id=task.task_id,
+                    payload={
+                        "conflict_count": len(detected_conflicts),
+                        "contradiction_types": sorted(
+                            {c.contradiction_type for c in detected_conflicts}
+                        ),
+                    },
+                    uow=active,
+                )
+
+            if critic_outcome is not None and critic_trigger is not None:
+                finding = ContextCriticFinding(
+                    finding_id=uuid7(),
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=mission_id,
+                    task_id=task.task_id,
+                    package_id=package_id,
+                    trigger_reasons=list(critic_trigger.reasons),
+                    confidence=critic_trigger.confidence,
+                    action=critic_outcome.action,
+                    outcome_summary=critic_outcome.outcome_summary,
+                    requires_human_review=(critic_outcome.action == "raised_finding"),
+                    reviewed=False,
+                    reviewed_at=None,
+                    cost_tokens_estimate=critic_outcome.cost_tokens_estimate,
+                    created_at=now,
+                    updated_at=now,
+                )
+                await self._critic_finding_repository.insert_finding(
+                    active.connection, finding
+                )
+                await self._events.append(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    event_type="ContextCriticTriggered",
+                    aggregate_type="context_package",
+                    aggregate_id=package_id,
+                    mission_id=mission_id,
+                    task_id=task.task_id,
+                    payload={
+                        "action": critic_outcome.action,
+                        "trigger_reasons": list(critic_trigger.reasons),
+                        "cost_tokens_estimate": critic_outcome.cost_tokens_estimate,
+                    },
+                    uow=active,
+                )
             return package
 
         return await self._run(uow, tenant_id, project_id, _op)

@@ -14,6 +14,8 @@ from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.context_chunk import ContextChunk
+from engine.contracts.context_conflict import ContextConflict
+from engine.contracts.context_critic_finding import ContextCriticFinding
 from engine.contracts.context_index import ContextIndex
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.core_event import CoreEvent
@@ -69,6 +71,8 @@ __all__ = [
     "Command",
     "CommandIdempotency",
     "ContextChunk",
+    "ContextConflict",
+    "ContextCriticFinding",
     "ContextIndex",
     "ContextPackage",
     "CoreEvent",

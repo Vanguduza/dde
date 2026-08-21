@@ -138,6 +138,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## ContextConflict
+
+- table: `context_conflicts`
+- primary key: conflict_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ContextCriticFinding
+
+- table: `context_critic_findings`
+- primary key: finding_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## RouteDecision
 
 - table: `route_decisions`

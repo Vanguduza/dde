@@ -13,7 +13,17 @@ module as `context`; this module (and `engine.context.repository`/
 
 from __future__ import annotations
 
-from sqlalchemy import TIMESTAMP, Boolean, Column, Integer, MetaData, Table, Text, Uuid
+from sqlalchemy import (
+    TIMESTAMP,
+    Boolean,
+    Column,
+    Integer,
+    MetaData,
+    Numeric,
+    Table,
+    Text,
+    Uuid,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 
 metadata = MetaData()
@@ -47,6 +57,49 @@ context_indexes = Table(
     Column("embedding_model_version", Text, nullable=False),
     Column("head_commit_sha", Text, nullable=False),
     Column("status", Text, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+context_conflicts = Table(
+    "context_conflicts",
+    metadata,
+    Column("conflict_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=False),
+    Column("task_id", Uuid(as_uuid=True), nullable=False),
+    Column("package_id", Uuid(as_uuid=True), nullable=False),
+    Column("item_a_key", Text, nullable=False),
+    Column("item_a_authority_rank", Integer, nullable=False),
+    Column("item_b_key", Text, nullable=False),
+    Column("item_b_authority_rank", Integer, nullable=False),
+    Column("contradiction_type", Text, nullable=False),
+    Column("affected_success_criteria", JSONB, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("resolution_method", Text, nullable=True),
+    Column("resolved_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+context_critic_findings = Table(
+    "context_critic_findings",
+    metadata,
+    Column("finding_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=False),
+    Column("task_id", Uuid(as_uuid=True), nullable=False),
+    Column("package_id", Uuid(as_uuid=True), nullable=False),
+    Column("trigger_reasons", JSONB, nullable=False),
+    Column("confidence", Numeric, nullable=False),
+    Column("action", Text, nullable=False),
+    Column("outcome_summary", Text, nullable=False),
+    Column("requires_human_review", Boolean, nullable=False),
+    Column("reviewed", Boolean, nullable=False),
+    Column("reviewed_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("cost_tokens_estimate", Integer, nullable=False),
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/context_critic_finding.json",
+  "title": "ContextCriticFinding",
+  "description": "Chapter 5.9 Context Critic record. Written whenever the triggered-not-default critic fires during ContextService.compile() -- `trigger_reasons` names which of Chapter 5.9's five trigger conditions held. The critic may only request additional retrieval (`action=requested_additional_retrieval`, recovering already-fused evidence the Chapter 5.7 eviction pass dropped) or raise a finding (`action=raised_finding`) when it cannot; it can never alter Project Truth and can never approve its own request, so `requires_human_review` is true whenever a raised finding still leaves a required category unresolved, and `reviewed`/`reviewed_at` are the observable state of that outstanding review. `cost_tokens_estimate` counts the critic pass against the Chapter 16.4 control-plane overhead budget. Owned by engine.context (Chapter 3.8, alongside ContextPackage).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "context_critic_findings",
+    "order": 126,
+    "pk": ["finding_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "context_critic_findings_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "context_critic_findings_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "context_critic_findings_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "context_critic_findings_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "context_critic_findings_package_id_fkey",
+        "columns": ["package_id"],
+        "ref_table": "context_packages",
+        "ref_columns": ["package_id"]
+      }
+    ]
+  },
+  "required": [
+    "finding_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "package_id",
+    "trigger_reasons",
+    "confidence",
+    "action",
+    "outcome_summary",
+    "requires_human_review",
+    "reviewed",
+    "cost_tokens_estimate",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "finding_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "package_id": { "type": "string", "format": "uuid" },
+    "trigger_reasons": { "type": "array", "items": { "type": "string" } },
+    "confidence": { "type": "number" },
+    "action": {
+      "type": "string",
+      "enum": ["requested_additional_retrieval", "raised_finding"]
+    },
+    "outcome_summary": { "type": "string", "minLength": 1 },
+    "requires_human_review": { "type": "boolean" },
+    "reviewed": { "type": "boolean" },
+    "reviewed_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "cost_tokens_estimate": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
