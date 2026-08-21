@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/api/mission_control.json",
+  "title": "MissionControl",
+  "description": "Operational projection for GET /v1/mission-control/{id} (Chapter 15.4). Aggregates mission status, task progress, the attention model (Chapter 13.4) and autonomy-economics metrics (Chapter 16) from durable rows. A read model, never a second source of truth. last_event_at is the reconnect cursor a client replays from (Chapter 15.1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "tenant_id",
+    "project_id",
+    "slug",
+    "title",
+    "status",
+    "autonomy_ceiling",
+    "lock_version",
+    "task_total",
+    "task_counts",
+    "tasks_completed",
+    "open_attention_items",
+    "attention_debt",
+    "human_minutes",
+    "approvals_per_mission",
+    "approvals_by_type",
+    "blocked_requests",
+    "standing_approval_usage",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "mission_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "slug": { "type": "string" },
+    "title": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "ACTIVE",
+        "PARTIAL",
+        "PAUSED",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "autonomy_ceiling": { "type": "integer" },
+    "lock_version": { "type": "integer" },
+    "task_total": { "type": "integer" },
+    "task_counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "tasks_completed": { "type": "integer" },
+    "open_attention_items": { "type": "integer" },
+    "attention_debt": { "type": "integer" },
+    "human_minutes": { "type": "number" },
+    "approvals_per_mission": { "type": "integer" },
+    "approvals_by_type": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "blocked_requests": { "type": "integer" },
+    "standing_approval_usage": { "type": "integer" },
+    "last_event_at": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

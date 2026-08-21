@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
+from engine.contracts.mission_control import MissionControl
 from engine.core.errors import DdeError
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
@@ -30,6 +31,7 @@ from engine.gateway.scopes import (
 from engine.gateway.sessions.service import GatewaySessionService
 from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
+from engine.projections.service import MissionControlService
 
 
 @dataclass(frozen=True)
@@ -195,11 +197,13 @@ class GatewayCommandService:
         sessions: GatewaySessionService | None = None,
         dispatcher: CommandDispatcher | None = None,
         ledger: CommandLedger | None = None,
+        projections: MissionControlService | None = None,
     ) -> None:
         self._engine = engine
         self._sessions = sessions or GatewaySessionService(engine)
         self._dispatcher = dispatcher or CommandDispatcher(engine)
         self._ledger = ledger or CommandLedger(engine)
+        self._projections = projections or MissionControlService(engine)
 
     async def accept(self, *, command: Command) -> CommandAcceptance:
         if command.client_session_id is None:
@@ -267,6 +271,35 @@ class GatewayCommandService:
             )
         await self._sessions.authorize_project(session, mission.project_id)
         return mission
+
+    async def read_mission_control(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> MissionControl:
+        """Operational projection (Chapter 15.4 `GET /v1/mission-control/{id}`).
+
+        Authorizes `mission.read` on the session, verifies the mission belongs
+        to the session's tenant, then authorizes the principal for the mission's
+        project before building the read model — the same fail-closed order as
+        `read_mission`.
+        """
+        session = await self._sessions.authorize_scope(
+            session_id=session_id,
+            principal_id=principal_id,
+            required_scope="mission.read",
+        )
+        mission = await self._dispatcher.load_mission(mission_id)
+        if mission.tenant_id != session.tenant_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "Mission belongs to another tenant",
+                details={"mission_id": str(mission_id)},
+            )
+        await self._sessions.authorize_project(session, mission.project_id)
+        return await self._projections.project(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission_id,
+        )
 
     async def _resolve_project(self, command: Command, session: ClientSession) -> UUID:
         expected = required_target_type(command.command_type)

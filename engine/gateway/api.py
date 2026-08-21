@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
+from engine.contracts.mission_control import MissionControl
 from engine.core.errors import DdeError
 from engine.gateway.commands import CommandAcceptance, GatewayCommandService
 from engine.gateway.sessions.service import GatewaySessionService
@@ -130,5 +131,17 @@ async def read_mission(
     principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
 ) -> Mission:
     return await _services(request).commands.read_mission(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/mission-control/{mission_id}", response_model=MissionControl)
+async def read_mission_control(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> MissionControl:
+    return await _services(request).commands.read_mission_control(
         session_id=session_id, principal_id=principal_id, mission_id=mission_id
     )

@@ -29,9 +29,34 @@ paths:
             application/json:
               schema:
                 $ref: './readyz.json'
+  /v1/mission-control/{id}:
+    get:
+      operationId: readMissionControl
+      description: Operational projection for a mission (Chapter 15.4), scope mission.read.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: X-Session-Id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: X-Principal-Id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Operational projection.
+          content:
+            application/json:
+              schema:
+                $ref: './mission_control.json'
 components:
   schemas:
     Healthz: { $ref: './healthz.json' }
     Readyz: { $ref: './readyz.json' }
     Error: { $ref: './error.json' }
-# source-titles: Healthz, Readyz, Error
+    MissionControl: { $ref: './mission_control.json' }
+# source-titles: Healthz, Readyz, Error, MissionControl

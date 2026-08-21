@@ -434,6 +434,7 @@ def _openapi(api_schemas: list[tuple[Path, dict[str, Any]]]) -> str:
     healthz = by_stem["healthz"]
     readyz = by_stem["readyz"]
     error = by_stem["error"]
+    mission_control = by_stem["mission_control"]
     return (
         "openapi: 3.1.0\n"
         "info:\n"
@@ -466,13 +467,40 @@ def _openapi(api_schemas: list[tuple[Path, dict[str, Any]]]) -> str:
         "            application/json:\n"
         "              schema:\n"
         "                $ref: './readyz.json'\n"
+        "  /v1/mission-control/{id}:\n"
+        "    get:\n"
+        "      operationId: readMissionControl\n"
+        "      description: Operational projection for a mission (Chapter 15.4), "
+        "scope mission.read.\n"
+        "      parameters:\n"
+        "        - in: path\n"
+        "          name: id\n"
+        "          required: true\n"
+        "          schema: { type: string, format: uuid }\n"
+        "        - in: header\n"
+        "          name: X-Session-Id\n"
+        "          required: true\n"
+        "          schema: { type: string, format: uuid }\n"
+        "        - in: header\n"
+        "          name: X-Principal-Id\n"
+        "          required: true\n"
+        "          schema: { type: string, format: uuid }\n"
+        "      responses:\n"
+        "        '200':\n"
+        "          description: Operational projection.\n"
+        "          content:\n"
+        "            application/json:\n"
+        "              schema:\n"
+        "                $ref: './mission_control.json'\n"
         "components:\n"
         "  schemas:\n"
         f"    Healthz: {{ $ref: './healthz.json' }}\n"
         f"    Readyz: {{ $ref: './readyz.json' }}\n"
         f"    Error: {{ $ref: './error.json' }}\n"
+        f"    MissionControl: {{ $ref: './mission_control.json' }}\n"
         "# source-titles: "
-        f"{healthz.get('title')}, {readyz.get('title')}, {error.get('title')}\n"
+        f"{healthz.get('title')}, {readyz.get('title')}, {error.get('title')}, "
+        f"{mission_control.get('title')}\n"
     )
 
 
