@@ -138,3 +138,31 @@ def test_cursor_sdk_is_only_importable_from_adapters_cursor() -> None:
                         name == item or name.startswith(f"{item}.")
                         for item in forbidden
                     ), path
+
+
+def test_adapters_claude_is_not_imported_from_engine() -> None:
+    """AGENTS.md boundary, EDR-0001 Path A: `adapters/claude/**` carries
+    every Claude/Anthropic-specific name in this repository (mirrors
+    `adapters/cursor/**`'s existing boundary). `engine/**` never imports it
+    directly -- a concrete `WorkerAdapter` instance is handed to
+    `engine.workers.registry.WorkerProfileRegistry` by whatever process
+    wiring constructs adapters, never by an import inside `engine/**`
+    itself. `engine/core` is additionally covered by
+    `test_core_does_not_import_adapters_or_vendor_sdks` (it forbids the
+    whole `adapters` prefix, not just `adapters.claude`)."""
+    forbidden = ("adapters.claude",)
+    for path in (ROOT / "engine").rglob("*.py"):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            names: list[str] = []
+            if isinstance(node, ast.Import):
+                names.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names.append(node.module)
+            for name in names:
+                assert not any(
+                    name == item or name.startswith(f"{item}.") for item in forbidden
+                ), path

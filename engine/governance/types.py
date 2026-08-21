@@ -15,12 +15,29 @@ APPROVAL_TYPES: Final[frozenset[str]] = frozenset(
         "irreversible_effect",
         "dependency_addition",
         "donor_reuse",
+        # EDR-0001 Path A: invoking an external vendor's model on a human's
+        # personal, rate-limited, ToS-bounded subscription seat (Claude Code
+        # CLI). Distinct from `capability_grant` -- that class covers
+        # DDE-mintable/brokerable capabilities; this one covers spend
+        # against a human's own account that DDE cannot mint or revoke.
+        "external_model_invocation",
     }
 )
 
 #: Chapter 13.2: standing authority can never pre-authorise these classes.
 STANDING_FORBIDDEN_TYPES: Final[frozenset[str]] = frozenset(
-    {"irreversible_effect", "production_change"}
+    {
+        "irreversible_effect",
+        "production_change",
+        # EDR-0001 Path A, human's explicit instruction: "a human manually
+        # approve every piece of work routed to Claude Code" -- no
+        # `StandingApproval` may ever pre-authorise a batch of Claude Code
+        # invocations. This is a constraint on the approval class itself,
+        # enforced by `ApprovalService.grant_standing`/`authorize_standing`
+        # rejecting it outright; it must never be removed to make a
+        # standing-approval caller's life easier.
+        "external_model_invocation",
+    }
 )
 
 OPEN_APPROVAL_STATUSES: Final[frozenset[str]] = frozenset({"REQUESTED", "UNDER_REVIEW"})

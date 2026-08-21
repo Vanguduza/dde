@@ -22,6 +22,7 @@ from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.edr import Edr
 from engine.contracts.error import Error
+from engine.contracts.eval_case import EvalCase
 from engine.contracts.event import Event
 from engine.contracts.evidence import Evidence
 from engine.contracts.execution_environment import ExecutionEnvironment
@@ -37,6 +38,7 @@ from engine.contracts.principal import Principal
 from engine.contracts.principal_grant import PrincipalGrant
 from engine.contracts.product_constitution_version import ProductConstitutionVersion
 from engine.contracts.project import Project
+from engine.contracts.promotion_gate_run import PromotionGateRun
 from engine.contracts.readyz import Readyz
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
@@ -75,6 +77,7 @@ __all__ = [
     "DiffGateReport",
     "Edr",
     "Error",
+    "EvalCase",
     "Event",
     "Evidence",
     "ExecutionEnvironment",
@@ -90,6 +93,7 @@ __all__ = [
     "PrincipalGrant",
     "ProductConstitutionVersion",
     "Project",
+    "PromotionGateRun",
     "Readyz",
     "ReplanDecision",
     "Requirement",

@@ -122,6 +122,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## EvalCase
+
+- table: `eval_cases`
+- primary key: eval_case_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## PromotionGateRun
+
+- table: `promotion_gate_runs`
+- primary key: run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## RouteDecision
 
 - table: `route_decisions`

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/eval_case.json",
+  "title": "EvalCase",
+  "description": "Chapter 5.13's eval corpus: one frozen case sourced from a real completed mission (a MERGED IntegrationProposal), never synthetic. Ground truth (`required_refs`) is derived retrospectively and mechanically from the accepted diff's changed_paths plus the source Task's requirement_refs -- not guessed ahead of time. A case is `draft` until a human reviews and freezes it (frozen_version is set once, at freeze time, and the row is immutable after); it is never deleted, only `retired` with a reason. Owned by engine.context (Chapter 3.8, alongside the Chapter 5.4 index lifecycle it evaluates).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "eval_cases",
+    "order": 123,
+    "pk": ["eval_case_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "eval_cases_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "eval_cases_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "eval_cases_source_mission_id_fkey",
+        "columns": ["source_mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "eval_cases_source_task_id_fkey",
+        "columns": ["source_task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "eval_cases_source_proposal_id_fkey",
+        "columns": ["source_proposal_id"],
+        "ref_table": "integration_proposals",
+        "ref_columns": ["proposal_id"]
+      }
+    ]
+  },
+  "required": [
+    "eval_case_id",
+    "tenant_id",
+    "project_id",
+    "source_mission_id",
+    "source_task_id",
+    "source_proposal_id",
+    "task_class",
+    "is_adversarial",
+    "required_refs",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "eval_case_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "source_mission_id": { "type": "string", "format": "uuid" },
+    "source_task_id": { "type": "string", "format": "uuid" },
+    "source_proposal_id": { "type": "string", "format": "uuid" },
+    "task_class": { "type": "string" },
+    "is_adversarial": { "type": "boolean" },
+    "required_refs": { "type": "array", "items": { "type": "string" } },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "frozen", "retired"]
+    },
+    "frozen_version": {
+      "anyOf": [{ "type": "integer" }, { "type": "null" }]
+    },
+    "retired_reason": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

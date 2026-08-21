@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/promotion_gate_run.json",
+  "title": "PromotionGateRun",
+  "description": "Chapter 5.13's promotion-gate evaluation for a candidate context policy (e.g. `semantic_retrieval_enabled=True`) against the current certified baseline, over the frozen eval corpus. Durable identity (`run_id`) plus an `idempotency_key` (unique per tenant) so re-submitting the same evaluation request observes the same run instead of recomputing it; `status` is the observable async state. Chapter 5.13 lists five promotion gates; `gate_results` only ever contains the subset this deployment can compute today (`critical_coverage` -- see EDR-0003 for the other four, which need the Chapter 5.11 failure-attribution and worker-verification loop wired to eval cases and are not computed here). `decision` therefore never claims full Chapter 5.13 promotion: it is `INSUFFICIENT_CORPUS` (corpus below the Chapter 5.13 minimum-viable size/diversity), `FAIL` (an implemented gate regressed), or `PARTIAL_PASS_IMPLEMENTED_GATES_ONLY` (every implemented gate held; the remaining gates are still unimplemented). Owned by engine.context.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "promotion_gate_runs",
+    "order": 124,
+    "pk": ["run_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "idempotency_key"]],
+    "foreign_keys": [
+      {
+        "name": "promotion_gate_runs_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "promotion_gate_runs_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "run_id",
+    "tenant_id",
+    "project_id",
+    "idempotency_key",
+    "candidate_label",
+    "status",
+    "corpus_size",
+    "task_class_count",
+    "adversarial_count",
+    "gate_results",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string" },
+    "candidate_label": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["PENDING", "RUNNING", "COMPLETED", "FAILED"]
+    },
+    "corpus_size": { "type": "integer" },
+    "task_class_count": { "type": "integer" },
+    "adversarial_count": { "type": "integer" },
+    "decision": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "INSUFFICIENT_CORPUS",
+            "FAIL",
+            "PARTIAL_PASS_IMPLEMENTED_GATES_ONLY"
+          ]
+        },
+        { "type": "null" }
+      ]
+    },
+    "gate_results": { "type": "object", "additionalProperties": true },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "completed_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    }
+  }
+}
