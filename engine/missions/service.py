@@ -306,6 +306,7 @@ class MissionService:
         planner_policy_version: str,
         created_by_principal: UUID,
         approved_requirement_slugs: set[str],
+        approval_scope_hash: str | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> TaskGraph:
         """Chapter 4.5 graph amendment, composed the same way as
@@ -342,6 +343,7 @@ class MissionService:
                 planner_policy_version=planner_policy_version,
                 created_by_principal=created_by_principal,
                 approved_requirement_slugs=approved_requirement_slugs,
+                approval_scope_hash=approval_scope_hash,
                 uow=active,
             )
             if new_graph.status != "ACTIVE":

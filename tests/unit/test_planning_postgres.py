@@ -420,10 +420,9 @@ async def test_add_edge_amendment_is_auto_accepted_and_versioned() -> None:
 
 @pytest.mark.asyncio
 async def test_negative_widen_scope_amendment_is_refused() -> None:
-    """Chapter 4.5 rule 3: `widen_scope` requires human approval that does
-    not exist yet in this vertical slice, so it must be refused outright —
-    not silently auto-accepted, and not persisted as a REJECTED version
-    either: nothing is written at all."""
+    """Chapter 4.5 rule 3: `widen_scope` requires a Chapter 13 Approval.
+    Without one it is refused outright — not silently auto-accepted, and
+    not persisted as a REJECTED version either: nothing is written at all."""
     engine = new_engine()
     try:
         (

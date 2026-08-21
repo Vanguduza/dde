@@ -26,8 +26,9 @@ Stage 1 EXTERNAL_IDEMPOTENT git mutation). `WorkspaceService.snapshot` may
 still journal `git_snapshot` as optional extra audit of a git *read*; that
 row is not the Chapter 12.4 mutation proof.
 
-**Deferred.** No seeded `IRREVERSIBLE` capability exists (Chapter 9.3
-approval-per-invocation wiring is not built). Workspace `git worktree
+**Deferred.** Seeded `IRREVERSIBLE` capabilities remain absent from the
+catalog; per-invocation approval is still enforced at `prepare()` when
+the class is used (DDE-026). Workspace `git worktree
 add`/`remove` happen before a `WorkerRun`/`CapabilityLease` exist
 (Chapter 3.9 steps 9 vs 10/11) so they cannot be journaled against
 Chapter 12.4's required `worker_run_id`/`capability_lease_id` without a
@@ -73,6 +74,7 @@ from engine.core.ids import uuid7
 from engine.core.state_machine import transition
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.governance.service import ApprovalService
 from engine.recovery.hashing import effect_request_hash
 from engine.recovery.outcomes import ReconciliationOutcome, ReconciliationResult
 from engine.recovery.repository import ExternalEffectRepository
@@ -112,12 +114,14 @@ class ExternalEffectService:
         events: EventService | None = None,
         commands: CommandLedger | None = None,
         clock: Clock | None = None,
+        approvals: ApprovalService | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or ExternalEffectRepository()
         self._events = events or EventService(engine)
         self._commands = commands or CommandLedger(engine)
         self._clock = clock or SystemClock()
+        self._approvals = approvals or ApprovalService(engine)
 
     async def _run(
         self,
@@ -149,6 +153,7 @@ class ExternalEffectService:
         side_effect_class: str,
         idempotency_key: str,
         evidence_ref: str | None = None,
+        approval_scope_hash: str | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> ExternalEffect:
         """Chapter 12.4's initial `PREPARED` row -- inserted BEFORE the
@@ -162,6 +167,13 @@ class ExternalEffectService:
             raise DdeError(
                 "POLICY_DENIED",
                 f"Unknown side_effect_class {side_effect_class!r}",
+                details={"side_effect_class": side_effect_class},
+            )
+        if side_effect_class == IRREVERSIBLE and approval_scope_hash is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "IRREVERSIBLE effects require per-invocation approval",
+                retryable=False,
                 details={"side_effect_class": side_effect_class},
             )
         digest = effect_request_hash(
@@ -182,6 +194,21 @@ class ExternalEffectService:
             )
             if not is_new:
                 return await self._replay_or_raise(active, record)
+
+            if side_effect_class == IRREVERSIBLE:
+                if approval_scope_hash is None:
+                    raise DdeError(
+                        "POLICY_DENIED",
+                        "IRREVERSIBLE effects require per-invocation approval",
+                        retryable=False,
+                    )
+                await self._approvals.require_approved(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    scope_hash=approval_scope_hash,
+                    approval_type="irreversible_effect",
+                    uow=active,
+                )
 
             await self._refuse_if_blocked(
                 active,

@@ -6,8 +6,8 @@ dispatches on failure class. `IntegrationQueueService` consults `decide()`
 on CONFLICT. `VerificationRunnerService` fails the TaskAttempt on
 VERIFICATION_FAILURE.
 
-**Deferred.** Context critic recompile (DDE-031), approval grant (DDE-026),
-alternate adapters (DDE-025), automatic git revert commits (Ch.10.7 --
+**Deferred.** Context critic recompile (DDE-031), alternate adapters
+(DDE-025, now present), automatic git revert commits (Ch.10.7 --
 REVERT without a supplied revert task is refused), workspace discard plus
 write-scope lease release after RETIRE (leases stay held), WorkerRun
 cancel/pause for asynchronous harnesses, environment replacement before

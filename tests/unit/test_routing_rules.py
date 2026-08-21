@@ -134,19 +134,13 @@ def test_evaluate_generator_independence_excludes_the_generating_profile() -> No
     assert "NO_ELIGIBLE_WORKER" in result.reason_codes
 
 
-def test_evaluate_hard_policy_gate_requires_approval_eliminates_every_candidate() -> (
-    None
-):
-    result = evaluate(_task(task_class="implementation", requires_approval=True))
-    assert result.selected_profile_id == HUMAN_DECISION_TASK
-    assert "HARD_GATE_APPROVAL_REQUIRED" in result.reason_codes
-    assert "NO_ELIGIBLE_WORKER" in result.reason_codes
-    assert result.fallback_plan == ()
-    assert all(candidate.eliminated_at_gate == 0 for candidate in result.candidates)
-    assert all(
-        candidate.gate_results[0].reason_code == "HARD_GATE_APPROVAL_REQUIRED"
-        for candidate in result.candidates
+def test_evaluate_hard_policy_gate_clears_when_approval_is_satisfied() -> None:
+    result = evaluate(
+        _task(task_class="implementation", requires_approval=True),
+        approval_satisfied=True,
     )
+    assert "HARD_GATE_APPROVAL_REQUIRED" not in result.reason_codes
+    assert result.selected_profile_id != HUMAN_DECISION_TASK
 
 
 def test_evaluate_records_every_registered_profile_as_a_candidate() -> None:

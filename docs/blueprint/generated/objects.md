@@ -250,10 +250,34 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## Approval
+
+- table: `approvals`
+- primary key: approval_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## StandingApproval
+
+- table: `standing_approvals`
+- primary key: standing_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## Evidence
 
 - table: `evidence`
 - primary key: evidence_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AttentionItem
+
+- table: `attention_items`
+- primary key: attention_id
 - tenant scoped: true
 - project scoped: true
 - lock_version: false

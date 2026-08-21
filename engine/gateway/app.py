@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from engine.contracts.healthz import Healthz
 from engine.contracts.readyz import Readyz
 from engine.gateway.settings import Settings, get_settings
+from engine.governance.config import RuntimeFlags, validate_configuration
 
 log = structlog.get_logger("dde.gateway")
 
@@ -76,6 +77,7 @@ async def _redis_ready(redis_url: str) -> bool:
 def create_app() -> FastAPI:
     """Build the FastAPI application with liveness and readiness only."""
     _configure_tracer()
+    validate_configuration(RuntimeFlags())
     application = FastAPI(title="DDE Core", version="0.1.0")
     FastAPIInstrumentor.instrument_app(application)
 

@@ -105,6 +105,7 @@ async def _prepare(
     idempotency_key: str,
     side_effect_class: str = "WORKSPACE_LOCAL",
     operation: str = "test-op",
+    approval_scope_hash: str | None = None,
 ) -> ExternalEffect:
     return await fixture.effects.prepare(
         tenant_id=fixture.tenant.tenant_id,
@@ -117,6 +118,7 @@ async def _prepare(
         operation=operation,
         side_effect_class=side_effect_class,
         idempotency_key=idempotency_key,
+        approval_scope_hash=approval_scope_hash,
     )
 
 
@@ -320,10 +322,38 @@ async def test_negative_irreversible_reconciliation_failure_escalates(
             engine, tmp_path, mission_slug="MISSION-EFFECT-IRREVERSIBLE"
         )
         workspace = fixture.worker.workspace
+        from engine.governance.hashing import approval_scope_hash
+        from engine.governance.service import ApprovalService
+
+        digest = approval_scope_hash(
+            approval_type="irreversible_effect",
+            mission_id=fixture.worker.mission.mission_id,
+            payload={"operation": "test-op"},
+        )
+        approvals = ApprovalService(engine)
+        requested = await approvals.request(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            mission_id=fixture.worker.mission.mission_id,
+            approval_type="irreversible_effect",
+            scope_hash=digest,
+            requested_by=fixture.tenant.principal_id,
+            idempotency_key="effect-irreversible-approval",
+        )
+        await approvals.decide(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            approval_id=requested.approval_id,
+            decision="APPROVED",
+            decided_by=fixture.tenant.principal_id,
+            rationale="per-invocation",
+            scope_hash=digest,
+        )
         prepared = await _prepare(
             fixture,
             idempotency_key="effect-irreversible-1",
             side_effect_class="IRREVERSIBLE",
+            approval_scope_hash=digest,
         )
         await fixture.effects.mark_sent(
             tenant_id=fixture.tenant.tenant_id,

@@ -92,6 +92,7 @@ class RouterService:
         previous_generator_profile_id: str | None = None,
         certification_statuses: Mapping[str, str] | None = None,
         routing_environment_class: str = "development",
+        approval_satisfied: bool = False,
         uow: PostgresUnitOfWork | None = None,
     ) -> RouteDecision:
         """Compile and persist a new, immutable `RouteDecision` for `task`
@@ -112,6 +113,7 @@ class RouterService:
                 previous_generator_profile_id=previous_generator_profile_id,
                 certification_statuses=certification_statuses,
                 routing_environment_class=routing_environment_class,
+                approval_satisfied=approval_satisfied,
             )
             candidates_json = [candidate.to_json() for candidate in result.candidates]
             required_capabilities = list(result.required_capabilities)

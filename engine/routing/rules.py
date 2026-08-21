@@ -264,6 +264,7 @@ def evaluate(
     previous_generator_profile_id: str | None = None,
     certification_statuses: Mapping[str, str] | None = None,
     routing_environment_class: str = "development",
+    approval_satisfied: bool = False,
 ) -> RoutingResult:
     """Run every registered profile through Chapter 6.1's gates 0-5 for
     `task`, then rank survivors by Chapter 6.2's declared `prefer[]` order
@@ -275,7 +276,7 @@ def evaluate(
     policy = WORKLOAD_CLASSES[resolved_workload_class]
     required_capabilities = policy.require
     environment_class = required_environment_class(required_capabilities)
-    hard_gate_denied = task.requires_approval
+    hard_gate_denied = task.requires_approval and not approval_satisfied
 
     evaluations: list[CandidateEvaluation] = []
     survivor_ids: list[str] = []

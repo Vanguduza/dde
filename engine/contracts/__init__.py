@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from engine.contracts.acceptance_oracle import AcceptanceOracle
+from engine.contracts.approval import Approval
 from engine.contracts.artifact import Artifact
+from engine.contracts.attention_item import AttentionItem
 from engine.contracts.audit_event import AuditEvent
 from engine.contracts.capability_descriptor import CapabilityDescriptor
 from engine.contracts.capability_lease import CapabilityLease
@@ -35,6 +37,7 @@ from engine.contracts.readyz import Readyz
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
 from engine.contracts.route_decision import RouteDecision
+from engine.contracts.standing_approval import StandingApproval
 from engine.contracts.task import Task
 from engine.contracts.task_attempt import TaskAttempt
 from engine.contracts.task_graph import TaskGraph
@@ -49,7 +52,9 @@ from engine.contracts.write_scope_lease import WriteScopeLease
 
 __all__ = [
     "AcceptanceOracle",
+    "Approval",
     "Artifact",
+    "AttentionItem",
     "AuditEvent",
     "CapabilityDescriptor",
     "CapabilityLease",
@@ -81,6 +86,7 @@ __all__ = [
     "ReplanDecision",
     "Requirement",
     "RouteDecision",
+    "StandingApproval",
     "Task",
     "TaskAttempt",
     "TaskGraph",

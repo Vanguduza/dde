@@ -132,6 +132,8 @@ from engine.core.state_machine import transition
 from engine.environments.service import ExecutionEnvironmentService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.governance.hashing import approval_scope_hash
+from engine.governance.service import ApprovalService
 from engine.missions.attempts import TaskAttemptService
 from engine.recovery.checkpoint_service import (
     CheckpointService,
@@ -247,6 +249,7 @@ class WorkerManagerService:
         checkpoints: CheckpointService | None = None,
         replay: ReplayService | None = None,
         recovery: RecoveryService | None = None,
+        approvals: ApprovalService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -281,6 +284,9 @@ class WorkerManagerService:
             attempts=self._attempts,
             checkpoints=self._checkpoints,
             effects=self._effects,
+        )
+        self._approvals = approvals or ApprovalService(
+            engine, events=self._events, commands=self._commands, clock=self._clock
         )
 
     async def _run(
@@ -353,6 +359,20 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            if task.requires_approval:
+                await self._approvals.require_approved(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    scope_hash=approval_scope_hash(
+                        approval_type="architecture_change",
+                        mission_id=execution_plan.mission_id,
+                        task_id=task.task_id,
+                        payload={"task_id": str(task.task_id)},
+                    ),
+                    approval_type="architecture_change",
+                    uow=active,
+                )
 
             await self._replay.assert_clear_to_start_attempt(
                 tenant_id=tenant_id,
@@ -551,6 +571,20 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            if task.requires_approval:
+                await self._approvals.require_approved(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    scope_hash=approval_scope_hash(
+                        approval_type="architecture_change",
+                        mission_id=execution_plan.mission_id,
+                        task_id=task.task_id,
+                        payload={"task_id": str(task.task_id)},
+                    ),
+                    approval_type="architecture_change",
+                    uow=active,
+                )
 
             attempt = await self._attempts.get_attempt(
                 tenant_id=tenant_id,

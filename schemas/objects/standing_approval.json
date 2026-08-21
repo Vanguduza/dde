@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/standing_approval.json",
+  "title": "StandingApproval",
+  "description": "Chapter 13.2 bounded standing authority. A standing approval can never pre-authorise an IRREVERSIBLE side effect, a production change, a scope widening beyond the mission's declared scope, or a critical risk action. Revocation is immediate. task_count_used and cost_used are the durable counters authorize() increments; they are not a second budget, they are this row's own usage. mission_id is nullable so a project-level overnight window can exist without a single mission (13.2 sketch). Owned by engine.governance (Chapter 3.8).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "standing_approvals",
+    "order": 219,
+    "pk": ["standing_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "standing_approvals_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "standing_approvals_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "standing_approvals_command_id_fkey",
+        "columns": ["command_id"],
+        "ref_table": "command_idempotency",
+        "ref_columns": ["command_id"]
+      }
+    ]
+  },
+  "required": [
+    "standing_id",
+    "tenant_id",
+    "project_id",
+    "approval_types",
+    "blast_radius_ceiling",
+    "risk_ceiling",
+    "cost_ceiling",
+    "task_count_ceiling",
+    "path_scope",
+    "forbidden_operations",
+    "valid_from",
+    "valid_until",
+    "revocable_immediately",
+    "granted_by",
+    "rationale",
+    "status",
+    "task_count_used",
+    "cost_used",
+    "command_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "standing_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "approval_types": { "type": "array", "items": { "type": "string" } },
+    "blast_radius_ceiling": { "type": "string" },
+    "risk_ceiling": { "type": "string" },
+    "cost_ceiling": { "type": "number" },
+    "task_count_ceiling": { "type": "integer" },
+    "path_scope": { "type": "array", "items": { "type": "string" } },
+    "forbidden_operations": { "type": "array", "items": { "type": "string" } },
+    "valid_from": { "type": "string", "format": "date-time" },
+    "valid_until": { "type": "string", "format": "date-time" },
+    "revocable_immediately": { "type": "boolean" },
+    "granted_by": { "type": "string", "format": "uuid" },
+    "rationale": { "type": "string" },
+    "status": { "type": "string" },
+    "task_count_used": { "type": "integer" },
+    "cost_used": { "type": "number" },
+    "revoked_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "command_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

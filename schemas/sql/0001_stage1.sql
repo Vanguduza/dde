@@ -670,6 +670,59 @@ CREATE TABLE dependency_admissions (
     PRIMARY KEY (admission_id)
 );
 
+CREATE TABLE approvals (
+    approval_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid,
+    approval_type text NOT NULL,
+    scope_hash text NOT NULL,
+    requested_by uuid NOT NULL,
+    required_role text NOT NULL,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    suggested_decision text,
+    status text NOT NULL,
+    decided_by uuid,
+    decided_at timestamptz,
+    expires_at timestamptz,
+    rationale text,
+    standing_id uuid,
+    edr_id uuid,
+    human_minutes numeric NOT NULL,
+    command_id uuid NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (approval_id)
+);
+
+CREATE TABLE standing_approvals (
+    standing_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    approval_types jsonb NOT NULL DEFAULT '[]'::jsonb,
+    blast_radius_ceiling text NOT NULL,
+    risk_ceiling text NOT NULL,
+    cost_ceiling numeric NOT NULL,
+    task_count_ceiling integer NOT NULL,
+    path_scope jsonb NOT NULL DEFAULT '[]'::jsonb,
+    forbidden_operations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    valid_from timestamptz NOT NULL,
+    valid_until timestamptz NOT NULL,
+    revocable_immediately boolean NOT NULL,
+    granted_by uuid NOT NULL,
+    rationale text NOT NULL,
+    status text NOT NULL,
+    task_count_used integer NOT NULL,
+    cost_used numeric NOT NULL,
+    revoked_at timestamptz,
+    command_id uuid NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (standing_id)
+);
+
 CREATE TABLE evidence (
     evidence_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -691,6 +744,24 @@ CREATE TABLE evidence (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (evidence_id)
+);
+
+CREATE TABLE attention_items (
+    attention_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    kind text NOT NULL,
+    summary text NOT NULL,
+    status text NOT NULL,
+    approval_id uuid,
+    standing_id uuid,
+    sla_due_at timestamptz NOT NULL,
+    opened_at timestamptz NOT NULL,
+    acknowledged_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (attention_id)
 );
 
 CREATE TABLE events (
@@ -926,11 +997,24 @@ ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_mission_i
 ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 ALTER TABLE dependency_admissions ADD CONSTRAINT dependency_admissions_report_id_fkey FOREIGN KEY (report_id) REFERENCES diff_gate_reports (report_id);
 
+ALTER TABLE approvals ADD CONSTRAINT approvals_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE approvals ADD CONSTRAINT approvals_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE approvals ADD CONSTRAINT approvals_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE approvals ADD CONSTRAINT approvals_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
+
+ALTER TABLE standing_approvals ADD CONSTRAINT standing_approvals_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE standing_approvals ADD CONSTRAINT standing_approvals_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE standing_approvals ADD CONSTRAINT standing_approvals_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
+
 ALTER TABLE evidence ADD CONSTRAINT evidence_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_verification_run_id_fkey FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
+
+ALTER TABLE attention_items ADD CONSTRAINT attention_items_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE attention_items ADD CONSTRAINT attention_items_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE attention_items ADD CONSTRAINT attention_items_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 
 ALTER TABLE events ADD CONSTRAINT events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE events ADD CONSTRAINT events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -1068,9 +1152,21 @@ ALTER TABLE dependency_admissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dependency_admissions FORCE ROW LEVEL SECURITY;
 CREATE POLICY dependency_admissions_tenant_isolation ON dependency_admissions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
+ALTER TABLE approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE approvals FORCE ROW LEVEL SECURITY;
+CREATE POLICY approvals_tenant_isolation ON approvals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE standing_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE standing_approvals FORCE ROW LEVEL SECURITY;
+CREATE POLICY standing_approvals_tenant_isolation ON standing_approvals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
 ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence FORCE ROW LEVEL SECURITY;
 CREATE POLICY evidence_tenant_isolation ON evidence USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE attention_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attention_items FORCE ROW LEVEL SECURITY;
+CREATE POLICY attention_items_tenant_isolation ON attention_items USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events FORCE ROW LEVEL SECURITY;

@@ -5,12 +5,17 @@ does not introduce a durable workflow engine (that would be an EDR).
 Implemented production methods: `checkpoint`, `resume`, `pause` (checkpoint
 then mission PAUSED, inheriting prior `do_not_repeat`), `retry` (Chapter
 12.3 matrix; generic retry without a failure class is refused), `reroute`
-(returns a ROUTING_FAILURE decision; does not invent a RouteDecision).
+(returns a ROUTING_FAILURE decision; does not invent a RouteDecision),
+`request_approval` (Chapter 13.1/13.3: durable Approval, BLOCKED_ON_DECISION,
+mission PARTIAL).
 
-Deferred (raise POLICY_DENIED, do not pretend): `wait`, `request_approval`
-(DDE-026). `start` / `cancel` / `complete` / `fail`
-stay on `MissionService` -- wrapping them here would overclaim ownership
-of the mission kernel.
+Deferred (raise POLICY_DENIED, do not pretend): `wait`. Automatic insertion
+of a new `decision` TaskGraph node on every request is deferred when the
+graph already models `blocks_on_decision` (Chapter 4.11 fixture); callers
+add a node via `MissionService.amend_task_graph(add_task)` which is
+auto-accepted. `start` / `cancel` / `complete` / `fail` stay on
+`MissionService` -- wrapping them here would overclaim ownership of the
+mission kernel.
 """
 
 from __future__ import annotations
@@ -21,11 +26,14 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.contracts.approval import Approval
 from engine.contracts.checkpoint import Checkpoint
 from engine.contracts.mission import Mission
 from engine.contracts.worker_run import WorkerRun
 from engine.core.errors import DdeError
 from engine.events.service import EventService
+from engine.governance.hashing import approval_scope_hash
+from engine.governance.service import ApprovalService
 from engine.missions.attempts import TaskAttemptService
 from engine.missions.service import MissionService
 from engine.recovery.checkpoint_service import CheckpointService
@@ -82,7 +90,19 @@ class MissionWorkflow(Protocol):
 
     async def wait(self, *, condition: str) -> None: ...
 
-    async def request_approval(self, *, reason: str) -> None: ...
+    async def request_approval(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        approval_type: str,
+        requested_by: UUID,
+        idempotency_key: str,
+        reason: str,
+        task_id: UUID | None = None,
+        payload: dict[str, object] | None = None,
+    ) -> Approval: ...
 
     async def reroute(self, *, reason: str) -> RecoveryDecision: ...
 
@@ -101,6 +121,7 @@ class MissionWorkflowService:
         runs: WorkerRunRepository | None = None,
         worker_events: WorkerEventRepository | None = None,
         recovery: RecoveryService | None = None,
+        approvals: ApprovalService | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -121,6 +142,7 @@ class MissionWorkflowService:
             attempts=self._attempts,
             missions=self._missions,
         )
+        self._approvals = approvals or ApprovalService(engine, events=self._events)
 
     async def _run(
         self,
@@ -292,13 +314,115 @@ class MissionWorkflowService:
             details={"condition": condition},
         )
 
-    async def request_approval(self, *, reason: str) -> None:
-        raise DdeError(
-            "POLICY_DENIED",
-            "MissionWorkflow.request_approval is DDE-026",
-            retryable=False,
-            details={"reason": reason},
-        )
+    async def request_approval(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        approval_type: str,
+        requested_by: UUID,
+        idempotency_key: str,
+        reason: str,
+        task_id: UUID | None = None,
+        payload: dict[str, object] | None = None,
+    ) -> Approval:
+        """Chapter 13.3: persist an Approval, block only the named task,
+        and move the mission to PARTIAL so independent branches continue.
+        """
+        if reason.strip() == "":
+            raise DdeError(
+                "POLICY_DENIED",
+                "request_approval requires a reason",
+                retryable=False,
+            )
+
+        async def _op(active: PostgresUnitOfWork) -> Approval:
+            mission = await self._missions.get_mission(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                uow=active,
+            )
+            scope = approval_scope_hash(
+                approval_type=approval_type,
+                mission_id=mission_id,
+                task_id=task_id,
+                payload=payload or {"reason": reason},
+            )
+            approval = await self._approvals.request(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                approval_type=approval_type,
+                scope_hash=scope,
+                requested_by=requested_by,
+                idempotency_key=idempotency_key,
+                task_id=task_id,
+                suggested_decision=reason,
+                uow=active,
+            )
+            if task_id is not None:
+                task = await self._missions.get_task(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    task_id=task_id,
+                    uow=active,
+                )
+                await self._missions.transition_task(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    task_id=task_id,
+                    target_status="BLOCKED_ON_DECISION",
+                    lock_version=task.lock_version,
+                    uow=active,
+                )
+            if mission.status == "ACTIVE":
+                await self._missions.transition_mission(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=mission_id,
+                    target_status="PARTIAL",
+                    lock_version=mission.lock_version,
+                    uow=active,
+                )
+            return approval
+
+        return await self._run(None, tenant_id, project_id, _op)
+
+    async def expire_and_park(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission: Mission,
+        approval_id: UUID,
+    ) -> Mission:
+        """Chapter 13.3.4: expiry parks the mission (not failure)."""
+
+        async def _op(active: PostgresUnitOfWork) -> Mission:
+            await self._approvals.expire(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                approval_id=approval_id,
+                uow=active,
+            )
+            current = await self._missions.get_mission(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission.mission_id,
+                uow=active,
+            )
+            if current.status in {"ACTIVE", "PARTIAL"}:
+                return await self.pause(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission=current,
+                    uow=active,
+                )
+            return current
+
+        return await self._run(None, tenant_id, project_id, _op)
 
     async def reroute(self, *, reason: str) -> RecoveryDecision:
         decision = decide("ROUTING_FAILURE", occurrence_count=1)

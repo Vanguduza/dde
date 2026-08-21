@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/attention_item.json",
+  "title": "AttentionItem",
+  "description": "Durable attention-budget identity for Chapter 13.3.4 (expiry raises an attention item) and Chapter 13.4 (attention debt is open items older than their SLA). This is not the Mission Control projection (DDE-028); it is the governance write that projection will read. Owned by engine.governance.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "attention_items",
+    "order": 221,
+    "pk": ["attention_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "attention_items_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "attention_items_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "attention_items_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "required": [
+    "attention_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "kind",
+    "summary",
+    "status",
+    "sla_due_at",
+    "opened_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "attention_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "kind": { "type": "string" },
+    "summary": { "type": "string" },
+    "status": { "type": "string" },
+    "approval_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "standing_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "sla_due_at": { "type": "string", "format": "date-time" },
+    "opened_at": { "type": "string", "format": "date-time" },
+    "acknowledged_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

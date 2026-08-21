@@ -253,8 +253,16 @@ async def test_resume_run_reuses_attempt_and_generic_retry_is_refused(
         assert denied.value.error_code == "POLICY_DENIED"
         with pytest.raises(DdeError):
             await workflow.wait(condition="approval")
-        with pytest.raises(DdeError):
-            await workflow.request_approval(reason="x")
+        recorded = await workflow.request_approval(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            mission_id=fixture.mission.mission_id,
+            approval_type="architecture_change",
+            requested_by=fixture.tenant.principal_id,
+            idempotency_key="ckpt-approval-1",
+            reason="authorization failure",
+        )
+        assert recorded.status == "REQUESTED"
         routed = await workflow.reroute(reason="worker untrusted")
         assert routed.action == "reroute"
 

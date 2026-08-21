@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/approval.json",
+  "title": "Approval",
+  "description": "Chapter 13.1 Approval -- bound to an exact plan/action by scope_hash and not reusable for a materially different plan. Owned by engine.governance (Chapter 3.8). tenant_id/project_id are required by Chapter 3.2 even though 13.1's field sketch omits them. standing_id records overnight pre-authorization (13.2). command_id is CommandLedger identity (Chapter 12.5). edr_id is set when a decision becomes an EDR (13.3.5). human_minutes feeds the Chapter 13.4 attention budget. Parking on EXPIRED is a mission lifecycle change, not a second status on this row.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "approvals",
+    "order": 218,
+    "pk": ["approval_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "approvals_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "approvals_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "approvals_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "approvals_command_id_fkey",
+        "columns": ["command_id"],
+        "ref_table": "command_idempotency",
+        "ref_columns": ["command_id"]
+      }
+    ]
+  },
+  "required": [
+    "approval_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "approval_type",
+    "scope_hash",
+    "requested_by",
+    "required_role",
+    "evidence_refs",
+    "status",
+    "human_minutes",
+    "command_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "approval_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "approval_type": { "type": "string" },
+    "scope_hash": { "type": "string" },
+    "requested_by": { "type": "string", "format": "uuid" },
+    "required_role": { "type": "string" },
+    "evidence_refs": { "type": "array", "items": { "type": "string" } },
+    "suggested_decision": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "status": { "type": "string" },
+    "decided_by": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "decided_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "expires_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "rationale": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "standing_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "edr_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "human_minutes": { "type": "number" },
+    "command_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -86,7 +86,7 @@ def escalation_policy_json() -> dict[str, object]:
     return {
         "on_failure": "escalate_to_human",
         "reason": (
-            "Chapter 13's approvals/autonomy-budget engine is deferred to "
-            "DDE-026 (Stage 3)"
+            "Chapter 13 approvals (DDE-026): escalate_to_human records a "
+            "durable Approval via MissionWorkflow.request_approval"
         ),
     }

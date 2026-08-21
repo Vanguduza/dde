@@ -11,10 +11,11 @@ idempotency ledger (Chapter 3.7, 12.5). What this module owns is composing
 those calls into one PostgreSQL transaction (Chapter 3.5), so a decision,
 its audit trail and its domain event commit — or roll back — together.
 
-This module deliberately does not introduce a separate Decision or Approval
-object. No such concept exists in this codebase beyond the EDR itself;
-`Approval` (Chapter 13.1) is a distinct, not-yet-built concept scoped to a
-later mission and must not be conflated with this one.
+This module records EDR accept/reject. Chapter 13.1 `Approval` is a
+distinct object owned by `ApprovalService` (DDE-026); a decision may
+carry `edr_id` when the caller records it through `TruthService`.
+Automatic minting of an EDR on every `ApprovalService.decide` is
+deferred — Approval is not itself a Project Truth row.
 """
 
 from __future__ import annotations

@@ -116,9 +116,10 @@ async def test_negative_no_eligible_worker_persists_a_real_escalation(
     tmp_path: Path,
 ) -> None:
     """Chapter 6.1 gate 9: a task whose hard policy gate (`requires_approval`
-    — no Chapter 13 approval engine exists yet, DDE-026) denies every
-    candidate still produces a real, persisted `RouteDecision` naming the
-    escalation target — not an exception, not a partially-written row."""
+    and `approval_satisfied=False`) denies every candidate still produces a
+    real, persisted `RouteDecision` naming the escalation target — not an
+    exception, not a partially-written row. Passing `approval_satisfied=True`
+    is the DDE-026 production path when an Approval row already exists."""
     engine = new_engine()
     try:
         fixture = await build_routing_fixture(

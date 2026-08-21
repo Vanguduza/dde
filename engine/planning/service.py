@@ -62,6 +62,7 @@ from engine.contracts.task_graph import TaskGraph
 from engine.contracts.task_graph_edge import TaskGraphEdge
 from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
+from engine.governance.service import ApprovalService
 from engine.missions.states import GRAPH_TRANSITIONS, transition
 from engine.planning.hashing import graph_hash
 from engine.planning.repository import TaskGraphRepository
@@ -71,10 +72,14 @@ from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 T = TypeVar("T")
 
 # Chapter 4.5 rule 2: only these amendment types are auto-acceptable without
-# a human. `widen_scope` (rule 3), `split_task` and `retire_task` all touch
-# concerns this vertical slice deliberately does not build (governance
-# approval, in-flight task supersession) and are refused outright below.
+# a human. `widen_scope` (rule 3), `split_task` and `retire_task` require a
+# Chapter 13 Approval bound to the amendment's scope_hash (DDE-026).
 AUTO_ACCEPTED_AMENDMENT_TYPES = frozenset({"add_task", "add_edge"})
+_AMENDMENT_APPROVAL_TYPE = {
+    "widen_scope": "scope_widening",
+    "split_task": "architecture_change",
+    "retire_task": "architecture_change",
+}
 
 
 def _check_task_scope(
@@ -132,10 +137,12 @@ class TaskGraphService:
         engine: AsyncEngine,
         repository: TaskGraphRepository | None = None,
         clock: Clock | None = None,
+        approvals: ApprovalService | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or TaskGraphRepository()
         self._clock = clock or SystemClock()
+        self._approvals = approvals or ApprovalService(engine)
 
     async def _run(
         self,
@@ -230,6 +237,7 @@ class TaskGraphService:
         planner_policy_version: str,
         created_by_principal: UUID,
         approved_requirement_slugs: set[str],
+        approval_scope_hash: str | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> TaskGraph:
         """Chapter 4.5 graph amendment. `add_task`/`add_edge` amendments
@@ -238,10 +246,9 @@ class TaskGraphService:
         `version + 1` with `supersedes_id` pointing at the graph being
         amended (Chapter 3.8: TaskGraph "Versioned; prior versions
         immutable"). Every other amendment type — `widen_scope` above all
-        (rule 3) — requires human approval that does not exist yet
-        (Chapter 13/DDE-026) and is refused here rather than silently
-        accepted; so is any `add_task` node whose scope or autonomy ceiling
-        would itself require that approval.
+        (rule 3) — requires a Chapter 13 Approval whose scope_hash matches
+        `approval_scope_hash`; without one this method refuses rather than
+        silently accepting.
 
         On acceptance this method also retires the amended-away version
         (`ACTIVE -> AMENDING -> SUPERSEDED`) and activates the new one
@@ -250,7 +257,8 @@ class TaskGraphService:
         `task_graph_edges` itself — the caller inserts `new_tasks` and
         calls `create_edges` for `new_edges` only if the returned graph's
         `status` is `ACTIVE`."""
-        if amendment.amendment_type not in AUTO_ACCEPTED_AMENDMENT_TYPES:
+        needs_approval = amendment.amendment_type not in AUTO_ACCEPTED_AMENDMENT_TYPES
+        if needs_approval and approval_scope_hash is None:
             raise DdeError(
                 "SCOPE_VIOLATION",
                 f"Amendment type {amendment.amendment_type} requires "
@@ -263,13 +271,13 @@ class TaskGraphService:
                 for path in task.expected_write_scope
                 if not in_scope(path, mission_scope)
             ]
-            if out_of_scope:
+            if out_of_scope and not needs_approval:
                 raise DdeError(
                     "SCOPE_VIOLATION",
                     "Amendment write scope exceeds the mission's declared scope",
                     details={"task_id": str(task.task_id), "paths": out_of_scope},
                 )
-            if task.autonomy_ceiling > mission_autonomy_ceiling:
+            if task.autonomy_ceiling > mission_autonomy_ceiling and not needs_approval:
                 raise DdeError(
                     "SCOPE_VIOLATION",
                     "Amendment raises a node above the mission autonomy ceiling",
@@ -295,6 +303,22 @@ class TaskGraphService:
         )
 
         async def _op(active: PostgresUnitOfWork) -> TaskGraph:
+            if needs_approval:
+                if approval_scope_hash is None:
+                    raise DdeError(
+                        "SCOPE_VIOLATION",
+                        "Approved amendment is missing a scope_hash",
+                        retryable=False,
+                    )
+                await self._approvals.require_approved(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    scope_hash=approval_scope_hash,
+                    approval_type=_AMENDMENT_APPROVAL_TYPE.get(
+                        amendment.amendment_type, "architecture_change"
+                    ),
+                    uow=active,
+                )
             current = await self._require_task_graph(active, amendment.graph_id)
             # Precondition only — raises without persisting anything if the
             # graph being amended isn't ACTIVE; the real AMENDING write
