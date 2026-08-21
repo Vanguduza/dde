@@ -5,6 +5,7 @@ from __future__ import annotations
 from engine.contracts.acceptance_oracle import AcceptanceOracle
 from engine.contracts.approval import Approval
 from engine.contracts.artifact import Artifact
+from engine.contracts.asserted_edge import AssertedEdge
 from engine.contracts.attention_item import AttentionItem
 from engine.contracts.audit_event import AuditEvent
 from engine.contracts.capability_descriptor import CapabilityDescriptor
@@ -21,6 +22,7 @@ from engine.contracts.context_package import ContextPackage
 from engine.contracts.core_event import CoreEvent
 from engine.contracts.credential_handle import CredentialHandle
 from engine.contracts.dependency_admission import DependencyAdmission
+from engine.contracts.derived_edge import DerivedEdge
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.edr import Edr
 from engine.contracts.error import Error
@@ -62,6 +64,7 @@ __all__ = [
     "AcceptanceOracle",
     "Approval",
     "Artifact",
+    "AssertedEdge",
     "AttentionItem",
     "AuditEvent",
     "CapabilityDescriptor",
@@ -78,6 +81,7 @@ __all__ = [
     "CoreEvent",
     "CredentialHandle",
     "DependencyAdmission",
+    "DerivedEdge",
     "DiffGateReport",
     "Edr",
     "Error",

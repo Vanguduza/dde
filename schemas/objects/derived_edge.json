@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/derived_edge.json",
+  "title": "DerivedEdge",
+  "description": "Chapter 5.10 knowledge-graph derived edge: recomputed per integrated commit, disposable, never versioned (symbol->symbol, test->symbol, file->module, requirement->symbol inferred). Advisory only -- never sole proof of traceability. Every row carries `derived_at`, `derived_from_commit` and `deriver_version` so graph staleness (share of derived edges older than the head commit) is a computable, monitored metric. A recompute for a commit replaces the prior generation for the same project rather than accumulating rows across commits. Owned by engine.knowledge (Chapter 3.8, alongside the rest of the knowledge graph).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "derived_edges",
+    "order": 128,
+    "pk": ["derived_edge_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "edge_type", "source_key", "target_key"]],
+    "foreign_keys": [
+      {
+        "name": "derived_edges_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "derived_edges_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "derived_edge_id",
+    "tenant_id",
+    "project_id",
+    "edge_type",
+    "source_key",
+    "target_key",
+    "derived_at",
+    "derived_from_commit",
+    "deriver_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "derived_edge_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "edge_type": {
+      "type": "string",
+      "enum": [
+        "symbol_to_symbol",
+        "test_to_symbol",
+        "file_to_module",
+        "requirement_to_symbol_inferred"
+      ]
+    },
+    "source_key": { "type": "string", "minLength": 1 },
+    "target_key": { "type": "string", "minLength": 1 },
+    "derived_at": { "type": "string", "format": "date-time" },
+    "derived_from_commit": { "type": "string", "minLength": 1 },
+    "deriver_version": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

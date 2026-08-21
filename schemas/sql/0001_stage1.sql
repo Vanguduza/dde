@@ -344,6 +344,39 @@ CREATE TABLE context_critic_findings (
     PRIMARY KEY (finding_id)
 );
 
+CREATE TABLE asserted_edges (
+    edge_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    edge_type text NOT NULL,
+    source_key text NOT NULL,
+    target_key text NOT NULL,
+    asserted_by_principal uuid,
+    asserted_by_mechanism text NOT NULL,
+    status text NOT NULL,
+    retracted_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (edge_id),
+    UNIQUE (project_id, edge_type, source_key, target_key)
+);
+
+CREATE TABLE derived_edges (
+    derived_edge_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    edge_type text NOT NULL,
+    source_key text NOT NULL,
+    target_key text NOT NULL,
+    derived_at timestamptz NOT NULL,
+    derived_from_commit text NOT NULL,
+    deriver_version text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (derived_edge_id),
+    UNIQUE (project_id, edge_type, source_key, target_key)
+);
+
 CREATE TABLE route_decisions (
     decision_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1039,6 +1072,12 @@ ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_missi
 ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 ALTER TABLE context_critic_findings ADD CONSTRAINT context_critic_findings_package_id_fkey FOREIGN KEY (package_id) REFERENCES context_packages (package_id);
 
+ALTER TABLE asserted_edges ADD CONSTRAINT asserted_edges_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE asserted_edges ADD CONSTRAINT asserted_edges_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE derived_edges ADD CONSTRAINT derived_edges_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE derived_edges ADD CONSTRAINT derived_edges_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1265,6 +1304,14 @@ CREATE POLICY context_conflicts_tenant_isolation ON context_conflicts USING (ten
 ALTER TABLE context_critic_findings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE context_critic_findings FORCE ROW LEVEL SECURITY;
 CREATE POLICY context_critic_findings_tenant_isolation ON context_critic_findings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE asserted_edges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE asserted_edges FORCE ROW LEVEL SECURITY;
+CREATE POLICY asserted_edges_tenant_isolation ON asserted_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE derived_edges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE derived_edges FORCE ROW LEVEL SECURITY;
+CREATE POLICY derived_edges_tenant_isolation ON derived_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE route_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE route_decisions FORCE ROW LEVEL SECURITY;

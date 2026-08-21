@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/asserted_edge.json",
+  "title": "AssertedEdge",
+  "description": "Chapter 5.10 knowledge-graph asserted edge: durable, versioned, human- or governance-created traceability (requirement->feature, requirement->EDR, task->requirement, evidence->requirement, decision->consequence). Full audit weight -- usable as traceability proof on its own. Never overwritten in place; `status` moves from `active` to `retracted` (with `retracted_at`) instead of a physical delete, so the assertion history stays durable. Owned by engine.knowledge (Chapter 3.8, alongside the rest of the knowledge graph).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "asserted_edges",
+    "order": 127,
+    "pk": ["edge_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "edge_type", "source_key", "target_key"]],
+    "foreign_keys": [
+      {
+        "name": "asserted_edges_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "asserted_edges_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "edge_id",
+    "tenant_id",
+    "project_id",
+    "edge_type",
+    "source_key",
+    "target_key",
+    "asserted_by_mechanism",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "edge_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "edge_type": {
+      "type": "string",
+      "enum": [
+        "requirement_to_feature",
+        "requirement_to_edr",
+        "task_to_requirement",
+        "evidence_to_requirement",
+        "decision_to_consequence"
+      ]
+    },
+    "source_key": { "type": "string", "minLength": 1 },
+    "target_key": { "type": "string", "minLength": 1 },
+    "asserted_by_principal": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "asserted_by_mechanism": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["active", "retracted"] },
+    "retracted_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

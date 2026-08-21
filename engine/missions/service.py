@@ -42,6 +42,7 @@ from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.events.service import EventService
+from engine.knowledge.service import KnowledgeGraphService
 from engine.missions.repository import MissionsRepository
 from engine.missions.states import MISSION_TRANSITIONS, TASK_TRANSITIONS, transition
 from engine.planning.service import TaskGraphService
@@ -62,12 +63,16 @@ class MissionService:
         events: EventService,
         repository: MissionsRepository | None = None,
         task_graphs: TaskGraphService | None = None,
+        knowledge_graph: KnowledgeGraphService | None = None,
         clock: Clock | None = None,
     ) -> None:
         self._engine = engine
         self._events = events
         self._repository = repository or MissionsRepository()
         self._task_graphs = task_graphs or TaskGraphService(engine)
+        self._knowledge_graph = knowledge_graph or KnowledgeGraphService(
+            engine, events=events
+        )
         self._clock = clock or SystemClock()
 
     async def _run(
@@ -291,6 +296,31 @@ class MissionService:
                 edges=edges,
                 uow=active,
             )
+            # Chapter 5.10: an approved TaskGraph is a governance decision
+            # that a Task's `requirement_refs` are the requirements it
+            # satisfies -- a real `task_to_requirement` asserted edge, not
+            # merely an implicit column value. `target_key` uses the raw
+            # ref, not a `requirement:`-prefixed key: `Task.requirement_
+            # refs` names both Requirement and EDR slugs (the same dual-
+            # lookup ambiguity `engine.context.retrievers.authority`
+            # documents -- there is no dedicated `edr_refs` column yet),
+            # so asserting a `requirement:` identity here would overclaim
+            # what this call site actually knows. Written once per (task,
+            # ref) pair; `assert_edge` is idempotent on that identity, so
+            # re-approving an already-approved graph (a retry) never
+            # duplicates it.
+            for task in tasks:
+                for ref in task.requirement_refs:
+                    await self._knowledge_graph.assert_edge(
+                        tenant_id=mission.tenant_id,
+                        project_id=mission.project_id,
+                        edge_type="task_to_requirement",
+                        source_key=f"task:{task.task_id}",
+                        target_key=f"ref:{ref}",
+                        asserted_by_mechanism="task_graph_approval",
+                        asserted_by_principal=created_by_principal,
+                        uow=active,
+                    )
             return graph
 
         return await self._run(uow, mission.tenant_id, mission.project_id, _op)

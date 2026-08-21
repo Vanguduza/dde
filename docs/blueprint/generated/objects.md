@@ -154,6 +154,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## AssertedEdge
+
+- table: `asserted_edges`
+- primary key: edge_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DerivedEdge
+
+- table: `derived_edges`
+- primary key: derived_edge_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## RouteDecision
 
 - table: `route_decisions`
