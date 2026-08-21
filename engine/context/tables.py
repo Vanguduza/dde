@@ -13,7 +13,7 @@ module as `context`; this module (and `engine.context.repository`/
 
 from __future__ import annotations
 
-from sqlalchemy import TIMESTAMP, Column, Integer, MetaData, Table, Text, Uuid
+from sqlalchemy import TIMESTAMP, Boolean, Column, Integer, MetaData, Table, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 
 metadata = MetaData()
@@ -33,6 +33,42 @@ context_packages = Table(
     Column("coverage", JSONB, nullable=False),
     Column("status", Text, nullable=False),
     Column("retrievers_used", JSONB, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+context_indexes = Table(
+    "context_indexes",
+    metadata,
+    Column("index_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("current_version", Text, nullable=False),
+    Column("embedding_model_version", Text, nullable=False),
+    Column("head_commit_sha", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+context_chunks = Table(
+    "context_chunks",
+    metadata,
+    Column("chunk_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("index_version", Text, nullable=False),
+    Column("embedding_model_version", Text, nullable=False),
+    Column("file_path", Text, nullable=False),
+    Column("symbol_path", Text, nullable=False),
+    Column("content_hash", Text, nullable=False),
+    Column("start_line", Integer, nullable=False),
+    Column("end_line", Integer, nullable=False),
+    Column("language", Text, nullable=False),
+    Column("commit_sha", Text, nullable=False),
+    Column("content", Text, nullable=False),
+    Column("embedding", JSONB, nullable=False),
+    Column("current", Boolean, nullable=False),
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )

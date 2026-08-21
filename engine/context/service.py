@@ -8,23 +8,27 @@ with authority-rank weighting (Chapter 5.3) -> budget-aware assembly with
 Chapter 5.7's eviction priority order -> the Chapter 5.8 coverage
 contract -> a versioned, hashed `ContextPackage` row (Chapter 3.10).
 
-Deliberately out of Stage 1 scope, per the mission brief: semantic
-retrieval (needs pgvector/embeddings), dependency/graph/temporal/
-documentation/visual retrievers, the Context Critic (needs risk/blast-
-radius/confidence signals this slice does not compute), conflict
-adjudication (needs a genuine rank<=6 contradiction to trigger — no
-fixture here manufactures one), index lifecycle/backfill (only the
-`index_version`/`index_lag_commits` fields are populated, with the
-current commit SHA and `0` respectively), just-in-time expansion (needs
-worker runs, Chapter 5.12/DDE-011+), and the knowledge-graph derived/
-asserted split (Chapter 5.10/DDE-033).
+The semantic retriever and its Chapter 5.4 index lifecycle are wired
+here: `compile()` consults the active semantic index, runs the semantic
+retriever when one exists, and applies the Chapter 5.4 staleness gate
+(`block` past `DEFAULT_INDEX_LAG_BLOCK_COMMITS`, `warn` past
+`DEFAULT_INDEX_LAG_WARN_COMMITS`). See `engine.context.index_service`
+and `engine.context.retrievers.semantic`.
+
+Deliberately out of scope, per the mission brief: dependency/graph/
+temporal/documentation/visual retrievers, the Context Critic (needs
+risk/blast-radius/confidence signals this slice does not compute),
+conflict adjudication (needs a genuine rank<=6 contradiction to trigger
+— no fixture here manufactures one), just-in-time expansion (needs worker
+runs, Chapter 5.12/DDE-011+), and the knowledge-graph derived/asserted
+split (Chapter 5.10/DDE-033).
 """
 
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -34,13 +38,20 @@ from engine.context.coverage import compute_coverage
 from engine.context.discovery import discover
 from engine.context.fusion import fuse
 from engine.context.hashing import assembly_hash
+from engine.context.index_service import (
+    DEFAULT_INDEX_LAG_BLOCK_COMMITS,
+    DEFAULT_INDEX_LAG_WARN_COMMITS,
+    ContextIndexService,
+    staleness_action,
+)
 from engine.context.model import ContextBudgetExceeded, ContextItem
 from engine.context.repo import current_commit_sha, repo_root
 from engine.context.repository import ContextRepository
-from engine.context.retrievers import authority, explicit, lexical, structural
+from engine.context.retrievers import authority, explicit, lexical, semantic, structural
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.task import Task
 from engine.core.clock import Clock, SystemClock
+from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.events.service import EventService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
@@ -72,6 +83,9 @@ class ContextService:
         clock: Clock | None = None,
         root: Path | None = None,
         context_budget_tokens: int = DEFAULT_CONTEXT_BUDGET_TOKENS,
+        index_service: ContextIndexService | None = None,
+        index_lag_warn_commits: int = DEFAULT_INDEX_LAG_WARN_COMMITS,
+        index_lag_block_commits: int = DEFAULT_INDEX_LAG_BLOCK_COMMITS,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -79,6 +93,11 @@ class ContextService:
         self._clock = clock or SystemClock()
         self._root = root or repo_root()
         self._context_budget_tokens = context_budget_tokens
+        self._index_service = index_service or ContextIndexService(
+            engine, root=self._root
+        )
+        self._index_lag_warn_commits = index_lag_warn_commits
+        self._index_lag_block_commits = index_lag_block_commits
 
     async def _run(
         self,
@@ -145,12 +164,27 @@ class ContextService:
                 root=self._root,
                 expected_write_scope=expected_write_scope,
             )
+            index_state = await self._index_service.load_state(
+                tenant_id=tenant_id, project_id=project_id, uow=active
+            )
+            semantic_items: list[ContextItem] = []
+            if index_state is not None:
+                semantic_items = await semantic.retrieve(
+                    active.connection,
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    index_version=index_state.index.current_version,
+                    task=task,
+                    expected_write_scope=expected_write_scope,
+                )
             retriever_results: dict[str, list[ContextItem]] = {
                 "explicit": explicit_items,
                 "authority": authority_result.items,
                 "lexical": lexical_items,
                 "structural": structural_items,
             }
+            if index_state is not None:
+                retriever_results["semantic"] = semantic_items
             fused = fuse(retriever_results)
 
             assembled = assemble(task, fused, budget_tokens=budget)
@@ -169,14 +203,40 @@ class ContextService:
                 )
                 else "COMPLETE"
             )
-            index_version = current_commit_sha(self._root)
+            if index_state is None:
+                index_version = current_commit_sha(self._root)
+                index_lag_commits = 0
+            else:
+                index_version = index_state.index.current_version
+                index_lag_commits = index_state.lag_commits
+                action = staleness_action(
+                    index_lag_commits,
+                    warn_threshold=self._index_lag_warn_commits,
+                    block_threshold=self._index_lag_block_commits,
+                )
+                if action == "block":
+                    raise DdeError(
+                        "CONTEXT_STALE",
+                        "Semantic index is too far behind the workspace base "
+                        "revision; autonomous execution blocked",
+                        details={
+                            "index_version": index_version,
+                            "index_lag_commits": index_lag_commits,
+                            "block_threshold": self._index_lag_block_commits,
+                        },
+                    )
+                if action == "warn":
+                    cast(list[str], coverage_json["known_unresolved_questions"]).append(
+                        f"Semantic index is {index_lag_commits} commits behind "
+                        "the workspace base revision"
+                    )
             digest = assembly_hash(
                 task_id=task.task_id,
                 tenant_id=tenant_id,
                 project_id=project_id,
                 mission_id=mission_id,
                 index_version=index_version,
-                index_lag_commits=0,
+                index_lag_commits=index_lag_commits,
                 coverage=coverage_json,
                 included_items=assembled.included,
             )
@@ -184,6 +244,9 @@ class ContextService:
                 active.connection, task.task_id
             )
             now = self._clock.now()
+            retrievers_used = list(RETRIEVERS_USED)
+            if index_state is not None:
+                retrievers_used.append("semantic")
             package = ContextPackage(
                 package_id=uuid7(),
                 tenant_id=tenant_id,
@@ -193,10 +256,10 @@ class ContextService:
                 version=version,
                 assembly_hash=digest,
                 index_version=index_version,
-                index_lag_commits=0,
+                index_lag_commits=index_lag_commits,
                 coverage=coverage_json,
                 status=status,
-                retrievers_used=list(RETRIEVERS_USED),
+                retrievers_used=retrievers_used,
                 created_at=now,
                 updated_at=now,
             )

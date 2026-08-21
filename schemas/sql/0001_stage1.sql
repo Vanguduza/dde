@@ -229,6 +229,42 @@ CREATE TABLE context_packages (
     UNIQUE (task_id, version)
 );
 
+CREATE TABLE context_indexes (
+    index_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    current_version text NOT NULL,
+    embedding_model_version text NOT NULL,
+    head_commit_sha text NOT NULL,
+    status text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (index_id),
+    UNIQUE (tenant_id, project_id)
+);
+
+CREATE TABLE context_chunks (
+    chunk_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    index_version text NOT NULL,
+    embedding_model_version text NOT NULL,
+    file_path text NOT NULL,
+    symbol_path text NOT NULL,
+    content_hash text NOT NULL,
+    start_line integer NOT NULL,
+    end_line integer NOT NULL,
+    language text NOT NULL,
+    commit_sha text NOT NULL,
+    content text NOT NULL,
+    embedding jsonb NOT NULL DEFAULT '[]'::jsonb,
+    current boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (chunk_id),
+    UNIQUE (tenant_id, project_id, index_version, file_path, symbol_path, content_hash)
+);
+
 CREATE TABLE route_decisions (
     decision_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -897,6 +933,12 @@ ALTER TABLE context_packages ADD CONSTRAINT context_packages_project_id_fkey FOR
 ALTER TABLE context_packages ADD CONSTRAINT context_packages_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE context_packages ADD CONSTRAINT context_packages_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 
+ALTER TABLE context_indexes ADD CONSTRAINT context_indexes_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE context_indexes ADD CONSTRAINT context_indexes_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE context_chunks ADD CONSTRAINT context_chunks_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE context_chunks ADD CONSTRAINT context_chunks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1099,6 +1141,14 @@ CREATE POLICY task_graph_edges_tenant_isolation ON task_graph_edges USING (tenan
 ALTER TABLE context_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE context_packages FORCE ROW LEVEL SECURITY;
 CREATE POLICY context_packages_tenant_isolation ON context_packages USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE context_indexes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_indexes FORCE ROW LEVEL SECURITY;
+CREATE POLICY context_indexes_tenant_isolation ON context_indexes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE context_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_chunks FORCE ROW LEVEL SECURITY;
+CREATE POLICY context_chunks_tenant_isolation ON context_chunks USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE route_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE route_decisions FORCE ROW LEVEL SECURITY;

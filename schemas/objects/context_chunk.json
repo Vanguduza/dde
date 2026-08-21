@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/context_chunk.json",
+  "title": "ContextChunk",
+  "description": "One syntactically-bounded code/document chunk and its versioned embedding (Chapter 5.3, 5.4). Chunk identity is (file_path, symbol_path, content_hash); a changed hash invalidates the chunk and its embeddings.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "context_chunks",
+    "order": 122,
+    "pk": ["chunk_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "index_version", "file_path", "symbol_path", "content_hash"]],
+    "foreign_keys": [
+      {
+        "name": "context_chunks_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "context_chunks_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "chunk_id",
+    "tenant_id",
+    "project_id",
+    "index_version",
+    "embedding_model_version",
+    "file_path",
+    "symbol_path",
+    "content_hash",
+    "start_line",
+    "end_line",
+    "language",
+    "commit_sha",
+    "content",
+    "embedding",
+    "current",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "chunk_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "index_version": { "type": "string" },
+    "embedding_model_version": { "type": "string" },
+    "file_path": { "type": "string" },
+    "symbol_path": { "type": "string" },
+    "content_hash": { "type": "string" },
+    "start_line": { "type": "integer" },
+    "end_line": { "type": "integer" },
+    "language": { "type": "string" },
+    "commit_sha": { "type": "string" },
+    "content": { "type": "string" },
+    "embedding": { "type": "array", "items": { "type": "number" } },
+    "current": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

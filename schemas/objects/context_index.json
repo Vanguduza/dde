@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/context_index.json",
+  "title": "ContextIndex",
+  "description": "Per-project semantic index state (Chapter 5.4): the currently active index_version, its embedding model version, and the workspace commit the index reflects (the anchor for index_lag_commits).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "context_indexes",
+    "order": 121,
+    "pk": ["index_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id"]],
+    "foreign_keys": [
+      {
+        "name": "context_indexes_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "context_indexes_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "index_id",
+    "tenant_id",
+    "project_id",
+    "current_version",
+    "embedding_model_version",
+    "head_commit_sha",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "index_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "current_version": { "type": "string" },
+    "embedding_model_version": { "type": "string" },
+    "head_commit_sha": { "type": "string" },
+    "status": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

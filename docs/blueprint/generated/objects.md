@@ -106,6 +106,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## ContextIndex
+
+- table: `context_indexes`
+- primary key: index_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ContextChunk
+
+- table: `context_chunks`
+- primary key: chunk_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## RouteDecision
 
 - table: `route_decisions`

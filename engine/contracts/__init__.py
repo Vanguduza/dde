@@ -13,6 +13,8 @@ from engine.contracts.checkpoint import Checkpoint
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.command_idempotency import CommandIdempotency
+from engine.contracts.context_chunk import ContextChunk
+from engine.contracts.context_index import ContextIndex
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.core_event import CoreEvent
 from engine.contracts.credential_handle import CredentialHandle
@@ -64,6 +66,8 @@ __all__ = [
     "ClientSession",
     "Command",
     "CommandIdempotency",
+    "ContextChunk",
+    "ContextIndex",
     "ContextPackage",
     "CoreEvent",
     "CredentialHandle",
