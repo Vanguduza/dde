@@ -296,6 +296,14 @@ async def test_negative_real_check_failure_produces_failed_verdict(
         combined_output = failed_check.stdout + failed_check.stderr
         assert "F401" in combined_output
 
+        attempt = await TaskAttemptService(db_engine).get_attempt(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            attempt_id=fixture.worker_run.task_attempt_id,
+        )
+        assert attempt.status == "FAILED"
+        assert attempt.failure_class == "VERIFICATION_FAILURE"
+
         async with open_unit_of_work(
             db_engine,
             tenant_id=fixture.tenant.tenant_id,
@@ -308,6 +316,7 @@ async def test_negative_real_check_failure_produces_failed_verdict(
         assert [event.event_type for event in events] == [
             "VerificationRunStarted",
             "VerificationRunFailed",
+            "VerificationFailureRecovery",
         ]
     finally:
         if workspace is not None:

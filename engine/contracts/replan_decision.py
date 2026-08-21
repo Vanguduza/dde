@@ -9,7 +9,11 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ReplanDecision(BaseModel):
-    """Per-node dispositions produced by TaskPlanner.replan (Chapter 4.6)."""
+    """
+    Per-node dispositions produced by TaskPlanner.replan (Chapter 4.6). explanations is
+    required for every SUPERSEDE/RETIRE node so durable results are never silently
+    discarded.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -18,3 +22,4 @@ class ReplanDecision(BaseModel):
     dispositions: dict[
         str, Literal["PRESERVE", "QUIESCE", "SUPERSEDE", "RETIRE", "REVERT"]
     ]
+    explanations: dict[str, str]

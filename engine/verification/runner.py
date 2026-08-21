@@ -56,6 +56,7 @@ from engine.recovery.checkpoint_service import (
     CheckpointService,
     do_not_repeat_from_effects,
 )
+from engine.recovery.matrix import decide
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.verification.checks import CheckSpec, run_check
 from engine.verification.repository import EvidenceRepository, VerificationRunRepository
@@ -365,6 +366,35 @@ class VerificationRunnerService:
                     evidence_refs=evidence_refs,
                     verification_run_id=finished.verification_run_id,
                 )
+            elif next_status == "FAILED":
+                prior = await self._run_repository.list_for_task(
+                    active.connection, task.task_id
+                )
+                count = sum(1 for row in prior if row.status == "FAILED")
+                decision = decide("VERIFICATION_FAILURE", occurrence_count=count)
+                await self._fail_unverified_attempt(
+                    active,
+                    task=task,
+                    worker_run=worker_run,
+                    workspace=workspace,
+                    verification_run_id=finished.verification_run_id,
+                )
+                await self._events.append(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    event_type="VerificationFailureRecovery",
+                    aggregate_type="verification_run",
+                    aggregate_id=finished.verification_run_id,
+                    mission_id=task.mission_id,
+                    task_id=task.task_id,
+                    payload={
+                        "action": decision.action,
+                        "requires_replan": decision.requires_replan,
+                        "allow_new_worker_run": decision.allow_new_worker_run,
+                        "occurrence_count": count,
+                    },
+                    uow=active,
+                )
             await self._commands.complete(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -420,6 +450,56 @@ class VerificationRunnerService:
             project_id=task.project_id,
             attempt_id=worker_run.task_attempt_id,
             verification_refs=evidence_refs,
+            checkpoint_id=checkpoint.checkpoint_id,
+            uow=active,
+        )
+
+    async def _fail_unverified_attempt(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        task: Task,
+        worker_run: WorkerRun,
+        workspace: Workspace,
+        verification_run_id: UUID,
+    ) -> None:
+        """Chapter 12.3: VERIFICATION_FAILURE is a durable FAILED attempt,
+        not an IN_PROGRESS row that a later invoke_run could treat as a
+        first attempt. Failing evidence lives on the VerificationRun.
+        """
+        effects = await self._workspaces.effects.list_for_run(
+            tenant_id=task.tenant_id,
+            project_id=task.project_id,
+            worker_run_id=worker_run.run_id,
+            uow=active,
+        )
+        worker_events = await self._worker_events.list_for_run(
+            active.connection, worker_run.run_id
+        )
+        sequence = worker_events[-1].sequence if worker_events else 0
+        checkpoint = await self._checkpoints.record(
+            run=worker_run,
+            task_id=task.task_id,
+            workspace_revision=workspace.current_revision
+            or workspace.base_revision
+            or "",
+            event_sequence=sequence,
+            completed_work=[str(task.task_id)],
+            verified_work=[],
+            pending_work=[str(task.task_id)],
+            known_failures=["VERIFICATION_FAILURE"],
+            next_action="repair",
+            do_not_repeat=do_not_repeat_from_effects(effects),
+            artifact_refs=[],
+            lease_refs=[],
+            idempotency_key=f"{verification_run_id}:attempt-fail",
+            uow=active,
+        )
+        await self._attempts.fail(
+            tenant_id=task.tenant_id,
+            project_id=task.project_id,
+            attempt_id=worker_run.task_attempt_id,
+            failure_class="VERIFICATION_FAILURE",
             checkpoint_id=checkpoint.checkpoint_id,
             uow=active,
         )

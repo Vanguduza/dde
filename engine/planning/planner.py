@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Literal
 from uuid import UUID
 
 from engine.contracts.graph_amendment import GraphAmendment
@@ -26,6 +25,7 @@ from engine.planning.validate import (
     scopes_overlap,
     validate_graph,
 )
+from engine.recovery.matrix import classify_dispositions
 
 PLANNER_POLICY_VERSION = "template-v1"
 DEFAULT_MISSION_CONCURRENCY = 4
@@ -237,14 +237,18 @@ class TaskPlanner:
                 "updated_at": self._clock.now(),
             }
         )
-        dispositions: dict[
-            str, Literal["PRESERVE", "QUIESCE", "SUPERSEDE", "RETIRE", "REVERT"]
-        ] = {}
-        for task in tasks:
-            if task.task_id in in_flight_state:
-                dispositions[str(task.task_id)] = "QUIESCE"
-            else:
-                dispositions[str(task.task_id)] = "PRESERVE"
+        dispositions, explanations = classify_dispositions(
+            task_ids=[task.task_id for task in tasks],
+            statuses={task.task_id: task.status for task in tasks},
+            in_flight_ids=set(in_flight_state),
+            completed_ids={
+                task.task_id for task in tasks if task.status == "COMPLETED"
+            },
+            integrated_ids={
+                task.task_id for task in tasks if task.status == "COMPLETED"
+            },
+            trigger=trigger,
+        )
         self._store.graphs[graph_id] = self._store.graphs[graph_id].model_copy(
             update={
                 "status": transition(
@@ -255,7 +259,10 @@ class TaskPlanner:
             }
         )
         return ReplanDecision(
-            graph_id=graph_id, trigger=trigger, dispositions=dispositions
+            graph_id=graph_id,
+            trigger=trigger,
+            dispositions=dispositions,
+            explanations=explanations,
         )
 
     def independent_progress_possible(

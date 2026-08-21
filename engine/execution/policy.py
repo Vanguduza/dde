@@ -72,10 +72,12 @@ def checkpoint_policy_json() -> dict[str, object]:
 
 def retry_policy_json() -> dict[str, object]:
     return {
-        "max_attempts": 1,
+        "max_attempts": 2,
+        "matrix_version": "recovery-matrix-v1",
+        "engine": "engine.recovery.matrix",
         "reason": (
-            "Chapter 12.3/24's failure taxonomy and recovery matrix are "
-            "deferred to DDE-024 (Stage 3)"
+            "Chapter 12.3 recovery matrix (DDE-024): dispatch on failure "
+            "class; WORKER_FAILURE allows one recover then reroute"
         ),
     }
 

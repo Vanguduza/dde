@@ -46,16 +46,11 @@ mission-branch `update-ref` is not journaled in this correction (one
 production mutation path is the required minimum; wiring every integrate
 ref move is deferred).
 
-Deliberately out of Stage 1 scope, per the mission brief: emitting a real
-`repair` task on `CONFLICT(textual)`/`CONFLICT(semantic)` (needs the Task
-Planner's replan machinery, Chapter 4.6, not wired to this module),
-escalating to replanning after repeated conflicts (Chapter 10.5's "default
-> 2" rule -- `attempts` is tracked and returned but nothing acts on it),
-releasing a mission's write-scope leases on mainline advancement (Chapter
-10.8 -- that is `main`-level, mission-completion behaviour; this queue only
-fast-forwards the *mission* integration branch), and incremental reindex
-triggering (Chapter 5.4, needs `engine.context` capability this mission does
-not build).
+`MergeConflictRecovery` records the Chapter 12.3 matrix action on CONFLICT
+(`attempts > 2` sets `requires_replan`). Auto-inserting a planner repair
+node is not invented here. Releasing a mission's write-scope leases on
+mainline advancement (Chapter 10.8) and incremental reindex triggering
+(Chapter 5.4) remain out of this module.
 """
 
 from __future__ import annotations
@@ -93,6 +88,7 @@ from engine.integration.states import (
     WRITE_SCOPE_LEASE_TRANSITIONS,
 )
 from engine.recovery.hashing import effect_response_hash
+from engine.recovery.matrix import decide
 from engine.recovery.scope import (
     GIT_SYSTEM,
     GIT_UPDATE_REF_OPERATION,
@@ -247,6 +243,19 @@ class WriteScopeLeaseService:
         workspace is destroyed" -- `target_status` lets a caller record
         either `RELEASED` (normal completion) or `EXPIRED`."""
         return await self._transition(lease, target_status, uow=uow)
+
+    async def list_held_for_task(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> list[WriteScopeLease]:
+        async def _op(active: PostgresUnitOfWork) -> list[WriteScopeLease]:
+            return await self._repository.list_held_for_task(active.connection, task_id)
+
+        return await self._run(uow, tenant_id, project_id, _op)
 
     async def _transition(
         self,
@@ -850,9 +859,30 @@ class IntegrationQueueService:
             aggregate_id=updated.proposal_id,
             mission_id=updated.mission_id,
             task_id=updated.task_id,
-            payload={"conflict_class": conflict_class, "detail": detail},
+            payload={
+                "conflict_class": conflict_class,
+                "detail": detail,
+            },
             uow=active,
         )
+        if next_status == "CONFLICT":
+            decision = decide("MERGE_CONFLICT", occurrence_count=updated.attempts)
+            await self._events.append(
+                tenant_id=updated.tenant_id,
+                project_id=updated.project_id,
+                event_type="MergeConflictRecovery",
+                aggregate_type="integration_proposal",
+                aggregate_id=updated.proposal_id,
+                mission_id=updated.mission_id,
+                task_id=updated.task_id,
+                payload={
+                    "action": decision.action,
+                    "requires_replan": decision.requires_replan,
+                    "attempts": updated.attempts,
+                    "matrix_version": decision.matrix_version,
+                },
+                uow=active,
+            )
         return updated
 
     async def _update_fields(

@@ -187,6 +187,7 @@ class TaskAttemptService:
         execution_plan: ExecutionPlan,
         workspace_revision: str,
         input_context_hash: str,
+        retry_of: UUID | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> TaskAttempt:
         """Chapter 3.9 step 8: "TaskAttempt created (worker_run_id NULL)" —
@@ -225,6 +226,16 @@ class TaskAttemptService:
                         "attempt_id": str(lead.attempt_id),
                     },
                 )
+            if retry_of is not None:
+                prior = next(
+                    (row for row in existing if row.attempt_id == retry_of), None
+                )
+                if prior is None or prior.status != "FAILED":
+                    raise DdeError(
+                        "POLICY_DENIED",
+                        "retry_of must reference a FAILED attempt of this task",
+                        details={"retry_of": str(retry_of)},
+                    )
             sequence = await self._repository.next_sequence(
                 active.connection, task.task_id
             )
@@ -244,7 +255,7 @@ class TaskAttemptService:
                 integration_proposal_id=None,
                 status="IN_PROGRESS",
                 failure_class=None,
-                retry_of=None,
+                retry_of=retry_of,
                 checkpoint_id=None,
                 started_at=now,
                 ended_at=None,
@@ -466,9 +477,9 @@ class TaskAttemptService:
         checkpoint_id: UUID | None,
         uow: PostgresUnitOfWork | None = None,
     ) -> TaskAttempt:
-        """Durable FAILED result when the worker run fails (no
-        verification). A later invoke_run may create a new attempt
-        (retry_of is DDE-024); this row is not replayed as success.
+        """Durable FAILED result when the worker run fails or verification
+        fails. A later invoke_run may create a new attempt with retry_of
+        only when Chapter 12.3 permits it; this row is not replayed as success.
         """
 
         async def _op(active: PostgresUnitOfWork) -> TaskAttempt:

@@ -246,15 +246,17 @@ async def test_resume_run_reuses_attempt_and_generic_retry_is_refused(
         with pytest.raises(DdeError) as generic:
             await workflow.retry(policy={})
         assert generic.value.error_code == "POLICY_DENIED"
-        with pytest.raises(DdeError) as classified:
-            await workflow.retry(policy={"failure_class": "WORKER_FAILURE"})
-        assert classified.value.error_code == "POLICY_DENIED"
+        allowed = await workflow.retry(policy={"failure_class": "WORKER_FAILURE"})
+        assert allowed.allow_new_worker_run is True
+        with pytest.raises(DdeError) as denied:
+            await workflow.retry(policy={"failure_class": "AUTHORIZATION_FAILURE"})
+        assert denied.value.error_code == "POLICY_DENIED"
         with pytest.raises(DdeError):
             await workflow.wait(condition="approval")
         with pytest.raises(DdeError):
             await workflow.request_approval(reason="x")
-        with pytest.raises(DdeError):
-            await workflow.reroute(reason="x")
+        routed = await workflow.reroute(reason="worker untrusted")
+        assert routed.action == "reroute"
 
         retry = await manager.invoke_run(
             task=fixture.task,

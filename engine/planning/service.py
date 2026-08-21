@@ -43,11 +43,9 @@ APPROVED->ACTIVE activation) but never touches `Task` rows or
 amendment's new `Task` rows and calls `create_edges` afterward, then
 appends the `TaskGraphAmended` event, all under the same shared transaction.
 
-Full `TaskPlanner` productionization — `schedule()`/`replan()` wired to
-PostgreSQL — depends on `WriteScopeLease` (Chapter 10, DDE-013), worker runs
-(Chapter 8, DDE-011) and environments (Chapter 7, DDE-010), none of which
-exist yet, and remains out of this mission's scope and deferred to whichever
-later mission actually needs them.
+Full `TaskPlanner` productionization of `schedule()` remains a later
+concern. `replan()` is productionized by `engine.recovery.dispatch.
+RecoveryService` (DDE-024 / Chapter 4.6).
 """
 
 from __future__ import annotations
@@ -421,6 +419,88 @@ class TaskGraphService:
         async def _op(active: PostgresUnitOfWork) -> list[TaskGraphEdge]:
             return await self._repository.list_edges_for_graph(
                 active.connection, graph_id
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def replan_task_graph(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        prior_graph_id: UUID,
+        new_graph_id: UUID,
+        keep_tasks: list[Task],
+        new_tasks: list[Task],
+        edges: list[TaskGraphEdge],
+        planner_policy_version: str,
+        created_by_principal: UUID,
+        approved_requirement_slugs: set[str],
+        rationale: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> TaskGraph:
+        """Chapter 4.8: ACTIVE → REPLANNING → SUPERSEDED on the prior
+        version; new version DRAFT→VALIDATING→APPROVED→ACTIVE. Does not
+        write Task rows (engine.missions).
+        """
+
+        async def _op(active: PostgresUnitOfWork) -> TaskGraph:
+            current = await self._require_task_graph(active, prior_graph_id)
+            transition(current.status, "REPLANNING", GRAPH_TRANSITIONS)
+            combined = [*keep_tasks, *new_tasks]
+            _check_task_scope(
+                combined,
+                graph_id=new_graph_id,
+                mission_id=mission_id,
+                tenant_id=tenant_id,
+                project_id=project_id,
+            )
+            _check_edge_scope(
+                edges,
+                graph_id=new_graph_id,
+                mission_id=mission_id,
+                tenant_id=tenant_id,
+                project_id=project_id,
+            )
+            new_graph = await self._persist_lifecycle(
+                active,
+                graph_id=new_graph_id,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                version=current.version + 1,
+                supersedes_id=current.graph_id,
+                planning_mode=current.planning_mode,
+                planner_policy_version=planner_policy_version,
+                rationale=rationale,
+                created_by_principal=created_by_principal,
+                tasks=combined,
+                edges=edges,
+                approved_requirement_slugs=approved_requirement_slugs,
+            )
+            if new_graph.status != "APPROVED":
+                return new_graph
+            await self._advance_status(
+                active,
+                current.graph_id,
+                from_status=current.status,
+                to_status="REPLANNING",
+                lock_version=current.lock_version,
+            )
+            await self._advance_status(
+                active,
+                current.graph_id,
+                from_status="REPLANNING",
+                to_status="SUPERSEDED",
+                lock_version=current.lock_version + 1,
+            )
+            return await self._advance_status(
+                active,
+                new_graph.graph_id,
+                from_status=new_graph.status,
+                to_status="ACTIVE",
+                lock_version=new_graph.lock_version,
             )
 
         return await self._run(uow, tenant_id, project_id, _op)

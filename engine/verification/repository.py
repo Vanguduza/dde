@@ -151,6 +151,18 @@ class VerificationRunRepository:
             VerificationRun.model_validate(dict(row)) for row in result.mappings().all()
         ]
 
+    async def list_for_task(
+        self, connection: AsyncConnection, task_id: UUID
+    ) -> list[VerificationRun]:
+        result = await connection.execute(
+            select(verification_runs)
+            .where(verification_runs.c.task_id == task_id)
+            .order_by(verification_runs.c.created_at.asc())
+        )
+        return [
+            VerificationRun.model_validate(dict(row)) for row in result.mappings().all()
+        ]
+
     async def next_sequence(
         self, connection: AsyncConnection, worker_run_id: UUID
     ) -> int:

@@ -3,11 +3,12 @@ PostgreSQL state (v1). Redis remains the outbox transport; this module
 does not introduce a durable workflow engine (that would be an EDR).
 
 Implemented production methods: `checkpoint`, `resume`, `pause` (checkpoint
-then mission PAUSED), `retry` (refuses a generic retry; the Chapter 12.3
-matrix is DDE-024).
+then mission PAUSED, inheriting prior `do_not_repeat`), `retry` (Chapter
+12.3 matrix; generic retry without a failure class is refused), `reroute`
+(returns a ROUTING_FAILURE decision; does not invent a RouteDecision).
 
 Deferred (raise POLICY_DENIED, do not pretend): `wait`, `request_approval`
-(DDE-026), `reroute` (DDE-024). `start` / `cancel` / `complete` / `fail`
+(DDE-026). `start` / `cancel` / `complete` / `fail`
 stay on `MissionService` -- wrapping them here would overclaim ownership
 of the mission kernel.
 """
@@ -28,6 +29,8 @@ from engine.events.service import EventService
 from engine.missions.attempts import TaskAttemptService
 from engine.missions.service import MissionService
 from engine.recovery.checkpoint_service import CheckpointService
+from engine.recovery.dispatch import RecoveryService
+from engine.recovery.matrix import RecoveryDecision, decide
 from engine.recovery.replay import ReplayPlan, ReplayService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.workers.repository import WorkerEventRepository, WorkerRunRepository
@@ -75,13 +78,13 @@ class MissionWorkflow(Protocol):
         uow: PostgresUnitOfWork | None = None,
     ) -> Mission: ...
 
-    async def retry(self, *, policy: dict[str, object]) -> None: ...
+    async def retry(self, *, policy: dict[str, object]) -> RecoveryDecision: ...
 
     async def wait(self, *, condition: str) -> None: ...
 
     async def request_approval(self, *, reason: str) -> None: ...
 
-    async def reroute(self, *, reason: str) -> None: ...
+    async def reroute(self, *, reason: str) -> RecoveryDecision: ...
 
 
 class MissionWorkflowService:
@@ -97,6 +100,7 @@ class MissionWorkflowService:
         attempts: TaskAttemptService | None = None,
         runs: WorkerRunRepository | None = None,
         worker_events: WorkerEventRepository | None = None,
+        recovery: RecoveryService | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -110,6 +114,13 @@ class MissionWorkflowService:
         self._missions = missions or MissionService(engine, events=self._events)
         self._runs = runs or WorkerRunRepository()
         self._worker_events = worker_events or WorkerEventRepository()
+        self._recovery = recovery or RecoveryService(
+            engine,
+            events=self._events,
+            checkpoints=self._checkpoints,
+            attempts=self._attempts,
+            missions=self._missions,
+        )
 
     async def _run(
         self,
@@ -212,19 +223,26 @@ class MissionWorkflowService:
                     active.connection, lead.run_id
                 )
                 sequence = worker_events[-1].sequence if worker_events else 0
+                prior = await self._checkpoints.latest_valid_for_task(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    task_id=attempt.task_id,
+                    uow=active,
+                )
+                inherited = list(prior.do_not_repeat) if prior is not None else []
                 await self._checkpoints.record(
                     run=lead,
                     task_id=attempt.task_id,
                     workspace_revision=attempt.workspace_revision,
                     event_sequence=sequence,
-                    completed_work=[],
-                    verified_work=[],
+                    completed_work=list(prior.completed_work) if prior else [],
+                    verified_work=list(prior.verified_work) if prior else [],
                     pending_work=[str(attempt.task_id)],
-                    known_failures=[],
+                    known_failures=list(prior.known_failures) if prior else [],
                     next_action="resume",
-                    do_not_repeat=[],
-                    artifact_refs=[],
-                    lease_refs=[],
+                    do_not_repeat=inherited,
+                    artifact_refs=list(prior.artifact_refs) if prior else [],
+                    lease_refs=list(prior.lease_refs) if prior else [],
                     idempotency_key=f"{lead.run_id}:workflow-pause",
                     uow=active,
                 )
@@ -239,7 +257,7 @@ class MissionWorkflowService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
-    async def retry(self, *, policy: dict[str, object]) -> None:
+    async def retry(self, *, policy: dict[str, object]) -> RecoveryDecision:
         failure_class = policy.get("failure_class")
         if not isinstance(failure_class, str) or failure_class.strip() == "":
             raise DdeError(
@@ -248,12 +266,23 @@ class MissionWorkflowService:
                 retryable=False,
                 details={"policy": policy},
             )
-        raise DdeError(
-            "POLICY_DENIED",
-            "failure-class recovery matrix is DDE-024; refusing to invent a retry",
-            retryable=False,
-            details={"failure_class": failure_class},
+        raw_count = policy.get("occurrence_count", 1)
+        count = raw_count if isinstance(raw_count, int) else 1
+        decision = self._recovery.decision_for_policy(
+            failure_class=failure_class, occurrence_count=count
         )
+        if not decision.allow_new_worker_run:
+            raise DdeError(
+                decision.error_code,
+                decision.message,
+                retryable=decision.retryable,
+                details={
+                    "failure_class": decision.failure_class,
+                    "action": decision.action,
+                    "requires_replan": decision.requires_replan,
+                },
+            )
+        return decision
 
     async def wait(self, *, condition: str) -> None:
         raise DdeError(
@@ -271,10 +300,12 @@ class MissionWorkflowService:
             details={"reason": reason},
         )
 
-    async def reroute(self, *, reason: str) -> None:
-        raise DdeError(
-            "POLICY_DENIED",
-            "MissionWorkflow.reroute is DDE-024",
-            retryable=False,
-            details={"reason": reason},
-        )
+    async def reroute(self, *, reason: str) -> RecoveryDecision:
+        decision = decide("ROUTING_FAILURE", occurrence_count=1)
+        if reason.strip() == "":
+            raise DdeError(
+                "POLICY_DENIED",
+                "MissionWorkflow.reroute requires a reason",
+                retryable=False,
+            )
+        return decision

@@ -82,7 +82,12 @@ checkpoint, commits attempt results (or fails the attempt), and stamps
 COMPLETED attempt or COMPLETED WorkerRun already exists for the task, and
 refuses a mutation listed in the latest valid checkpoint's `do_not_repeat`.
 `resume_run` creates a new WorkerRun on the same IN_PROGRESS attempt
-(Chapter 3.9 1:N) after a non-terminal/FAILED predecessor.
+(Chapter 3.9 1:N) after a non-terminal predecessor. Chapter 12.3
+(`RecoveryService.assert_clear_to_retry`) runs before a new attempt:
+AUTHORIZATION/SCOPE/WRONG_PRODUCT/SPECIFICATION/DRIFT never silent-retry;
+WORKER_FAILURE allows one recover then reroute. Chapter 12.4
+`assert_clear_to_mutate` still runs first so UNKNOWN is never
+matrix-retried around the journal.
 
 Deliberately out of this mission: `WorkerSession`
 (Chapter 8.6 — `worker_session_id` stays `None`), checkpoint/pause/resume
@@ -125,6 +130,7 @@ from engine.recovery.checkpoint_service import (
     CheckpointService,
     do_not_repeat_from_effects,
 )
+from engine.recovery.dispatch import RecoveryService
 from engine.recovery.replay import MUTATION_ALREADY_DONE, ReplayService
 from engine.recovery.scope import (
     LOCAL_PROCESS_SYSTEM,
@@ -233,6 +239,7 @@ class WorkerManagerService:
         effects: ExternalEffectService | None = None,
         checkpoints: CheckpointService | None = None,
         replay: ReplayService | None = None,
+        recovery: RecoveryService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -259,6 +266,14 @@ class WorkerManagerService:
             checkpoints=self._checkpoints,
             attempts=self._attempts,
             clock=self._clock,
+        )
+        self._recovery = recovery or RecoveryService(
+            engine,
+            events=self._events,
+            commands=self._commands,
+            attempts=self._attempts,
+            checkpoints=self._checkpoints,
+            effects=self._effects,
         )
 
     async def _run(
@@ -341,10 +356,6 @@ class WorkerManagerService:
                 operation=local_process_operation(action.command),
                 uow=active,
             )
-            await self._refuse_completed_worker_result(
-                active, tenant_id=tenant_id, project_id=project_id, task_id=task.task_id
-            )
-
             await self._effects.assert_clear_to_mutate(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -352,6 +363,13 @@ class WorkerManagerService:
                 target_system=LOCAL_PROCESS_SYSTEM,
                 target_resource=local_process_resource(workspace),
                 operation=local_process_operation(action.command),
+                uow=active,
+            )
+            retry_of = await self._recovery.assert_clear_to_retry(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_id=task.task_id,
+                mission_id=execution_plan.mission_id,
                 uow=active,
             )
 
@@ -375,6 +393,7 @@ class WorkerManagerService:
                 or workspace.base_revision
                 or "unknown",
                 input_context_hash=input_context_hash,
+                retry_of=retry_of,
                 uow=active,
             )
 

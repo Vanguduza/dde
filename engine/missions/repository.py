@@ -102,6 +102,33 @@ class MissionsRepository:
     async def insert_task(self, connection: AsyncConnection, record: Task) -> None:
         await connection.execute(tasks.insert().values(**record.model_dump()))
 
+    async def get_task(self, connection: AsyncConnection, task_id: UUID) -> Task | None:
+        result = await connection.execute(
+            select(tasks).where(tasks.c.task_id == task_id)
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return Task.model_validate(dict(row))
+
+    async def update_task(
+        self,
+        connection: AsyncConnection,
+        task_id: UUID,
+        *,
+        fields: dict[str, object],
+        expected_lock_version: int,
+    ) -> int:
+        result = await connection.execute(
+            tasks.update()
+            .where(
+                tasks.c.task_id == task_id,
+                tasks.c.lock_version == expected_lock_version,
+            )
+            .values(**fields, lock_version=tasks.c.lock_version + 1)
+        )
+        return int(result.rowcount)
+
     async def list_tasks_for_graph(
         self, connection: AsyncConnection, graph_id: UUID
     ) -> list[Task]:

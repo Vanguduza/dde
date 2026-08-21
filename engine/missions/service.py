@@ -21,11 +21,8 @@ APPROVED|REJECTED` lifecycle (Chapter 4.8) itself; this module inserts
 lifecycle actually lands on `APPROVED` (create) or activates the amendment
 (amend) — never for a `REJECTED` graph.
 
-Full `TaskPlanner` productionization — `schedule()`/`replan()` wired to
-PostgreSQL — depends on `WriteScopeLease` (Chapter 10, DDE-013), worker runs
-(Chapter 8, DDE-011) and environments (Chapter 7, DDE-010), none of which
-exist yet, and remains out of this mission's scope, deferred to whichever
-later mission actually needs them.
+Full `TaskPlanner.schedule()` productionization remains later.
+`replan()` is `engine.recovery.dispatch.RecoveryService` (DDE-024).
 """
 
 from __future__ import annotations
@@ -46,7 +43,7 @@ from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.events.service import EventService
 from engine.missions.repository import MissionsRepository
-from engine.missions.states import MISSION_TRANSITIONS, transition
+from engine.missions.states import MISSION_TRANSITIONS, TASK_TRANSITIONS, transition
 from engine.planning.service import TaskGraphService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
@@ -224,6 +221,19 @@ class MissionService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def get_task(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> Task:
+        async def _op(active: PostgresUnitOfWork) -> Task:
+            return await self._require_task(active, task_id)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def create_task_graph(
         self,
         *,
@@ -370,6 +380,121 @@ class MissionService:
 
         return await self._run(uow, mission.tenant_id, mission.project_id, _op)
 
+    async def transition_task(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        target_status: str,
+        lock_version: int,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> Task:
+        """Chapter 4.8 task lifecycle, including SUPERSEDED/RETIRED from replan."""
+
+        async def _op(active: PostgresUnitOfWork) -> Task:
+            current = await self._require_task(active, task_id)
+            if current.lock_version != lock_version:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "Task lock_version mismatch",
+                    retryable=True,
+                    details={
+                        "expected": lock_version,
+                        "actual": current.lock_version,
+                    },
+                )
+            next_status = transition(current.status, target_status, TASK_TRANSITIONS)
+            now = self._clock.now()
+            rowcount = await self._repository.update_task(
+                active.connection,
+                task_id,
+                fields={"status": next_status, "updated_at": now},
+                expected_lock_version=lock_version,
+            )
+            if rowcount != 1:
+                refreshed = await self._require_task(active, task_id)
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "Task lock_version mismatch",
+                    retryable=True,
+                    details={
+                        "expected": lock_version,
+                        "actual": refreshed.lock_version,
+                    },
+                )
+            updated = await self._require_task(active, task_id)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="TaskTransitioned",
+                aggregate_type="task",
+                aggregate_id=task_id,
+                mission_id=updated.mission_id,
+                task_id=task_id,
+                payload={"from": current.status, "to": updated.status},
+                uow=active,
+            )
+            return updated
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def rebind_task_graph(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        graph_id: UUID,
+        lock_version: int,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> Task:
+        """Move a PRESERVE/QUIESCE node onto the replan's new graph version."""
+
+        async def _op(active: PostgresUnitOfWork) -> Task:
+            current = await self._require_task(active, task_id)
+            if current.lock_version != lock_version:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "Task lock_version mismatch",
+                    retryable=True,
+                    details={
+                        "expected": lock_version,
+                        "actual": current.lock_version,
+                    },
+                )
+            now = self._clock.now()
+            rowcount = await self._repository.update_task(
+                active.connection,
+                task_id,
+                fields={"graph_id": graph_id, "updated_at": now},
+                expected_lock_version=lock_version,
+            )
+            if rowcount != 1:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "Task lock_version mismatch",
+                    retryable=True,
+                    details={"task_id": str(task_id)},
+                )
+            return await self._require_task(active, task_id)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def insert_task(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task: Task,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> Task:
+        async def _op(active: PostgresUnitOfWork) -> Task:
+            await self._repository.insert_task(active.connection, task)
+            return task
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def list_tasks_for_graph(
         self,
         *,
@@ -391,4 +516,10 @@ class MissionService:
         record = await self._repository.get_mission(active.connection, mission_id)
         if record is None:
             raise DdeError("POLICY_DENIED", "Unknown mission")
+        return record
+
+    async def _require_task(self, active: PostgresUnitOfWork, task_id: UUID) -> Task:
+        record = await self._repository.get_task(active.connection, task_id)
+        if record is None:
+            raise DdeError("POLICY_DENIED", "Unknown task")
         return record
