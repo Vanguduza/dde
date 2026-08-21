@@ -121,6 +121,35 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("bulk_implementation", "verification"),
         network_requirements={"egress": "none"},
     ),
+    # EDR-0001 Path A: spawn the human's own already-`claude login`-
+    # authenticated local Claude Code CLI as a real subprocess. Never
+    # idempotent -- a repeated invocation is a new model completion that
+    # consumes a fresh slice of the human's personal, rate-limited seat, not
+    # a safely-repeatable read or ref update (contrast `capability.
+    # git_operations`'s EXTERNAL_IDEMPOTENT). `enforcement_tier="T1"`: the
+    # subprocess is spawned directly by `adapters.claude.adapter.
+    # ClaudeCodeWorkerAdapter`, DDE's own code, exactly like `capability.
+    # run_local_process` -- never by a third-party harness.
+    SeedCapability(
+        capability_id="capability.claude_code_invoke",
+        version="1",
+        category="external_model",
+        summary=(
+            "Invoke the human's own already-authenticated local `claude` "
+            "CLI as a real subprocess, gated by a mandatory, "
+            "non-standing-eligible human approval per invocation "
+            "(EDR-0001 Path A). DDE never reads, stores or forwards any "
+            "Anthropic credential; it only shells out to the CLI."
+        ),
+        side_effect_class="EXTERNAL_NON_IDEMPOTENT",
+        risk_class="high",
+        enforcement_tier="T1",
+        implementations=("adapters.claude.adapter.ClaudeCodeWorkerAdapter",),
+        dependencies=("claude",),
+        network_requirements={
+            "egress": "external:anthropic (via local claude CLI only)"
+        },
+    ),
 )
 
 
