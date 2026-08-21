@@ -90,10 +90,17 @@ from engine.workers.adapter import (
     WorkerAction,
     WorkerHealth,
 )
+from engine.workers.certification import ProfileIdentity
 from engine.workspaces.service import WorkspaceService
 
 WORKER_ID = "worker.scripted-deterministic-v1"
 DECLARED_CAPABILITIES = frozenset({CAPABILITY_REPOSITORY, CAPABILITY_TESTING})
+SCRIPTED_IDENTITY = ProfileIdentity(
+    model_version="none",
+    harness_version="scripted-deterministic-v1",
+    toolset_manifest="workspace.execute+write+snapshot",
+    image_digest="local-process",
+)
 
 #: DDE-016's real, seeded `capability_id`s this adapter's real side effects
 #: perform -- transcribed from `engine.capabilities.seed.SEED_CAPABILITIES`,
@@ -119,10 +126,19 @@ class ScriptedWorkerAdapter:
     satisfy a field."""
 
     def __init__(
-        self, workspaces: WorkspaceService, leases: CapabilityLeaseService
+        self,
+        workspaces: WorkspaceService,
+        leases: CapabilityLeaseService,
+        *,
+        worker_id: str = WORKER_ID,
+        worker_profile_id: str = PROFILE_DETERMINISTIC_RUNNER,
+        identity: ProfileIdentity | None = None,
     ) -> None:
         self._workspaces = workspaces
         self._leases = leases
+        self._worker_id = worker_id
+        self._worker_profile_id = worker_profile_id
+        self._identity = identity or SCRIPTED_IDENTITY
         # DDE-020: shares the exact `ExternalEffectService` instance
         # `WorkspaceService.snapshot` itself journals `capability.
         # git_operations` through, rather than constructing a second one
@@ -138,10 +154,13 @@ class ScriptedWorkerAdapter:
         Must be called before `prepare()` for the same `execution_plan`."""
         self._pending_actions[execution_plan_id] = action
 
+    def profile_identity(self) -> ProfileIdentity:
+        return self._identity
+
     async def register(self) -> Registration:
         return Registration(
-            worker_id=WORKER_ID,
-            worker_profile_id=PROFILE_DETERMINISTIC_RUNNER,
+            worker_id=self._worker_id,
+            worker_profile_id=self._worker_profile_id,
             declared_capabilities=DECLARED_CAPABILITIES,
         )
 

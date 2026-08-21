@@ -27,7 +27,7 @@ does), and learning/promotion (Chapter 6.8-6.9, DDE-057/058).
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Literal, TypeVar
 from uuid import UUID
 
@@ -90,6 +90,8 @@ class RouterService:
         task: Task,
         workload_class: str | None = None,
         previous_generator_profile_id: str | None = None,
+        certification_statuses: Mapping[str, str] | None = None,
+        routing_environment_class: str = "development",
         uow: PostgresUnitOfWork | None = None,
     ) -> RouteDecision:
         """Compile and persist a new, immutable `RouteDecision` for `task`
@@ -108,6 +110,8 @@ class RouterService:
                 task,
                 workload_class=workload_class,
                 previous_generator_profile_id=previous_generator_profile_id,
+                certification_statuses=certification_statuses,
+                routing_environment_class=routing_environment_class,
             )
             candidates_json = [candidate.to_json() for candidate in result.candidates]
             required_capabilities = list(result.required_capabilities)

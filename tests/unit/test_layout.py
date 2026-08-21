@@ -104,3 +104,37 @@ def test_core_does_not_import_adapters_or_vendor_sdks() -> None:
                     name == prefix or name.startswith(f"{prefix}.")
                     for prefix in forbidden_prefixes
                 )
+
+
+def test_cursor_sdk_is_only_importable_from_adapters_cursor() -> None:
+    """AGENTS.md: cursor_sdk / cursor-sdk-bridge may be imported only from
+    adapters/cursor/**. DDE-025's Cursor adapter does not import them yet
+    (live invocation is fail-closed); this still fences the rest of the
+    tree so a later credentialed wiring cannot leak into engine/.
+    """
+    forbidden = ("cursor_sdk", "cursor-sdk-bridge", "cursor_sdk_bridge")
+    scanned = (
+        ROOT / "engine",
+        ROOT / "adapters",
+        ROOT / "scripts",
+        ROOT / "tests",
+    )
+    for root in scanned:
+        for path in root.rglob("*.py"):
+            if "adapters" in path.parts and "cursor" in path.parts:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                names: list[str] = []
+                if isinstance(node, ast.Import):
+                    names.extend(alias.name for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    names.append(node.module)
+                for name in names:
+                    assert not any(
+                        name == item or name.startswith(f"{item}.")
+                        for item in forbidden
+                    ), path

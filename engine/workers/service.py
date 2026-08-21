@@ -89,6 +89,13 @@ WORKER_FAILURE allows one recover then reroute. Chapter 12.4
 `assert_clear_to_mutate` still runs first so UNKNOWN is never
 matrix-retried around the journal.
 
+**DDE-025.** `get_certified_adapter` is called with the provisioned
+`ExecutionEnvironment.class_`. A STALE `profile_hash` (smoke not passed
+for the current tuple) is selectable only in `development`; production,
+staging and security fail closed with `PROFILE_STALE`. Second/third
+adapters (`LocalImplementationAdapter`, `CursorWorkerAdapter`) register
+the same way as `ScriptedWorkerAdapter`.
+
 Deliberately out of this mission: `WorkerSession`
 (Chapter 8.6 — `worker_session_id` stays `None`), checkpoint/pause/resume
 (Chapter 8.2's `CHECKPOINTING`/`PAUSING`/`PAUSED`/`RESUMING` branches are
@@ -382,7 +389,8 @@ class WorkerManagerService:
             self._environments.assert_schedulable(environment)
 
             adapter = self._registry.get_certified_adapter(
-                execution_plan.worker_profile_id
+                execution_plan.worker_profile_id,
+                environment_class=environment.class_,
             )
             registration = await adapter.register()
 
@@ -605,7 +613,8 @@ class WorkerManagerService:
             )
             self._environments.assert_schedulable(environment)
             adapter = self._registry.get_certified_adapter(
-                execution_plan.worker_profile_id
+                execution_plan.worker_profile_id,
+                environment_class=environment.class_,
             )
             registration = await adapter.register()
             sequence = await self._run_repository.next_sequence(

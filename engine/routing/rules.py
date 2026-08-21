@@ -34,6 +34,7 @@ real workload class any caller may pass to `evaluate` directly.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from engine.contracts.task import Task
@@ -123,6 +124,8 @@ def _evaluate_candidate(
     min_risk: str | None,
     max_risk: str | None,
     previous_generator_profile_id: str | None,
+    certification_status: str | None = None,
+    allow_stale: bool = True,
 ) -> tuple[GateResult, ...]:
     profile = PROFILES[profile_id]
     results: list[GateResult] = []
@@ -159,6 +162,21 @@ def _evaluate_candidate(
             "CAPABILITY_FIT",
         )
     )
+
+    if certification_status is not None:
+        certified = certification_status == "CERTIFIED" or (
+            certification_status == "STALE" and allow_stale
+        )
+        if not certified:
+            results.append(
+                GateResult(
+                    GATE_WORKER_ELIGIBILITY,
+                    "worker_eligibility",
+                    False,
+                    "PROFILE_STALE",
+                )
+            )
+            return tuple(results)
 
     if profile_id not in prefer:
         results.append(
@@ -244,6 +262,8 @@ def evaluate(
     *,
     workload_class: str | None = None,
     previous_generator_profile_id: str | None = None,
+    certification_statuses: Mapping[str, str] | None = None,
+    routing_environment_class: str = "development",
 ) -> RoutingResult:
     """Run every registered profile through Chapter 6.1's gates 0-5 for
     `task`, then rank survivors by Chapter 6.2's declared `prefer[]` order
@@ -259,7 +279,13 @@ def evaluate(
 
     evaluations: list[CandidateEvaluation] = []
     survivor_ids: list[str] = []
+    allow_stale = routing_environment_class == "development"
     for profile_id in sorted(PROFILES):
+        status = (
+            None
+            if certification_statuses is None
+            else certification_statuses.get(profile_id, "ABSENT")
+        )
         gate_results = _evaluate_candidate(
             profile_id,
             required_capabilities=required_capabilities,
@@ -271,6 +297,8 @@ def evaluate(
             min_risk=policy.min_risk,
             max_risk=policy.max_risk,
             previous_generator_profile_id=previous_generator_profile_id,
+            certification_status=status,
+            allow_stale=allow_stale,
         )
         eliminated_at = None if gate_results[-1].passed else gate_results[-1].gate
         if eliminated_at is None:

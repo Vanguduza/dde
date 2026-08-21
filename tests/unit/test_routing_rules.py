@@ -242,3 +242,36 @@ def test_evaluate_is_deterministic_across_calls() -> None:
         c.to_json() for c in second.candidates
     ]
     assert first.reason_codes == second.reason_codes
+
+
+def test_evaluate_production_does_not_select_a_stale_profile() -> None:
+    """Chapter 8.5: STALE is selectable in development and blocked in
+    production routing. The next eligible certified preferred profile is
+    selected rather than silently using the stale hash.
+    """
+    production = evaluate(
+        _task(task_class="implementation", risk_class="low"),
+        certification_statuses={
+            PROFILE_LONGCONTEXT_ECONOMY: "STALE",
+            PROFILE_GENERAL_IMPLEMENTATION: "CERTIFIED",
+        },
+        routing_environment_class="production",
+    )
+    assert production.selected_profile_id == PROFILE_GENERAL_IMPLEMENTATION
+    stale_candidate = next(
+        candidate
+        for candidate in production.candidates
+        if candidate.profile_id == PROFILE_LONGCONTEXT_ECONOMY
+    )
+    assert stale_candidate.eliminated_at_gate == 3
+    assert stale_candidate.gate_results[-1].reason_code == "PROFILE_STALE"
+
+    development = evaluate(
+        _task(task_class="implementation", risk_class="low"),
+        certification_statuses={
+            PROFILE_LONGCONTEXT_ECONOMY: "STALE",
+            PROFILE_GENERAL_IMPLEMENTATION: "CERTIFIED",
+        },
+        routing_environment_class="development",
+    )
+    assert development.selected_profile_id == PROFILE_LONGCONTEXT_ECONOMY
