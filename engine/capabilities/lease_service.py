@@ -37,6 +37,16 @@ service never reads or writes `write_scope_leases`.
 second one invented for this module. A repeated `request()` call with the
 same key never re-evaluates or re-grants; it returns the first call's stored
 lease.
+
+**Kill flag at checkout (research §6).** `require_active` additionally
+consults the process-wide kill-flag registry
+(`engine.capabilities.kill_switch.KillSwitchRegistry`) before honouring any
+held lease: an armed stop refuses the run's NEXT capability checkout with
+typed `KILL_FLAG_ACTIVE` and durably revokes the run's most recent still-
+held lease (reason `kill_flag`). This gates lease checkout only -- the
+broker's credential admission reads live rows directly and does not consult
+the flag, and network egress is not gated by it. The in-memory flag does not
+survive process restarts; the durable REVOKED row does.
 """
 
 from __future__ import annotations
@@ -48,6 +58,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.kill_switch import KILL_FLAG_REASON, KillSwitchRegistry
 from engine.capabilities.lease_hashing import lease_hash
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
 from engine.capabilities.lease_states import (
@@ -80,6 +91,13 @@ CAPABILITY_LEASE_POLICY_VERSION = "capability-lease-v1"
 #: analogous gap.
 DEFAULT_LEASE_TTL = timedelta(hours=24)
 
+#: Process-wide kill-flag registry backing `require_active`'s checkout
+#: check. Module-level so an operator arming a stop through any service
+#: instance gates every instance in the process; the durable half of the
+#: stop is the lease row, not this set (see `engine.capabilities.
+#: kill_switch`'s docstring for what is and is not wired).
+SHARED_KILL_SWITCH = KillSwitchRegistry()
+
 
 class CapabilityLeaseService:
     """Async, PostgreSQL-backed writer for `capability_leases` (Chapter
@@ -96,6 +114,7 @@ class CapabilityLeaseService:
         commands: CommandLedger | None = None,
         capabilities: CapabilityRegistryService | None = None,
         clock: Clock | None = None,
+        kill_switch: KillSwitchRegistry | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or CapabilityLeaseRepository()
@@ -105,6 +124,12 @@ class CapabilityLeaseService:
             engine, events=self._events
         )
         self._clock = clock or SystemClock()
+        #: Kill flag checked at lease checkout (see `require_active`). One
+        #: registry per service instance; the default is shared by every
+        #: construction that does not inject its own, which is the right
+        #: shape while this module is the sole writer of
+        #: `capability_leases` in the process.
+        self.kill_switch = kill_switch or SHARED_KILL_SWITCH
 
     async def _run(
         self,
@@ -348,9 +373,43 @@ class CapabilityLeaseService:
         boundary even if the worker holds cached schemas"). The first
         successful check against a `GRANTED` lease marks it `ACTIVE`
         (Chapter 9.2's real state for "currently authorising an in-flight
-        operation")."""
+        operation").
+
+        Kill flag (research §6): a run whose kill switch is armed is
+        refused here BEFORE any held lease is honoured -- mid-run arming
+        takes effect at the next tool call's checkout, not at attempt
+        start. The first refusal also durably transitions the run's most
+        recent still-held lease to the chapter-named terminal status
+        `REVOKED` with reason `kill_flag` (the closest existing state; no
+        new status invented). Disclosed limits: this gates capability
+        checkout only -- network egress and broker credential admission do
+        not consult the flag, an already-in-flight subprocess cannot be
+        interrupted (T2 containment is Chapter 14/DDE-018), and the flag
+        set itself lives in process memory while the REVOKED row is what
+        survives restarts."""
 
         async def _op(active: PostgresUnitOfWork) -> CapabilityLease:
+            if self.kill_switch.is_killed(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+            ):
+                await self._revoke_latest_lease_on_kill(
+                    active,
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    worker_run_id=worker_run_id,
+                )
+                raise DdeError(
+                    "KILL_FLAG_ACTIVE",
+                    "Kill flag is armed for this worker run -- capability "
+                    "checkout refused",
+                    details={
+                        "worker_run_id": str(worker_run_id),
+                        "capability_id": capability_id,
+                        "reason": KILL_FLAG_REASON,
+                    },
+                )
             lease = await self._repository.get_active_for_run(
                 active.connection,
                 worker_run_id=worker_run_id,
@@ -400,6 +459,48 @@ class CapabilityLeaseService:
             return lease
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _revoke_latest_lease_on_kill(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+    ) -> None:
+        """Durably record the intentional stop on the closest existing
+        state: EVERY still-HELD lease of the run transitions
+        `GRANTED|ACTIVE -> REVOKED` (a Chapter 9.2-named edge) with
+        `revocation_reason="kill_flag"` -- a partial kill leaving one
+        capability checkout-able would not be a stop. Best-effort by
+        construction: if no lease exists yet, or every row is already
+        terminal (`DENIED`/`EXPIRED`/`REVOKED`/`CONSUMED`), nothing is
+        stamped and the typed refusal above still stands. This helper
+        never masks the kill-flag refusal with a secondary failure, so it
+        swallows only `DdeError`s from the transition itself -- never
+        repository/infrastructure faults."""
+        try:
+            leases = await self._repository.list_for_run(
+                active.connection, worker_run_id
+            )
+            held = [item for item in leases if item.status in HELD_LEASE_STATUSES]
+        except DdeError:
+            return
+        for latest in held:
+            try:
+                await self._transition(
+                    active,
+                    latest,
+                    "REVOKED",
+                    event_type="CapabilityLeaseRevoked",
+                    payload={"reason": KILL_FLAG_REASON},
+                    extra_fields={
+                        "revoked_at": self._clock.now(),
+                        "revocation_reason": KILL_FLAG_REASON,
+                    },
+                )
+            except DdeError:
+                return
 
     async def revoke(
         self,

@@ -23,11 +23,27 @@ check is a literal, DDE-declared command executed directly, so the worker
 profile that produced the change under test never has a hand in judging it.
 `Evidence.independence_flags` records that fact per evidence row rather than
 merely asserting it in a docstring.
+
+**Self-grading guardrails (research §4 item 1, SWE-bench issue #538).**
+Before any oracle outcome executes, `run()` mechanically inspects the real
+diff under verification (`engine.workspaces.git.diff_name_only` against the
+workspace's base revision) with `engine.verification.guardrails.
+assess_diff_independence`: undeclared edits to test-owned paths and added
+files shadowing the oracle's expected-test layout are recorded on every
+evidence row this run writes (`independence_flags["test_scope_findings"]`,
+`test_scope_violation`). Disclosed scope: a violating diff still runs the
+oracle's checks -- but a clean PASS over a harness-gaming diff is not
+certified as independent: the run's status is forced to PARTIAL (never
+PASSED), so Chapter 6.5 telemetry and downstream integration gates see an
+untrusted verdict. Failing the run outright / raising SCOPE_VIOLATION into
+the recovery matrix is deferred.
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import TypeVar
 from uuid import UUID
 
@@ -61,9 +77,20 @@ from engine.recovery.matrix import decide
 from engine.telemetry.service import RoutingTelemetryService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.verification.checks import CheckSpec, run_check
-from engine.verification.repository import EvidenceRepository, VerificationRunRepository
+from engine.verification.guardrails import (
+    TestScopeAssessment,
+    TestScopeFinding,
+    assess_diff_independence,
+    merge_flags,
+)
+from engine.verification.repository import (
+    EvidenceRepository,
+    VerificationRunRepository,
+)
 from engine.verification.states import VERIFICATION_RUN_TRANSITIONS
 from engine.workers.repository import WorkerEventRepository
+from engine.workspaces import git
+from engine.workspaces.git import GitCommandError
 from engine.workspaces.service import WorkspaceService
 
 T = TypeVar("T")
@@ -291,6 +318,17 @@ class VerificationRunnerService:
                 workspace.current_revision or workspace.base_revision or "unknown"
             )
 
+            # Self-grading guardrail (research §4 item 1): mechanically
+            # inspect the diff under verification BEFORE any oracle
+            # outcome runs, so a harness-gaming patch is recorded on every
+            # evidence row this run produces.
+            guardrail = await self._assess_guardrails(
+                active,
+                task=task,
+                oracle=oracle,
+                workspace=workspace,
+            )
+
             for outcome in oracle.observable_outcomes:
                 result, outcome_result, ev = await self._execute_outcome(
                     active,
@@ -302,6 +340,7 @@ class VerificationRunnerService:
                     worker_run=worker_run,
                     workspace=workspace,
                     integrated_revision=integrated_revision,
+                    guardrail=guardrail,
                 )
                 check_results.append(result)
                 outcome_results.append(outcome_result)
@@ -318,6 +357,7 @@ class VerificationRunnerService:
                     worker_run=worker_run,
                     workspace=workspace,
                     integrated_revision=integrated_revision,
+                    guardrail=guardrail,
                 )
                 check_results.append(result)
                 negative_results.append(outcome_result)
@@ -327,6 +367,7 @@ class VerificationRunnerService:
                 outcome_results=outcome_results,
                 negative_results=negative_results,
                 minimum_confidence=oracle.minimum_confidence,
+                guardrail=guardrail,
             )
             ended_at = self._clock.now()
             next_status = transition(run.status, status, VERIFICATION_RUN_TRANSITIONS)
@@ -455,6 +496,58 @@ class VerificationRunnerService:
 
         return await self._run_uow(uow, tenant_id, project_id, _op)
 
+    async def _assess_guardrails(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        task: Task,
+        oracle: AcceptanceOracle,
+        workspace: Workspace,
+    ) -> TestScopeAssessment:
+        """Real diff under verification -> mechanical guardrail findings.
+
+        The changed-file list is read from the workspace's own worktree via
+        `engine.workspaces.git.diff_name_only` (committed and uncommitted
+        changes against the base revision). This is deliberately a direct
+        git *read* on DDE's own behalf inside the verification chain -- the
+        same category as `create`/`cleanup`/`capture_revision`'s lifecycle
+        git calls in `WorkspaceService` (which are ungated for exactly this
+        reason: Chapter 3.9's order means no run-scoped lease exists to
+        check, see that module's docstring). It is not a worker-requested
+        capability operation and journals no external effect.
+        """
+        base = workspace.base_revision
+        if not base or not workspace.workspace_path:
+            # Without a usable base revision or worktree path there is
+            # nothing to diff: no findings fabricated from absence.
+            return TestScopeAssessment(findings=())
+        try:
+            changed_files = await asyncio.to_thread(
+                git.diff_name_only,
+                Path(workspace.workspace_path),
+                base,
+            )
+        except (GitCommandError, OSError):
+            # A workspace whose git state cannot be read must not yield a
+            # clean bill of health by accident; surface an informational
+            # finding instead of a violation we could not prove.
+            return TestScopeAssessment(
+                findings=(
+                    TestScopeFinding(
+                        kind="unreadable_diff",
+                        path=str(workspace.workspace_id),
+                        detail=(
+                            "changed-file list could not be read from the "
+                            "workspace; guardrail sweep ran on an empty diff"
+                        ),
+                        violation=False,
+                    ),
+                )
+            )
+        return assess_diff_independence(
+            task=task, oracle=oracle, changed_files=changed_files
+        )
+
     async def _finalise_passed_attempt(
         self,
         active: PostgresUnitOfWork,
@@ -565,6 +658,7 @@ class VerificationRunnerService:
         worker_run: WorkerRun,
         workspace: Workspace,
         integrated_revision: str,
+        guardrail: TestScopeAssessment,
     ) -> tuple[CheckResult, ObservableOutcomeResult, Evidence]:
         spec = _outcome_check_spec(outcome, is_negative_case=is_negative_case)
         check_result = await run_check(self._workspaces, workspace, spec, uow=active)
@@ -579,11 +673,14 @@ class VerificationRunnerService:
             "status": outcome_status,
         }
         content_hash = sha256_hex(canonical_json(evidence_content))
-        independence_flags = {
-            "generator_worker_profile_id": worker_run.worker_profile_id,
-            "verifier": "engine.verification.runner",
-            "independent": True,
-        }
+        independence_flags = merge_flags(
+            {
+                "generator_worker_profile_id": worker_run.worker_profile_id,
+                "verifier": "engine.verification.runner",
+                "independent": True,
+            },
+            guardrail,
+        )
         signature_payload = {
             "content_hash": content_hash,
             "produced_by": EVIDENCE_PRODUCED_BY,
@@ -683,6 +780,7 @@ def _evaluate(
     outcome_results: list[ObservableOutcomeResult],
     negative_results: list[ObservableOutcomeResult],
     minimum_confidence: float,
+    guardrail: TestScopeAssessment | None = None,
 ) -> tuple[str, float]:
     """The AcceptanceOracle's own judgment (Chapter 11.1: "AcceptanceOracle
     evaluation"), operating purely on already-collected evidence status --
@@ -690,7 +788,14 @@ def _evaluate(
     outcome to hold, every negative case to NOT hold, and the resulting
     confidence to clear `minimum_confidence`; a single `ERRORED` check means
     the oracle cannot render any verdict at all (a check that could not run
-    proves nothing, in either direction)."""
+    proves nothing, in either direction).
+
+    Self-grading guardrail: when the pre-oracle sweep recorded a harness-
+    gaming violation (undeclared test edits / shadowed expected-test
+    layout), a fully-passing outcome set is demoted to `PARTIAL` -- the
+    checks ran, but this runner refuses to certify an independent PASS over
+    a diff that games them. A failing verdict is left as-is: the guardrail
+    never improves a worker's result."""
     all_results = [*outcome_results, *negative_results]
     if not all_results:
         return "ERRORED", 0.0
@@ -699,6 +804,8 @@ def _evaluate(
     passed = sum(1 for item in all_results if item.status == "PASSED")
     confidence = passed / len(all_results)
     if confidence == 1.0 and confidence >= minimum_confidence:
+        if guardrail is not None and guardrail.violations:
+            return "PARTIAL", confidence
         return "PASSED", confidence
     if confidence == 0.0:
         return "FAILED", confidence

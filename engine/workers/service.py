@@ -89,6 +89,21 @@ WORKER_FAILURE allows one recover then reroute. Chapter 12.4
 `assert_clear_to_mutate` still runs first so UNKNOWN is never
 matrix-retried around the journal.
 
+**Caller-supplied attempt budgets.** Both dispatch call sites accept an
+optional `AttemptBudget` (`engine.workers.budget`). When supplied, it is
+checked inside the idempotency-guarded command body -- before any
+TaskAttempt row, lease, or adapter side effect exists -- and an over-ceiling
+attempt raises typed `BUDGET_EXHAUSTED` (`engine.core.errors.
+BudgetExhaustedError`) with no durable mutation performed. Honest limits,
+also stated in that module's docstring: the budget is NOT persisted (no
+schema/migration; caller-supplied parameter only, disclosed as such), is not
+part of `_invoke_request_hash`, and Stage 1 has no token meter to decrement
+-- the check compares the attempt's declared demand against the ceiling at
+admission time. Recording exhaustion as the recovery matrix's
+RESOURCE_EXHAUSTION row (pause-for-human) needs a durable run/attempt to
+attach to and is deferred; nothing consumes the typed error downstream yet.
+Default `None` = unlimited = behaviour unchanged for every existing caller.
+
 **DDE-025.** `get_certified_adapter` is called with the provisioned
 `ExecutionEnvironment.class_`. A STALE `profile_hash` (smoke not passed
 for the current tuple) is selectable only in `development`; production,
@@ -152,6 +167,11 @@ from engine.workers.adapter import (
     ActionBindableWorkerAdapter,
     WorkerAction,
     WorkerAdapter,
+)
+from engine.workers.budget import (
+    AttemptBudget,
+    check_attempt_budget,
+    estimated_token_demand,
 )
 from engine.workers.registry import WorkerProfileRegistry
 from engine.workers.repository import WorkerEventRepository, WorkerRunRepository
@@ -314,10 +334,17 @@ class WorkerManagerService:
         input_context_hash: str,
         action: WorkerAction,
         idempotency_key: str,
+        budget: AttemptBudget | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> WorkerRun:
         """Chapter 3.9 steps 8/10 plus Chapter 8.2's full drive to a
-        terminal state, guarded end-to-end by `idempotency_key`."""
+        terminal state, guarded end-to-end by `idempotency_key`.
+
+        `budget` is an optional caller-supplied ceiling for this one
+        attempt; see the module docstring's budget section for what is
+        wired here (admission check before any mutation) versus what is
+        disclosed as unwired (persistence, provider metering, recovery
+        consumption)."""
         if execution_plan.task_id != task.task_id:
             raise DdeError(
                 "POLICY_DENIED",
@@ -359,6 +386,12 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            check_attempt_budget(
+                budget,
+                estimated_tokens=estimated_token_demand(action),
+                estimated_tool_calls=1,
+            )
 
             if task.requires_approval:
                 await self._approvals.require_approved(
@@ -547,10 +580,13 @@ class WorkerManagerService:
         action: WorkerAction,
         attempt_id: UUID,
         idempotency_key: str,
+        budget: AttemptBudget | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> WorkerRun:
         """Chapter 3.9 1:N recovery: a new WorkerRun on an existing
-        IN_PROGRESS attempt. Does not create a second attempt.
+        IN_PROGRESS attempt. Does not create a second attempt. `budget`
+        behaves exactly as on `invoke_run`: caller-supplied, checked before
+        any mutation, never persisted.
         """
         tenant_id = execution_plan.tenant_id
         project_id = execution_plan.project_id
@@ -571,6 +607,12 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            check_attempt_budget(
+                budget,
+                estimated_tokens=estimated_token_demand(action),
+                estimated_tool_calls=1,
+            )
 
             if task.requires_approval:
                 await self._approvals.require_approved(

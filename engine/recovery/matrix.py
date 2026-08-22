@@ -41,6 +41,14 @@ FAILURE_CLASS_ALIASES: Final[dict[str, str]] = {
     "WORKER_PREPARE_FAILED": "WORKER_FAILURE",
     "WORKER_FAILURE": "WORKER_FAILURE",
     "WORKER_CAPABILITY_DENIED": "AUTHORIZATION_FAILURE",
+    # Kill-flag refusal at capability checkout (research §6): an
+    # intentionally stopped run is an authorization outcome -- the operator
+    # withdrew authority mid-run. It maps onto the existing
+    # AUTHORIZATION_FAILURE row (request_approval, requires_human, no
+    # silent retry) because Chapter 12.3's taxonomy has no distinct
+    # intentionally-stopped class; adding one would be a Project Truth
+    # change, proposed not made.
+    "KILL_FLAG_ACTIVE": "AUTHORIZATION_FAILURE",
     "SIDE_EFFECT_UNKNOWN": "SIDE_EFFECT_UNKNOWN",
     "EFFECT_UNKNOWN": "SIDE_EFFECT_UNKNOWN",
     "EFFECT_CONFLICT": "SIDE_EFFECT_UNKNOWN",
