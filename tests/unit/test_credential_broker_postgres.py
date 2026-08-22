@@ -16,12 +16,20 @@ from pathlib import Path
 import pytest
 
 from engine.capabilities.broker.service import CredentialBrokerService
+from engine.capabilities.kill_switch import (
+    ADMISSION_ENFORCEMENT_EVENT_TYPE,
+    CHECKOUT_ENFORCEMENT_EVENT_TYPE,
+    KILL_FLAG_REASON,
+    RUN_STOP_ARMED_EVENT_TYPE,
+)
 from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.capabilities.seed import seed_capabilities
 from engine.capabilities.service import CapabilityRegistryService
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
+from engine.events.repository import EventsRepository
 from engine.execution.service import ExecutionPlanService
+from engine.truth.db import open_unit_of_work
 from tests.support.db import new_engine
 from tests.support.execution_fixtures import build_execution_fixture
 
@@ -583,3 +591,268 @@ async def test_second_session_sees_the_exact_committed_credential_record(
         assert reloaded.secret_hash == issued.handle.secret_hash
     finally:
         await reader_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_armed_checkout_refusal_journals_event_atomically(
+    tmp_path: Path,
+) -> None:
+    """TASK A, checkout surface, against the real `events` table: the
+    kill-flag refusal journals `CapabilityKillFlagEnforced` in the SAME
+    transaction that revokes the run's held leases -- a fresh session
+    reads the committed event back after the typed refusal."""
+    engine = new_engine()
+    try:
+        fixture, _plan, leases, lease = await _active_lease_fixture(
+            engine, tmp_path, mission_slug="MISSION-CRED-KILL-JOURNAL-CHECKOUT"
+        )
+        leases.kill_switch.arm(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            worker_run_id=lease.worker_run_id,
+        )
+        with pytest.raises(DdeError) as excinfo:
+            await leases.require_active(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                worker_run_id=lease.worker_run_id,
+                capability_id="capability.run_local_process",
+            )
+        assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            events = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "worker_run", lease.worker_run_id
+            )
+            await uow.commit()
+        enforced = [
+            event
+            for event in events
+            if event.event_type == (CHECKOUT_ENFORCEMENT_EVENT_TYPE)
+        ]
+        assert len(enforced) == 1
+        assert enforced[0].payload["surface"] == "checkout"
+        assert enforced[0].payload["reason"] == KILL_FLAG_REASON
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_armed_admission_refusal_journals_event_atomically(
+    tmp_path: Path,
+) -> None:
+    """TASK A, credential-admission surface, against the real `events`
+    table: an armed stop's `issue()` refusal journals
+    `CredentialKillFlagEnforced` (aggregate = the lease) in the same
+    committed transaction, and derives no secret material."""
+    engine = new_engine()
+    try:
+        fixture, _plan, _leases, lease = await _active_lease_fixture(
+            engine, tmp_path, mission_slug="MISSION-CRED-KILL-JOURNAL-ADMISSION"
+        )
+        broker = CredentialBrokerService(engine)
+        broker._kill_switch.arm(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            worker_run_id=lease.worker_run_id,
+        )
+        with pytest.raises(DdeError) as excinfo:
+            await broker.issue(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                lease_id=lease.lease_id,
+                requested_by="system:test",
+                idempotency_key=f"issue-killed:{lease.lease_id}",
+            )
+        assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            events = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "capability_lease", lease.lease_id
+            )
+            await uow.commit()
+        enforced = [
+            event
+            for event in events
+            if event.event_type == (ADMISSION_ENFORCEMENT_EVENT_TYPE)
+        ]
+        assert len(enforced) == 1
+        assert enforced[0].payload["surface"] == "credential_admission"
+        assert enforced[0].payload["worker_run_id"] == str(lease.worker_run_id)
+        assert enforced[0].payload["capability_id"] == lease.capability_id
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_arm_run_stop_sweeps_leases_and_handles_in_one_transaction(
+    tmp_path: Path,
+) -> None:
+    """TASK B end-to-end against PostgreSQL: one shared unit of work arms
+    the stop -- two held leases (one ACTIVE, one GRANTED) land REVOKED
+    (reason kill_flag), the live handle bound to them is revoked via the
+    broker's existing transition, ONE CapabilityRunStopArmed summary
+    event commits, and a subsequent require_active still refuses
+    (backstop intact)."""
+    engine = new_engine()
+    try:
+        fixture, plan, leases, first = await _active_lease_fixture(
+            engine, tmp_path, mission_slug="MISSION-CRED-KILL-SWEEP"
+        )
+        # A second, still-GRANTED lease for the SAME run.
+        granted_2 = await leases.request(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            mission_id=fixture.mission.mission_id,
+            task_id=fixture.task.task_id,
+            execution_plan_id=plan.plan_id,
+            worker_run_id=first.worker_run_id,
+            capability_id="capability.workspace_filesystem",
+            capability_version="1",
+            requested_by="system:test",
+            idempotency_key=f"{first.worker_run_id}:fs",
+        )
+        assert granted_2.status == "GRANTED"
+        broker = CredentialBrokerService(engine)
+        issued = await broker.issue(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            lease_id=first.lease_id,
+            requested_by="system:test",
+            idempotency_key=f"issue-sweep:{first.lease_id}",
+        )
+        secret_value = issued.secret_value
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as shared:
+            revoked_leases = await leases.arm_run_stop(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                worker_run_id=first.worker_run_id,
+                uow=shared,
+            )
+            revoked_handles = await broker.revoke_handles_for_leases(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                lease_ids=[lease.lease_id for lease in revoked_leases],
+                reason=KILL_FLAG_REASON,
+                uow=shared,
+            )
+            await shared.commit()
+
+        assert {item.lease_id for item in revoked_leases} == {
+            first.lease_id,
+            granted_2.lease_id,
+        }
+        reloaded_first = await leases.get_lease(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            lease_id=first.lease_id,
+        )
+        reloaded_second = await leases.get_lease(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            lease_id=granted_2.lease_id,
+        )
+        assert reloaded_first.status == "REVOKED"
+        assert reloaded_first.revocation_reason == KILL_FLAG_REASON
+        assert reloaded_second.status == "REVOKED"
+        assert [handle.handle_id for handle in revoked_handles] == [
+            issued.handle.handle_id
+        ]
+        swept = await broker.get_handle(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            handle_id=issued.handle.handle_id,
+        )
+        assert swept.status == "REVOKED"
+        assert swept.revocation_reason == KILL_FLAG_REASON
+        assert secret_value is not None
+        assert (
+            await broker.verify(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                handle_id=swept.handle_id,
+                secret_value=secret_value,
+            )
+            is False
+        )
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            summaries = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "worker_run", first.worker_run_id
+            )
+            per_handle = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "credential_handle", issued.handle.handle_id
+            )
+            await uow.commit()
+        armed = [
+            event
+            for event in summaries
+            if event.event_type == (RUN_STOP_ARMED_EVENT_TYPE)
+        ]
+        assert len(armed) == 1
+        assert armed[0].payload["revoked_count"] == 2
+        assert set(armed[0].payload["revoked_lease_ids"]) == {
+            str(first.lease_id),
+            str(granted_2.lease_id),
+        }
+        assert any(event.event_type == "CredentialRevoked" for event in per_handle)
+
+        with pytest.raises(DdeError) as excinfo:
+            await leases.require_active(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                worker_run_id=first.worker_run_id,
+                capability_id="capability.run_local_process",
+            )
+        assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_disarmed_run_journals_no_kill_flag_events(tmp_path: Path) -> None:
+    """Disarmed behaviour unchanged: a run's whole lease lifecycle emits
+    no kill-flag enforcement journal of either surface."""
+    engine = new_engine()
+    try:
+        fixture, _plan, leases, lease = await _active_lease_fixture(
+            engine, tmp_path, mission_slug="MISSION-CRED-DISARMED"
+        )
+
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            events = await EventsRepository().list_events_for_aggregate(
+                uow.connection, "worker_run", lease.worker_run_id
+            )
+            await uow.commit()
+        assert not any(
+            event.event_type
+            in {
+                CHECKOUT_ENFORCEMENT_EVENT_TYPE,
+                ADMISSION_ENFORCEMENT_EVENT_TYPE,
+                RUN_STOP_ARMED_EVENT_TYPE,
+            }
+            for event in events
+        )
+    finally:
+        await engine.dispose()

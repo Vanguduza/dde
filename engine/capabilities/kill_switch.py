@@ -9,38 +9,43 @@ side-effecting call sites (`ScriptedWorkerAdapter.start` for filesystem +
 local-process, `WorkspaceService.snapshot` for git) already pass through,
 per call. This module adds a run-scoped kill flag to exactly that checkout:
 once set for a `(tenant_id, project_id, worker_run_id)`, every subsequent
-`require_active` for that run fails closed with typed
-`KILL_FLAG_ACTIVE`, and the first successful checkout after arming records
-the stop durably on the existing lease row -- no new table, no new state-
-machine status.
+`require_active` for that run fails closed with typed `KILL_FLAG_ACTIVE`,
+and the first successful checkout after arming records the stop durably on
+the existing lease rows -- no new table, no new state-machine status.
 
 **What is wired here vs disclosed as unwired.**
-- Wired: the flag is consulted inside `require_active`'s own transaction
-  (`_op`), so a mid-run `arm()` takes effect before the run's NEXT tool
-  call -- the same granularity the lease module already documents for
-  mid-run revocation ("no per-syscall interception without T2 containment;
-  an already-in-flight uninterruptible subprocess cannot be interrupted").
-- Wired: durable intent via the closest existing state -- the run's most
-  recent lease is transitioned to the chapter-named terminal status
-  `REVOKED` with `revocation_reason="kill_flag"`. The Chapter 9.2 state
-  machine already treats `REVOKED` as fail-closed forever; nothing new is
-  invented. If no lease exists yet, only the in-memory flag is set (there
-  is no row to stamp).
-- NOT wired (named honestly): network egress / broker credential paths are
-  separate admission surfaces and are not gated by this flag;
-  `CredentialBrokerService._require_active_lease` reads live rows directly
-  and does not consult it. The recovery matrix's distinct
-  intentionally-stopped attribution (research: "lands as INTENTIONALLY_
-  STOPPED, not FAILED") does not exist in Chapter 12.3's taxonomy; the
-  matrix maps `WORKER_CAPABILITY_DENIED` -> AUTHORIZATION_FAILURE ->
-  request_approval/requires_human, which is where a killed run's attempt
-  lands today -- adopting a new matrix row would be a Project Truth change,
-  proposed, not made here.
+- Wired: arming goes through the service layer -- `engine.capabilities.
+  lease_service.CapabilityLeaseService.arm_run_stop` registers the flag AND
+  performs an ACTIVE sweep in one transaction: every still-held lease of
+  the run transitions to the chapter-named terminal status `REVOKED` with
+  `revocation_reason="kill_flag"`, and ONE summary event is journaled. The
+  caller composing the stop pairs it with `CredentialBrokerService.
+  revoke_handles_for_leases` in the same unit of work so live handles die
+  at arm time too. The durable half of an intentional stop therefore
+  exists at arm time; it does not wait for (nor depend on) a later
+  refused call.
+- Wired: both refusal surfaces journal their enforcement -- a checkout
+  refusal emits `CapabilityKillFlagEnforced` and a credential-admission
+  refusal emits `CredentialKillFlagEnforced`, committed atomically with
+  their surrounding unit of work, so the audit trail shows every gate
+  actually firing even when the sweep already emptied the run's held set.
+- Wired: `require_active` keeps its own "revoke still-held leases on first
+  refusal" behaviour purely as a BACKSTOP for leases granted between arm
+  and the next checkout; the sweep-on-arm is primary.
+- NOT wired (named honestly): network egress is not gated by this flag.
+  The recovery matrix's distinct intentionally-stopped attribution
+  (research: "lands as INTENTIONALLY_STOPPED, not FAILED") does not exist
+  in Chapter 12.3's taxonomy; the matrix maps `WORKER_CAPABILITY_DENIED`
+  -> AUTHORIZATION_FAILURE -> request_approval/requires_human, which is
+  where a killed run's attempt lands today -- adopting a new matrix row
+  would be a Project Truth change, proposed, not made here.
 - Scope: the flag lives in the service process's memory. It is effective
   for any caller going through this service instance (the single writer of
   `capability_leases`) but is not itself persisted across process restarts;
-  the durable REVOKED row is what survives. A cross-process flag store
-  would need infrastructure Chapter 9 does not name.
+  the durable REVOKED rows and revoked handles are what survive. A
+  cross-process flag store would need infrastructure Chapter 9 does not
+  name -- a ledger-backed stop record is the planned durable replacement,
+  deferred until chartered.
 """
 
 from __future__ import annotations
@@ -50,11 +55,21 @@ from uuid import UUID
 
 KILL_FLAG_REASON = "kill_flag"
 
+#: Journal names for the two enforcement surfaces. Event types are open
+#: convention strings (`schemas/events/core_event.json`: free-form
+#: `event_type`, open `payload`); these follow the existing
+#: `CapabilityLease*`/`Credential*` naming families.
+CHECKOUT_ENFORCEMENT_EVENT_TYPE = "CapabilityKillFlagEnforced"
+ADMISSION_ENFORCEMENT_EVENT_TYPE = "CredentialKillFlagEnforced"
+RUN_STOP_ARMED_EVENT_TYPE = "CapabilityRunStopArmed"
+
 
 class KillSwitchRegistry:
     """In-memory, thread-safe registry of killed worker runs. Deliberately
-    tiny: the durable half of an intentional stop belongs to the lease row,
-    not to a second source of truth here."""
+    tiny: the durable half of an intentional stop belongs to the REVOKED
+    lease rows and revoked credential handles written by
+    `CapabilityLeaseService.arm_run_stop`'s sweep, not to a second source
+    of truth here."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()

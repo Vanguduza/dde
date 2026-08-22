@@ -8,10 +8,12 @@ Stage 1 side-effecting paths pass through (`engine.workers.scripted_adapter.
 ScriptedWorkerAdapter.start` for filesystem/local-process and
 `engine.workspaces.service.WorkspaceService.snapshot` for git). The kill
 flag is checked inside that checkout's transaction: arming a stop for a run
-takes effect before the run's NEXT tool call, not at attempt start. The
-first refused checkout durably transitions the run's most recent still-held
-lease to the chapter-named terminal status REVOKED with reason "kill_flag"
--- the closest existing Chapter 9.2 state, no new taxonomy invented.
+takes effect before the run's NEXT tool call, not at attempt start. Every
+refusal journals a `CapabilityKillFlagEnforced` event in its own
+transaction, and `arm_run_stop` performs the ACTIVE sweep -- every still-
+held lease to the chapter-named terminal status REVOKED with reason
+"kill_flag" plus one `CapabilityRunStopArmed` summary event -- the closest
+existing Chapter 9.2 state, no new taxonomy invented.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ import pytest
 from engine.capabilities.kill_switch import KILL_FLAG_REASON, KillSwitchRegistry
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
 from engine.capabilities.lease_service import CapabilityLeaseService
+from engine.capabilities.lease_states import HELD_LEASE_STATUSES
 from engine.contracts.capability_lease import CapabilityLease
 from engine.core.errors import DdeError
 
@@ -73,6 +76,16 @@ class FakeLeaseRepository(CapabilityLeaseRepository):
         self, connection: object, worker_run_id: object
     ) -> list[CapabilityLease]:
         return [item for item in self.leases if item.worker_run_id == worker_run_id]
+
+    async def list_held_for_run(
+        self, connection: object, worker_run_id: object
+    ) -> list[CapabilityLease]:
+        return [
+            item
+            for item in self.leases
+            if item.worker_run_id == worker_run_id
+            and item.status in HELD_LEASE_STATUSES
+        ]
 
     async def get_by_id(
         self, connection: object, lease_id: object
@@ -182,8 +195,9 @@ async def test_armed_kill_flag_refuses_checkout_of_a_held_lease() -> None:
     assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
     assert excinfo.value.details is not None
     assert excinfo.value.details["reason"] == KILL_FLAG_REASON
-    assert len(events.appended) == 1
+    assert len(events.appended) == 2
     assert events.appended[0]["event_type"] == "CapabilityLeaseRevoked"
+    assert events.appended[1]["event_type"] == "CapabilityKillFlagEnforced"
 
 
 async def test_first_refusal_durably_revokes_latest_held_lease() -> None:
@@ -343,3 +357,127 @@ def test_recovery_matrix_maps_kill_refusal_to_authorization_failure() -> None:
     assert decision.allow_new_worker_run is False
     assert decision.requires_human is True
     assert decision.action == "request_approval"
+
+
+async def test_refusal_journals_kill_flag_enforced_in_the_same_transaction() -> None:
+    """TASK A, checkout surface: an armed stop's refusal journals a
+    `CapabilityKillFlagEnforced` event through the injected EventService
+    with the repo's standard envelope -- aggregate = the run, payload
+    naming the checkout surface and the kill-flag reason. Ordering puts
+    the journal BEFORE the typed raise, inside the same `_op`, so a real
+    unit of work commits it atomically with the refusal."""
+    lease = _lease(status="ACTIVE")
+    service, _repo, events = _service([lease])
+    service.kill_switch.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
+
+    with pytest.raises(DdeError):
+        await service.require_active(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            worker_run_id=RUN,
+            capability_id="capability.run_local_process",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    enforced = [
+        e for e in events.appended if e["event_type"] == ("CapabilityKillFlagEnforced")
+    ]
+    assert len(enforced) == 1
+    event = enforced[0]
+    assert event["tenant_id"] == TENANT
+    assert event["project_id"] == PROJECT
+    assert event["aggregate_type"] == "worker_run"
+    assert event["aggregate_id"] == RUN
+    payload = event["payload"]
+    assert isinstance(payload, dict)
+    assert payload["surface"] == "checkout"
+    assert payload["reason"] == KILL_FLAG_REASON
+
+
+async def test_arm_run_stop_sweeps_every_held_lease_and_journals_one_summary() -> None:
+    """TASK B: arming the stop is the durable act. Multiple held leases
+    (one ACTIVE, one GRANTED) plus an already-terminal REVOKED row: the
+    sweep revokes exactly the held ones via the existing transition path,
+    leaves the terminal row untouched, registers the flag, journals ONE
+    summary event (aggregate = the run) carrying the revoked ids, and the
+    backstop still refuses a subsequent checkout."""
+    active = _lease(status="ACTIVE")
+    granted = _lease(status="GRANTED", capability_id="capability.workspace_filesystem")
+    already_revoked = _lease(
+        status="REVOKED", capability_id="capability.git_operations"
+    )
+    service, repo, events = _service([active, granted, already_revoked])
+
+    revoked = await service.arm_run_stop(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        worker_run_id=RUN,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert {item.lease_id for item in revoked} == {
+        active.lease_id,
+        granted.lease_id,
+    }
+    statuses = {item.lease_id: item.status for item in repo.leases}
+    assert statuses[active.lease_id] == "REVOKED"
+    assert statuses[granted.lease_id] == "REVOKED"
+    assert statuses[already_revoked.lease_id] == "REVOKED"  # untouched, was terminal
+    for lease_id in (active.lease_id, granted.lease_id):
+        stamped = repo.updates[str(lease_id)]
+        assert isinstance(stamped, dict)
+        assert stamped["revocation_reason"] == KILL_FLAG_REASON
+    assert service.kill_switch.is_killed(
+        tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN
+    )
+
+    summaries = [
+        e for e in events.appended if e["event_type"] == "CapabilityRunStopArmed"
+    ]
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary["aggregate_type"] == "worker_run"
+    assert summary["aggregate_id"] == RUN
+    payload = summary["payload"]
+    assert isinstance(payload, dict)
+    assert payload["revoked_count"] == 2
+    assert set(payload["revoked_lease_ids"]) == {
+        str(active.lease_id),
+        str(granted.lease_id),
+    }
+    per_lease = [
+        e for e in events.appended if e["event_type"] == ("CapabilityLeaseRevoked")
+    ]
+    assert len(per_lease) == 2
+
+    # Backstop intact: even after the sweep emptied the held set, the flag
+    # itself still refuses the next checkout.
+    with pytest.raises(DdeError) as excinfo:
+        await service.require_active(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            worker_run_id=RUN,
+            capability_id="capability.run_local_process",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+
+
+async def test_arm_run_stop_with_no_held_leases_still_journals_the_summary() -> None:
+    """A stop armed before any lease exists must still register the flag
+    and journal the (empty) sweep summary -- nothing fabricated, nothing
+    swallowed."""
+    service, _repo, events = _service([])
+    revoked = await service.arm_run_stop(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        worker_run_id=RUN,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert revoked == []
+    summaries = [
+        e for e in events.appended if e["event_type"] == "CapabilityRunStopArmed"
+    ]
+    assert len(summaries) == 1
+    payload = summaries[0]["payload"]
+    assert isinstance(payload, dict)
+    assert payload["revoked_count"] == 0
+    assert payload["revoked_lease_ids"] == []

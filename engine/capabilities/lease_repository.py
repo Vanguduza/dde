@@ -13,6 +13,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from engine.capabilities.lease_states import HELD_LEASE_STATUSES
 from engine.capabilities.lease_tables import capability_leases
 from engine.contracts.capability_lease import CapabilityLease
 
@@ -114,6 +115,25 @@ class CapabilityLeaseRepository:
         result = await connection.execute(
             select(capability_leases)
             .where(capability_leases.c.worker_run_id == worker_run_id)
+            .order_by(capability_leases.c.created_at.asc())
+        )
+        return [
+            CapabilityLease.model_validate(dict(row)) for row in result.mappings().all()
+        ]
+
+    async def list_held_for_run(
+        self, connection: AsyncConnection, worker_run_id: UUID
+    ) -> list[CapabilityLease]:
+        """Read-only candidate set for an intentional stop's sweep: every
+        lease of the run still authorising calls (`GRANTED`/`ACTIVE`,
+        Chapter 9.2). Terminal rows are excluded -- their status already
+        records what happened to them."""
+        result = await connection.execute(
+            select(capability_leases)
+            .where(
+                capability_leases.c.worker_run_id == worker_run_id,
+                capability_leases.c.status.in_(HELD_LEASE_STATUSES),
+            )
             .order_by(capability_leases.c.created_at.asc())
         )
         return [

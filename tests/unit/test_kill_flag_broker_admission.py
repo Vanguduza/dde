@@ -11,9 +11,11 @@ registry the lease checkout guard checks
 refuses `issue()`/`renew()` for the killed run with typed
 KILL_FLAG_ACTIVE BEFORE any credential material is derived -- closing the
 disclosed hole where a stopped run could still obtain fresh credential
-material after its last capability checkout. Already-issued handles are
-untouched by this gate: revocation semantics stay at checkout/verify
-time, exactly as before.
+material after its last capability checkout. Every refusal journals a
+`CredentialKillFlagEnforced` event in the refusing transaction, and live
+handles of a stopped run are revoked at arm time via
+`revoke_handles_for_leases` (the sweep half of an intentional stop),
+exactly as before at verify time otherwise.
 """
 
 from __future__ import annotations
@@ -44,6 +46,10 @@ OTHER_RUN = uuid4()
 MISSION = uuid4()
 TASK = uuid4()
 LEASE_ID = uuid4()
+
+#: The RecordingProvider's fixture secret -- asserted against in verify()
+#: checks only, never a real credential.
+FIXTURE_SECRET = "recording-provider-secret-value"  # noqa: S105 -- fixture value
 
 
 class RecordingEvents:
@@ -100,8 +106,8 @@ class FakeLeaseRepository(CapabilityLeaseRepository):
 
 class FakeHandleRepository(CredentialHandleRepository):
     """In-memory stand-in for `credential_handles`; only `insert_handle`,
-    `get_by_id` and `update_fields`, the members the tested paths touch,
-    are overridden."""
+    `get_by_id`, `update_fields` and `list_for_lease`, the members the
+    tested paths touch, are overridden."""
 
     def __init__(self) -> None:
         self.handles: list[CredentialHandle] = []
@@ -131,6 +137,11 @@ class FakeHandleRepository(CredentialHandleRepository):
                 self.handles[index] = CredentialHandle.model_validate(data)
                 return 1
         return 0
+
+    async def list_for_lease(
+        self, connection: object, lease_id: UUID
+    ) -> list[CredentialHandle]:
+        return [item for item in self.handles if item.lease_id == lease_id]
 
 
 class FakeCommandLedger:
@@ -327,7 +338,10 @@ async def test_armed_kill_flag_refuses_issue_and_derives_no_material() -> None:
     assert excinfo.value.details["reason"] == KILL_FLAG_REASON
     assert excinfo.value.details["worker_run_id"] == str(RUN)
     assert provider.issue_calls == []
-    assert events.appended == []
+    # The refusal's own enforcement journal is the ONLY event: no
+    # issuance happened, so nothing else was emitted.
+    assert len(events.appended) == 1
+    assert events.appended[0]["event_type"] == "CredentialKillFlagEnforced"
 
 
 async def test_armed_kill_flag_refuses_renewal_of_a_live_handle() -> None:
@@ -434,3 +448,141 @@ async def test_kill_flag_for_one_run_does_not_touch_other_runs() -> None:
         uow=FakeUOW(),  # type: ignore[arg-type]
     )
     assert issued.secret_value is not None
+
+
+async def test_refusal_journals_credential_admission_enforcement() -> None:
+    """TASK A, credential-admission surface: an armed stop's refusal
+    journals a `CredentialKillFlagEnforced` event through the injected
+    EventService with the repo's standard envelope -- aggregate = the
+    lease involved, payload naming the surface, the run and the
+    capability. Ordering puts the journal BEFORE the typed raise inside
+    `_require_active_lease`'s caller `_op`, so a real unit of work
+    commits it atomically with the refusal."""
+    broker, registry, provider, events, _handles = _service([_lease(worker_run_id=RUN)])
+    registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
+
+    with pytest.raises(DdeError):
+        await broker.issue(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            lease_id=LEASE_ID,
+            requested_by="test",
+            idempotency_key="issue:journalled",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert len(events.appended) == 1
+    event = events.appended[0]
+    assert event["tenant_id"] == TENANT
+    assert event["project_id"] == PROJECT
+    assert event["event_type"] == "CredentialKillFlagEnforced"
+    assert event["aggregate_type"] == "capability_lease"
+    assert event["aggregate_id"] == LEASE_ID
+    payload = event["payload"]
+    assert isinstance(payload, dict)
+    assert payload["surface"] == "credential_admission"
+    assert payload["worker_run_id"] == str(RUN)
+    assert payload["capability_id"] == "capability.run_local_process"
+    assert payload["reason"] == KILL_FLAG_REASON
+    # Still zero derivations: the journal precedes nothing secret-shaped.
+    assert provider.issue_calls == []
+
+
+async def test_disarmed_broker_journals_nothing_on_refusal_free_paths() -> None:
+    """With no flag armed anywhere, a POLICY_DENIED admission (REVOKED
+    lease) emits NO kill-flag journal -- the new event type marks kill
+    enforcement only, never generic denials."""
+    revoked = _lease(worker_run_id=RUN, status="REVOKED")
+    broker, _registry, _provider, events, _handles = _service([revoked])
+    with pytest.raises(DdeError):
+        await broker.issue(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            lease_id=revoked.lease_id,
+            requested_by="test",
+            idempotency_key="issue:no-kill-journal",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert events.appended == []
+
+
+async def test_revoke_handles_for_leases_kills_only_that_runs_live_handles() -> None:
+    """TASK B, handle half of the stop: `revoke_handles_for_leases`
+    revokes every still-ISSUED handle bound to the given leases through
+    the broker's existing REVOKED transition -- and nothing else. The
+    other run's handle stays live and its secret keeps verifying; the
+    stopped run's secret stops verifying immediately."""
+    killed_handle = _handle(worker_run_id=RUN)
+    survivor_lease_id = uuid4()
+    survivor = _handle(worker_run_id=OTHER_RUN)
+    survivor_data = survivor.model_dump()
+    survivor_data.update(handle_id=uuid4(), lease_id=survivor_lease_id)
+    survivor = CredentialHandle.model_validate(survivor_data)
+    leases = [
+        _lease(worker_run_id=RUN),
+        _lease(worker_run_id=OTHER_RUN, lease_id=survivor_lease_id),
+    ]
+    broker, registry, _provider, events, handles = _service(leases)
+    handles.handles.extend([killed_handle, survivor])
+    registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
+
+    revoked_handles = await broker.revoke_handles_for_leases(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        lease_ids=[LEASE_ID],
+        reason=KILL_FLAG_REASON,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert [item.handle_id for item in revoked_handles] == [killed_handle.handle_id]
+    statuses = {item.handle_id: item.status for item in handles.handles}
+    assert statuses[killed_handle.handle_id] == "REVOKED"
+    assert statuses[survivor.handle_id] == "ISSUED"
+
+    per_handle_events = [
+        e for e in events.appended if e["event_type"] == "CredentialRevoked"
+    ]
+    assert len(per_handle_events) == 1
+
+    assert (
+        await broker.verify(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            handle_id=killed_handle.handle_id,
+            secret_value=FIXTURE_SECRET,
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+        is False
+    )
+    assert (
+        await broker.verify(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            handle_id=survivor.handle_id,
+            secret_value=FIXTURE_SECRET,
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+        is True
+    )
+
+
+async def test_revoke_handles_for_leases_skips_non_live_rows() -> None:
+    """Idempotent re-arm behaviour: already-SUPERSEDED/EXPIRED/REVOKED
+    rows contribute nothing and raise nothing -- only live material is
+    transitioned."""
+    superseded = _handle(worker_run_id=RUN)
+    data = superseded.model_dump()
+    data.update(status="SUPERSEDED", superseded_by_handle_id=uuid4())
+    superseded = CredentialHandle.model_validate(data)
+    broker, _registry, _provider, events, handles = _service(
+        [_lease(worker_run_id=RUN)]
+    )
+    handles.handles.append(superseded)
+
+    revoked = await broker.revoke_handles_for_leases(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        lease_ids=[LEASE_ID],
+        reason=KILL_FLAG_REASON,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert revoked == []
+    assert all(event["event_type"] != "CredentialRevoked" for event in events.appended)

@@ -42,13 +42,19 @@ CapabilityLeaseService.require_active` checks at lease checkout (the
 shared module-level instance, never a second registry): an armed stop
 refuses `issue()`/`renew()` for that run with typed `KILL_FLAG_ACTIVE`
 before any credential material is derived, closing the former hole where
-a stopped run could still obtain fresh credential material. Honest
-limits: already-issued handles are untouched by this gate -- revocation
-semantics stay at checkout/verify time (`verify()` fails an armed run's
-presented secret only via the durable REVOKED row, not this in-memory
-flag), an in-flight subprocess holding a live secret cannot be
-interrupted, and the flag itself lives in process memory while the
-durable REVOKED lease row is what survives restarts.
+a stopped run could still obtain fresh credential material. The refusal
+is journaled -- a `CredentialKillFlagEnforced` event (aggregate = the
+lease involved, payload carrying `worker_run_id`, `capability_id` and
+`surface="credential_admission"`) commits atomically with the refusing
+transaction. Live material is handled by the stop, not the gate: the
+caller composing an intentional stop pairs `engine.capabilities.
+lease_service.CapabilityLeaseService.arm_run_stop` with this service's
+`revoke_handles_for_leases` in ONE shared unit of work, so the run's held
+leases and every still-live handle bound to them die together at arm time.
+Honest limits: an in-flight subprocess holding a live secret cannot be
+interrupted (T2/DDE-018), and the flag itself lives in process memory
+while the durable REVOKED lease rows and revoked handles are what survive
+restarts (ledger-backed stop record planned, deferred).
 
 **What this module does NOT do** -- deferred, not stubbed:
   - Wiring a real caller (`engine.workers`/`engine.workspaces`) to actually
@@ -90,7 +96,11 @@ from engine.capabilities.broker.states import (
     CREDENTIAL_HANDLE_TRANSITIONS,
     LIVE_HANDLE_STATUSES,
 )
-from engine.capabilities.kill_switch import KILL_FLAG_REASON, KillSwitchRegistry
+from engine.capabilities.kill_switch import (
+    ADMISSION_ENFORCEMENT_EVENT_TYPE,
+    KILL_FLAG_REASON,
+    KillSwitchRegistry,
+)
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
 from engine.capabilities.lease_service import SHARED_KILL_SWITCH
 from engine.contracts.capability_lease import CapabilityLease
@@ -445,6 +455,103 @@ class CredentialBrokerService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def revoke_handles_for_leases(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        lease_ids: list[UUID],
+        reason: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> list[CredentialHandle]:
+        """Revoke every still-`ISSUED` handle bound to the given leases,
+        in one transaction, through the broker's EXISTING `REVOKED`
+        transition (the same mechanics `revoke()`/`emergency_revoke()`
+        use -- provider-side invalidation first, durable local row
+        second, `CredentialRevoked` event third; no duplicated
+        transition logic). This is the handle half of an intentional
+        stop: the caller composing the stop pairs it with
+        `engine.capabilities.lease_service.
+        CapabilityLeaseService.arm_run_stop` in ONE shared unit of work,
+        passing this method the leases the sweep revokes, so a stopped
+        run's live credential material dies
+        at arm time instead of only failing at its next verify. Leases
+        with no live handles contribute nothing."""
+
+        async def _op(active: PostgresUnitOfWork) -> list[CredentialHandle]:
+            revoked: list[CredentialHandle] = []
+            for lease_id in lease_ids:
+                candidates = await self._repository.list_for_lease(
+                    active.connection, lease_id
+                )
+                for handle in candidates:
+                    if handle.status not in LIVE_HANDLE_STATUSES:
+                        continue
+                    revoked.append(
+                        await self._revoke_handle(
+                            active,
+                            tenant_id=tenant_id,
+                            project_id=project_id,
+                            handle=handle,
+                            reason=reason,
+                        )
+                    )
+            return revoked
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _revoke_handle(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        handle: CredentialHandle,
+        reason: str,
+    ) -> CredentialHandle:
+        """The one `ISSUED -> REVOKED` transition every revocation path
+        shares (`revoke`, `emergency_revoke`, `revoke_handles_for_leases`):
+        invalidate provider-side material (best effort -- see
+        `LocalSecretProvider.revoke`), durably stamp the local row, then
+        journal `CredentialRevoked`. Raises `VERSION_CONFLICT` on an
+        unknown row; a handle that lost its live status between the
+        caller's read and this write is the caller's to notice via the
+        state-machine `transition` guard."""
+        self._provider.revoke(handle.provider_ref)
+        next_status = transition(
+            handle.status, "REVOKED", CREDENTIAL_HANDLE_TRANSITIONS
+        )
+        now = self._clock.now()
+        rowcount = await self._repository.update_fields(
+            active.connection,
+            handle.handle_id,
+            fields={
+                "status": next_status,
+                "revoked_at": now,
+                "revocation_reason": reason,
+                "updated_at": now,
+            },
+        )
+        if rowcount != 1:
+            raise DdeError(
+                "VERSION_CONFLICT",
+                "Unknown credential handle",
+                details={"handle_id": str(handle.handle_id)},
+            )
+        updated = await self._require_handle(active, handle.handle_id)
+        await self._events.append(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_type="CredentialRevoked",
+            aggregate_type="credential_handle",
+            aggregate_id=updated.handle_id,
+            mission_id=updated.mission_id,
+            task_id=updated.task_id,
+            payload={"reason": reason},
+            uow=active,
+        )
+        return updated
+
     async def emergency_revoke(
         self,
         *,
@@ -474,42 +581,17 @@ class CredentialBrokerService:
                 mission_id=mission_id,
                 worker_run_id=worker_run_id,
             )
-            now = self._clock.now()
             revoked: list[CredentialHandle] = []
             for handle in candidates:
-                self._provider.revoke(handle.provider_ref)
-                next_status = transition(
-                    handle.status, "REVOKED", CREDENTIAL_HANDLE_TRANSITIONS
-                )
-                rowcount = await self._repository.update_fields(
-                    active.connection,
-                    handle.handle_id,
-                    fields={
-                        "status": next_status,
-                        "revoked_at": now,
-                        "revocation_reason": reason,
-                        "updated_at": now,
-                    },
-                )
-                if rowcount != 1:
-                    raise DdeError(
-                        "VERSION_CONFLICT",
-                        "Unknown credential handle",
-                        details={"handle_id": str(handle.handle_id)},
+                revoked.append(
+                    await self._revoke_handle(
+                        active,
+                        tenant_id=tenant_id,
+                        project_id=project_id,
+                        handle=handle,
+                        reason=reason,
                     )
-                updated = await self._require_handle(active, handle.handle_id)
-                await self._events.append(
-                    tenant_id=tenant_id,
-                    project_id=project_id,
-                    event_type="CredentialEmergencyRevoked",
-                    aggregate_type="credential_handle",
-                    aggregate_id=updated.handle_id,
-                    mission_id=updated.mission_id,
-                    task_id=updated.task_id,
-                    payload={"reason": reason},
-                    uow=active,
                 )
-                revoked.append(updated)
             return revoked
 
         return await self._run(uow, tenant_id, project_id, _op)
@@ -596,9 +678,14 @@ class CredentialBrokerService:
         `KILL_FLAG_ACTIVE` -- the same code `CapabilityLeaseService.
         require_active` raises at checkout -- BEFORE this method returns,
         so no caller of `issue()`/`renew()` derives or receives secret
-        material for a stopped run. Revocation semantics are unchanged:
-        already-issued handles stay untouched here (they fail closed at
-        their own use sites); only NEW issuance is gated."""
+        material for a stopped run. The refusal journals a
+        `CredentialKillFlagEnforced` event (aggregate = this lease)
+        committed atomically with the refusing transaction. Revocation
+        semantics are unchanged here: live handles of a stopped run are
+        revoked by the arm-time stop itself (the caller pairs
+        `CapabilityLeaseService.arm_run_stop` with
+        `CredentialBrokerService.revoke_handles_for_leases` in one shared
+        unit of work); this gate only refuses NEW issuance."""
         lease = await self._lease_repository.get_by_id(active.connection, lease_id)
         if lease is None:
             raise DdeError(
@@ -611,6 +698,31 @@ class CredentialBrokerService:
             project_id=lease.project_id,
             worker_run_id=lease.worker_run_id,
         ):
+            await self._events.append(
+                tenant_id=lease.tenant_id,
+                project_id=lease.project_id,
+                event_type=ADMISSION_ENFORCEMENT_EVENT_TYPE,
+                aggregate_type="capability_lease",
+                aggregate_id=lease.lease_id,
+                mission_id=lease.mission_id,
+                task_id=lease.task_id,
+                payload={
+                    "surface": "credential_admission",
+                    "worker_run_id": str(lease.worker_run_id),
+                    "capability_id": lease.capability_id,
+                    "reason": KILL_FLAG_REASON,
+                },
+                uow=active,
+            )
+            # The journal must survive the typed refusal it documents:
+            # commit before raising -- `PostgresUnitOfWork.commit` is
+            # idempotent, so the caller's exception-path rollback becomes
+            # a no-op -- the same "persist real evidence, then re-raise"
+            # shape `CapabilityLeaseService._run` uses. Safe at exactly
+            # this point because admission is the FIRST step of
+            # `issue()`/`renew()`: no other write of the caller's `_op`
+            # can precede the refusal.
+            await active.commit()
             raise DdeError(
                 "KILL_FLAG_ACTIVE",
                 "Kill flag is armed for this worker run -- credential "
