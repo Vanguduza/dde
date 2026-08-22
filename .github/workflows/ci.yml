@@ -60,3 +60,24 @@ jobs:
         run: |
           uv run python -m scripts.generate_contracts
           git diff --exit-code -- engine/contracts schemas/sql schemas/api/openapi.yaml docs/blueprint/generated
+
+  windows:
+    # The ubuntu ci job is authoritative (services, migrations, integration).
+    # This job proves the repo stays green on a bare Windows host: same lint,
+    # typecheck and contract drift gates, plus the pure unit suite via
+    # `just test-unit` (no PostgreSQL/Redis required).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: extractions/setup-just@v2
+      - name: Install
+        run: uv sync --group dev
+      - name: Lint
+        run: just lint
+      - name: Typecheck
+        run: just typecheck
+      - name: Pure unit tests
+        run: just test-unit

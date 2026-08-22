@@ -24,3 +24,12 @@ build/
 # Alembic / local data
 *.log
 dump.rdb
+
+# Node / VS Code extension builds
+node_modules/
+*.vsix
+
+# .NET build artifacts (DdeSetupWizard)
+[Bb]in/
+[Oo]bj/
+publish/

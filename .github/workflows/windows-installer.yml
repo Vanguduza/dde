@@ -1,0 +1,77 @@
+name: windows-installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Installer version (SemVer)
+        required: true
+        default: "0.1.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-installer:
+    name: Build signed DDE-Complete-Setup.exe
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $v = "${{ inputs.version }}"
+          } else {
+            $v = "${{ github.ref_name }}".TrimStart("v")
+          }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Configure code signing
+        if: env.DDE_SIGNING_CERT_BASE64 != ''
+        shell: pwsh
+        env:
+          DDE_SIGNING_CERT_BASE64: ${{ secrets.DDE_SIGNING_CERT_BASE64 }}
+          DDE_SIGNING_CERT_PASSWORD: ${{ secrets.DDE_SIGNING_CERT_PASSWORD }}
+        run: |
+          if ($env:DDE_SIGNING_CERT_BASE64) {
+            Write-Host "Signing certificate secret present."
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build complete installer (DDE Code + Core + wizard)
+        shell: pwsh
+        env:
+          DDE_SIGNING_CERT_BASE64: ${{ secrets.DDE_SIGNING_CERT_BASE64 }}
+          DDE_SIGNING_CERT_PASSWORD: ${{ secrets.DDE_SIGNING_CERT_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          pwsh -File packaging/windows/scripts/Build-Installer.ps1 -Version "${{ steps.ver.outputs.version }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DDE-Complete-Setup-${{ steps.ver.outputs.version }}
+          path: |
+            dist/windows/DDE-Complete-Setup-*.exe
+            dist/windows/payload/dde-core.tar
+          if-no-files-found: error

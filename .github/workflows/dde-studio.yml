@@ -1,0 +1,37 @@
+name: DDE Studio
+
+on:
+  push:
+    paths:
+      - "interfaces/dde-studio/**"
+      - ".github/workflows/dde-studio.yml"
+  pull_request:
+    paths:
+      - "interfaces/dde-studio/**"
+      - ".github/workflows/dde-studio.yml"
+
+jobs:
+  compile:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: interfaces/dde-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: interfaces/dde-studio/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck / compile extension
+        run: npm run check
+      - name: Emit JS
+        run: npm run compile
+      - name: Install desktop
+        working-directory: interfaces/dde-studio/desktop
+        run: npm ci
+      - name: Typecheck desktop
+        working-directory: interfaces/dde-studio/desktop
+        run: npm run check

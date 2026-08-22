@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run DDE Studio Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/interfaces/dde-studio"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/interfaces/dde-studio/out/**/*.js"
+      ],
+      "preLaunchTask": "dde-studio-compile"
+    }
+  ]
+}

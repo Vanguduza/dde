@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dde-studio-compile",
+      "type": "shell",
+      "command": "npm run compile",
+      "options": {
+        "cwd": "${workspaceFolder}/interfaces/dde-studio"
+      },
+      "group": "build",
+      "problemMatcher": "$tsc"
+    }
+  ]
+}
