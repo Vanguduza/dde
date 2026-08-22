@@ -90,6 +90,39 @@ def _run_request_hash(*, seed: str, scenario_classes: tuple[str, ...]) -> str:
     )
 
 
+def _metrics_payload(metrics: PolicyMetrics) -> dict[str, Any]:
+    """Serialize one policy's measured metrics for the JSONB payload."""
+    return {
+        "decisions": metrics.decisions,
+        "successes": metrics.successes,
+        "wasted_accepts": metrics.wasted_accepts,
+        "missed_passes": metrics.missed_passes,
+        "correct_rejections": metrics.correct_rejections,
+        "routed_rate": metrics.routed_rate,
+        "success_yield": metrics.success_yield,
+        "wasted_accept_rate": metrics.wasted_accept_rate,
+        "gate_fail_rate": metrics.gate_fail_rate,
+        "mean_cost_seconds": metrics.mean_cost,
+        "cost_samples": metrics.cost_samples,
+    }
+
+
+def _metrics_from_payload(payload: dict[str, Any]) -> PolicyMetrics:
+    return PolicyMetrics(
+        decisions=int(payload["decisions"]),
+        successes=int(payload["successes"]),
+        wasted_accepts=int(payload["wasted_accepts"]),
+        missed_passes=int(payload["missed_passes"]),
+        correct_rejections=int(payload["correct_rejections"]),
+        routed_rate=float(payload["routed_rate"]),
+        success_yield=float(payload["success_yield"]),
+        wasted_accept_rate=float(payload["wasted_accept_rate"]),
+        gate_fail_rate=float(payload["gate_fail_rate"]),
+        mean_cost=payload["mean_cost_seconds"],
+        cost_samples=int(payload["cost_samples"]),
+    )
+
+
 def _decision_from_run(run: RoutingSimulationRun) -> ShadowPromotionDecision:
     """Rehydrate the measured verdict from a replayed idempotent run row.
     The decision is fully derived from the persisted `scenario_results`
@@ -100,21 +133,11 @@ def _decision_from_run(run: RoutingSimulationRun) -> ShadowPromotionDecision:
     deltas = cast("dict[str, Any]", result["deltas"])
     return ShadowPromotionDecision(
         promoted=bool(result["passed"]),
-        baseline=PolicyMetrics(
-            decisions=int(baseline["decisions"]),
-            accept_rate=float(baseline["accept_rate"]),
-            gate_fail_rate=float(baseline["gate_fail_rate"]),
-            mean_cost=baseline["mean_cost_seconds"],
-            cost_samples=int(baseline["cost_samples"]),
-        ),
-        candidate=PolicyMetrics(
-            decisions=int(candidate["decisions"]),
-            accept_rate=float(candidate["accept_rate"]),
-            gate_fail_rate=float(candidate["gate_fail_rate"]),
-            mean_cost=candidate["mean_cost_seconds"],
-            cost_samples=int(candidate["cost_samples"]),
-        ),
-        accept_rate_delta=float(deltas["accept_rate_delta"]),
+        baseline=_metrics_from_payload(baseline),
+        candidate=_metrics_from_payload(candidate),
+        success_yield_delta=float(deltas["success_yield_delta"]),
+        routed_rate_delta=float(deltas["routed_rate_delta"]),
+        wasted_accept_delta=float(deltas["wasted_accept_delta"]),
         cost_delta=deltas["cost_delta_seconds"],
         gate_fail_delta=float(deltas["gate_fail_delta"]),
         cost_basis=str(result["cost_basis"]),
@@ -317,11 +340,13 @@ class RoutingSimulationService:
 
         The candidate is scored against the real `routing_decision_outcomes`
         rows for `tenant_id`/`project_id` (or the caller-supplied `outcomes`,
-        for pure evaluation), producing measured accept-rate, cost and
-        gate-fail deltas. Promotion requires: candidate strictly beats
-        baseline on accept-rate AND cost non-regression within
+        for pure evaluation), producing measured quadrant counts and
+        success-yield, wasted-accept, cost and gate-fail deltas. Promotion
+        requires: candidate `success_yield` strictly beats baseline AND its
+        `wasted_accept_rate` does not regress beyond
+        `request.wasted_accept_tolerance` AND cost does not regress within
         `request.max_cost_regression` AND the caller's pre-registered
-        rollback trigger staying quiet. Idempotent through the same
+        rollback trigger stays quiet. Idempotent through the same
         CommandLedger every other mutation in this codebase uses.
         """
         if not request.candidate_policy:
@@ -377,22 +402,30 @@ class RoutingSimulationService:
                 {
                     "scenario_class": SHADOW_PROMOTION_RUN_KIND,
                     "passed": decision.promoted,
-                    "baseline_metrics": {
-                        "decisions": decision.baseline.decisions,
-                        "accept_rate": decision.baseline.accept_rate,
-                        "gate_fail_rate": decision.baseline.gate_fail_rate,
-                        "mean_cost_seconds": decision.baseline.mean_cost,
-                        "cost_samples": decision.baseline.cost_samples,
-                    },
-                    "candidate_metrics": {
-                        "decisions": decision.candidate.decisions,
-                        "accept_rate": decision.candidate.accept_rate,
-                        "gate_fail_rate": decision.candidate.gate_fail_rate,
-                        "mean_cost_seconds": decision.candidate.mean_cost,
-                        "cost_samples": decision.candidate.cost_samples,
+                    "baseline_metrics": _metrics_payload(decision.baseline),
+                    "candidate_metrics": _metrics_payload(decision.candidate),
+                    "quadrants": {
+                        "baseline": {
+                            "successes": decision.baseline.successes,
+                            "wasted_accepts": decision.baseline.wasted_accepts,
+                            "missed_passes": decision.baseline.missed_passes,
+                            "correct_rejections": (
+                                decision.baseline.correct_rejections
+                            ),
+                        },
+                        "candidate": {
+                            "successes": decision.candidate.successes,
+                            "wasted_accepts": decision.candidate.wasted_accepts,
+                            "missed_passes": decision.candidate.missed_passes,
+                            "correct_rejections": (
+                                decision.candidate.correct_rejections
+                            ),
+                        },
                     },
                     "deltas": {
-                        "accept_rate_delta": decision.accept_rate_delta,
+                        "success_yield_delta": decision.success_yield_delta,
+                        "routed_rate_delta": decision.routed_rate_delta,
+                        "wasted_accept_delta": decision.wasted_accept_delta,
                         "cost_delta_seconds": decision.cost_delta,
                         "gate_fail_delta": decision.gate_fail_delta,
                     },
@@ -428,7 +461,8 @@ class RoutingSimulationService:
                 payload={
                     "run_kind": SHADOW_PROMOTION_RUN_KIND,
                     "promoted": decision.promoted,
-                    "accept_rate_delta": decision.accept_rate_delta,
+                    "success_yield_delta": decision.success_yield_delta,
+                    "wasted_accept_delta": decision.wasted_accept_delta,
                     "gate_fail_delta": decision.gate_fail_delta,
                     "rollback_trigger_fired": decision.rollback_trigger_fired,
                 },

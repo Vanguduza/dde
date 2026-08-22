@@ -119,18 +119,21 @@ async def test_shadow_promotion_records_measured_deltas_and_verdict(
     tmp_path: Path,
 ) -> None:
     """Seed four real outcome rows (3 pass, 1 gate-failed), evaluate a
-    candidate that accepts three of the four at a 0.9 floor, and prove the
+    candidate that routes three of the four at a 0.9 floor, and prove the
     persisted run row carries `run_kind="shadow_promotion"`, the measured
-    deltas, and a promoted=True verdict -- without touching any live
-    routing state.
+    quadrant counts and deltas, and a promoted=True verdict -- without
+    touching any live routing state.
 
-    Policy direction: `shadow_promotion.replay()` accepts a row only when
-    it really passed AND its confidence clears the policy's floor, so a
-    candidate can only *improve* accept-rate by being more permissive than
-    the baseline. The baseline here holds a 0.95 floor (it accepts only
-    the 1.0-confidence pass), the candidate widens to 0.9 (picking up the
-    two mid-confidence passes), and promotion requires the measured
-    accept-rate gain, cost non-regression, and a quiet rollback trigger."""
+    Policy direction under the honest semantics: `replay()` keeps the
+    policy's decision (`routed = confidence >= floor`) apart from ground
+    truth (`actual_verified_outcome`), and promotion keys on
+    `success_yield` -- routed-and-passed over ALL decisions. The baseline
+    here holds a 0.95 floor (it routes only the 1.0-confidence pass), the
+    candidate widens to 0.9 (also routing the two mid-confidence passes,
+    which really passed), so success_yield genuinely rises from 1/4 to
+    3/4 while the doomed low-confidence failure stays unrouted by both.
+    Promotion additionally requires wasted-accept non-regression, cost
+    non-regression, and a quiet rollback trigger."""
     root = repo_root()
     db_engine = new_engine()
     workspace = None
@@ -234,9 +237,16 @@ async def test_shadow_promotion_records_measured_deltas_and_verdict(
         assert run.scenario_classes == [SHADOW_PROMOTION_RUN_KIND]
         assert decision.promoted is True
         assert decision.baseline.decisions == 4
-        assert decision.baseline.accept_rate == pytest.approx(1 / 4)
-        assert decision.candidate.accept_rate == pytest.approx(3 / 4)
-        assert decision.accept_rate_delta > 0
+        assert decision.baseline.successes == 1
+        assert decision.baseline.missed_passes == 2
+        assert decision.candidate.successes == 3
+        assert decision.candidate.wasted_accepts == 0
+        assert decision.candidate.missed_passes == 0
+        assert decision.candidate.correct_rejections == 1
+        assert decision.baseline.success_yield == pytest.approx(1 / 4)
+        assert decision.candidate.success_yield == pytest.approx(3 / 4)
+        assert decision.success_yield_delta == pytest.approx(0.5)
+        assert decision.wasted_accept_delta <= 0.0
         assert decision.cost_delta is not None
         assert decision.rollback_trigger_fired is False
 
@@ -253,8 +263,10 @@ async def test_shadow_promotion_records_measured_deltas_and_verdict(
         result = persisted.scenario_results[0]
         assert result["scenario_class"] == SHADOW_PROMOTION_RUN_KIND
         assert result["passed"] is True
-        assert result["candidate_metrics"]["accept_rate"] == pytest.approx(3 / 4)
-        assert result["deltas"]["accept_rate_delta"] == decision.accept_rate_delta
+        assert result["candidate_metrics"]["success_yield"] == pytest.approx(3 / 4)
+        assert result["candidate_metrics"]["wasted_accepts"] == 0
+        assert result["quadrants"]["candidate"]["successes"] == 3
+        assert result["deltas"]["success_yield_delta"] == decision.success_yield_delta
         assert "actual_token_cost" in persisted.disclosed_gaps[0]
 
         # Idempotent replay returns the same durable row.
