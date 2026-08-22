@@ -53,3 +53,23 @@ chapter before changing a contract.
 ## When blocked
 Say so, state the smallest decision that would unblock you, and stop. Do not invent a
 contract. Do not implement a "temporary" alternative.
+
+## Mechanical commit helpers
+`scripts/commit_if_green.ps1` (Windows) and `scripts/commit_if_green.sh` (Linux/
+Codespaces/CI) run the exact check list from the justfile `check` recipe (`ruff
+check`, `ruff format --check`, `mypy`, `pytest tests/unit tests/contract
+tests/recovery`, `generate_contracts --check`, `pytest tests/contract`) and, only
+if every check passes, stage changes, commit with a caller-supplied message, and
+push to the current branch's upstream (creating it with `-u origin HEAD` on first
+push) — one invocation instead of separate lint/typecheck/test/add/commit/push
+calls. They fail fast with no git operations at all on the first failing check,
+and refuse to create an empty commit if nothing is staged.
+
+These scripts automate **only** the mechanical "run checks, then commit+push"
+step. They are explicitly invoked, never a git hook, and they are **not** a
+substitute for the independent blueprint chapter-gate review that
+`.cursor/rules/mission-chapter-gate.mdc` requires before any chartered DDE-N
+mission can be declared done. A green exit from either script means CI is green;
+it says nothing about whether a blueprint chapter's MUST/shall/recovery rules are
+actually wired at a production call site. Do not treat `commit_if_green` exiting
+0 as chapter sign-off.
