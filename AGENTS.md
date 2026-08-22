@@ -54,6 +54,13 @@ chapter before changing a contract.
 Say so, state the smallest decision that would unblock you, and stop. Do not invent a
 contract. Do not implement a "temporary" alternative.
 
+## Gap-closure record (read before re-implementing infrastructure)
+`docs/planning/gap-closure-record.md` is the authoritative log of which
+infrastructure gaps (repo hygiene, Windows dev loop, CLI `--json`, dde-studio
+Gateway client, telemetry/adapter/certification state) were audited, closed,
+or left open with named owners. Check it before implementing any of those;
+do not duplicate closed items and do not silently close owner-named ones.
+
 ## Mechanical commit helpers
 `scripts/commit_if_green.ps1` (Windows) and `scripts/commit_if_green.sh` (Linux/
 Codespaces/CI) run the exact check list from the justfile `check` recipe (`ruff
