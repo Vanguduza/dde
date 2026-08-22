@@ -35,6 +35,21 @@ caller that loses a freshly issued secret before consuming it must
 `revoke()` the handle and issue a new one; this is the correct, secure
 behaviour for a one-time secret, not a gap.
 
+**Kill flag at credential admission (research §6).** The admission seam
+`_require_active_lease` additionally consults the SAME process-wide
+kill-flag registry `engine.capabilities.lease_service.
+CapabilityLeaseService.require_active` checks at lease checkout (the
+shared module-level instance, never a second registry): an armed stop
+refuses `issue()`/`renew()` for that run with typed `KILL_FLAG_ACTIVE`
+before any credential material is derived, closing the former hole where
+a stopped run could still obtain fresh credential material. Honest
+limits: already-issued handles are untouched by this gate -- revocation
+semantics stay at checkout/verify time (`verify()` fails an armed run's
+presented secret only via the durable REVOKED row, not this in-memory
+flag), an in-flight subprocess holding a live secret cannot be
+interrupted, and the flag itself lives in process memory while the
+durable REVOKED lease row is what survives restarts.
+
 **What this module does NOT do** -- deferred, not stubbed:
   - Wiring a real caller (`engine.workers`/`engine.workspaces`) to actually
     request a credential before performing a side effect. None of Stage 1's
@@ -75,7 +90,9 @@ from engine.capabilities.broker.states import (
     CREDENTIAL_HANDLE_TRANSITIONS,
     LIVE_HANDLE_STATUSES,
 )
+from engine.capabilities.kill_switch import KILL_FLAG_REASON, KillSwitchRegistry
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
+from engine.capabilities.lease_service import SHARED_KILL_SWITCH
 from engine.contracts.capability_lease import CapabilityLease
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.credential_handle import CredentialHandle
@@ -125,6 +142,7 @@ class CredentialBrokerService:
         commands: CommandLedger | None = None,
         clock: Clock | None = None,
         provider: CredentialProvider | None = None,
+        kill_switch: KillSwitchRegistry | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or CredentialHandleRepository()
@@ -133,6 +151,12 @@ class CredentialBrokerService:
         self._commands = commands or CommandLedger(engine)
         self._clock = clock or SystemClock()
         self._provider: CredentialProvider = provider or LocalSecretProvider()
+        #: Kill flag consulted at credential admission (see
+        #: `_require_active_lease`). Defaults to the SAME process-wide
+        #: registry `CapabilityLeaseService` checks at lease checkout --
+        #: never a second one -- so arming a stop through either service
+        #: gates both surfaces.
+        self._kill_switch = kill_switch or SHARED_KILL_SWITCH
 
     async def _run(
         self,
@@ -565,13 +589,37 @@ class CredentialBrokerService:
         and whose `expires_at` has not yet passed -- a `GRANTED` (never
         activated), `DENIED`, `REVOKED`, `EXPIRED` or `CONSUMED` lease is
         denied identically, and a lease unknown to this tenant/project (RLS
-        filters it to `None`) is denied the same way."""
+        filters it to `None`) is denied the same way.
+
+        Kill flag (research §6): once the freshly-read row names a run
+        whose kill switch is armed, admission is refused with typed
+        `KILL_FLAG_ACTIVE` -- the same code `CapabilityLeaseService.
+        require_active` raises at checkout -- BEFORE this method returns,
+        so no caller of `issue()`/`renew()` derives or receives secret
+        material for a stopped run. Revocation semantics are unchanged:
+        already-issued handles stay untouched here (they fail closed at
+        their own use sites); only NEW issuance is gated."""
         lease = await self._lease_repository.get_by_id(active.connection, lease_id)
         if lease is None:
             raise DdeError(
                 "POLICY_DENIED",
                 "Unknown capability lease -- fail closed",
                 details={"lease_id": str(lease_id)},
+            )
+        if lease.worker_run_id is not None and self._kill_switch.is_killed(
+            tenant_id=lease.tenant_id,
+            project_id=lease.project_id,
+            worker_run_id=lease.worker_run_id,
+        ):
+            raise DdeError(
+                "KILL_FLAG_ACTIVE",
+                "Kill flag is armed for this worker run -- credential "
+                "admission refused",
+                details={
+                    "worker_run_id": str(lease.worker_run_id),
+                    "capability_id": lease.capability_id,
+                    "reason": KILL_FLAG_REASON,
+                },
             )
         if lease.status != "ACTIVE":
             raise DdeError(

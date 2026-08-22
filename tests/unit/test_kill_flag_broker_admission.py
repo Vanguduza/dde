@@ -1,0 +1,436 @@
+"""Kill flag at credential-broker admission (research §6 gap closure) --
+pure unit tests over the real `CredentialBrokerService` admission gate
+(`_require_active_lease`) with fake repositories/events/ledger, no
+PostgreSQL.
+
+Production seam under test: `engine.capabilities.broker.service.
+CredentialBrokerService._require_active_lease` re-reads the lease row live
+inside every admission and now consults the SAME process-wide kill-flag
+registry the lease checkout guard checks
+(`engine.capabilities.lease_service.SHARED_KILL_SWITCH`). An armed stop
+refuses `issue()`/`renew()` for the killed run with typed
+KILL_FLAG_ACTIVE BEFORE any credential material is derived -- closing the
+disclosed hole where a stopped run could still obtain fresh credential
+material after its last capability checkout. Already-issued handles are
+untouched by this gate: revocation semantics stay at checkout/verify
+time, exactly as before.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
+
+import pytest
+
+from engine.capabilities.broker.provider import (
+    CredentialScope,
+    ProviderIssuedCredential,
+)
+from engine.capabilities.broker.repository import CredentialHandleRepository
+from engine.capabilities.broker.service import CredentialBrokerService
+from engine.capabilities.kill_switch import KILL_FLAG_REASON, KillSwitchRegistry
+from engine.capabilities.lease_repository import CapabilityLeaseRepository
+from engine.contracts.capability_lease import CapabilityLease
+from engine.contracts.command_idempotency import CommandIdempotency
+from engine.contracts.credential_handle import CredentialHandle
+from engine.core.errors import DdeError
+from engine.core.hashing import sha256_hex
+
+TENANT = uuid4()
+PROJECT = uuid4()
+RUN = uuid4()
+OTHER_RUN = uuid4()
+MISSION = uuid4()
+TASK = uuid4()
+LEASE_ID = uuid4()
+
+
+class RecordingEvents:
+    """No-op stand-in for `engine.events.service.EventService.append`.
+    Records calls so tests can assert a kill-flag refusal emits nothing --
+    the refusal precedes any mutation, unlike the checkout path which
+    durably revokes."""
+
+    def __init__(self) -> None:
+        self.appended: list[dict[str, object]] = []
+
+    async def append(self, **kwargs: object) -> None:
+        self.appended.append(dict(kwargs))
+
+
+class RecordingProvider:
+    """Stand-in for `LocalSecretProvider` that records every `issue` call,
+    so tests can assert an armed stop derives NO secret material at all --
+    not merely that derived material went undelivered."""
+
+    provider_id = "recording_test"
+
+    def __init__(self) -> None:
+        self.issue_calls: list[CredentialScope] = []
+
+    def issue(self, scope: CredentialScope) -> ProviderIssuedCredential:
+        self.issue_calls.append(scope)
+        return ProviderIssuedCredential(
+            secret_value="recording-provider-secret-value",  # noqa: S106 -- fixture value
+            provider_ref=None,
+        )
+
+    def revoke(self, provider_ref: str | None) -> None:
+        return None
+
+
+class FakeLeaseRepository(CapabilityLeaseRepository):
+    """In-memory stand-in for the lease row store; only `get_by_id`, the
+    one member `_require_active_lease` touches, is overridden. The base
+    class is subclassed so any member this file forgets to fake fails
+    loudly instead of silently passing."""
+
+    def __init__(self, leases: list[CapabilityLease]) -> None:
+        self.leases = leases
+
+    async def get_by_id(
+        self, connection: object, lease_id: object
+    ) -> CapabilityLease | None:
+        for item in self.leases:
+            if item.lease_id == lease_id:
+                return item
+        return None
+
+
+class FakeHandleRepository(CredentialHandleRepository):
+    """In-memory stand-in for `credential_handles`; only `insert_handle`,
+    `get_by_id` and `update_fields`, the members the tested paths touch,
+    are overridden."""
+
+    def __init__(self) -> None:
+        self.handles: list[CredentialHandle] = []
+
+    async def insert_handle(self, connection: object, record: CredentialHandle) -> None:
+        self.handles.append(record)
+
+    async def get_by_id(
+        self, connection: object, handle_id: UUID
+    ) -> CredentialHandle | None:
+        for item in self.handles:
+            if item.handle_id == handle_id:
+                return item
+        return None
+
+    async def update_fields(
+        self,
+        connection: object,
+        handle_id: UUID,
+        *,
+        fields: dict[str, object],
+    ) -> int:
+        for index, item in enumerate(self.handles):
+            if item.handle_id == handle_id:
+                data = item.model_dump()
+                data.update(fields)
+                self.handles[index] = CredentialHandle.model_validate(data)
+                return 1
+        return 0
+
+
+class FakeCommandLedger:
+    """Always-new stand-in for `engine.events.idempotency.CommandLedger`:
+    every `begin` claims the key, mirroring the first-call branch of the
+    guarded body. Replays are out of scope here -- the postgres suite pins
+    them."""
+
+    def __init__(self) -> None:
+        self.completed: list[str] = []
+
+    async def begin(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        idempotency_key: str,
+        request_hash: str,
+        uow: object = None,
+    ) -> tuple[CommandIdempotency, bool]:
+        now = datetime.now(UTC)
+        record = CommandIdempotency(
+            command_id=uuid4(),
+            tenant_id=tenant_id,
+            project_id=project_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            status="in_progress",
+            result=None,
+            expires_at=now + timedelta(days=30),
+            created_at=now,
+            updated_at=now,
+        )
+        return record, True
+
+    async def complete(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        command_id: UUID,
+        result: dict[str, object],
+        uow: object = None,
+    ) -> CommandIdempotency:
+        self.completed.append(str(command_id))
+        now = datetime.now(UTC)
+        return CommandIdempotency(
+            command_id=command_id,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            idempotency_key=f"completed:{command_id}",
+            request_hash="hash",
+            status="completed",
+            result=result,
+            expires_at=now + timedelta(days=30),
+            created_at=now,
+            updated_at=now,
+        )
+
+
+class FakeUOW:
+    """Admission never touches the connection when repositories are faked;
+    it is passed through opaquely."""
+
+    connection = object()
+
+    async def commit(self) -> None:
+        return None
+
+    async def rollback(self) -> None:
+        return None
+
+
+def _lease(
+    *, worker_run_id: UUID, status: str = "ACTIVE", lease_id: UUID | None = None
+) -> CapabilityLease:
+    now = datetime.now(UTC)
+    return CapabilityLease(
+        lease_id=lease_id or LEASE_ID,
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        mission_id=MISSION,
+        task_id=TASK,
+        execution_plan_id=uuid4(),
+        worker_run_id=worker_run_id,
+        environment_id=None,
+        capability_id="capability.run_local_process",
+        capability_version="1",
+        resource_scope={},
+        operation_scope="execute",
+        constraints={},
+        issued_by_policy_version="capability-lease-v1",
+        issued_at=now,
+        expires_at=now + timedelta(hours=24),
+        revocable=True,
+        status=status,
+        denied_reason=None,
+        revoked_at=None,
+        revocation_reason=None,
+        lease_hash="hash",
+        requested_by="test",
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _handle(*, worker_run_id: UUID) -> CredentialHandle:
+    now = datetime.now(UTC)
+    return CredentialHandle(
+        handle_id=uuid4(),
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        mission_id=MISSION,
+        task_id=TASK,
+        worker_run_id=worker_run_id,
+        lease_id=LEASE_ID,
+        capability_id="capability.run_local_process",
+        provider_id="recording_test",
+        provider_ref=None,
+        resource_scope={},
+        issued_by_policy_version="capability-lease-v1",
+        secret_hash=sha256_hex("recording-provider-secret-value"),
+        status="ISSUED",
+        issued_at=now,
+        expires_at=now + timedelta(minutes=15),
+        revoked_at=None,
+        revocation_reason=None,
+        supersedes_handle_id=None,
+        superseded_by_handle_id=None,
+        requested_by="test",
+        created_at=now,
+        updated_at=now,
+    )
+
+
+def _service(
+    leases: list[CapabilityLease],
+) -> tuple[
+    CredentialBrokerService,
+    KillSwitchRegistry,
+    RecordingProvider,
+    RecordingEvents,
+    FakeHandleRepository,
+]:
+    provider = RecordingProvider()
+    events = RecordingEvents()
+    registry = KillSwitchRegistry()
+    handles = FakeHandleRepository()
+    broker = CredentialBrokerService(
+        engine=None,  # type: ignore[arg-type]
+        repository=handles,
+        lease_repository=FakeLeaseRepository(leases),
+        events=events,  # type: ignore[arg-type]
+        commands=FakeCommandLedger(),  # type: ignore[arg-type]
+        provider=provider,
+        # Explicit injection of the SHARED default's type twin keeps the
+        # test hermetic; the default-constructor path (shared registry) is
+        # pinned by the identity assertion below.
+        kill_switch=registry,
+    )
+    return broker, registry, provider, events, handles
+
+
+async def test_default_constructor_reuses_the_shared_registry() -> None:
+    """No second registry may exist: a bare `CredentialBrokerService(engine)`
+    must consult exactly the module-level instance the lease service
+    checks, so arming through either service gates both surfaces."""
+    from engine.capabilities.broker.service import CredentialBrokerService as Svc
+    from engine.capabilities.lease_service import SHARED_KILL_SWITCH
+
+    broker = Svc(engine=None)  # type: ignore[arg-type]
+    assert broker._kill_switch is SHARED_KILL_SWITCH
+
+
+async def test_armed_kill_flag_refuses_issue_and_derives_no_material() -> None:
+    """The closed hole: run holds an ACTIVE lease, then the stop arms.
+    `issue()` must fail closed with typed KILL_FLAG_ACTIVE and the provider
+    must NEVER be asked to derive a secret -- not merely have its output
+    withheld."""
+    broker, registry, provider, events, _handles = _service([_lease(worker_run_id=RUN)])
+    registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
+
+    with pytest.raises(DdeError) as excinfo:
+        await broker.issue(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            lease_id=LEASE_ID,
+            requested_by="test",
+            idempotency_key="issue:killed",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+    assert excinfo.value.details is not None
+    assert excinfo.value.details["reason"] == KILL_FLAG_REASON
+    assert excinfo.value.details["worker_run_id"] == str(RUN)
+    assert provider.issue_calls == []
+    assert events.appended == []
+
+
+async def test_armed_kill_flag_refuses_renewal_of_a_live_handle() -> None:
+    """A handle issued BEFORE the stop arms cannot be renewed into fresh
+    material afterwards: `renew()` hits the same admission gate."""
+    handle = _handle(worker_run_id=RUN)
+    broker, registry, provider, _events, handles = _service([_lease(worker_run_id=RUN)])
+    handles.handles.append(handle)
+    first = await broker.renew(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        handle_id=handle.handle_id,
+        requested_by="test",
+        idempotency_key="renew:before-stop",
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert first.secret_value is not None
+
+    registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
+    with pytest.raises(DdeError) as excinfo:
+        await broker.renew(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            handle_id=first.handle.handle_id,
+            requested_by="test",
+            idempotency_key="renew:after-stop",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+    # Exactly one derivation: the pre-stop renewal. Nothing post-arm.
+    assert len(provider.issue_calls) == 1
+
+
+async def test_disarmed_broker_behaviour_is_unchanged() -> None:
+    """With no flag armed anywhere, issuance behaves byte-identically to
+    before this change: fresh secret delivered once, live handle verifiable
+    against it."""
+    broker, _registry, provider, _events, _handles = _service(
+        [_lease(worker_run_id=RUN)]
+    )
+
+    issued = await broker.issue(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        lease_id=LEASE_ID,
+        requested_by="test",
+        idempotency_key="issue:clean",
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert issued.secret_value is not None
+    assert issued.handle.status == "ISSUED"
+    assert len(provider.issue_calls) == 1
+    assert (
+        await broker.verify(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            handle_id=issued.handle.handle_id,
+            secret_value=issued.secret_value,
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+        is True
+    )
+
+
+async def test_revoked_lease_path_is_unchanged_and_not_misreported_as_kill() -> None:
+    """A REVOKED lease denies admission with POLICY_DENIED exactly as
+    before -- the kill-flag gate adds a distinct outcome, it does not
+    overwrite or shadow the pre-existing denial taxonomy. Also proves the
+    gate keys on the row's OWN run: the flag here is armed for a DIFFERENT
+    run, so this denial comes from the lease status alone."""
+    revoked = _lease(worker_run_id=RUN, status="REVOKED")
+    broker, registry, _provider, _events, _handles = _service([revoked])
+    registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=OTHER_RUN)
+
+    with pytest.raises(DdeError) as excinfo:
+        await broker.issue(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            lease_id=revoked.lease_id,
+            requested_by="test",
+            idempotency_key="issue:revoked-lease",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert excinfo.value.error_code == "POLICY_DENIED"
+
+
+async def test_kill_flag_for_one_run_does_not_touch_other_runs() -> None:
+    """Scope discipline: arming a stop for one worker run must not refuse
+    another run's credential admission against its own lease."""
+    broker, registry, _provider, _events, _handles = _service(
+        [
+            _lease(worker_run_id=RUN),
+            _lease(worker_run_id=OTHER_RUN, lease_id=uuid4()),
+        ]
+    )
+    registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=OTHER_RUN)
+
+    issued = await broker.issue(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        lease_id=LEASE_ID,
+        requested_by="test",
+        idempotency_key="issue:survivor-run",
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert issued.secret_value is not None

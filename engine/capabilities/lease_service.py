@@ -43,10 +43,12 @@ consults the process-wide kill-flag registry
 (`engine.capabilities.kill_switch.KillSwitchRegistry`) before honouring any
 held lease: an armed stop refuses the run's NEXT capability checkout with
 typed `KILL_FLAG_ACTIVE` and durably revokes the run's most recent still-
-held lease (reason `kill_flag`). This gates lease checkout only -- the
-broker's credential admission reads live rows directly and does not consult
-the flag, and network egress is not gated by it. The in-memory flag does not
-survive process restarts; the durable REVOKED row does.
+held lease (reason `kill_flag`). The same shared registry is consulted at
+credential admission (`engine.capabilities.broker.service.
+CredentialBrokerService._require_active_lease`), so an armed stop also
+refuses fresh credential issuance for that run. Still not gated: network
+egress. The in-memory flag does not survive process restarts; the durable
+REVOKED row does.
 """
 
 from __future__ import annotations
@@ -92,7 +94,8 @@ CAPABILITY_LEASE_POLICY_VERSION = "capability-lease-v1"
 DEFAULT_LEASE_TTL = timedelta(hours=24)
 
 #: Process-wide kill-flag registry backing `require_active`'s checkout
-#: check. Module-level so an operator arming a stop through any service
+#: check and `engine.capabilities.broker.service`'s credential admission.
+#: Module-level so an operator arming a stop through any service
 #: instance gates every instance in the process; the durable half of the
 #: stop is the lease row, not this set (see `engine.capabilities.
 #: kill_switch`'s docstring for what is and is not wired).
@@ -381,12 +384,13 @@ class CapabilityLeaseService:
         start. The first refusal also durably transitions the run's most
         recent still-held lease to the chapter-named terminal status
         `REVOKED` with reason `kill_flag` (the closest existing state; no
-        new status invented). Disclosed limits: this gates capability
-        checkout only -- network egress and broker credential admission do
-        not consult the flag, an already-in-flight subprocess cannot be
-        interrupted (T2 containment is Chapter 14/DDE-018), and the flag
-        set itself lives in process memory while the REVOKED row is what
-        survives restarts."""
+        new status invented). The same shared registry gates broker
+        credential admission (`engine.capabilities.broker.service.
+        CredentialBrokerService._require_active_lease`). Disclosed limits:
+        network egress does not consult the flag, an already-in-flight
+        subprocess cannot be interrupted (T2 containment is Chapter
+        14/DDE-018), and the flag set itself lives in process memory while
+        the REVOKED row is what survives restarts."""
 
         async def _op(active: PostgresUnitOfWork) -> CapabilityLease:
             if self.kill_switch.is_killed(
