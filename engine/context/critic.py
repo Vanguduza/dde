@@ -52,15 +52,36 @@ needing to reason about anything new. If no such evidence exists, or
 recovering it would blow the budget, the critic raises a Context Finding
 instead -- it never silently upgrades a `partial`/`missing` coverage
 category on its own authority.
+
+**Distractor pressure (comparable-systems adoption #9).**
+`evaluate_distractor_pressure()` runs over the same assembled item set:
+stdlib TF-IDF + cosine pairwise similarity (`engine.context.similarity`)
+flags clusters of near-duplicate items whose combined authority tier is
+low, and reports them as a `raised_finding`-shaped outcome carrying the
+new `distractor_pressure` finding kind through the ordinary
+`ContextCriticFinding` persistence path. The similarity signal is an
+honest *lexical* proxy for embedding similarity, not semantic identity --
+see `engine.context.similarity`'s module docstring for exactly what that
+means and why no embedding dependency was added (Chapter 9.6). The
+finding is advisory evidence for human review; it never alters the
+package's included set on its own authority.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 from engine.context.model import (
     AssembledContext,
     CoverageReport,
     CriticOutcome,
     CriticTriggerResult,
+)
+from engine.context.similarity import (
+    DISTRACTOR_SIMILARITY_THRESHOLD,
+    DistractorCluster,
+    build_clusters,
+    pairwise_similarities,
 )
 from engine.contracts.task import Task
 
@@ -73,6 +94,18 @@ DEFAULT_CRITIC_CONFIDENCE_THRESHOLD = 0.5
 #: still counts the pass itself against the control-plane overhead
 #: budget, not only the tokens it recovers.
 CRITIC_BASE_COST_TOKENS = 50
+
+#: The finding kind this module's distractor-pressure check raises.
+#: `trigger_reasons` carries the machine-readable kind; `outcome_summary`
+#: carries the cluster evidence a reviewer reads.
+DISTRACTOR_PRESSURE_FINDING_KIND = "distractor_pressure"
+
+#: Authority-rank floor for distractor clusters, on the blueprint's rank
+#: scale (Chapter 2.2: lower number == higher authority). A cluster whose
+#: *best* member is rank 6 or better (Requirement/EDR/architecture-grade)
+#: is legitimate corroboration, not pressure; only clusters entirely made
+#: of weaker material are flagged.
+DISTRACTOR_AUTHORITY_RANK_FLOOR = 7
 
 
 def _at_least(value: str, order: tuple[str, ...], threshold: str) -> bool:
@@ -188,3 +221,90 @@ def run_critic(
         ),
         cost_tokens_estimate=cost_estimate,
     )
+
+
+@dataclass(frozen=True)
+class DistractorPressureResult:
+    """The distractor-pressure check's output, before persistence.
+
+    `clusters` is empty when the assembled set is clean; `finding` is
+    `None` in exactly that case, so a caller persists a
+    `ContextCriticFinding` only when there is something real to review.
+    """
+
+    clusters: tuple[DistractorCluster, ...]
+    finding: CriticOutcome | None
+
+
+def evaluate_distractor_pressure(
+    assembled: AssembledContext,
+    *,
+    similarity_threshold: float = DISTRACTOR_SIMILARITY_THRESHOLD,
+    authority_rank_floor: int = DISTRACTOR_AUTHORITY_RANK_FLOOR,
+) -> DistractorPressureResult:
+    """Flag clusters of near-duplicate, low-authority items in the
+    assembled context (comparable-systems adoption #9).
+
+    Similarity is stdlib TF-IDF + cosine over item content — a *lexical*
+    proxy for embedding similarity, not semantic identity (see
+    `engine.context.similarity`). A cluster counts as distractor pressure
+    only when its combined authority tier is low: every member sits below
+    `authority_rank_floor` on the blueprint's rank scale (higher number ==
+    weaker authority), so corroborating high-authority evidence never
+    triggers this finding. The result is advisory — it raises a Context
+    Finding-shaped outcome for human review and never alters the included
+    set on its own authority.
+    """
+    items = list(assembled.included)
+    contents = [fused.item.content for fused in items]
+    ranks = [fused.item.authority_rank for fused in items]
+    pairs = pairwise_similarities(
+        contents,
+        threshold=similarity_threshold,
+    )
+    # A pair counts as distractor pressure only when BOTH members are weak
+    # (rank above the floor == weaker authority than the floor); a strong
+    # member makes it corroboration, not dilution.
+    qualifying = [
+        pair
+        for pair in pairs
+        if ranks[pair.index_a] > authority_rank_floor
+        and ranks[pair.index_b] > authority_rank_floor
+    ]
+    if not qualifying:
+        return DistractorPressureResult(clusters=(), finding=None)
+    clusters = build_clusters(
+        contents=contents,
+        authority_ranks=ranks,
+        pairs=qualifying,
+    )
+    low_tier_clusters = tuple(
+        cluster
+        for cluster in clusters
+        if cluster.worst_authority_rank > authority_rank_floor
+    )
+    if not low_tier_clusters:
+        return DistractorPressureResult(clusters=(), finding=None)
+    described = "; ".join(
+        f"[{', '.join(items[index].item.key for index in cluster.member_indices)}] "
+        f"max_similarity={cluster.max_similarity:.2f} "
+        f"worst_authority_rank={cluster.worst_authority_rank}"
+        for cluster in low_tier_clusters
+    )
+    summary = (
+        f"{DISTRACTOR_PRESSURE_FINDING_KIND}: {len(low_tier_clusters)} cluster(s) "
+        "of near-duplicate items (TF-IDF cosine >= "
+        f"{similarity_threshold:.2f}) whose combined authority tier is low "
+        f"(rank > {authority_rank_floor}). TF-IDF similarity is a lexical "
+        "proxy for embedding similarity, not semantic identity -- treat as "
+        "advisory evidence of context dilution for human review. Clusters: "
+        + described
+        + "."
+    )
+    finding = CriticOutcome(
+        action="raised_finding",
+        reassembled=None,
+        outcome_summary=summary,
+        cost_tokens_estimate=CRITIC_BASE_COST_TOKENS,
+    )
+    return DistractorPressureResult(clusters=low_tier_clusters, finding=finding)

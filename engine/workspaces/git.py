@@ -93,3 +93,142 @@ def diff_name_only(worktree_path: Path, base_revision: str) -> list[str]:
     not merely the last commit's."""
     output = _run(["diff", "--name-only", base_revision], cwd=worktree_path)
     return [line for line in output.splitlines() if line.strip()]
+
+
+#: Every ref namespace scrubbed from a verification workspace. `refs/HEAD`
+#: and per-worktree namespaces (`refs/bisect`, `refs/worktree`,
+#: `refs/stash`) are excluded by the `for-each-refs` pattern set below;
+#: other-worktree branches under `refs/worktree/**` are DDE's own
+#: bookkeeping for concurrent workspaces and must never be touched.
+SCRUBBED_REF_PATTERNS = (
+    "refs/heads/",
+    "refs/tags/",
+    "refs/remotes/",
+)
+
+GC_TIMEOUT_SECONDS = 120.0
+
+
+def _common_git_dir(worktree_path: Path) -> Path:
+    """The shared `.git` directory backing `worktree_path` (the worktree
+    itself carries only a `.git` *file* pointing at it)."""
+    output = _run(
+        ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=worktree_path,
+    )
+    return Path(output)
+
+
+def list_refs(git_dir: Path, patterns: tuple[str, ...] | None = None) -> dict[str, str]:
+    """Every loose and packed ref in `git_dir` matching `patterns`
+    (`--all`'s full surface when `None`), as `{refname: commit_sha}`.
+    Reads the real `refs/` tree plus `packed-refs`; no `git` call needed."""
+    resolved: dict[str, str] = {}
+
+    def _resolve(name: str) -> str | None:
+        direct = git_dir / name
+        try:
+            value = direct.read_text(encoding="utf-8").strip()
+        except OSError:
+            return None
+        if value.startswith("ref:"):
+            return _resolve(value.split(":", 1)[1].strip())
+        return value or None
+
+    refs_dir = git_dir / "refs"
+    if refs_dir.is_dir():
+        for path in sorted(refs_dir.rglob("*")):
+            if not path.is_file():
+                continue
+            name = path.relative_to(git_dir).as_posix()
+            sha = _resolve(name)
+            if sha is not None:
+                resolved[name] = sha
+    packed = git_dir / "packed-refs"
+    try:
+        lines = packed.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith("^"):
+            continue
+        sha, _, name = stripped.partition(" ")
+        if sha and name:
+            resolved.setdefault(name.strip(), sha)
+    if patterns is None:
+        return resolved
+    return {
+        name: sha
+        for name, sha in resolved.items()
+        if any(name.startswith(pattern) for pattern in patterns)
+    }
+
+
+def delete_ref(git_dir: Path, refname: str) -> None:
+    """Delete one ref through real git (`update-ref -d`), so packed and
+    loose copies both go and the deletion itself is journaled where a
+    reflog exists."""
+    _run(["update-ref", "-d", refname], cwd=git_dir)
+
+
+def expire_reflogs(worktree_path: Path) -> None:
+    """Expire every reflog entry now, including unreachable ones."""
+    _run(
+        ["reflog", "expire", "--expire=now", "--expire-unreachable=now", "--all"],
+        cwd=worktree_path,
+    )
+
+
+def gc_prune_now(worktree_path: Path) -> None:
+    """Drop every object unreachable from any remaining ref immediately
+    (`gc --prune=now`). The aggressive variant was measured as unnecessary
+    here: correctness comes from reachability, not repacking quality, and
+    aggressive costs minutes instead of seconds on large repos."""
+    _run(["gc", "--prune=now"], cwd=worktree_path, timeout_seconds=GC_TIMEOUT_SECONDS)
+
+
+def scrub_future_state(worktree_path: Path, keep_revision: str) -> list[str]:
+    """Strip every name a generator or verifier could resolve to
+    solution-bearing history, leaving only `keep_revision` itself.
+
+    Three real mutations, in dependency order:
+
+    1. ``reflog expire`` -- after this, no entry reachable only through
+       "where was I recently" survives, including the detached-HEAD log of
+       this worktree.
+    2. Ref deletion -- every branch/tag/remote-tracking ref resolving away
+       from `keep_revision` is deleted through real `git update-ref -d`.
+       Refs pointing at the kept commit survive by construction; nothing
+       outside `refs/heads|tags|remotes` is touched (other workspaces'
+       bookkeeping lives elsewhere).
+    3. ``gc --prune=now`` -- drops every now-unreachable object from the
+       object store, so solution-bearing history is genuinely gone rather
+       than merely unreferenced.
+
+    Returns the sorted names of the refs actually deleted, for callers
+    that journal or assert on the scrub. The caller runs this against the
+    *worktree* directory; git resolves the shared repository through the
+    worktree's `.git` file, so all three commands act on the one real
+    object store.
+    """
+    head_sha = rev_parse_head(worktree_path)
+    keep = (
+        keep_revision
+        if len(keep_revision) == 40
+        else rev_parse(worktree_path, keep_revision)
+    )
+    if keep != head_sha:
+        raise GitCommandError(
+            ["scrub-future-state"], -1, "keep_revision is not the checked-out HEAD"
+        )
+    expire_reflogs(worktree_path)
+    git_dir = _common_git_dir(worktree_path)
+    deleted: list[str] = []
+    for refname, sha in sorted(list_refs(git_dir, SCRUBBED_REF_PATTERNS).items()):
+        if sha == keep:
+            continue
+        delete_ref(git_dir, refname)
+        deleted.append(refname)
+    gc_prune_now(worktree_path)
+    return deleted

@@ -30,17 +30,25 @@ internal engine regression/stress-testing tool invoked by an operator or
 CI, never a `Capability` a worker leases through the broker (Chapter
 9.3) -- `side_effect_class` does not apply here for the same reason it
 does not apply to `engine.verification.runner`'s own checks.
+
+**Shadow-mode policy promotion** (`evaluate_shadow_promotion`,
+comparable-systems adoption #8) extends this service with offline
+candidate-policy evaluation over recorded Chapter 6.5 telemetry. It is
+shadow evaluation only: live routing policy selection is neither read
+nor written -- see that method's docstring for the full constraint.
 """
 
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.command_idempotency import CommandIdempotency
+from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
 from engine.contracts.routing_simulation_run import RoutingSimulationRun
 from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
@@ -55,6 +63,16 @@ from engine.simulation.scenarios import (
     REAL_SCENARIO_CLASSES,
     run_scenario,
 )
+from engine.simulation.shadow_promotion import (
+    SHADOW_PROMOTION_RUN_KIND,
+    PolicyMetrics,
+    ShadowPromotionDecision,
+    ShadowPromotionRequest,
+)
+from engine.simulation.shadow_promotion import (
+    evaluate_shadow_promotion as _evaluate_shadow_promotion,
+)
+from engine.telemetry.tables import routing_decision_outcomes
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
 T = TypeVar("T")
@@ -69,6 +87,39 @@ MODEL_VERSION = "rsm-fixture-generator-v1"
 def _run_request_hash(*, seed: str, scenario_classes: tuple[str, ...]) -> str:
     return sha256_hex(
         canonical_json({"seed": seed, "scenario_classes": list(scenario_classes)})
+    )
+
+
+def _decision_from_run(run: RoutingSimulationRun) -> ShadowPromotionDecision:
+    """Rehydrate the measured verdict from a replayed idempotent run row.
+    The decision is fully derived from the persisted `scenario_results`
+    payload -- never recomputed from possibly-changed telemetry."""
+    result = run.scenario_results[0]
+    baseline = cast("dict[str, Any]", result["baseline_metrics"])
+    candidate = cast("dict[str, Any]", result["candidate_metrics"])
+    deltas = cast("dict[str, Any]", result["deltas"])
+    return ShadowPromotionDecision(
+        promoted=bool(result["passed"]),
+        baseline=PolicyMetrics(
+            decisions=int(baseline["decisions"]),
+            accept_rate=float(baseline["accept_rate"]),
+            gate_fail_rate=float(baseline["gate_fail_rate"]),
+            mean_cost=baseline["mean_cost_seconds"],
+            cost_samples=int(baseline["cost_samples"]),
+        ),
+        candidate=PolicyMetrics(
+            decisions=int(candidate["decisions"]),
+            accept_rate=float(candidate["accept_rate"]),
+            gate_fail_rate=float(candidate["gate_fail_rate"]),
+            mean_cost=candidate["mean_cost_seconds"],
+            cost_samples=int(candidate["cost_samples"]),
+        ),
+        accept_rate_delta=float(deltas["accept_rate_delta"]),
+        cost_delta=deltas["cost_delta_seconds"],
+        gate_fail_delta=float(deltas["gate_fail_delta"]),
+        cost_basis=str(result["cost_basis"]),
+        reasons=cast("list[str]", result["reasons"]),
+        rollback_trigger_fired=bool(result["rollback_trigger_fired"]),
     )
 
 
@@ -240,5 +291,156 @@ class RoutingSimulationService:
     ) -> RoutingSimulationRun | None:
         async def _op(active: PostgresUnitOfWork) -> RoutingSimulationRun | None:
             return await self._repository.get_run(active.connection, run_id)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def evaluate_shadow_promotion(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        request: ShadowPromotionRequest,
+        idempotency_key: str,
+        outcomes: list[RoutingDecisionOutcome] | None = None,
+        seed: str = "shadow",
+        uow: PostgresUnitOfWork | None = None,
+    ) -> tuple[RoutingSimulationRun, ShadowPromotionDecision]:
+        """Shadow-mode policy promotion over recorded Chapter 6.5 telemetry.
+
+        **Shadow evaluation only.** This method never touches live routing
+        policy selection -- `engine.routing`'s decision path is neither
+        written nor re-ordered here; the only durable effect is a
+        `routing_simulation_runs` row with `run_kind="shadow_promotion"`
+        (plus its event and command-ledger entries). Promoting a candidate
+        into live selection remains a separate, human-governed act outside
+        this service.
+
+        The candidate is scored against the real `routing_decision_outcomes`
+        rows for `tenant_id`/`project_id` (or the caller-supplied `outcomes`,
+        for pure evaluation), producing measured accept-rate, cost and
+        gate-fail deltas. Promotion requires: candidate strictly beats
+        baseline on accept-rate AND cost non-regression within
+        `request.max_cost_regression` AND the caller's pre-registered
+        rollback trigger staying quiet. Idempotent through the same
+        CommandLedger every other mutation in this codebase uses.
+        """
+        if not request.candidate_policy:
+            raise DdeError(
+                "POLICY_DENIED",
+                "candidate_policy must not be empty",
+                retryable=False,
+            )
+        if not (0.0 <= request.max_cost_regression <= 1.0):
+            raise DdeError(
+                "POLICY_DENIED",
+                "max_cost_regression must be within [0.0, 1.0]",
+                retryable=False,
+                details={"max_cost_regression": request.max_cost_regression},
+            )
+
+        async def _op(
+            active: PostgresUnitOfWork,
+        ) -> tuple[RoutingSimulationRun, ShadowPromotionDecision]:
+            record, is_new = await self._commands.begin(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                idempotency_key=idempotency_key,
+                request_hash=sha256_hex(canonical_json(request.candidate_policy)),
+                uow=active,
+            )
+            if not is_new:
+                replayed = self._replay_or_raise(record)
+                decision = _decision_from_run(replayed)
+                return replayed, decision
+
+            if outcomes is None:
+                result = await active.connection.execute(
+                    select(routing_decision_outcomes)
+                    .where(
+                        routing_decision_outcomes.c.tenant_id == tenant_id,
+                        routing_decision_outcomes.c.project_id == project_id,
+                    )
+                    .order_by(routing_decision_outcomes.c.created_at.asc())
+                )
+                recorded = [
+                    RoutingDecisionOutcome.model_validate(dict(row))
+                    for row in result.mappings().all()
+                ]
+            else:
+                recorded = outcomes
+
+            decision = _evaluate_shadow_promotion(request, recorded)
+
+            now = self._clock.now()
+            disclosed_gaps = [decision.cost_basis]
+            scenario_results: list[dict[str, Any]] = [
+                {
+                    "scenario_class": SHADOW_PROMOTION_RUN_KIND,
+                    "passed": decision.promoted,
+                    "baseline_metrics": {
+                        "decisions": decision.baseline.decisions,
+                        "accept_rate": decision.baseline.accept_rate,
+                        "gate_fail_rate": decision.baseline.gate_fail_rate,
+                        "mean_cost_seconds": decision.baseline.mean_cost,
+                        "cost_samples": decision.baseline.cost_samples,
+                    },
+                    "candidate_metrics": {
+                        "decisions": decision.candidate.decisions,
+                        "accept_rate": decision.candidate.accept_rate,
+                        "gate_fail_rate": decision.candidate.gate_fail_rate,
+                        "mean_cost_seconds": decision.candidate.mean_cost,
+                        "cost_samples": decision.candidate.cost_samples,
+                    },
+                    "deltas": {
+                        "accept_rate_delta": decision.accept_rate_delta,
+                        "cost_delta_seconds": decision.cost_delta,
+                        "gate_fail_delta": decision.gate_fail_delta,
+                    },
+                    "reasons": decision.reasons,
+                    "rollback_trigger_fired": decision.rollback_trigger_fired,
+                    "cost_basis": decision.cost_basis,
+                }
+            ]
+            run = RoutingSimulationRun(
+                run_id=uuid7(),
+                tenant_id=tenant_id,
+                project_id=project_id,
+                seed=seed,
+                policy_version=POLICY_VERSION,
+                model_version=MODEL_VERSION,
+                scenario_classes=[SHADOW_PROMOTION_RUN_KIND],
+                scenario_results=scenario_results,
+                experience_origin="simulation",
+                excluded_from_routing_learning=True,
+                disclosed_gaps=disclosed_gaps,
+                created_at=now,
+                updated_at=now,
+            )
+            await self._repository.insert_run(active.connection, run)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="RoutingSimulationRunRecorded",
+                aggregate_type="routing_simulation_run",
+                aggregate_id=run.run_id,
+                mission_id=None,
+                task_id=None,
+                payload={
+                    "run_kind": SHADOW_PROMOTION_RUN_KIND,
+                    "promoted": decision.promoted,
+                    "accept_rate_delta": decision.accept_rate_delta,
+                    "gate_fail_delta": decision.gate_fail_delta,
+                    "rollback_trigger_fired": decision.rollback_trigger_fired,
+                },
+                uow=active,
+            )
+            await self._commands.complete(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                command_id=record.command_id,
+                result=run.model_dump(mode="json"),
+                uow=active,
+            )
+            return run, decision
 
         return await self._run(uow, tenant_id, project_id, _op)

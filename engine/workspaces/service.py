@@ -39,6 +39,18 @@ Chapter 12.4 EXTERNAL_IDEMPOTENT mutation proof — a `rev-parse` /
 that is journaled is `IntegrationQueueService.submit`'s `update-ref` of
 the task branch. Workspace `worktree add`/`remove` are not journaled:
 they run before a `WorkerRun`/`CapabilityLease` exist.
+
+**Future-state scrubbing (comparable-systems adoption #6).** `create()`
+scrubs the freshly-provisioned worktree's *future state* before it ever
+becomes READY: reflogs expired, every branch/tag/remote-tracking ref that
+does not point at the checked-out commit deleted, and the object store
+pruned (`gc --prune=now`). A generator worker must never be able to read
+its own solution history out of a workspace a verifier will later share,
+and a verifier must never see branches/tags naming candidate solutions.
+Like `worktree add`, this runs on DDE's own behalf during Chapter 3.9's
+step-9 provisioning — before any `WorkerRun`/`CapabilityLease` can exist —
+so it is deliberately left ungated for the same reason the module
+docstring already records.
 """
 
 from __future__ import annotations
@@ -213,6 +225,9 @@ class WorkspaceService:
             target_dir.parent.mkdir(parents=True, exist_ok=True)
             try:
                 git.worktree_add(self._root, target_dir, resolved_revision)
+                scrubbed_refs = git.scrub_future_state(
+                    target_dir, keep_revision=resolved_revision
+                )
             except git.GitCommandError as exc:
                 shutil.rmtree(target_dir, ignore_errors=True)
                 await self._fail(active, workspace_id, reason=str(exc))
@@ -258,6 +273,7 @@ class WorkspaceService:
                 payload={
                     "workspace_path": updated.workspace_path,
                     "revision": current_revision,
+                    "scrubbed_refs": scrubbed_refs,
                 },
                 uow=active,
             )

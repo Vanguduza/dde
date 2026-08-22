@@ -65,6 +65,8 @@ from engine.context.conflict import detect_conflicts
 from engine.context.coverage import compute_coverage
 from engine.context.critic import (
     DEFAULT_CRITIC_CONFIDENCE_THRESHOLD,
+    DISTRACTOR_PRESSURE_FINDING_KIND,
+    evaluate_distractor_pressure,
     evaluate_trigger,
     run_critic,
 )
@@ -466,6 +468,56 @@ class ContextService:
                         "action": critic_outcome.action,
                         "trigger_reasons": list(critic_trigger.reasons),
                         "cost_tokens_estimate": critic_outcome.cost_tokens_estimate,
+                    },
+                    uow=active,
+                )
+
+            # Distractor pressure (comparable-systems adoption #9) runs on
+            # every compile: it is a pure read over the assembled set, and
+            # unlike Chapter 5.9's triggered pass it needs no coverage/
+            # risk condition to fire. Its finding persists through the same
+            # ContextCriticFinding row + event path as any other critic
+            # finding; `trigger_reasons` carries the finding kind so the
+            # durable record distinguishes it from trigger-condition rows.
+            distractor = evaluate_distractor_pressure(assembled)
+            if distractor.finding is not None:
+                distractor_finding = ContextCriticFinding(
+                    finding_id=uuid7(),
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=mission_id,
+                    task_id=task.task_id,
+                    package_id=package_id,
+                    trigger_reasons=[DISTRACTOR_PRESSURE_FINDING_KIND],
+                    confidence=distractor.clusters[0].max_similarity,
+                    action=distractor.finding.action,
+                    outcome_summary=distractor.finding.outcome_summary,
+                    requires_human_review=True,
+                    reviewed=False,
+                    reviewed_at=None,
+                    cost_tokens_estimate=distractor.finding.cost_tokens_estimate,
+                    created_at=now,
+                    updated_at=now,
+                )
+                await self._critic_finding_repository.insert_finding(
+                    active.connection, distractor_finding
+                )
+                await self._events.append(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    event_type="ContextCriticTriggered",
+                    aggregate_type="context_package",
+                    aggregate_id=package_id,
+                    mission_id=mission_id,
+                    task_id=task.task_id,
+                    payload={
+                        "action": distractor.finding.action,
+                        "trigger_reasons": [DISTRACTOR_PRESSURE_FINDING_KIND],
+                        "cluster_count": len(distractor.clusters),
+                        "max_similarity": distractor.clusters[0].max_similarity,
+                        "cost_tokens_estimate": (
+                            distractor.finding.cost_tokens_estimate
+                        ),
                     },
                     uow=active,
                 )
