@@ -33,15 +33,26 @@ codes and its printed output are byte-for-byte unchanged -- see
 factored out verbatim into its own function so the existing `mission
 trace` tests keep passing without modification. What changed is `main()`
 itself: it now dispatches on `(object, action)` across four commands
-instead of hard-coding one.
+    instead of hard-coding one.
+
+**What changed vs. DDE-015, and what did not.** Every command now accepts
+`--json`, which emits the same built structures as machine-readable JSON
+(`contract.model_dump(mode="json")` shapes) instead of the text renderer.
+Default behaviour is byte-for-byte unchanged: same renders, same exit codes,
+same error mapping. `mission trace --json` prints before the Chapter 1
+completeness check runs, so a caller can parse a trace and still observe
+`MISSION_TRACE_INCOMPLETE`'s exit code.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import sys
 from collections.abc import Callable
+from dataclasses import asdict, is_dataclass
+from datetime import datetime
 from uuid import UUID
 
 from engine.core.errors import DdeError
@@ -78,9 +89,35 @@ def _parse_uuid(value: str, *, flag: str) -> UUID:
         raise argparse.ArgumentTypeError(f"{flag} must be a UUID: {value!r}") from exc
 
 
+def _jsonify(value: object) -> object:
+    """Recursive serializer for the CLI's built structures: engine contracts
+    are Pydantic models (`model_dump(mode="json")`), CLI view objects are
+    frozen dataclasses, everything else is JSON-native. One rule set for
+    every command so `--json` output shapes stay predictable."""
+    if is_dataclass(value) and not isinstance(value, type):
+        return {k: _jsonify(v) for k, v in asdict(value).items()}
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, (list, tuple, set)):
+        return [_jsonify(item) for item in value]
+    if isinstance(value, dict):
+        return {str(k): _jsonify(v) for k, v in value.items()}
+    dump = getattr(value, "model_dump", None)
+    if callable(dump):
+        return dump(mode="json")
+    return value
+
+
 def _add_tenant_project_database_args(
     parser: argparse.ArgumentParser, *, project_required: bool
 ) -> None:
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON instead of the text rendering.",
+    )
     parser.add_argument(
         "--tenant-id",
         required=True,
@@ -231,6 +268,7 @@ def _cmd_mission_create(args: argparse.Namespace) -> int:
                 requirement_refs=list(args.requirement_refs),
                 autonomy_ceiling=args.autonomy_ceiling,
                 database_url=args.database_url,
+                as_json=args.json,
             )
         )
     except DdeError as exc:
@@ -252,6 +290,7 @@ async def _run_mission_create(
     requirement_refs: list[str],
     autonomy_ceiling: int,
     database_url: str | None,
+    as_json: bool,
 ) -> int:
     engine = build_engine(database_url or get_settings().database_url)
     try:
@@ -269,7 +308,10 @@ async def _run_mission_create(
         )
     finally:
         await engine.dispose()
-    print(render_created_mission(mission))
+    if as_json:
+        print(json.dumps(_jsonify(mission), indent=2))
+    else:
+        print(render_created_mission(mission))
     return EXIT_OK
 
 
@@ -293,6 +335,7 @@ def _cmd_mission_status(args: argparse.Namespace) -> int:
                 tenant_id=tenant_id,
                 project_id=project_id,
                 database_url=args.database_url,
+                as_json=args.json,
             )
         )
     except DdeError as exc:
@@ -308,6 +351,7 @@ async def _run_mission_status(
     tenant_id: UUID,
     project_id: UUID | None,
     database_url: str | None,
+    as_json: bool,
 ) -> int:
     engine = build_engine(database_url or get_settings().database_url)
     try:
@@ -316,7 +360,10 @@ async def _run_mission_status(
         )
     finally:
         await engine.dispose()
-    print(render_mission_status(status))
+    if as_json:
+        print(json.dumps(_jsonify(status), indent=2))
+    else:
+        print(render_mission_status(status))
     return EXIT_OK
 
 
@@ -344,6 +391,7 @@ def _cmd_mission_trace(args: argparse.Namespace) -> int:
                 tenant_id=tenant_id,
                 project_id=project_id,
                 database_url=args.database_url,
+                as_json=args.json,
             )
         )
     except DdeError as exc:
@@ -361,6 +409,7 @@ async def _run_trace(
     tenant_id: UUID,
     project_id: UUID | None,
     database_url: str | None,
+    as_json: bool,
 ) -> int:
     engine = build_engine(database_url or get_settings().database_url)
     try:
@@ -371,7 +420,14 @@ async def _run_trace(
         await engine.dispose()
 
     proofs = independence_proofs(trace)
-    print(render_mission_trace(trace, proofs))
+    if as_json:
+        print(
+            json.dumps(
+                _jsonify({"trace": trace, "independence_proofs": proofs}), indent=2
+            )
+        )
+    else:
+        print(render_mission_trace(trace, proofs))
     require_complete_trace(trace, proofs)
     return 0
 
@@ -396,6 +452,7 @@ def _cmd_task_list(args: argparse.Namespace) -> int:
                 tenant_id=tenant_id,
                 project_id=project_id,
                 database_url=args.database_url,
+                as_json=args.json,
             )
         )
     except DdeError as exc:
@@ -411,6 +468,7 @@ async def _run_task_list(
     tenant_id: UUID,
     project_id: UUID | None,
     database_url: str | None,
+    as_json: bool,
 ) -> int:
     engine = build_engine(database_url or get_settings().database_url)
     try:
@@ -419,7 +477,10 @@ async def _run_task_list(
         )
     finally:
         await engine.dispose()
-    print(render_task_listing(listing))
+    if as_json:
+        print(json.dumps(_jsonify(listing), indent=2))
+    else:
+        print(render_task_listing(listing))
     return EXIT_OK
 
 
