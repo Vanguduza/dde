@@ -1,5 +1,15 @@
 # EDR-0001 — Subscription/session-based worker credentials (Claude Code Pro seat)
 
+> **ACCEPTED 2026-08-22 by explicit human project-owner decision.** The
+> authoritative record is the accepted row in the Project Truth `edrs` table
+> (`edr_id=01a028c4-9fe5-7aa5-b35b-73a0b152f044`, owner project
+> `9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11`, written via
+> `engine.truth.service.TruthService.propose_edr` + `accept_edr`). This file
+> remains as readable documentation of the proposal and its history; where
+> wording differs, the `edrs` row outranks it. Acceptance covers the designs
+> and deferrals **as documented** — Path B implementation, remaining promotion
+> gates and similar follow-ons stay gated on their own missions.
+
 > **Location note (read before anything else).** This repository has **no existing
 > markdown-file EDR convention**. Per Chapter 3.6 of `docs/blueprint/REV_2_0.md`,
 > an EDR is a **row in the `edrs` table** (`schemas/objects/edr.json`,

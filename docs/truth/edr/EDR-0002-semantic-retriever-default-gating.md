@@ -1,5 +1,15 @@
 # EDR-0002 — Semantic retriever: lexical stand-in embedding, gated off by default
 
+> **ACCEPTED 2026-08-22 by explicit human project-owner decision.** The
+> authoritative record is the accepted row in the Project Truth `edrs` table
+> (`edr_id=01a028c4-a074-72b6-abf1-d6ebfa1e6776`, owner project
+> `9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11`, written via
+> `engine.truth.service.TruthService.propose_edr` + `accept_edr`). This file
+> remains as readable documentation; where wording differs, the `edrs` row
+> outranks it. Acceptance covers the design and deferrals **as documented** —
+> building the eval corpus/promotion gate that eventually flips
+> `semantic_retrieval_enabled` stays gated on its own mission.
+
 > **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
 > written only by `engine/truth/`. No such row exists yet. Following the
 > convention established in `EDR-0001-subscription-based-worker-credentials.md`,
