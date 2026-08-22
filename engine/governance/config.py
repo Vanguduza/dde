@@ -30,11 +30,46 @@ class RuntimeFlags:
     #: default when no legal candidate survives a capacity/availability
     # - class failure. Never legal outside `development`.
     routing_degraded_default: bool = False
+    #: OpenRouter model selection for Appendix A harness profiles:
+    #: "off" (no resolution), "auto" (strength-matched per task), "fixed"
+    #: (pinned `openrouter_fixed_model_id`). Model choice only reorders
+    #: candidates downstream of every hard gate, so it is legal in all
+    #: environment classes; the enum itself is validated everywhere because
+    #: a typo must fail closed rather than silently mean "off".
+    openrouter_mode: str = "off"
+    openrouter_fixed_model_id: str | None = None
+
+
+OPENROUTER_MODES = ("off", "auto", "fixed")
 
 
 def validate_configuration(flags: RuntimeFlags) -> None:
     """Chapter 13.7: a dangerous combination must be impossible to reach
-    by editing a value. Raises POLICY_DENIED; does not coerce."""
+    by editing a value. Raises POLICY_DENIED; does not coerce.
+
+    The OpenRouter mode checks run for every environment class: they are
+    enum/consistency hygiene, not environment-dependent danger — a model
+    selection never changes a hard-gate outcome, only which declared model
+    a surviving harness profile would call."""
+    if flags.openrouter_mode not in OPENROUTER_MODES:
+        raise DdeError(
+            "POLICY_DENIED",
+            f"routing.openrouter.mode must be one of {OPENROUTER_MODES}",
+            retryable=False,
+            details={"openrouter_mode": flags.openrouter_mode},
+        )
+    if flags.openrouter_mode == "fixed" and not flags.openrouter_fixed_model_id:
+        raise DdeError(
+            "POLICY_DENIED",
+            "routing.openrouter.mode=fixed requires routing.openrouter.fixed_model_id",
+            retryable=False,
+        )
+    if flags.openrouter_mode == "off" and flags.openrouter_fixed_model_id is not None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "routing.openrouter.fixed_model_id is contradictory with mode=off",
+            retryable=False,
+        )
     if flags.environment_class == DEVELOPMENT:
         return
     if flags.routing_degraded_default:

@@ -25,6 +25,10 @@ deterministic selections"; epsilon defaults to 0 until a tenant
 explicitly enables it, which Stage 1 never does) remain deferred for the
 same reason, named in
 `docs/truth/edr/EDR-0005-routing-telemetry-partial-implementation.md`.
+Appendix A OpenRouter model selection IS wired as an explicit per-call
+opt-in (`openrouter_mode="off" | "auto" | "fixed"`); it annotates which
+declared free model a surviving harness profile would call and never
+alters gate outcomes.
 Learning/promotion (Chapter 6.8-6.9, DDE-057/058) is separately out of
 scope.
 """
@@ -44,6 +48,7 @@ from engine.core.ids import uuid7
 from engine.events.service import EventService
 from engine.routing.hashing import decision_hash
 from engine.routing.policy import POLICY_VERSION, escalation_plan_json
+from engine.routing.registry import resolve_model_selection
 from engine.routing.repository import RouteDecisionRepository
 from engine.routing.rules import evaluate
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
@@ -98,6 +103,8 @@ class RouterService:
         routing_environment_class: str = "development",
         approval_satisfied: bool = False,
         uow: PostgresUnitOfWork | None = None,
+        openrouter_mode: str | None = None,
+        openrouter_fixed_model_id: str | None = None,
     ) -> RouteDecision:
         """Compile and persist a new, immutable `RouteDecision` for `task`
         (Chapter 3.9 step 6). Takes an already-materialised `Task` rather
@@ -105,10 +112,23 @@ class RouterService:
         pattern for the identical reason: `engine.missions` has no
         get-by-`task_id` read method, and this mission's brief forbids
         adding one beyond calling `engine.missions`' existing public
-        surface."""
+        surface.
+
+        `openrouter_mode` ("off" | "auto" | "fixed", with
+        `openrouter_fixed_model_id` for "fixed") opts a single decision
+        into Appendix A OpenRouter model selection; `None` keeps the exact
+        pre-OpenRouter behaviour. The selection only annotates surviving
+        candidates with the model a harness profile would call — it never
+        changes gate outcomes."""
         tenant_id = task.tenant_id
         project_id = task.project_id
         mission_id = task.mission_id
+        if openrouter_mode is None:
+            enable_models, model_override = False, None
+        else:
+            enable_models, model_override = resolve_model_selection(
+                openrouter_mode, openrouter_fixed_model_id
+            )
 
         async def _op(active: PostgresUnitOfWork) -> RouteDecision:
             result = evaluate(
@@ -118,6 +138,8 @@ class RouterService:
                 certification_statuses=certification_statuses,
                 routing_environment_class=routing_environment_class,
                 approval_satisfied=approval_satisfied,
+                enable_openrouter_models=enable_models,
+                openrouter_model_override=model_override,
             )
             candidates_json = [candidate.to_json() for candidate in result.candidates]
             required_capabilities = list(result.required_capabilities)

@@ -134,6 +134,40 @@ PROFILE_HARNESS_CLASS: dict[str, str] = {
     PROFILE_PREMIUM_REASONING: HARNESS_DEEPSEEK,
 }
 
+#: Mirrors `engine.governance.config.OPENROUTER_MODES` without importing it
+#: (governance stays dependency-minimal). Kept in sync by tests.
+MODEL_SELECTION_MODES = ("off", "auto", "fixed")
+
+
+def resolve_model_selection(
+    mode: str, fixed_model_id: str | None
+) -> tuple[bool, str | None]:
+    """Translate an operator's model-selection mode into the
+    `(enable_openrouter_models, openrouter_model_override)` pair
+    `engine.routing.rules.evaluate` consumes.
+
+    - "off" disables resolution entirely;
+    - "auto" enables strength-matched selection per task;
+    - "fixed" pins `fixed_model_id`, which must name a declared catalog
+      entry (any harness class — a pinned id that cannot serve the selected
+      profile's harness class resolves to no model downstream, disclosed
+      via reason codes rather than silently substituted).
+    """
+    if mode == "off":
+        return (False, None)
+    if mode == "auto":
+        return (True, None)
+    if mode == "fixed":
+        if fixed_model_id is None:
+            raise ValueError("mode='fixed' requires a fixed_model_id")
+        if not any(spec.model_id == fixed_model_id for spec in OPENROUTER_FREE_MODELS):
+            raise ValueError(
+                f"fixed_model_id {fixed_model_id!r} is not in the declared "
+                "OpenRouter catalog"
+            )
+        return (True, fixed_model_id)
+    raise ValueError(f"unknown model-selection mode: {mode!r}")
+
 
 def resolve_openrouter_model(
     *,

@@ -32,6 +32,7 @@ from engine.routing.policy import (
     WorkloadPolicy,
     apply_cost_tier,
 )
+from engine.routing.registry import resolve_model_selection
 from engine.routing.rules import evaluate
 
 
@@ -357,3 +358,69 @@ def test_openrouter_skips_non_harness_profiles() -> None:
         enable_openrouter_models=True,
     )
     assert not any(code.startswith("OPENROUTER_MODEL:") for code in result.reason_codes)
+
+
+# --- Model-selection modes (off | auto | fixed) ---------------------------
+
+
+def test_governance_accepts_all_three_openrouter_modes() -> None:
+    validate_configuration(RuntimeFlags(environment_class="development"))
+    validate_configuration(
+        RuntimeFlags(environment_class="production", openrouter_mode="auto")
+    )
+    validate_configuration(
+        RuntimeFlags(
+            environment_class="production",
+            openrouter_mode="fixed",
+            openrouter_fixed_model_id="poolside/laguna-s-2.1:free",
+        )
+    )
+
+
+def test_governance_rejects_unknown_openrouter_mode() -> None:
+    flags = RuntimeFlags(openrouter_mode="random")
+    with pytest.raises(DdeError):
+        validate_configuration(flags)
+
+
+def test_governance_rejects_fixed_mode_without_model_id() -> None:
+    flags = RuntimeFlags(openrouter_mode="fixed")
+    with pytest.raises(DdeError):
+        validate_configuration(flags)
+
+
+def test_governance_rejects_fixed_model_id_with_off_mode() -> None:
+    flags = RuntimeFlags(
+        openrouter_mode="off", openrouter_fixed_model_id="poolside/laguna-s-2.1:free"
+    )
+    with pytest.raises(DdeError):
+        validate_configuration(flags)
+
+
+def test_resolve_model_selection_maps_all_three_modes() -> None:
+    assert resolve_model_selection("off", None) == (False, None)
+    assert resolve_model_selection("auto", None) == (True, None)
+    assert resolve_model_selection("fixed", "google/gemma-4-31b-it:free") == (
+        True,
+        "google/gemma-4-31b-it:free",
+    )
+
+
+def test_resolve_model_selection_rejects_unknown_mode_and_bad_fixed_id() -> None:
+    with pytest.raises(ValueError, match="unknown model-selection mode"):
+        resolve_model_selection("random", None)
+    with pytest.raises(ValueError, match="not in the declared OpenRouter catalog"):
+        resolve_model_selection("fixed", "vendor/not-in-catalog:free")
+
+
+def test_fixed_mode_pins_the_model_in_reason_codes() -> None:
+    """A fixed selection reaches evaluate() as an override, recorded as
+    OPENROUTER_OVERRIDE rather than a strength match."""
+    enable, override = resolve_model_selection("fixed", "google/gemma-4-31b-it:free")
+    result = evaluate(
+        _task(task_class="implementation", risk_class="low"),
+        enable_openrouter_models=enable,
+        openrouter_model_override=override,
+    )
+    assert "OPENROUTER_MODEL:google/gemma-4-31b-it:free" in result.reason_codes
+    assert "OPENROUTER_OVERRIDE" in result.reason_codes
