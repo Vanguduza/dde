@@ -27,13 +27,20 @@ Findings travel on the existing `Evidence.independence_flags` map (free-form
 `independent` flag stays True -- these checks judge *what changed*, they do
 not by themselves overturn a verdict.
 
+The runner records findings, refuses to certify a clean pass over a
+violating diff (`runner._evaluate`: PARTIAL), and classifies the run as
+SCOPE_VIOLATION on the recovery surface this codebase already consumes:
+its `TaskAttempt` is durably FAILED with that failure class, so
+`RecoveryService.assert_clear_to_retry` maps it onto Chapter 12.3's
+reject/requires-human/never-retry row.
+
 **Honest limits.** Stage 1 has no declared test-file manifest: "test-owned"
 is inferred from conventional test-path patterns plus whatever paths the
 oracle's own bindings name; `expected_write_scope` entries are prefix-
-matched. The runner records findings and refuses to certify a clean pass
-over a violating diff (see `runner.run`'s docstring); it does not yet fail
-the run outright, quarantine the workspace, or feed SCOPE_VIOLATION to the
-recovery matrix -- those consumers are deferred.
+matched. The runner still does not quarantine the workspace or compute a
+context-attribution for the violation; the PARTIAL `VerificationRun`
+carries no `routing_decision_outcomes` telemetry row (Chapter 6.5's
+outcome enum admits only PASSED/FAILED).
 """
 
 from __future__ import annotations

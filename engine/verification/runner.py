@@ -31,12 +31,23 @@ workspace's base revision) with `engine.verification.guardrails.
 assess_diff_independence`: undeclared edits to test-owned paths and added
 files shadowing the oracle's expected-test layout are recorded on every
 evidence row this run writes (`independence_flags["test_scope_findings"]`,
-`test_scope_violation`). Disclosed scope: a violating diff still runs the
-oracle's checks -- but a clean PASS over a harness-gaming diff is not
-certified as independent: the run's status is forced to PARTIAL (never
-PASSED), so Chapter 6.5 telemetry and downstream integration gates see an
-untrusted verdict. Failing the run outright / raising SCOPE_VIOLATION into
-the recovery matrix is deferred.
+`test_scope_violation`). A violating diff still runs the oracle's checks --
+but a clean PASS over a harness-gaming diff is not certified as
+independent: the run's status is forced to PARTIAL (never PASSED), so
+Chapter 6.5 telemetry and downstream integration gates see an untrusted
+verdict. The classification then rides the existing recovery surface: the
+run's `TaskAttempt` is durably FAILED with `failure_class="SCOPE_VIOLATION"`
+(`_fail_unverified_attempt`, the same writer the FAILED branch uses), so
+Chapter 12.3's matrix row engages through its existing consumer --
+`RecoveryService.assert_clear_to_retry` (`engine.recovery.dispatch`) calls
+`decide("SCOPE_VIOLATION")` before any new WorkerRun: action `reject`,
+`requires_human`, `allow_new_worker_run=False` -- never a silent retry.
+Still disclosed: the PARTIAL `VerificationRun` gets no
+`routing_decision_outcomes` telemetry row (Chapter 6.5's
+`actual_verified_outcome` enum admits only PASSED/FAILED, and
+`RoutingTelemetryService.record_decision_outcome` gates on terminal
+PASSED/FAILED status), context-attribution for the violation is not
+computed, and automated workspace quarantine remain deferred.
 """
 
 from __future__ import annotations
@@ -432,6 +443,44 @@ class VerificationRunnerService:
                     recovery_decision=None,
                     uow=active,
                 )
+            elif next_status == "PARTIAL" and guardrail.violations:
+                # A clean check-set over a harness-gaming diff is demoted
+                # to PARTIAL and classified SCOPE_VIOLATION on the surface
+                # the recovery path already reads: the TaskAttempt is
+                # durably FAILED with that failure class (same writer as
+                # the FAILED branch), so RecoveryService.
+                # assert_clear_to_retry's decide("SCOPE_VIOLATION") row --
+                # reject, requires_human, allow_new_worker_run=False --
+                # engages without any new state. The run itself stays
+                # PARTIAL (append-only terminal status), and no telemetry
+                # outcome row exists for it: Chapter 6.5's
+                # actual_verified_outcome enum admits only PASSED/FAILED.
+                await self._fail_unverified_attempt(
+                    active,
+                    task=task,
+                    worker_run=worker_run,
+                    workspace=workspace,
+                    verification_run_id=finished.verification_run_id,
+                    failure_class="SCOPE_VIOLATION",
+                )
+                await self._events.append(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    event_type="VerificationFailureRecovery",
+                    aggregate_type="verification_run",
+                    aggregate_id=finished.verification_run_id,
+                    mission_id=task.mission_id,
+                    task_id=task.task_id,
+                    payload={
+                        "action": "reject",
+                        "requires_replan": False,
+                        "allow_new_worker_run": False,
+                        "failure_class": "SCOPE_VIOLATION",
+                        "occurrence_count": 0,
+                        "source": "guardrail_test_scope_violation",
+                    },
+                    uow=active,
+                )
             elif next_status == "FAILED":
                 prior = await self._run_repository.list_for_task(
                     active.connection, task.task_id
@@ -604,10 +653,15 @@ class VerificationRunnerService:
         worker_run: WorkerRun,
         workspace: Workspace,
         verification_run_id: UUID,
+        failure_class: str = "VERIFICATION_FAILURE",
     ) -> None:
         """Chapter 12.3: VERIFICATION_FAILURE is a durable FAILED attempt,
         not an IN_PROGRESS row that a later invoke_run could treat as a
         first attempt. Failing evidence lives on the VerificationRun.
+        Also the classification writer for the guardrail path: a
+        guardrail-demoted PARTIAL run lands here with
+        `failure_class="SCOPE_VIOLATION"` so Chapter 12.3's never-silent-
+        retry row engages through `RecoveryService.assert_clear_to_retry`.
         """
         effects = await self._workspaces.effects.list_for_run(
             tenant_id=task.tenant_id,
@@ -629,7 +683,7 @@ class VerificationRunnerService:
             completed_work=[str(task.task_id)],
             verified_work=[],
             pending_work=[str(task.task_id)],
-            known_failures=["VERIFICATION_FAILURE"],
+            known_failures=[failure_class],
             next_action="repair",
             do_not_repeat=do_not_repeat_from_effects(effects),
             artifact_refs=[],
@@ -641,7 +695,7 @@ class VerificationRunnerService:
             tenant_id=task.tenant_id,
             project_id=task.project_id,
             attempt_id=worker_run.task_attempt_id,
-            failure_class="VERIFICATION_FAILURE",
+            failure_class=failure_class,
             checkpoint_id=checkpoint.checkpoint_id,
             uow=active,
         )

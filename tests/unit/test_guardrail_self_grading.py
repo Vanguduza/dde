@@ -1,23 +1,35 @@
-"""Worker self-grading guardrails (research §4 item 1) -- pure policy and
-the production runner's verdict-demotion path.
+"""Worker self-grading guardrails (research §4 item 1) -- pure policy, the
+production runner's verdict-demotion path, and the SCOPE_VIOLATION
+classification bridge into Chapter 12.3's recovery machinery.
 
 Production call site under test: `engine.verification.runner.
 VerificationRunnerService.run` calls `assess_diff_independence` on the real
 diff under verification BEFORE any oracle outcome executes
 (`VerificationRunnerService._assess_guardrails`), records the findings on
-every `Evidence.independence_flags` row it writes (`merge_flags`), and
-demotes a would-be PASSED verdict to PARTIAL when a violation exists
-(`runner._evaluate`). These tests exercise that policy purely -- no
-PostgreSQL: `assess_diff_independence` is deliberately I/O-free so the
-guardrail is unit-testable at all; the DB-backed wiring is covered by
-tests/unit/test_verification_postgres.py's existing service-level suite.
+every `Evidence.independence_flags` row it writes (`merge_flags`), demotes
+a would-be PASSED verdict to PARTIAL when a violation exists
+(`runner._evaluate`), and durably FAILS the run's `TaskAttempt` with
+`failure_class="SCOPE_VIOLATION"` (`_fail_unverified_attempt`) -- the exact
+surface `RecoveryService.assert_clear_to_retry`
+(`engine.recovery.dispatch`) already reads through
+`engine.recovery.matrix.decide`, landing on the reject / requires_human /
+allow_new_worker_run=False row (never a silent retry).
+
+The pure-policy tests run without PostgreSQL; the DB-backed test follows
+the tests/unit/test_telemetry_postgres.py fixture chain
+(`build_verification_fixture`) against a real database.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+from sys import executable
 from uuid import uuid4
 
+import pytest
+
+from engine.context.repo import repo_root
 from engine.contracts.acceptance_oracle import (
     AcceptanceOracle,
     EvidenceBinding,
@@ -25,15 +37,30 @@ from engine.contracts.acceptance_oracle import (
 )
 from engine.contracts.task import Task
 from engine.contracts.verification_run import ObservableOutcomeResult
+from engine.missions.attempts import TaskAttemptService
+from engine.recovery.matrix import decide
+from engine.telemetry.repository import RoutingDecisionOutcomeRepository
+from engine.truth.db import open_unit_of_work
+from engine.verification.checks import CheckSpec
 from engine.verification.guardrails import (
     INDEPENDENCE_FLAG_KEY,
     VIOLATION_FLAG_KEY,
     assess_diff_independence,
     merge_flags,
 )
-from engine.verification.repository import Evidence
-from engine.verification.runner import _evaluate
+from engine.verification.guardrails import (
+    TestScopeAssessment as GuardrailAssessment,
+)
+from engine.verification.guardrails import (
+    TestScopeFinding as GuardrailFinding,
+)
+from engine.verification.oracle import AcceptanceOracleService
+from engine.verification.repository import Evidence, EvidenceRepository
+from engine.verification.runner import VerificationRunnerService, _evaluate
 from engine.verification.runner import merge_flags as runner_merge_flags
+from engine.workspaces.service import WorkspaceService
+from tests.support.db import new_engine
+from tests.support.verification_fixtures import build_verification_fixture
 
 
 def _task(*, write_scope: list[str] | None = None) -> Task:
@@ -194,11 +221,10 @@ def test_clean_pass_over_violating_diff_is_demoted_to_partial() -> None:
     integration gates treat it as untrusted. The guardrail never improves
     a failing result."""
     results = _outcome_result("PASSED")
-    from engine.verification.guardrails import TestScopeAssessment, TestScopeFinding
 
-    violating = TestScopeAssessment(
+    violating = GuardrailAssessment(
         findings=(
-            TestScopeFinding(
+            GuardrailFinding(
                 kind="undeclared_test_edit",
                 path="tests/test_payment.py",
                 detail="diff touches a test-owned path",
@@ -206,7 +232,7 @@ def test_clean_pass_over_violating_diff_is_demoted_to_partial() -> None:
             ),
         )
     )
-    clean = TestScopeAssessment(findings=())
+    clean = GuardrailAssessment(findings=())
 
     assert _evaluate(
         outcome_results=results,
@@ -284,3 +310,212 @@ def test_evidence_contract_accepts_guardrail_flags() -> None:
         updated_at=now,
     )
     assert evidence.independence_flags[VIOLATION_FLAG_KEY] is True
+
+
+def test_guardrail_violation_class_maps_to_never_silent_retry_row() -> None:
+    """The classification wired onto the TaskAttempt must be one the
+    existing recovery machinery treats as never-silent-retry:
+    `engine.recovery.matrix.decide("SCOPE_VIOLATION")` is Chapter 12.3's
+    reject / requires_human / no-new-WorkerRun row -- the same row
+    `RecoveryService.assert_clear_to_retry` raises on before any retry."""
+    decision = decide("SCOPE_VIOLATION", occurrence_count=1)
+    assert decision.failure_class == "SCOPE_VIOLATION"
+    assert decision.action == "reject"
+    assert decision.requires_human is True
+    assert decision.allow_new_worker_run is False
+    assert decision.retryable is False
+
+
+CLEAN_MODULE = '''"""Scratch module for the guardrail proof tests."""
+
+from __future__ import annotations
+
+
+def add(a: int, b: int) -> int:
+    return a + b
+'''
+
+VIOLATING_TEST_MODULE = '''"""Harness-gaming payload for the guardrail proof test."""
+
+from __future__ import annotations
+
+
+def test_always_passes() -> None:
+    assert True
+'''
+
+
+@pytest.mark.asyncio
+async def test_violating_diff_run_is_partial_and_classified_scope_violation(
+    tmp_path: Path,
+) -> None:
+    """End to end over the real fixture chain (the
+    tests/unit/test_telemetry_postgres.py pattern): a diff that overwrites a
+    tracked file under `tests/` -- outside the fixture task's declared
+    write scope, inside a conventional test directory -- still passes every
+    check, but the run lands PARTIAL (never PASSED), carries the guardrail
+    violation on its evidence rows, gets NO telemetry outcome row (Chapter
+    6.5's actual_verified_outcome enum admits only PASSED/FAILED), and
+    leaves the durable SCOPE_VIOLATION classification exactly where the
+    recovery path reads it: a FAILED `TaskAttempt.failure_class`.
+    """
+    root = repo_root()
+    db_engine = new_engine()
+    workspace = None
+    try:
+        fixture = await build_verification_fixture(
+            db_engine, tmp_path, mission_slug="MISSION-GUARDRAIL-SCOPE"
+        )
+        workspace = fixture.workspace
+        workspaces = WorkspaceService(db_engine, root=root)
+        workspaces.write(workspace, "verification_check.py", CLEAN_MODULE.encode())
+        # The harness-gaming edit: overwriting a tracked, test-owned module
+        # (tracked so it is visible to `git diff --name-only`, which skips
+        # untracked files), outside the task's
+        # expected_write_scope=["engine/routing"].
+        workspaces.write(
+            workspace,
+            "tests/unit/test_telemetry_postgres.py",
+            VIOLATING_TEST_MODULE.encode(),
+        )
+
+        lint_outcome = CheckSpec(
+            outcome_id=uuid4(),
+            statement="ruff check reports no lint violations on verification_check.py",
+            kind="test",
+            ref="ruff:verification_check.py",
+            command=[executable, "-m", "ruff", "check", "verification_check.py"],
+        )
+        oracles = AcceptanceOracleService(db_engine)
+        oracle = await oracles.define(
+            task=fixture.task, outcomes=[lint_outcome], minimum_confidence=1.0
+        )
+
+        runner = VerificationRunnerService(db_engine, workspaces)
+        run = await runner.run(
+            task=fixture.task,
+            worker_run=fixture.worker_run,
+            workspace=fixture.workspace,
+            oracle=oracle,
+            idempotency_key="guardrail-run-violating-1",
+        )
+        assert run.status == "PARTIAL"
+
+        async with open_unit_of_work(
+            db_engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            evidence_rows = await EvidenceRepository().list_for_run(
+                uow.connection, run.verification_run_id
+            )
+            telemetry = (
+                await RoutingDecisionOutcomeRepository().get_by_verification_run(
+                    uow.connection, run.verification_run_id
+                )
+            )
+            attempt = await TaskAttemptService(db_engine).get_attempt(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                attempt_id=fixture.worker_run.task_attempt_id,
+                uow=uow,
+            )
+            await uow.commit()
+
+        assert evidence_rows
+        for row in evidence_rows:
+            flags = row.independence_flags
+            assert flags[VIOLATION_FLAG_KEY] is True
+            findings = flags[INDEPENDENCE_FLAG_KEY]
+            assert isinstance(findings, list)
+            assert any(item["violation"] for item in findings)
+
+        assert telemetry is None
+
+        assert attempt.status == "FAILED"
+        assert attempt.failure_class == "SCOPE_VIOLATION"
+
+        decision = decide(attempt.failure_class or "", occurrence_count=1)
+        assert decision.action == "reject"
+        assert decision.requires_human is True
+        assert decision.allow_new_worker_run is False
+    finally:
+        if workspace is not None:
+            await WorkspaceService(db_engine, root=root).cleanup(workspace=workspace)
+        await db_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_clean_diff_run_stays_passed_unclassified(tmp_path: Path) -> None:
+    """The negative control: an identical pipeline without the violating
+    edit stays PASSED, finalises its TaskAttempt COMPLETED (no failure
+    class), and records its telemetry row unclassified -- the bridge never
+    touches honest runs."""
+    root = repo_root()
+    db_engine = new_engine()
+    workspace = None
+    try:
+        fixture = await build_verification_fixture(
+            db_engine, tmp_path, mission_slug="MISSION-GUARDRAIL-CLEAN"
+        )
+        workspace = fixture.workspace
+        workspaces = WorkspaceService(db_engine, root=root)
+        workspaces.write(workspace, "verification_check.py", CLEAN_MODULE.encode())
+
+        lint_outcome = CheckSpec(
+            outcome_id=uuid4(),
+            statement="ruff check reports no lint violations on verification_check.py",
+            kind="test",
+            ref="ruff:verification_check.py",
+            command=[executable, "-m", "ruff", "check", "verification_check.py"],
+        )
+        oracles = AcceptanceOracleService(db_engine)
+        oracle = await oracles.define(
+            task=fixture.task, outcomes=[lint_outcome], minimum_confidence=1.0
+        )
+
+        runner = VerificationRunnerService(db_engine, workspaces)
+        run = await runner.run(
+            task=fixture.task,
+            worker_run=fixture.worker_run,
+            workspace=fixture.workspace,
+            oracle=oracle,
+            idempotency_key="guardrail-run-clean-1",
+        )
+        assert run.status == "PASSED"
+
+        async with open_unit_of_work(
+            db_engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            evidence_rows = await EvidenceRepository().list_for_run(
+                uow.connection, run.verification_run_id
+            )
+            telemetry = (
+                await RoutingDecisionOutcomeRepository().get_by_verification_run(
+                    uow.connection, run.verification_run_id
+                )
+            )
+            attempt = await TaskAttemptService(db_engine).get_attempt(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                attempt_id=fixture.worker_run.task_attempt_id,
+                uow=uow,
+            )
+            await uow.commit()
+
+        assert evidence_rows
+        for row in evidence_rows:
+            assert row.independence_flags[VIOLATION_FLAG_KEY] is False
+
+        assert telemetry is not None
+        assert telemetry.actual_verified_outcome == "PASSED"
+        assert telemetry.failure_class is None
+
+        assert attempt.status == "COMPLETED"
+        assert attempt.failure_class is None
+    finally:
+        if workspace is not None:
+            await WorkspaceService(db_engine, root=root).cleanup(workspace=workspace)
+        await db_engine.dispose()
