@@ -197,6 +197,27 @@ class CommandLedger:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def get_by_key_scoped(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        idempotency_key: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> CommandIdempotency | None:
+        """Read one ledger row by its natural key without mutating it.
+        Purely additive read companion to `begin`/`complete` -- callers that
+        keep their own deterministic per-entity key namespace (e.g.
+        `engine.capabilities.kill_switch.run_stop_idempotency_key`)
+        resolve current state through this instead of probing statuses."""
+
+        async def _op(active: PostgresUnitOfWork) -> CommandIdempotency | None:
+            return await self._repository.get_by_key(
+                active.connection, tenant_id, idempotency_key
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def complete(
         self,
         *,

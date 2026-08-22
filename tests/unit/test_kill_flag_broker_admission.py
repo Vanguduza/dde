@@ -5,17 +5,19 @@ PostgreSQL.
 
 Production seam under test: `engine.capabilities.broker.service.
 CredentialBrokerService._require_active_lease` re-reads the lease row live
-inside every admission and now consults the SAME process-wide kill-flag
-registry the lease checkout guard checks
-(`engine.capabilities.lease_service.SHARED_KILL_SWITCH`). An armed stop
-refuses `issue()`/`renew()` for the killed run with typed
-KILL_FLAG_ACTIVE BEFORE any credential material is derived -- closing the
-disclosed hole where a stopped run could still obtain fresh credential
-material after its last capability checkout. Every refusal journals a
-`CredentialKillFlagEnforced` event in the refusing transaction, and live
-handles of a stopped run are revoked at arm time via
-`revoke_handles_for_leases` (the sweep half of an intentional stop),
-exactly as before at verify time otherwise.
+inside every admission and consults the SAME run-stop state the lease
+checkout guard checks -- memory first
+(`engine.capabilities.lease_service.SHARED_KILL_SWITCH`), then the DURABLE
+`command_idempotency` stop row through the EXISTING `CommandLedger`. An
+armed stop refuses `issue()`/`renew()` for the killed run with typed
+KILL_FLAG_ACTIVE BEFORE any credential material is derived -- including
+from a fresh process whose registry is cold but whose durable stop row
+says ARMED. Every refusal journals a `CredentialKillFlagEnforced` event in
+the refusing transaction, live handles of a stopped run are revoked at arm
+time via `revoke_handles_for_leases` (the sweep half of an intentional
+stop), and `disarm_run_stop` flips the durable row so a disarmed run
+passes again after a restart -- exactly as before at verify time
+otherwise.
 """
 
 from __future__ import annotations
@@ -31,7 +33,14 @@ from engine.capabilities.broker.provider import (
 )
 from engine.capabilities.broker.repository import CredentialHandleRepository
 from engine.capabilities.broker.service import CredentialBrokerService
-from engine.capabilities.kill_switch import KILL_FLAG_REASON, KillSwitchRegistry
+from engine.capabilities.kill_switch import (
+    KILL_FLAG_REASON,
+    STOP_STATE_DISARMED,
+    KillSwitchRegistry,
+    read_durable_run_stop,
+    record_run_stop,
+    run_stop_idempotency_key,
+)
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
 from engine.contracts.capability_lease import CapabilityLease
 from engine.contracts.command_idempotency import CommandIdempotency
@@ -145,13 +154,16 @@ class FakeHandleRepository(CredentialHandleRepository):
 
 
 class FakeCommandLedger:
-    """Always-new stand-in for `engine.events.idempotency.CommandLedger`:
-    every `begin` claims the key, mirroring the first-call branch of the
-    guarded body. Replays are out of scope here -- the postgres suite pins
-    them."""
+    """In-memory mirror of the real `CommandLedger` surface the broker and
+    the durable stop record use: every `begin` claims an unseen key and
+    hands back the existing row for a seen one (the dedup semantics of
+    `INSERT ... ON CONFLICT DO NOTHING`, Chapter 12.5), `complete` flips
+    `status`/`result`, `get_by_key_scoped` reads without mutating. Rows
+    persist across service-instance construction -- what a restart replays
+    against."""
 
     def __init__(self) -> None:
-        self.completed: list[str] = []
+        self.rows: dict[tuple[UUID, str], CommandIdempotency] = {}
 
     async def begin(
         self,
@@ -163,6 +175,10 @@ class FakeCommandLedger:
         uow: object = None,
     ) -> tuple[CommandIdempotency, bool]:
         now = datetime.now(UTC)
+        key = (tenant_id, idempotency_key)
+        existing = self.rows.get(key)
+        if existing is not None:
+            return existing, False
         record = CommandIdempotency(
             command_id=uuid4(),
             tenant_id=tenant_id,
@@ -175,6 +191,7 @@ class FakeCommandLedger:
             created_at=now,
             updated_at=now,
         )
+        self.rows[key] = record
         return record, True
 
     async def complete(
@@ -186,20 +203,24 @@ class FakeCommandLedger:
         result: dict[str, object],
         uow: object = None,
     ) -> CommandIdempotency:
-        self.completed.append(str(command_id))
-        now = datetime.now(UTC)
-        return CommandIdempotency(
-            command_id=command_id,
-            tenant_id=tenant_id,
-            project_id=project_id,
-            idempotency_key=f"completed:{command_id}",
-            request_hash="hash",
-            status="completed",
-            result=result,
-            expires_at=now + timedelta(days=30),
-            created_at=now,
-            updated_at=now,
-        )
+        for key, row in self.rows.items():
+            if key[0] == tenant_id and row.command_id == command_id:
+                data = row.model_dump()
+                data.update(status="completed", result=result)
+                updated = CommandIdempotency.model_validate(data)
+                self.rows[key] = updated
+                return updated
+        raise AssertionError(f"complete() for unknown command {command_id}")
+
+    async def get_by_key_scoped(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        idempotency_key: str,
+        uow: object = None,
+    ) -> CommandIdempotency | None:
+        return self.rows.get((tenant_id, idempotency_key))
 
 
 class FakeUOW:
@@ -285,24 +306,26 @@ def _service(
     RecordingProvider,
     RecordingEvents,
     FakeHandleRepository,
+    FakeCommandLedger,
 ]:
     provider = RecordingProvider()
     events = RecordingEvents()
     registry = KillSwitchRegistry()
     handles = FakeHandleRepository()
+    ledger = FakeCommandLedger()
     broker = CredentialBrokerService(
         engine=None,  # type: ignore[arg-type]
         repository=handles,
         lease_repository=FakeLeaseRepository(leases),
         events=events,  # type: ignore[arg-type]
-        commands=FakeCommandLedger(),  # type: ignore[arg-type]
+        commands=ledger,  # type: ignore[arg-type]
         provider=provider,
         # Explicit injection of the SHARED default's type twin keeps the
         # test hermetic; the default-constructor path (shared registry) is
         # pinned by the identity assertion below.
         kill_switch=registry,
     )
-    return broker, registry, provider, events, handles
+    return broker, registry, provider, events, handles, ledger
 
 
 async def test_default_constructor_reuses_the_shared_registry() -> None:
@@ -321,7 +344,9 @@ async def test_armed_kill_flag_refuses_issue_and_derives_no_material() -> None:
     `issue()` must fail closed with typed KILL_FLAG_ACTIVE and the provider
     must NEVER be asked to derive a secret -- not merely have its output
     withheld."""
-    broker, registry, provider, events, _handles = _service([_lease(worker_run_id=RUN)])
+    broker, registry, provider, events, _handles, _ledger = _service(
+        [_lease(worker_run_id=RUN)]
+    )
     registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
 
     with pytest.raises(DdeError) as excinfo:
@@ -348,7 +373,9 @@ async def test_armed_kill_flag_refuses_renewal_of_a_live_handle() -> None:
     """A handle issued BEFORE the stop arms cannot be renewed into fresh
     material afterwards: `renew()` hits the same admission gate."""
     handle = _handle(worker_run_id=RUN)
-    broker, registry, provider, _events, handles = _service([_lease(worker_run_id=RUN)])
+    broker, registry, provider, _events, handles, _ledger = _service(
+        [_lease(worker_run_id=RUN)]
+    )
     handles.handles.append(handle)
     first = await broker.renew(
         tenant_id=TENANT,
@@ -379,7 +406,7 @@ async def test_disarmed_broker_behaviour_is_unchanged() -> None:
     """With no flag armed anywhere, issuance behaves byte-identically to
     before this change: fresh secret delivered once, live handle verifiable
     against it."""
-    broker, _registry, provider, _events, _handles = _service(
+    broker, _registry, provider, _events, _handles, _ledger = _service(
         [_lease(worker_run_id=RUN)]
     )
 
@@ -413,7 +440,7 @@ async def test_revoked_lease_path_is_unchanged_and_not_misreported_as_kill() -> 
     gate keys on the row's OWN run: the flag here is armed for a DIFFERENT
     run, so this denial comes from the lease status alone."""
     revoked = _lease(worker_run_id=RUN, status="REVOKED")
-    broker, registry, _provider, _events, _handles = _service([revoked])
+    broker, registry, _provider, _events, _handles, _ledger = _service([revoked])
     registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=OTHER_RUN)
 
     with pytest.raises(DdeError) as excinfo:
@@ -431,7 +458,7 @@ async def test_revoked_lease_path_is_unchanged_and_not_misreported_as_kill() -> 
 async def test_kill_flag_for_one_run_does_not_touch_other_runs() -> None:
     """Scope discipline: arming a stop for one worker run must not refuse
     another run's credential admission against its own lease."""
-    broker, registry, _provider, _events, _handles = _service(
+    broker, registry, _provider, _events, _handles, _ledger = _service(
         [
             _lease(worker_run_id=RUN),
             _lease(worker_run_id=OTHER_RUN, lease_id=uuid4()),
@@ -458,7 +485,9 @@ async def test_refusal_journals_credential_admission_enforcement() -> None:
     capability. Ordering puts the journal BEFORE the typed raise inside
     `_require_active_lease`'s caller `_op`, so a real unit of work
     commits it atomically with the refusal."""
-    broker, registry, provider, events, _handles = _service([_lease(worker_run_id=RUN)])
+    broker, registry, provider, events, _handles, _ledger = _service(
+        [_lease(worker_run_id=RUN)]
+    )
     registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
 
     with pytest.raises(DdeError):
@@ -492,7 +521,7 @@ async def test_disarmed_broker_journals_nothing_on_refusal_free_paths() -> None:
     lease) emits NO kill-flag journal -- the new event type marks kill
     enforcement only, never generic denials."""
     revoked = _lease(worker_run_id=RUN, status="REVOKED")
-    broker, _registry, _provider, events, _handles = _service([revoked])
+    broker, _registry, _provider, events, _handles, _ledger = _service([revoked])
     with pytest.raises(DdeError):
         await broker.issue(
             tenant_id=TENANT,
@@ -521,7 +550,7 @@ async def test_revoke_handles_for_leases_kills_only_that_runs_live_handles() -> 
         _lease(worker_run_id=RUN),
         _lease(worker_run_id=OTHER_RUN, lease_id=survivor_lease_id),
     ]
-    broker, registry, _provider, events, handles = _service(leases)
+    broker, registry, _provider, events, handles, _ledger = _service(leases)
     handles.handles.extend([killed_handle, survivor])
     registry.arm(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
 
@@ -572,7 +601,7 @@ async def test_revoke_handles_for_leases_skips_non_live_rows() -> None:
     data = superseded.model_dump()
     data.update(status="SUPERSEDED", superseded_by_handle_id=uuid4())
     superseded = CredentialHandle.model_validate(data)
-    broker, _registry, _provider, events, handles = _service(
+    broker, _registry, _provider, events, handles, _ledger = _service(
         [_lease(worker_run_id=RUN)]
     )
     handles.handles.append(superseded)
@@ -586,3 +615,118 @@ async def test_revoke_handles_for_leases_skips_non_live_rows() -> None:
     )
     assert revoked == []
     assert all(event["event_type"] != "CredentialRevoked" for event in events.appended)
+
+
+async def test_cold_restart_broker_refuses_admission_from_durable_record() -> None:
+    """The broker half of the restart scenario: a stop is armed with the
+    DURABLE record only (a previous process's `arm_run_stop` -- replayed
+    here through `record_run_stop` against a SHARED fake ledger), then a
+    brand-new broker is constructed with an empty registry. Its
+    `issue()` must still refuse with KILL_FLAG_ACTIVE and derive no
+    material, from the durable row alone."""
+    lease = _lease(worker_run_id=RUN)
+    shared_ledger = FakeCommandLedger()
+    await record_run_stop(
+        shared_ledger,
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        worker_run_id=RUN,
+        armed=True,
+        reason=KILL_FLAG_REASON,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+
+    provider = RecordingProvider()
+    events = RecordingEvents()
+    cold_registry = KillSwitchRegistry()
+    fresh_broker = CredentialBrokerService(
+        engine=None,  # type: ignore[arg-type]
+        repository=FakeHandleRepository(),
+        lease_repository=FakeLeaseRepository([lease]),
+        events=events,  # type: ignore[arg-type]
+        commands=shared_ledger,  # type: ignore[arg-type]
+        provider=provider,
+        kill_switch=cold_registry,  # fresh process: nothing in memory
+    )
+    assert (
+        cold_registry.is_killed(tenant_id=TENANT, project_id=PROJECT, worker_run_id=RUN)
+        is False
+    )
+
+    with pytest.raises(DdeError) as excinfo:
+        await fresh_broker.issue(
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            lease_id=LEASE_ID,
+            requested_by="test",
+            idempotency_key="issue:cold-restart",
+            uow=FakeUOW(),  # type: ignore[arg-type]
+        )
+    assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
+    assert excinfo.value.details is not None
+    assert excinfo.value.details["worker_run_id"] == str(RUN)
+    assert provider.issue_calls == []
+    enforced = [
+        e for e in events.appended if e["event_type"] == "CredentialKillFlagEnforced"
+    ]
+    assert len(enforced) == 1
+
+
+async def test_disarmed_durable_record_lets_fresh_broker_pass_again() -> None:
+    """Disarm symmetry at admission: after the durable row is flipped to
+    DISARMED (the operator undo), a fresh broker with a cold registry
+    issues normally again."""
+    lease = _lease(worker_run_id=RUN)
+    shared_ledger = FakeCommandLedger()
+    await record_run_stop(
+        shared_ledger,
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        worker_run_id=RUN,
+        armed=True,
+        reason=KILL_FLAG_REASON,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    await record_run_stop(
+        shared_ledger,
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        worker_run_id=RUN,
+        armed=False,
+        reason="disarmed",
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    key = (TENANT, run_stop_idempotency_key(RUN))
+    assert shared_ledger.rows[key].result == {
+        "state": STOP_STATE_DISARMED,
+        "reason": "disarmed",
+    }
+    stopped = await read_durable_run_stop(
+        shared_ledger,
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        worker_run_id=RUN,
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert stopped is False
+
+    provider = RecordingProvider()
+    fresh_broker = CredentialBrokerService(
+        engine=None,  # type: ignore[arg-type]
+        repository=FakeHandleRepository(),
+        lease_repository=FakeLeaseRepository([lease]),
+        events=RecordingEvents(),  # type: ignore[arg-type]
+        commands=shared_ledger,  # type: ignore[arg-type]
+        provider=provider,
+        kill_switch=KillSwitchRegistry(),
+    )
+    issued = await fresh_broker.issue(
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        lease_id=LEASE_ID,
+        requested_by="test",
+        idempotency_key="issue:post-disarm-restart",
+        uow=FakeUOW(),  # type: ignore[arg-type]
+    )
+    assert issued.secret_value is not None
+    assert len(provider.issue_calls) == 1

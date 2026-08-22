@@ -44,23 +44,28 @@ shared process-wide registry (`engine.capabilities.kill_switch.
 KillSwitchRegistry`) and, in ONE transaction, transitions EVERY still-held
 lease of the run `GRANTED|ACTIVE -> REVOKED` (reason `kill_flag`) through
 the existing revoke path and journals one `CapabilityRunStopArmed`
-summary event (aggregate = the run). `require_active` still consults that
-registry before honouring any held lease: an armed stop refuses the run's
-NEXT capability checkout with typed `KILL_FLAG_ACTIVE`, journals a
-`CapabilityKillFlagEnforced` event committed atomically with its
-transaction, and keeps revoking still-held leases on refusal as a
-BACKSTOP for leases granted between arm and checkout (the sweep is
-primary). The same shared registry is consulted at credential admission
-(`engine.capabilities.broker.service.CredentialBrokerService.
-_require_active_lease`), which refuses fresh issuance for that run and
-journals `CredentialKillFlagEnforced`; live broker handles of the
-stopped run's leases are revoked by pairing `arm_run_stop` with
+summary event (aggregate = the run). The ARMED/DISARMED state itself is
+also durable at arm time through the EXISTING `engine.events.idempotency.
+CommandLedger` (`command_idempotency` table, Chapter 3.7): one row per
+run keyed `kill_flag_run_stop:{run_id}`, created-or-flipped by
+`arm_run_stop`/`disarm_run_stop` via the ledger's own `begin`+`complete`
+-- no new table, no schema change, no second mechanism. Both enforcement
+sites consult memory first and then that durable record INSIDE the unit
+of work they already hold (`require_active` at checkout,
+`CredentialBrokerService._require_active_lease` at credential admission),
+so a fresh process with a cold registry still refuses checkout/admission
+for a stopped run without anyone re-arming, and a durably disarmed run
+passes again. An armed stop refuses the run's NEXT capability checkout
+with typed `KILL_FLAG_ACTIVE`, journals a `CapabilityKillFlagEnforced`
+event committed atomically with its transaction, and keeps revoking
+still-held leases on refusal as a BACKSTOP for leases granted between arm
+and checkout (the sweep is primary). Live broker handles of the stopped
+run's leases are revoked by pairing `arm_run_stop` with
 `CredentialBrokerService.revoke_handles_for_leases` in one shared unit
-of work. Still not gated: network egress (T2 EDR); an already-in-flight
-subprocess stays uninterruptible (T2/DDE-018). The in-memory flag does
-not survive process restarts -- the durable REVOKED lease rows and
-revoked handles do -- while its own persistence waits for the planned
-ledger-backed stop record.
+of work. Remaining disclosed limits: network egress is not gated by this
+flag (T2 EDR); an already-in-flight subprocess stays uninterruptible
+(T2/DDE-018). The in-memory registry is a per-instance cache of the
+durable row, never a second source of truth.
 """
 
 from __future__ import annotations
@@ -77,6 +82,8 @@ from engine.capabilities.kill_switch import (
     KILL_FLAG_REASON,
     RUN_STOP_ARMED_EVENT_TYPE,
     KillSwitchRegistry,
+    read_durable_run_stop,
+    record_run_stop,
 )
 from engine.capabilities.lease_hashing import lease_hash
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
@@ -110,13 +117,14 @@ CAPABILITY_LEASE_POLICY_VERSION = "capability-lease-v1"
 #: analogous gap.
 DEFAULT_LEASE_TTL = timedelta(hours=24)
 
-#: Process-wide kill-flag registry backing `require_active`'s checkout
-#: check and `engine.capabilities.broker.service`'s credential admission.
-#: Module-level so an operator arming a stop through any service
-#: instance gates every instance in the process; the durable half of the
-#: stop is written by `arm_run_stop`'s sweep -- REVOKED lease rows and
-#: revoked broker handles -- not this set (see `engine.capabilities.
-#: kill_switch`'s docstring for what is and is not wired).
+#: Process-wide kill-flag registry CACHE backing `require_active`'s
+#: checkout check and `engine.capabilities.broker.service`'s credential
+#: admission. Module-level so an operator arming a stop through any
+#: service instance gates every instance in the process immediately;
+#: the DURABLE half of the stop is the `command_idempotency` row
+#: `arm_run_stop`/`disarm_run_stop` write through the CommandLedger plus
+#: the sweep's REVOKED lease rows and revoked broker handles (see
+#: `engine.capabilities.kill_switch` for what is and is not wired).
 SHARED_KILL_SWITCH = KillSwitchRegistry()
 
 
@@ -387,20 +395,31 @@ class CapabilityLeaseService:
         """Arm a run's kill switch as an ACTIVE sweep (research §6's
         intentional stop, made durable at arm time instead of at the next
         refused checkout): (1) register the flag in the shared registry,
-        (2) read every still-held lease of the run via the repository's
-        held-only list query, (3) transition each through this service's
-        existing `REVOKED` path (`_transition` -- the same state machine
-        `revoke()` uses; no duplicated logic) with reason `kill_flag`,
-        (4) journal ONE `CapabilityRunStopArmed` summary event
-        (aggregate = the run). Returns the revoked leases. Idempotent in
-        effect: re-arming finds an empty held set and journals only the
-        summary. The flag itself stays process-memory until the planned
-        ledger-backed stop record; these REVOKED rows are what survives a
-        restart."""
+        (2) write the DURABLE stop record through the existing
+        `CommandLedger` (`engine.capabilities.kill_switch.record_run_stop`
+        -- one `command_idempotency` row per run, state ARMED), (3) read
+        every still-held lease of the run via the repository's held-only
+        list query, (4) transition each through this service's existing
+        `REVOKED` path (`_transition` -- the same state machine `revoke()`
+        uses; no duplicated logic) with reason `kill_flag`, (5) journal
+        ONE `CapabilityRunStopArmed` summary event (aggregate = the run).
+        All inside ONE transaction. Returns the revoked leases.
+        Idempotent: re-arming presents the ledger's existing dedup key
+        (no second row) and finds an empty held set; it journals only the
+        summary."""
 
         async def _op(active: PostgresUnitOfWork) -> list[CapabilityLease]:
             self.kill_switch.arm(
                 tenant_id=tenant_id, project_id=project_id, worker_run_id=worker_run_id
+            )
+            await record_run_stop(
+                self._commands,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+                armed=True,
+                reason=KILL_FLAG_REASON,
+                uow=active,
             )
             held = await self._repository.list_held_for_run(
                 active.connection, worker_run_id
@@ -441,6 +460,68 @@ class CapabilityLeaseService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def disarm_run_stop(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+        reason: str = "disarmed",
+        uow: PostgresUnitOfWork | None = None,
+    ) -> None:
+        """Symmetric counterpart to `arm_run_stop`: flips the run's
+        DURABLE stop record to DISARMED through the same single ledger
+        row (`engine.capabilities.kill_switch.record_run_stop`) and drops
+        the in-memory flag -- so after a restart a disarmed run passes
+        checkout and credential admission again. This is an operator
+        escape hatch, not part of Chapter 9.2's lease machine: it touches
+        no lease rows (terminal REVOKED statuses stand) and journals no
+        event beyond what the stop already recorded. Idempotent for the
+        same key via the ledger's dedup."""
+
+        async def _op(active: PostgresUnitOfWork) -> None:
+            self.kill_switch.disarm(
+                tenant_id=tenant_id, project_id=project_id, worker_run_id=worker_run_id
+            )
+            await record_run_stop(
+                self._commands,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+                armed=False,
+                reason=reason,
+                uow=active,
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _is_run_stopped(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+    ) -> bool:
+        """The one kill-flag consult every enforcement surface shares:
+        memory first (fast path, no extra I/O when the instance itself
+        armed or refused before), then the DURABLE stop record read
+        inside the unit of work the caller already holds -- so a fresh
+        process with a cold registry still refuses for a stopped run."""
+        if self.kill_switch.is_killed(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            worker_run_id=worker_run_id,
+        ):
+            return True
+        return await read_durable_run_stop(
+            self._commands,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            worker_run_id=worker_run_id,
+            uow=active,
+        )
+
     async def require_active(
         self,
         *,
@@ -461,28 +542,30 @@ class CapabilityLeaseService:
         (Chapter 9.2's real state for "currently authorising an in-flight
         operation").
 
-        Kill flag (research §6): a run whose kill switch is armed is
-        refused here BEFORE any held lease is honoured -- mid-run arming
-        takes effect at the next tool call's checkout, not at attempt
-        start. The refusal is journaled: a `CapabilityKillFlagEnforced`
-        event commits atomically with this transaction, so the audit
-        trail shows every gate firing. The sweep-on-arm
-        (`engine.capabilities.lease_service.CapabilityLeaseService.
-        arm_run_stop`) is the primary durable half of a stop; the
-        revoke-still-held-leases behaviour below is a BACKSTOP for leases
-        granted between arm and this checkout -- every still-held lease
-        transitions to the chapter-named terminal status `REVOKED` with
-        reason `kill_flag` (the closest existing state; no new status
-        invented). The same shared registry gates broker credential
-        admission (`engine.capabilities.broker.service.
-        CredentialBrokerService._require_active_lease`). Disclosed limits:
-        network egress does not consult the flag, an already-in-flight
-        subprocess cannot be interrupted (T2 containment is Chapter
-        14/DDE-018), and the flag set itself lives in process memory while
-        the REVOKED rows are what survive restarts."""
+        Kill flag (research §6): a run whose stop is armed -- in this
+        instance's memory OR in the DURABLE stop record (the
+        `command_idempotency` row `engine.capabilities.kill_switch.
+        read_durable_run_stop` resolves inside THIS transaction) -- is
+        refused here BEFORE any held lease is honoured: mid-run arming
+        takes effect at the next tool call's checkout, and a fresh
+        process with an empty registry still refuses for a run stopped by
+        a previous one. The refusal is journaled: a
+        `CapabilityKillFlagEnforced` event commits atomically with this
+        transaction, so the audit trail shows every gate firing. The
+        sweep-on-arm (`arm_run_stop`) is the primary durable half of a
+        stop; the revoke-still-held-leases behaviour below is a BACKSTOP
+        for leases granted between arm and this checkout -- every
+        still-held lease transitions to the chapter-named terminal status
+        `REVOKED` with reason `kill_flag` (the closest existing state; no
+        new status invented). The same durable consult gates broker
+        credential admission (`CredentialBrokerService.
+        _require_active_lease`). Disclosed limits: network egress does
+        not consult the stop, and an already-in-flight subprocess cannot
+        be interrupted (T2 containment, Chapter 14/DDE-018)."""
 
         async def _op(active: PostgresUnitOfWork) -> CapabilityLease:
-            if self.kill_switch.is_killed(
+            if await self._is_run_stopped(
+                active,
                 tenant_id=tenant_id,
                 project_id=project_id,
                 worker_run_id=worker_run_id,

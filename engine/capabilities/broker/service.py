@@ -36,25 +36,31 @@ caller that loses a freshly issued secret before consuming it must
 behaviour for a one-time secret, not a gap.
 
 **Kill flag at credential admission (research §6).** The admission seam
-`_require_active_lease` additionally consults the SAME process-wide
-kill-flag registry `engine.capabilities.lease_service.
-CapabilityLeaseService.require_active` checks at lease checkout (the
-shared module-level instance, never a second registry): an armed stop
-refuses `issue()`/`renew()` for that run with typed `KILL_FLAG_ACTIVE`
-before any credential material is derived, closing the former hole where
-a stopped run could still obtain fresh credential material. The refusal
-is journaled -- a `CredentialKillFlagEnforced` event (aggregate = the
-lease involved, payload carrying `worker_run_id`, `capability_id` and
+`_require_active_lease` additionally consults the SAME run-stop state
+`engine.capabilities.lease_service.CapabilityLeaseService.require_active`
+checks at lease checkout -- memory first (`engine.capabilities.kill_switch.
+KillSwitchRegistry`, the shared module-level instance, never a second
+registry), then the DURABLE stop record through the EXISTING
+`engine.events.idempotency.CommandLedger`
+(`engine.capabilities.kill_switch.read_durable_run_stop`, read inside the
+unit of work admission already holds): an armed stop refuses
+`issue()`/`renew()` for that run with typed `KILL_FLAG_ACTIVE` before any
+credential material is derived, closing the former hole where a stopped
+run could still obtain fresh credential material -- including from a
+fresh process whose registry is cold but whose `command_idempotency`
+stop row says ARMED. The refusal is journaled -- a
+`CredentialKillFlagEnforced` event (aggregate = the lease involved,
+payload carrying `worker_run_id`, `capability_id` and
 `surface="credential_admission"`) commits atomically with the refusing
 transaction. Live material is handled by the stop, not the gate: the
 caller composing an intentional stop pairs `engine.capabilities.
-lease_service.CapabilityLeaseService.arm_run_stop` with this service's
-`revoke_handles_for_leases` in ONE shared unit of work, so the run's held
-leases and every still-live handle bound to them die together at arm time.
-Honest limits: an in-flight subprocess holding a live secret cannot be
-interrupted (T2/DDE-018), and the flag itself lives in process memory
-while the durable REVOKED lease rows and revoked handles are what survive
-restarts (ledger-backed stop record planned, deferred).
+lease_service.CapabilityLeaseService.arm_run_stop` (which also writes the
+durable record) with this service's `revoke_handles_for_leases` in ONE
+shared unit of work, so the run's held leases and every still-live handle
+bound to them die together at arm time; the symmetric operator undo is
+`CapabilityLeaseService.disarm_run_stop`. Honest limits: an in-flight
+subprocess holding a live secret cannot be interrupted (T2/DDE-018), and
+network egress remains ungated by the stop (T2 EDR).
 
 **What this module does NOT do** -- deferred, not stubbed:
   - Wiring a real caller (`engine.workers`/`engine.workspaces`) to actually
@@ -100,6 +106,7 @@ from engine.capabilities.kill_switch import (
     ADMISSION_ENFORCEMENT_EVENT_TYPE,
     KILL_FLAG_REASON,
     KillSwitchRegistry,
+    read_durable_run_stop,
 )
 from engine.capabilities.lease_repository import CapabilityLeaseRepository
 from engine.capabilities.lease_service import SHARED_KILL_SWITCH
@@ -674,11 +681,14 @@ class CredentialBrokerService:
         filters it to `None`) is denied the same way.
 
         Kill flag (research §6): once the freshly-read row names a run
-        whose kill switch is armed, admission is refused with typed
-        `KILL_FLAG_ACTIVE` -- the same code `CapabilityLeaseService.
-        require_active` raises at checkout -- BEFORE this method returns,
-        so no caller of `issue()`/`renew()` derives or receives secret
-        material for a stopped run. The refusal journals a
+        whose stop is armed -- in this instance's memory OR in the DURABLE
+        stop record (`engine.capabilities.kill_switch.
+        read_durable_run_stop`, resolved inside THIS transaction) --
+        admission is refused with typed `KILL_FLAG_ACTIVE` -- the same
+        code `CapabilityLeaseService.require_active` raises at checkout --
+        BEFORE this method returns, so no caller of `issue()`/`renew()`
+        derives or receives secret material for a stopped run, even from a
+        process whose in-memory registry is cold. The refusal journals a
         `CredentialKillFlagEnforced` event (aggregate = this lease)
         committed atomically with the refusing transaction. Revocation
         semantics are unchanged here: live handles of a stopped run are
@@ -693,10 +703,19 @@ class CredentialBrokerService:
                 "Unknown capability lease -- fail closed",
                 details={"lease_id": str(lease_id)},
             )
-        if lease.worker_run_id is not None and self._kill_switch.is_killed(
-            tenant_id=lease.tenant_id,
-            project_id=lease.project_id,
-            worker_run_id=lease.worker_run_id,
+        if lease.worker_run_id is not None and (
+            self._kill_switch.is_killed(
+                tenant_id=lease.tenant_id,
+                project_id=lease.project_id,
+                worker_run_id=lease.worker_run_id,
+            )
+            or await read_durable_run_stop(
+                self._commands,
+                tenant_id=lease.tenant_id,
+                project_id=lease.project_id,
+                worker_run_id=lease.worker_run_id,
+                uow=active,
+            )
         ):
             await self._events.append(
                 tenant_id=lease.tenant_id,
