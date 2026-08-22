@@ -89,20 +89,34 @@ WORKER_FAILURE allows one recover then reroute. Chapter 12.4
 `assert_clear_to_mutate` still runs first so UNKNOWN is never
 matrix-retried around the journal.
 
-**Caller-supplied attempt budgets.** Both dispatch call sites accept an
-optional `AttemptBudget` (`engine.workers.budget`). When supplied, it is
-checked inside the idempotency-guarded command body -- before any
-TaskAttempt row, lease, or adapter side effect exists -- and an over-ceiling
-attempt raises typed `BUDGET_EXHAUSTED` (`engine.core.errors.
-BudgetExhaustedError`) with no durable mutation performed. Honest limits,
-also stated in that module's docstring: the budget is NOT persisted (no
-schema/migration; caller-supplied parameter only, disclosed as such), is not
-part of `_invoke_request_hash`, and Stage 1 has no token meter to decrement
--- the check compares the attempt's declared demand against the ceiling at
-admission time. Recording exhaustion as the recovery matrix's
-RESOURCE_EXHAUSTION row (pause-for-human) needs a durable run/attempt to
-attach to and is deferred; nothing consumes the typed error downstream yet.
-Default `None` = unlimited = behaviour unchanged for every existing caller.
+**Per-attempt budgets, persisted and consumed.** Both dispatch call
+sites resolve an `AttemptBudget` (`engine.workers.budget`) for every
+command: the caller-supplied parameter is an *override*; when absent,
+the durable ceiling decoded from `execution_plans.token_budget`
+(`attempt_max_tokens`/`attempt_max_tool_calls` keys, recorded by
+`ExecutionPlanService.plan(attempt_budget=...)` before hashing) applies;
+otherwise unlimited. The check still runs inside the idempotency-guarded
+command body -- after the ledger's replay short-circuit, before any
+TaskAttempt row, lease, or adapter side effect exists -- and an
+over-ceiling attempt raises typed `BUDGET_EXHAUSTED`
+(`engine.core.errors.BudgetExhaustedError`). The budget is deliberately
+NOT part of `_invoke_request_hash`: that hash pins a command's identity
+(a changed hash on a known key is a hard `VERSION_CONFLICT` refusal), so
+admission policy is evaluated only after replay -- idempotency wins over
+budget, and a replayed key replays the first call's stored outcome even
+if the resolved ceiling has since been exceeded. On a first-seen
+refusal, `_record_budget_refusal` lands the outcome where the recovery
+matrix already looks: a durable FAILED `TaskAttempt` with
+`failure_class="BUDGET_EXCEEDED"` (via `TaskAttemptService.create()` +
+`.fail()`), which `RecoveryService.assert_clear_to_retry` feeds to
+`engine.recovery.matrix.decide()` -- the RESOURCE_EXHAUSTION row
+(`action="request_budget"`, `requires_human=True`, no new worker run),
+i.e. pause-for-human through existing machinery only. Still honest:
+Stage 1 has no token meter to decrement -- the check compares the
+attempt's declared demand against the resolved ceiling at admission
+time; live provider metering remains deferred. Default `None` from a
+plan without an explicit ceiling = unlimited = behaviour unchanged for
+every existing caller.
 
 **DDE-025.** `get_certified_adapter` is called with the provisioned
 `ExecutionEnvironment.class_`. A STALE `profile_hash` (smoke not passed
@@ -140,7 +154,7 @@ from engine.contracts.worker_event import WorkerEvent
 from engine.contracts.worker_run import WorkerRun
 from engine.contracts.workspace import Workspace
 from engine.core.clock import Clock, SystemClock
-from engine.core.errors import DdeError
+from engine.core.errors import BudgetExhaustedError, DdeError
 from engine.core.hashing import canonical_json, sha256_hex
 from engine.core.ids import uuid7
 from engine.core.state_machine import transition
@@ -169,9 +183,11 @@ from engine.workers.adapter import (
     WorkerAdapter,
 )
 from engine.workers.budget import (
+    BUDGET_EXCEEDED_FAILURE_CLASS,
     AttemptBudget,
     check_attempt_budget,
     estimated_token_demand,
+    resolve_attempt_budget,
 )
 from engine.workers.registry import WorkerProfileRegistry
 from engine.workers.repository import WorkerEventRepository, WorkerRunRepository
@@ -340,11 +356,18 @@ class WorkerManagerService:
         """Chapter 3.9 steps 8/10 plus Chapter 8.2's full drive to a
         terminal state, guarded end-to-end by `idempotency_key`.
 
-        `budget` is an optional caller-supplied ceiling for this one
-        attempt; see the module docstring's budget section for what is
-        wired here (admission check before any mutation) versus what is
-        disclosed as unwired (persistence, provider metering, recovery
-        consumption)."""
+        `budget` is an optional caller-supplied ceiling that *overrides*
+        the durable ceiling persisted on the ExecutionPlan's
+        `token_budget` (recorded by `ExecutionPlanService.plan`); when
+        neither exists the dispatch is unlimited. It is not part of
+        `_invoke_request_hash`, and it is evaluated after the idempotency
+        ledger's replay short-circuit -- so a replayed key replays the
+        first call's outcome even if the ceiling is now exceeded
+        (idempotency wins over budget). A first-seen over-ceiling command
+        raises typed `BUDGET_EXHAUSTED`; the refusal is then recorded as
+        a durable FAILED TaskAttempt (`failure_class="BUDGET_EXCEEDED"`)
+        where the recovery matrix's RESOURCE_EXHAUSTION pause-for-human
+        row already reads it."""
         if execution_plan.task_id != task.task_id:
             raise DdeError(
                 "POLICY_DENIED",
@@ -369,6 +392,7 @@ class WorkerManagerService:
 
         tenant_id = execution_plan.tenant_id
         project_id = execution_plan.project_id
+        resolved_budget = resolve_attempt_budget(budget, execution_plan.token_budget)
         request_hash = _invoke_request_hash(
             task_id=task.task_id,
             execution_plan_id=execution_plan.plan_id,
@@ -387,11 +411,22 @@ class WorkerManagerService:
             if not is_new:
                 return self._replay_or_raise(record)
 
-            check_attempt_budget(
-                budget,
-                estimated_tokens=estimated_token_demand(action),
-                estimated_tool_calls=1,
-            )
+            try:
+                check_attempt_budget(
+                    resolved_budget,
+                    estimated_tokens=estimated_token_demand(action),
+                    estimated_tool_calls=1,
+                )
+            except BudgetExhaustedError:
+                await self._record_budget_refusal(
+                    task=task,
+                    execution_plan=execution_plan,
+                    workspace_revision=workspace.current_revision
+                    or workspace.base_revision
+                    or "unknown",
+                    input_context_hash=input_context_hash,
+                )
+                raise
 
             if task.requires_approval:
                 await self._approvals.require_approved(
@@ -585,11 +620,18 @@ class WorkerManagerService:
     ) -> WorkerRun:
         """Chapter 3.9 1:N recovery: a new WorkerRun on an existing
         IN_PROGRESS attempt. Does not create a second attempt. `budget`
-        behaves exactly as on `invoke_run`: caller-supplied, checked before
-        any mutation, never persisted.
+        resolves exactly as on `invoke_run`: the caller parameter is an
+        override, else the durable `token_budget` ceiling applies, else
+        unlimited; it is not part of `_invoke_request_hash` and is
+        checked only after the idempotency replay short-circuit, so a
+        replayed key replays the original outcome. A first-seen refusal
+        is recorded as a FAILED TaskAttempt
+        (`failure_class="BUDGET_EXCEEDED"`) for the recovery matrix's
+        RESOURCE_EXHAUSTION pause-for-human row.
         """
         tenant_id = execution_plan.tenant_id
         project_id = execution_plan.project_id
+        resolved_budget = resolve_attempt_budget(budget, execution_plan.token_budget)
         request_hash = _invoke_request_hash(
             task_id=task.task_id,
             execution_plan_id=execution_plan.plan_id,
@@ -608,11 +650,22 @@ class WorkerManagerService:
             if not is_new:
                 return self._replay_or_raise(record)
 
-            check_attempt_budget(
-                budget,
-                estimated_tokens=estimated_token_demand(action),
-                estimated_tool_calls=1,
-            )
+            try:
+                check_attempt_budget(
+                    resolved_budget,
+                    estimated_tokens=estimated_token_demand(action),
+                    estimated_tool_calls=1,
+                )
+            except BudgetExhaustedError:
+                await self._record_budget_refusal(
+                    task=task,
+                    execution_plan=execution_plan,
+                    workspace_revision=workspace.current_revision
+                    or workspace.base_revision
+                    or input_context_hash,
+                    input_context_hash=input_context_hash,
+                )
+                raise
 
             if task.requires_approval:
                 await self._approvals.require_approved(
@@ -781,6 +834,47 @@ class WorkerManagerService:
             return run
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _record_budget_refusal(
+        self,
+        *,
+        task: Task,
+        execution_plan: ExecutionPlan,
+        workspace_revision: str,
+        input_context_hash: str,
+    ) -> None:
+        """Land a typed budget refusal where the recovery matrix already
+        looks. The refusal fires pre-mutation -- no WorkerRun row exists
+        yet and the guarded command's own transaction is about to roll
+        back -- so the durable home is the Chapter 12.2/3.8 attempt path:
+        `TaskAttemptService.create()` plus `.fail()` write the append-only
+        FAILED `TaskAttempt` with `failure_class="BUDGET_EXCEEDED"` in
+        their own, committed units of work (the same pattern a failed
+        worker command lands through `_checkpoint_terminal_run`, minus the
+        WorkerRun, which correctly does not exist because nothing ran).
+        That row is exactly what `RecoveryService.assert_clear_to_retry`
+        reads and feeds to `engine.recovery.matrix.decide()`, whose
+        RESOURCE_EXHAUSTION row (`action="request_budget"`,
+        `requires_human=True`, `allow_new_worker_run=False`) is the
+        pause-for-human outcome -- reached through existing machinery
+        only. A failure while recording propagates rather than being
+        swallowed into the budget error: it is the same database the
+        dispatch path itself needs."""
+        attempt = await self._attempts.create(
+            task=task,
+            execution_plan=execution_plan,
+            workspace_revision=workspace_revision,
+            input_context_hash=input_context_hash,
+            uow=None,
+        )
+        await self._attempts.fail(
+            tenant_id=task.tenant_id,
+            project_id=task.project_id,
+            attempt_id=attempt.attempt_id,
+            failure_class=BUDGET_EXCEEDED_FAILURE_CLASS,
+            checkpoint_id=None,
+            uow=None,
+        )
 
     async def _refuse_completed_worker_result(
         self,

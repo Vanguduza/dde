@@ -74,6 +74,7 @@ from engine.execution.repository import ExecutionPlanRepository
 from engine.execution.states import EXECUTION_PLAN_TRANSITIONS
 from engine.integration.service import WriteScopeLeaseService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
+from engine.workers.budget import AttemptBudget, attempt_budget_json
 from engine.workspaces.service import WorkspaceService
 
 T = TypeVar("T")
@@ -130,12 +131,21 @@ class ExecutionPlanService:
         route_decision: RouteDecision,
         context_package_id: UUID,
         worker_profile_id: str | None = None,
+        attempt_budget: AttemptBudget | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> ExecutionPlan:
         """Chapter 7.1's planner steps, minus workspace allocation (see the
         module docstring's flagged divergence). Provisions a real
         `ExecutionEnvironment` via `ExecutionEnvironmentService.provision`
-        under the same transaction, then hashes and persists the plan."""
+        under the same transaction, then hashes and persists the plan.
+
+        `attempt_budget` is an optional per-attempt dispatch ceiling
+        (`engine.workers.budget.AttemptBudget`). It is encoded into
+        `token_budget` *before* hashing, so it becomes part of the
+        immutable plan definition and survives any restart;
+        `WorkerManagerService` resolves and enforces it at dispatch time.
+        Default `None` leaves `token_budget` exactly as previous builds
+        wrote it."""
         if route_decision.task_id != task.task_id:
             raise DdeError(
                 "POLICY_DENIED",
@@ -195,6 +205,10 @@ class ExecutionPlanService:
                 "writable_root": "workspace",
                 "size_cap_mb": DEFAULT_WORKSPACE_SIZE_CAP_MB,
             }
+            token_budget: dict[str, object] = {
+                **planned.token_budget,
+                **attempt_budget_json(attempt_budget),
+            }
             digest = plan_hash(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -210,7 +224,7 @@ class ExecutionPlanService:
                 autonomy_level=planned.autonomy_level,
                 resource_budget=planned.resource_budget,
                 time_budget=planned.time_budget,
-                token_budget=planned.token_budget,
+                token_budget=token_budget,
                 network_policy=network_policy,
                 filesystem_policy=filesystem_policy,
                 checkpoint_policy=planned.checkpoint_policy,
@@ -234,7 +248,7 @@ class ExecutionPlanService:
                 autonomy_level=planned.autonomy_level,
                 resource_budget=planned.resource_budget,
                 time_budget=planned.time_budget,
-                token_budget=planned.token_budget,
+                token_budget=token_budget,
                 network_policy=network_policy,
                 filesystem_policy=filesystem_policy,
                 verification_plan_id=None,
