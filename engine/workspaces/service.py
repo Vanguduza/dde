@@ -223,11 +223,20 @@ class WorkspaceService:
                 / f"ws-{workspace_id.hex}"
             )
             target_dir.parent.mkdir(parents=True, exist_ok=True)
+            scrub_policy = bool(policy.get("scrub_future_state", False))
             try:
                 git.worktree_add(self._root, target_dir, resolved_revision)
-                scrubbed_refs = git.scrub_future_state(
-                    target_dir, keep_revision=resolved_revision
-                )
+                scrubbed_refs: list[str] = []
+                if scrub_policy:
+                    # Opt-in (workspace policy `scrub_future_state: true`)
+                    # because the scrub mutates the SHARED object store
+                    # backing this worktree: reflog expiry and gc --prune
+                    # would destroy the host repo's own recovery history
+                    # and collide with concurrent git operations. Safe
+                    # only against isolated clone-based stores.
+                    scrubbed_refs = git.scrub_future_state(
+                        target_dir, keep_revision=resolved_revision
+                    )
             except git.GitCommandError as exc:
                 shutil.rmtree(target_dir, ignore_errors=True)
                 await self._fail(active, workspace_id, reason=str(exc))
