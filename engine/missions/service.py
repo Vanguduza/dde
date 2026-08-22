@@ -177,6 +177,10 @@ class MissionService:
                     details={"expected": lock_version, "actual": current.lock_version},
                 )
             next_status = transition(current.status, target_status, MISSION_TRANSITIONS)
+            if next_status == "COMPLETED":
+                from engine.verification.mission_oracle import assert_ready_to_complete
+
+                await assert_ready_to_complete(active.connection, mission_id)
             now = self._clock.now()
             rowcount = await self._repository.update_mission_status(
                 active.connection,

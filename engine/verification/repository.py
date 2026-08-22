@@ -25,8 +25,14 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from engine.contracts.acceptance_oracle import AcceptanceOracle
 from engine.contracts.evidence import Evidence
+from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
 from engine.contracts.verification_run import VerificationRun
-from engine.verification.tables import acceptance_oracles, evidence, verification_runs
+from engine.verification.tables import (
+    acceptance_oracles,
+    evidence,
+    mission_oracle_evaluations,
+    verification_runs,
+)
 
 _ORACLE_JSONB_FIELDS = (
     "requirement_refs",
@@ -43,6 +49,12 @@ _RUN_JSONB_FIELDS = (
     "evidence_refs",
 )
 _EVIDENCE_JSONB_FIELDS = ("artifact_refs", "independence_flags")
+_EVAL_JSONB_FIELDS = (
+    "check_results",
+    "outcome_results",
+    "recovery_decision",
+    "disclosed_gaps",
+)
 
 
 def _json_safe(value: object) -> object:
@@ -52,7 +64,8 @@ def _json_safe(value: object) -> object:
 
 
 def _values(
-    record: AcceptanceOracle | VerificationRun | Evidence, jsonb_fields: tuple[str, ...]
+    record: AcceptanceOracle | VerificationRun | Evidence | MissionOracleEvaluation,
+    jsonb_fields: tuple[str, ...],
 ) -> dict[str, object]:
     dumped = record.model_dump()
     for field in jsonb_fields:
@@ -94,6 +107,51 @@ class AcceptanceOracleRepository:
                 acceptance_oracles.c.task_id == task_id,
                 acceptance_oracles.c.oracle_version == oracle_version,
             )
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return AcceptanceOracle.model_validate(dict(row))
+
+    async def list_task_oracles(
+        self, connection: AsyncConnection, task_id: UUID
+    ) -> list[AcceptanceOracle]:
+        result = await connection.execute(
+            select(acceptance_oracles).where(
+                acceptance_oracles.c.task_id == task_id,
+                acceptance_oracles.c.scope == "task",
+            )
+        )
+        return [
+            AcceptanceOracle.model_validate(dict(row))
+            for row in result.mappings().all()
+        ]
+
+    async def get_mission_by_version(
+        self, connection: AsyncConnection, mission_id: UUID, oracle_version: str
+    ) -> AcceptanceOracle | None:
+        result = await connection.execute(
+            select(acceptance_oracles).where(
+                acceptance_oracles.c.mission_id == mission_id,
+                acceptance_oracles.c.scope == "mission",
+                acceptance_oracles.c.oracle_version == oracle_version,
+            )
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return AcceptanceOracle.model_validate(dict(row))
+
+    async def get_latest_mission_oracle(
+        self, connection: AsyncConnection, mission_id: UUID
+    ) -> AcceptanceOracle | None:
+        result = await connection.execute(
+            select(acceptance_oracles)
+            .where(
+                acceptance_oracles.c.mission_id == mission_id,
+                acceptance_oracles.c.scope == "mission",
+            )
+            .order_by(acceptance_oracles.c.created_at.desc())
         )
         row = result.mappings().first()
         if row is None:
@@ -204,3 +262,42 @@ class EvidenceRepository:
             .order_by(evidence.c.recorded_at.asc())
         )
         return [Evidence.model_validate(dict(row)) for row in result.mappings().all()]
+
+
+class MissionOracleEvaluationRepository:
+    """Reads and writes rows for `mission_oracle_evaluations`."""
+
+    async def insert_evaluation(
+        self, connection: AsyncConnection, record: MissionOracleEvaluation
+    ) -> None:
+        await connection.execute(
+            mission_oracle_evaluations.insert().values(
+                **_values(record, _EVAL_JSONB_FIELDS)
+            )
+        )
+
+    async def get_evaluation(
+        self, connection: AsyncConnection, evaluation_id: UUID
+    ) -> MissionOracleEvaluation | None:
+        result = await connection.execute(
+            select(mission_oracle_evaluations).where(
+                mission_oracle_evaluations.c.evaluation_id == evaluation_id
+            )
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return MissionOracleEvaluation.model_validate(dict(row))
+
+    async def get_latest_for_mission(
+        self, connection: AsyncConnection, mission_id: UUID
+    ) -> MissionOracleEvaluation | None:
+        result = await connection.execute(
+            select(mission_oracle_evaluations)
+            .where(mission_oracle_evaluations.c.mission_id == mission_id)
+            .order_by(mission_oracle_evaluations.c.created_at.desc())
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return MissionOracleEvaluation.model_validate(dict(row))

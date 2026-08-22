@@ -43,7 +43,8 @@ class AcceptanceOracle(BaseModel):
     """
     Chapter 11.2 executable acceptance definition, bound to evidence producers.
     Immutable definition; oracle_version is a content hash over definition fields only
-    (Chapter 3.10).
+    (Chapter 3.10). scope=task is DDE-012; scope=mission is Chapter 11.3 (DDE-037) and
+    has task_id null -- a mission oracle is not a task oracle with a fabricated task_id.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -52,7 +53,7 @@ class AcceptanceOracle(BaseModel):
     tenant_id: UUID
     project_id: UUID
     mission_id: UUID
-    task_id: UUID
+    task_id: UUID | None = None
     oracle_version: str
     scope: Literal["task", "mission"]
     requirement_refs: list[str]

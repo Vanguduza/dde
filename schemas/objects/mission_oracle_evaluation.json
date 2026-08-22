@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/mission_oracle_evaluation.json",
+  "title": "MissionOracleEvaluation",
+  "description": "Chapter 11.3: one evaluation of a mission-scope AcceptanceOracle. Task oracles prove the tasks were done; this row proves whether the right product was built. status is WRONG_PRODUCT only when every non-retired task oracle has PASSED and the mission oracle itself fails -- never fabricated from a missing task oracle (that is INCOMPLETE). learning_signal_class is decomposition_quality on WRONG_PRODUCT (decomposition quality, not worker quality) and excluded_from_routing_learning is true on every row. Owned by engine.verification (Chapter 3.6).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "mission_oracle_evaluations",
+    "order": 206,
+    "pk": ["evaluation_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "mission_oracle_evaluations_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "mission_oracle_evaluations_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "mission_oracle_evaluations_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "mission_oracle_evaluations_oracle_id_fkey",
+        "columns": ["oracle_id"],
+        "ref_table": "acceptance_oracles",
+        "ref_columns": ["oracle_id"]
+      },
+      {
+        "name": "mission_oracle_evaluations_workspace_id_fkey",
+        "columns": ["workspace_id"],
+        "ref_table": "workspaces",
+        "ref_columns": ["workspace_id"]
+      }
+    ]
+  },
+  "required": [
+    "evaluation_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "oracle_id",
+    "workspace_id",
+    "status",
+    "task_oracle_verdict",
+    "check_results",
+    "outcome_results",
+    "learning_signal_class",
+    "excluded_from_routing_learning",
+    "disclosed_gaps",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "evaluation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "oracle_id": { "type": "string", "format": "uuid" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": ["ACCEPT", "WRONG_PRODUCT", "INCOMPLETE", "ERRORED"]
+    },
+    "task_oracle_verdict": {
+      "type": "string",
+      "enum": ["all_passed", "incomplete", "task_failed"]
+    },
+    "check_results": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "outcome_results": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "recovery_decision": {
+      "anyOf": [
+        { "type": "object", "additionalProperties": true },
+        { "type": "null" }
+      ]
+    },
+    "learning_signal_class": {
+      "type": "string",
+      "enum": ["decomposition_quality", "none"]
+    },
+    "excluded_from_routing_learning": { "type": "boolean" },
+    "disclosed_gaps": { "type": "array", "items": { "type": "string" } },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

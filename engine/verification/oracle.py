@@ -19,9 +19,9 @@ bindings -- both "run this real command, its exit code is the evidence" --
 are accepted, and `command` is mandatory for both since Chapter 11.2's ASCII
 sketch does not specify invocation mechanics.
 
-Mission-level oracles (`scope = "mission"`, Chapter 11.3) are DDE-037, a
-Stage 4 mission; `define()` refuses `scope = "mission"` rather than
-persisting an oracle no mission-level consumer exists to evaluate.
+Mission-level oracles (`scope = "mission"`, Chapter 11.3) are authored
+through `define_mission()`; `task_id` is null on those rows. `evaluate()`
+of a mission oracle lives in `engine.verification.mission_oracle`.
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ from engine.contracts.acceptance_oracle import (
     EvidenceBinding,
     ObservableOutcome,
 )
+from engine.contracts.mission import Mission
 from engine.contracts.task import Task
 from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
@@ -86,11 +87,10 @@ def validate_definition(
     evidence producer... A prose statement with no binding is not an
     acceptance criterion -- `validate` rejects the oracle." Extended here
     with this Stage 1 runner's executability constraints."""
-    if scope != "task":
+    if scope not in {"task", "mission"}:
         raise DdeError(
             "ORACLE_UNSATISFIED",
-            "Only scope='task' oracles are supported in Stage 1 "
-            "(Chapter 11.3's mission-level oracle is DDE-037)",
+            "scope must be 'task' or 'mission'",
             details={"scope": scope},
         )
     if not (
@@ -241,6 +241,94 @@ class AcceptanceOracleService:
             return await _op(uow)
         async with open_unit_of_work(
             self._engine, tenant_id=task.tenant_id, project_id=task.project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
+    async def define_mission(
+        self,
+        *,
+        mission: Mission,
+        outcomes: list[CheckSpec],
+        minimum_confidence: float = 1.0,
+        approved_by: str | None = None,
+        requirement_refs: list[str] | None = None,
+        feature_refs: list[str] | None = None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> AcceptanceOracle:
+        """Chapter 11.3 mission-scope oracle. `task_id` is null -- never a
+        fabricated task identity. Bindings remain the Stage 1 executable
+        set (`test`/`invariant`); user-visible ProductEnvironment probes
+        are DDE-038 and are named in evaluation `disclosed_gaps`."""
+        observable_outcomes = [spec for spec in outcomes if not spec.is_negative_case]
+        negative_cases = [spec for spec in outcomes if spec.is_negative_case]
+        validate_definition(
+            scope="mission",
+            observable_outcomes=observable_outcomes,
+            negative_cases=negative_cases,
+            minimum_confidence=minimum_confidence,
+        )
+        if requirement_refs is not None:
+            refs = list(requirement_refs)
+        else:
+            refs = list(mission.requirement_refs)
+        features = list(feature_refs or [])
+        outcome_dicts = [
+            _outcome(spec).model_dump(mode="json") for spec in observable_outcomes
+        ]
+        negative_dicts = [
+            _outcome(spec).model_dump(mode="json") for spec in negative_cases
+        ]
+        version = oracle_version_hash(
+            tenant_id=mission.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission.mission_id,
+            task_id=None,
+            scope="mission",
+            requirement_refs=refs,
+            feature_refs=features,
+            observable_outcomes=outcome_dicts,
+            domain_invariants=[],
+            negative_cases=negative_dicts,
+            minimum_confidence=minimum_confidence,
+            human_assertions=[],
+        )
+
+        async def _op(active: PostgresUnitOfWork) -> AcceptanceOracle:
+            existing = await self._repository.get_mission_by_version(
+                active.connection, mission.mission_id, version
+            )
+            if existing is not None:
+                return existing
+            now = self._clock.now()
+            oracle = AcceptanceOracle(
+                oracle_id=uuid7(),
+                tenant_id=mission.tenant_id,
+                project_id=mission.project_id,
+                mission_id=mission.mission_id,
+                task_id=None,
+                oracle_version=version,
+                scope="mission",
+                requirement_refs=refs,
+                feature_refs=features,
+                observable_outcomes=[_outcome(spec) for spec in observable_outcomes],
+                domain_invariants=[],
+                negative_cases=[_outcome(spec) for spec in negative_cases],
+                minimum_confidence=minimum_confidence,
+                human_assertions=[],
+                approved_by=approved_by or AUTO_APPROVER,
+                approved_at=now,
+                created_at=now,
+                updated_at=now,
+            )
+            await self._repository.insert_oracle(active.connection, oracle)
+            return oracle
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=mission.tenant_id, project_id=mission.project_id
         ) as owned:
             result = await _op(owned)
             await owned.commit()

@@ -510,9 +510,24 @@ def test_negative_oracle_definition_validation_rejects_unexecutable_bindings() -
         )
     assert too_few.value.error_code == "ORACLE_UNSATISFIED"
 
-    with pytest.raises(DdeError) as mission_scope:
+    validate_definition(
+        scope="mission",
+        observable_outcomes=[
+            CheckSpec(
+                outcome_id=outcome_id,
+                statement="s",
+                kind="test",
+                ref="r",
+                command=["true"],
+            )
+        ],
+        negative_cases=[],
+        minimum_confidence=1.0,
+    )
+
+    with pytest.raises(DdeError) as unknown_scope:
         validate_definition(
-            scope="mission",
+            scope="not-a-scope",
             observable_outcomes=[
                 CheckSpec(
                     outcome_id=outcome_id,
@@ -525,7 +540,7 @@ def test_negative_oracle_definition_validation_rejects_unexecutable_bindings() -
             negative_cases=[],
             minimum_confidence=1.0,
         )
-    assert mission_scope.value.error_code == "ORACLE_UNSATISFIED"
+    assert unknown_scope.value.error_code == "ORACLE_UNSATISFIED"
 
     with pytest.raises(DdeError) as judge_kind:
         validate_definition(

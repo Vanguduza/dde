@@ -115,6 +115,7 @@ TABLE_OWNERS = {
     "diff_gate_reports": "integration",
     "dependency_admissions": "integration",
     "checkpoints": "recovery",
+    "mission_oracle_evaluations": "verification",
 }
 
 

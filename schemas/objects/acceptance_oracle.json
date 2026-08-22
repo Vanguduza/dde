@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/acceptance_oracle.json",
   "title": "AcceptanceOracle",
-  "description": "Chapter 11.2 executable acceptance definition, bound to evidence producers. Immutable definition; oracle_version is a content hash over definition fields only (Chapter 3.10).",
+  "description": "Chapter 11.2 executable acceptance definition, bound to evidence producers. Immutable definition; oracle_version is a content hash over definition fields only (Chapter 3.10). scope=task is DDE-012; scope=mission is Chapter 11.3 (DDE-037) and has task_id null -- a mission oracle is not a task oracle with a fabricated task_id.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -79,7 +79,6 @@
     "tenant_id",
     "project_id",
     "mission_id",
-    "task_id",
     "oracle_version",
     "scope",
     "requirement_refs",
@@ -97,7 +96,12 @@
     "tenant_id": { "type": "string", "format": "uuid" },
     "project_id": { "type": "string", "format": "uuid" },
     "mission_id": { "type": "string", "format": "uuid" },
-    "task_id": { "type": "string", "format": "uuid" },
+    "task_id": {
+      "anyOf": [
+        { "type": "string", "format": "uuid" },
+        { "type": "null" }
+      ]
+    },
     "oracle_version": { "type": "string" },
     "scope": { "type": "string", "enum": ["task", "mission"] },
     "requirement_refs": { "type": "array", "items": { "type": "string" } },

@@ -306,6 +306,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## MissionOracleEvaluation
+
+- table: `mission_oracle_evaluations`
+- primary key: evaluation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## VerificationRun
 
 - table: `verification_runs`

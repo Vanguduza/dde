@@ -771,7 +771,7 @@ CREATE TABLE acceptance_oracles (
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
     mission_id uuid NOT NULL,
-    task_id uuid NOT NULL,
+    task_id uuid,
     oracle_version text NOT NULL,
     scope text NOT NULL,
     requirement_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -786,6 +786,26 @@ CREATE TABLE acceptance_oracles (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (oracle_id)
+);
+
+CREATE TABLE mission_oracle_evaluations (
+    evaluation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    oracle_id uuid NOT NULL,
+    workspace_id uuid NOT NULL,
+    status text NOT NULL,
+    task_oracle_verdict text NOT NULL,
+    check_results jsonb NOT NULL DEFAULT '[]'::jsonb,
+    outcome_results jsonb NOT NULL DEFAULT '[]'::jsonb,
+    recovery_decision jsonb,
+    learning_signal_class text NOT NULL,
+    excluded_from_routing_learning boolean NOT NULL,
+    disclosed_gaps jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (evaluation_id)
 );
 
 CREATE TABLE verification_runs (
@@ -1243,6 +1263,12 @@ ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_project_id_fkey
 ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 
+ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_oracle_id_fkey FOREIGN KEY (oracle_id) REFERENCES acceptance_oracles (oracle_id);
+ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1458,6 +1484,10 @@ CREATE POLICY artifacts_tenant_isolation ON artifacts USING (tenant_id = CAST(cu
 ALTER TABLE acceptance_oracles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE acceptance_oracles FORCE ROW LEVEL SECURITY;
 CREATE POLICY acceptance_oracles_tenant_isolation ON acceptance_oracles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE mission_oracle_evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mission_oracle_evaluations FORCE ROW LEVEL SECURITY;
+CREATE POLICY mission_oracle_evaluations_tenant_isolation ON mission_oracle_evaluations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE verification_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_runs FORCE ROW LEVEL SECURITY;

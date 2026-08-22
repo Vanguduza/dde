@@ -16,7 +16,17 @@ both owned by `verification` per Chapter 3.8's matrix.
 
 from __future__ import annotations
 
-from sqlalchemy import TIMESTAMP, Column, Integer, MetaData, Numeric, Table, Text, Uuid
+from sqlalchemy import (
+    TIMESTAMP,
+    Boolean,
+    Column,
+    Integer,
+    MetaData,
+    Numeric,
+    Table,
+    Text,
+    Uuid,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 
 metadata = MetaData()
@@ -28,7 +38,7 @@ acceptance_oracles = Table(
     Column("tenant_id", Uuid(as_uuid=True), nullable=False),
     Column("project_id", Uuid(as_uuid=True), nullable=False),
     Column("mission_id", Uuid(as_uuid=True), nullable=False),
-    Column("task_id", Uuid(as_uuid=True), nullable=False),
+    Column("task_id", Uuid(as_uuid=True), nullable=True),
     Column("oracle_version", Text, nullable=False),
     Column("scope", Text, nullable=False),
     Column("requirement_refs", JSONB, nullable=False),
@@ -40,6 +50,27 @@ acceptance_oracles = Table(
     Column("human_assertions", JSONB, nullable=False),
     Column("approved_by", Text, nullable=True),
     Column("approved_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+mission_oracle_evaluations = Table(
+    "mission_oracle_evaluations",
+    metadata,
+    Column("evaluation_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=False),
+    Column("oracle_id", Uuid(as_uuid=True), nullable=False),
+    Column("workspace_id", Uuid(as_uuid=True), nullable=False),
+    Column("status", Text, nullable=False),
+    Column("task_oracle_verdict", Text, nullable=False),
+    Column("check_results", JSONB, nullable=False, server_default="[]"),
+    Column("outcome_results", JSONB, nullable=False, server_default="[]"),
+    Column("recovery_decision", JSONB, nullable=True),
+    Column("learning_signal_class", Text, nullable=False),
+    Column("excluded_from_routing_learning", Boolean, nullable=False),
+    Column("disclosed_gaps", JSONB, nullable=False, server_default="[]"),
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )

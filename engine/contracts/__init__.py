@@ -38,6 +38,7 @@ from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
+from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
 from engine.contracts.outbox import Outbox
 from engine.contracts.principal import Principal
 from engine.contracts.principal_grant import PrincipalGrant
@@ -100,6 +101,7 @@ __all__ = [
     "IntegrationProposal",
     "Mission",
     "MissionControl",
+    "MissionOracleEvaluation",
     "Outbox",
     "Principal",
     "PrincipalGrant",
