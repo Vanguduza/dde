@@ -26,6 +26,7 @@ DROP TABLE IF EXISTS execution_plans CASCADE;
 DROP TABLE IF EXISTS write_scope_leases CASCADE;
 DROP TABLE IF EXISTS workspaces CASCADE;
 DROP TABLE IF EXISTS execution_environments CASCADE;
+DROP TABLE IF EXISTS routing_decision_outcomes CASCADE;
 DROP TABLE IF EXISTS route_decisions CASCADE;
 DROP TABLE IF EXISTS failure_attributions CASCADE;
 DROP TABLE IF EXISTS derived_edges CASCADE;

@@ -12,17 +12,21 @@ is evaluated here:
 3. coverage contains ``partial`` on a required category -- direct from
    the Chapter 5.8 `CoverageReport`.
 4. "the task is a repair of a previously context-attributed failure" --
-   Chapter 5.11's failure-attribution pipeline (the source of truth for
-   "context-attributed") is not built anywhere in this codebase yet (no
-   `engine.context` or `engine.execution` module records that a failure
-   was attributed to context omission/contradiction/staleness/
-   contamination/mis-ranking). `compile()` cannot honestly claim a `True`
-   here on its own authority, so this condition takes an explicit
-   `previously_context_attributed_failure` parameter that only a caller
-   holding real Chapter 5.11 attribution data can set; it defaults to
-   `False` because no caller in this codebase has that data source today.
-   This is a deliberate, documented Stage 1 gap, not a silent drop of the
-   condition -- see `docs/planning/mission-numbering-note.md`.
+   Chapter 5.11's failure-attribution pipeline now exists for real
+   (`engine.attribution`, DDE-034) and is the source of truth for
+   "context-attributed", but no production caller of `compile()` resolves
+   a `Task`'s prior `FailureAttribution` history and passes it in yet (no
+   `engine.context` or `engine.execution`/scheduling module does that
+   lookup today -- `compile()` itself has no real production caller at
+   all outside tests, see the module docstring). `compile()` cannot
+   honestly claim a `True` here on its own authority, so this condition
+   takes an explicit `previously_context_attributed_failure` parameter
+   that only a caller holding real Chapter 5.11 attribution data can set;
+   it defaults to `False` because no caller in this codebase resolves
+   that data source today. This is a deliberate, documented Stage 1 gap,
+   not a silent drop of the condition -- see
+   `docs/planning/mission-numbering-note.md` and
+   `docs/truth/edr/EDR-0004-failure-attribution-partial-implementation.md`.
 5. "confidence is below the policy threshold" -- Stage 1 has no separate
    `confidence` concept anywhere in `ContextItem`/`FusedItem`; the nearest
    real, already-computed signal is `ContextItem.relevance` (each Chapter

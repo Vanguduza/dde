@@ -58,6 +58,7 @@ from engine.recovery.checkpoint_service import (
     do_not_repeat_from_effects,
 )
 from engine.recovery.matrix import decide
+from engine.telemetry.service import RoutingTelemetryService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.verification.checks import CheckSpec, run_check
 from engine.verification.repository import EvidenceRepository, VerificationRunRepository
@@ -138,6 +139,7 @@ class VerificationRunnerService:
         checkpoints: CheckpointService | None = None,
         worker_events: WorkerEventRepository | None = None,
         attribution: FailureAttributionService | None = None,
+        telemetry: RoutingTelemetryService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -152,6 +154,9 @@ class VerificationRunnerService:
         )
         self._worker_events = worker_events or WorkerEventRepository()
         self._attribution = attribution or FailureAttributionService(
+            engine, events=self._events
+        )
+        self._telemetry = telemetry or RoutingTelemetryService(
             engine, events=self._events
         )
 
@@ -371,6 +376,21 @@ class VerificationRunnerService:
                     evidence_refs=evidence_refs,
                     verification_run_id=finished.verification_run_id,
                 )
+                prior = await self._run_repository.list_for_task(
+                    active.connection, task.task_id
+                )
+                rework_count = sum(1 for row in prior if row.status == "FAILED")
+                # Chapter 6.5: real telemetry recorded for every decision,
+                # in the same transaction as the PASSED VerificationRun --
+                # "must never be skipped" holds by construction.
+                await self._telemetry.record_decision_outcome(
+                    task=task,
+                    worker_run=worker_run,
+                    verification_run=finished,
+                    rework_count=rework_count,
+                    recovery_decision=None,
+                    uow=active,
+                )
             elif next_status == "FAILED":
                 prior = await self._run_repository.list_for_task(
                     active.connection, task.task_id
@@ -388,11 +408,24 @@ class VerificationRunnerService:
                 # was plausibly caused by context, in the same transaction
                 # as the FAILED VerificationRun/TaskAttempt -- never a
                 # detached, best-effort side query.
-                await self._attribution.attribute_verification_failure(
+                attribution = await self._attribution.attribute_verification_failure(
                     task=task,
                     task_attempt_id=worker_run.task_attempt_id,
                     verification_run_id=finished.verification_run_id,
                     workspace=workspace,
+                    uow=active,
+                )
+                # Chapter 6.5: real telemetry recorded for every decision,
+                # in the same transaction as the FAILED VerificationRun --
+                # closes the loop with Chapter 5.11's attribution above by
+                # linking the same-transaction FailureAttribution row.
+                await self._telemetry.record_decision_outcome(
+                    task=task,
+                    worker_run=worker_run,
+                    verification_run=finished,
+                    rework_count=count,
+                    recovery_decision=decision,
+                    failure_attribution_id=attribution.attribution_id,
                     uow=active,
                 )
                 await self._events.append(

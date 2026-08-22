@@ -190,12 +190,13 @@ class ContextService:
 
         `previously_context_attributed_failure` feeds Chapter 5.9's fifth
         Context Critic trigger condition ("the task is a repair of a
-        previously context-attributed failure"). It defaults to `False`
-        because no module in this codebase yet implements Chapter 5.11's
-        failure-attribution pipeline — the real source of truth for that
-        signal. A caller that does not hold genuine Chapter 5.11
-        attribution data must never pass `True` here (see
-        `engine.context.critic` for the full explanation)."""
+        previously context-attributed failure"). Chapter 5.11's
+        failure-attribution pipeline (`engine.attribution`, DDE-034) is
+        real today, but no production caller of `compile()` resolves a
+        `Task`'s prior `FailureAttribution` history yet, so this
+        parameter defaults to `False`. A caller that does not hold
+        genuine Chapter 5.11 attribution data must never pass `True` here
+        (see `engine.context.critic` for the full explanation)."""
         tenant_id = task.tenant_id
         project_id = task.project_id
         mission_id = task.mission_id

@@ -2,13 +2,16 @@
 precedence: gates 0-5 are hard gates ("a candidate that fails any of gates
 0-5 is removed, not penalised. No economic score can compensate...");
 gates 6-9 (§6.6-6.9: performance estimate, economic score, route critic,
-escalation) "only ever reorder legal candidates". Stage 1 has no real
-performance/cost telemetry (Chapter 6.5's telemetry pipeline is DDE-035,
-S4) and no Route Critic (triggered-only, §6.6, deferred with it) — the one
-real, declared-policy signal available for ranking survivors is Chapter
-6.2's own `prefer[]` ordering, so that is gates 6-7's entire Stage 1
-implementation: it is the deterministic tie-break, not a placeholder for
-one.
+escalation) "only ever reorder legal candidates". Chapter 6.5's real
+outcome telemetry now exists (`engine.telemetry`, DDE-035), but no real
+`predicted_success`/cost prediction is produced from it yet, and no
+Route Critic runs (triggered-only, §6.6, deferred until a real prediction
+exists to threshold against -- see
+`docs/truth/edr/EDR-0005-routing-telemetry-partial-implementation.md`) —
+the one real, declared-policy signal available for ranking survivors is
+Chapter 6.2's own `prefer[]` ordering, so that is gates 6-7's entire
+Stage 1 implementation: it is the deterministic tie-break, not a
+placeholder for one.
 
 **Gate numbering vs. evaluation order.** Chapter 6.1 lists gate 1
 (capability requirements) before gate 2 (workload classification), but

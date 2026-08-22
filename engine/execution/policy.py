@@ -1,7 +1,9 @@
 """Declared Stage 1 execution policy table — the in-code equivalent of
 Chapter 6.2's approach applied to Chapter 7.1's "compute budgets" planner
 step: a small, versioned, deterministic lookup rather than a learned cost
-model (no telemetry exists yet to fit one against — Chapter 6.5/DDE-035).
+model. Chapter 6.5's real telemetry now exists (`engine.telemetry`,
+DDE-035) but nothing yet fits a cost model against it — that remains a
+future mission's job.
 
 `EFFORT_BUDGETS` derives `resource_budget`/`time_budget`/`token_budget` from
 `Task.estimated_effort` (`xs`/`s`/`m`/`l`) — a real, already-persisted Task

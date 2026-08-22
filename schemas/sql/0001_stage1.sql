@@ -425,6 +425,33 @@ CREATE TABLE route_decisions (
     PRIMARY KEY (decision_id)
 );
 
+CREATE TABLE routing_decision_outcomes (
+    outcome_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    route_decision_id uuid NOT NULL,
+    task_attempt_id uuid NOT NULL,
+    verification_run_id uuid NOT NULL,
+    actual_verified_outcome text NOT NULL,
+    verification_confidence numeric NOT NULL,
+    rework_count integer NOT NULL,
+    escalated boolean NOT NULL,
+    human_intervention_required boolean NOT NULL,
+    recovery_action text,
+    failure_class text,
+    elapsed_seconds numeric,
+    context_package_id uuid NOT NULL,
+    capability_set jsonb NOT NULL DEFAULT '[]'::jsonb,
+    failure_attribution_id uuid,
+    disclosed_gaps jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (outcome_id),
+    UNIQUE (verification_run_id)
+);
+
 CREATE TABLE execution_environments (
     environment_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1108,6 +1135,12 @@ ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_project_id_fkey FOREI
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 
+ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_route_decision_id_fkey FOREIGN KEY (route_decision_id) REFERENCES route_decisions (decision_id);
+ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_verification_run_id_fkey FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
+ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_failure_attribution_id_fkey FOREIGN KEY (failure_attribution_id) REFERENCES failure_attributions (attribution_id);
+
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1345,6 +1378,10 @@ CREATE POLICY failure_attributions_tenant_isolation ON failure_attributions USIN
 ALTER TABLE route_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE route_decisions FORCE ROW LEVEL SECURITY;
 CREATE POLICY route_decisions_tenant_isolation ON route_decisions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE routing_decision_outcomes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE routing_decision_outcomes FORCE ROW LEVEL SECURITY;
+CREATE POLICY routing_decision_outcomes_tenant_isolation ON routing_decision_outcomes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE execution_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_environments FORCE ROW LEVEL SECURITY;

@@ -14,15 +14,19 @@ append-only row).
 
 Deliberately out of Stage 1 scope, per the mission brief: Chapter 8's
 certified-profile registry (DDE-011 — `engine.routing.registry` is an
-explicitly flagged, minimal stand-in, never that registry), real
-performance/cost telemetry and predictions (`predicted_success`,
-`predicted_cost`, `predicted_latency`, `confidence` are left `None` —
-Chapter 6.5's telemetry pipeline is DDE-035/S4), the Route Critic
-(triggered-only, Chapter 6.6, needs the same telemetry), exploration
-(Chapter 6.7 — `selection_propensity` is `1.0` on every decision, exactly
-as Chapter 6.3 states: "1.0 for deterministic selections"; epsilon
-defaults to 0 until a tenant explicitly enables it, which Stage 1 never
-does), and learning/promotion (Chapter 6.8-6.9, DDE-057/058).
+explicitly flagged, minimal stand-in, never that registry), and real
+performance/cost *predictions* (`predicted_success`, `predicted_cost`,
+`predicted_latency`, `confidence` are left `None` -- Chapter 6.5's real
+outcome telemetry now exists, `engine.telemetry`/DDE-035, but nothing
+fits a prediction model against it yet). The Route Critic (triggered-only,
+Chapter 6.6) and real exploration (Chapter 6.7 — `selection_propensity`
+is `1.0` on every decision, exactly as Chapter 6.3 states: "1.0 for
+deterministic selections"; epsilon defaults to 0 until a tenant
+explicitly enables it, which Stage 1 never does) remain deferred for the
+same reason, named in
+`docs/truth/edr/EDR-0005-routing-telemetry-partial-implementation.md`.
+Learning/promotion (Chapter 6.8-6.9, DDE-057/058) is separately out of
+scope.
 """
 
 from __future__ import annotations
