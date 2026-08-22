@@ -4,10 +4,15 @@ tie-break") — pure-algorithm tests for `engine.routing.rules` /
 `engine.routing.policy`, the same pattern `tests/unit/test_routing_rules.py`
 uses for the base pipeline.
 
-Each feature is off by default (`evaluate()`'s signature is unchanged and
-every existing call site keeps its exact current behaviour), so every test
-here either passes the new optional parameters explicitly or asserts the
-default-off invariant.
+Each feature is off by default (`evaluate()`'s existing parameters keep
+their exact current behaviour), so every test here either passes the new
+optional parameters explicitly or asserts the default-off invariant.
+Model selection is provider-agnostic: an operator mode ("off" | "auto" |
+"fixed", with `model_fixed_id`/`model_fixed_provider` pinning any declared
+provider) resolves to a `ModelSelectionDirective` via
+`engine.routing.registry.resolve_model_selection` and only annotates
+surviving candidates downstream of every hard gate — it never changes a
+gate outcome or makes a live provider call.
 """
 
 from __future__ import annotations
@@ -19,7 +24,13 @@ import pytest
 from engine.contracts.task import Task
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
-from engine.governance.config import RuntimeFlags, validate_configuration
+from engine.governance.config import (
+    MODEL_PROVIDERS as GOVERNANCE_MODEL_PROVIDERS,
+)
+from engine.governance.config import (
+    RuntimeFlags,
+    validate_configuration,
+)
 from engine.routing.policy import (
     CAPABILITY_REPOSITORY,
     CAPABILITY_TESTING,
@@ -32,7 +43,14 @@ from engine.routing.policy import (
     WorkloadPolicy,
     apply_cost_tier,
 )
-from engine.routing.registry import resolve_model_selection
+from engine.routing.registry import (
+    MODEL_PROVIDERS as REGISTRY_MODEL_PROVIDERS,
+)
+from engine.routing.registry import (
+    OPENROUTER_FREE_MODELS,
+    ModelSelectionDirective,
+    resolve_model_selection,
+)
 from engine.routing.rules import evaluate
 
 
@@ -122,7 +140,7 @@ def test_cost_tier_low_reorders_ranking_without_changing_survivors() -> None:
 @pytest.mark.parametrize("tier", ["bargain", "", "MAXIMUM"])
 def test_unknown_cost_tier_is_rejected(tier: str) -> None:
     with pytest.raises(ValueError):
-        evaluate(_task(), cost_tier=tier)  # type: ignore[arg-type]
+        evaluate(_task(), cost_tier=tier)
 
 
 def test_cost_tier_none_keeps_default_behaviour() -> None:
@@ -297,130 +315,238 @@ def test_verification_stays_on_deterministic_runner_under_any_tier() -> None:
     assert result.selected_profile_id == PROFILE_DETERMINISTIC_RUNNER
 
 
-# --- OpenRouter model selection (Hermes/DeepSeek harnesses) ---------------
+# --- Model selection (provider-agnostic; Appendix A harnesses) ------------
 
 
-def test_openrouter_selects_strength_matched_model_for_deepseek_harness() -> None:
-    """bulk_implementation's strength vector (implementation, batch, corpus)
-    matches laguna-s-2.1 (2) over nemotron-ultra (0) for the DeepSeek harness."""
+def test_auto_mode_strength_matches_the_declared_catalog() -> None:
+    """auto enables unpinned selection: bulk_implementation's strength vector
+    (implementation, batch, corpus) matches laguna-s-2.1 (2) over
+    nemotron-ultra (0) for the DeepSeek-harness profile that wins routing."""
+    directive = resolve_model_selection("auto", None)
     result = evaluate(
         _task(task_class="implementation", risk_class="low"),
-        enable_openrouter_models=True,
+        model_selection=directive,
     )
     assert "OPENROUTER_MODEL:poolside/laguna-s-2.1:free" in result.reason_codes
     assert "OPENROUTER_CREDENTIAL:deepseek_api_key" in result.reason_codes
 
 
-def test_openrouter_selects_reasoning_model_for_architectural_workload() -> None:
+def test_auto_mode_strength_matches_reasoning_for_architectural_workload() -> None:
     """architectural_reasoning (reasoning, architecture, debugging) matches
     nemotron-ultra (3) over glm-5.2 (2) for high-risk tasks routed to
     profile.premium_reasoning (DeepSeek harness)."""
+    directive = resolve_model_selection("auto", None)
     result = evaluate(
         _task(task_class="implementation", risk_class="high"),
-        enable_openrouter_models=True,
+        model_selection=directive,
     )
     assert (
         "OPENROUTER_MODEL:nvidia/nemotron-3-ultra-550b-a55b:free" in result.reason_codes
     )
 
 
-def test_openrouter_honours_explicit_model_override() -> None:
-    result = evaluate(
-        _task(task_class="implementation", risk_class="low"),
-        enable_openrouter_models=True,
-        openrouter_model_override="google/gemma-4-31b-it:free",
-    )
-    assert "OPENROUTER_MODEL:google/gemma-4-31b-it:free" in result.reason_codes
-    assert "OPENROUTER_OVERRIDE" in result.reason_codes
+def test_off_directive_and_none_keep_default_behaviour() -> None:
+    """mode="off" resolves to a disabled directive that annotates nothing,
+    exactly like passing no directive at all."""
+    task = _task(task_class="implementation", risk_class="low")
+    off = evaluate(task, model_selection=resolve_model_selection("off", None))
+    none = evaluate(task, model_selection=None)
+    default = evaluate(task)
+    assert off.selected_profile_id == none.selected_profile_id
+    assert off.reason_codes == none.reason_codes == default.reason_codes
+    assert not any(code.startswith("OPENROUTER_") for code in off.reason_codes)
 
 
-def test_openrouter_rejects_override_outside_harness_class() -> None:
-    """An override naming a valid catalog model that does not serve the
-    selected profile's harness class resolves nothing — no fabricated match."""
-    result = evaluate(
-        _task(task_class="implementation", risk_class="low"),
-        enable_openrouter_models=True,
-        # north-mini-code serves only the Hermes harness; bulk_implementation
-        # on a low-risk task selects longcontext_economy (DeepSeek harness).
-        openrouter_model_override="cohere/north-mini-code:free",
-    )
-    assert not any(code.startswith("OPENROUTER_MODEL:") for code in result.reason_codes)
-
-
-def test_openrouter_disabled_by_default() -> None:
-    result = evaluate(_task(task_class="implementation", risk_class="low"))
-    assert not any(code.startswith("OPENROUTER_") for code in result.reason_codes)
-
-
-def test_openrouter_skips_non_harness_profiles() -> None:
+def test_auto_mode_skips_non_harness_profiles() -> None:
+    """deterministic_runner has no harness class, so even an enabled
+    selection records no model annotation for verification workloads."""
     result = evaluate(
         _task(task_class="verification"),
-        enable_openrouter_models=True,
+        model_selection=resolve_model_selection("auto", None),
     )
     assert not any(code.startswith("OPENROUTER_MODEL:") for code in result.reason_codes)
 
 
-# --- Model-selection modes (off | auto | fixed) ---------------------------
+def test_fixed_mode_pins_model_provider_and_declared_credential() -> None:
+    """A pin is an operator instruction: recorded as PINNED_* codes with the
+    provider's declared credential tier, never a strength match."""
+    directive = resolve_model_selection("fixed", "google/gemma-4-31b-it:free")
+    assert directive.pinned_provider == "openrouter"
+    result = evaluate(
+        _task(task_class="implementation", risk_class="low"),
+        model_selection=directive,
+    )
+    assert "PINNED_MODEL:google/gemma-4-31b-it:free" in result.reason_codes
+    assert "PINNED_PROVIDER:openrouter" in result.reason_codes
+    assert "PINNED_CREDENTIAL:deepseek_api_key" in result.reason_codes
 
 
-def test_governance_accepts_all_three_openrouter_modes() -> None:
+def test_fixed_mode_pin_does_not_change_gate_outcomes_or_survivors() -> None:
+    """Selection only annotates the surviving profile downstream of every
+    hard gate — candidates and selection are identical with and without a
+    pin; only the appended PINNED_* reason codes differ."""
+    task = _task(task_class="implementation", risk_class="low")
+    plain = evaluate(task, model_selection=resolve_model_selection("auto", None))
+    pinned = evaluate(
+        task,
+        model_selection=resolve_model_selection(
+            "fixed", "google/gemma-4-31b-it:free", "openrouter"
+        ),
+    )
+    assert [c.to_json() for c in pinned.candidates] == [
+        c.to_json() for c in plain.candidates
+    ]
+    assert pinned.selected_profile_id == plain.selected_profile_id
+    assert pinned.fallback_plan == plain.fallback_plan
+
+
+def test_governance_and_registry_stay_aligned_on_providers() -> None:
+    """Governance restates the provider ids because it must not import
+    engine.routing; this assertion is the declared alignment check."""
+    assert GOVERNANCE_MODEL_PROVIDERS == tuple(REGISTRY_MODEL_PROVIDERS)
+
+
+# --- Startup validation (Ch.13.7 model-mode rules) ------------------------
+
+
+def test_governance_accepts_model_modes_in_every_environment_class() -> None:
+    """Model choice only reorders candidates downstream of every hard gate,
+    so every legal mode is legal everywhere; mode=fixed requires both pin
+    fields."""
     validate_configuration(RuntimeFlags(environment_class="development"))
     validate_configuration(
-        RuntimeFlags(environment_class="production", openrouter_mode="auto")
+        RuntimeFlags(environment_class="production", model_mode="off")
+    )
+    validate_configuration(
+        RuntimeFlags(environment_class="production", model_mode="auto")
     )
     validate_configuration(
         RuntimeFlags(
             environment_class="production",
-            openrouter_mode="fixed",
-            openrouter_fixed_model_id="poolside/laguna-s-2.1:free",
+            model_mode="fixed",
+            model_fixed_id="google/gemma-4-31b-it:free",
+            model_fixed_provider="openrouter",
+        )
+    )
+    validate_configuration(
+        RuntimeFlags(
+            environment_class="development",
+            model_mode="fixed",
+            model_fixed_id="deepseek/deepseek-chat",
+            model_fixed_provider="deepseek",
         )
     )
 
 
-def test_governance_rejects_unknown_openrouter_mode() -> None:
-    flags = RuntimeFlags(openrouter_mode="random")
+def test_governance_rejects_unknown_model_mode() -> None:
+    flags = RuntimeFlags(model_mode="random")
     with pytest.raises(DdeError):
         validate_configuration(flags)
 
 
-def test_governance_rejects_fixed_mode_without_model_id() -> None:
-    flags = RuntimeFlags(openrouter_mode="fixed")
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"model_fixed_id": "google/gemma-4-31b-it:free"},
+        {"model_fixed_provider": "openrouter"},
+    ],
+)
+def test_governance_fixed_mode_requires_both_pin_fields(kwargs: dict[str, str]) -> None:
+    flags = RuntimeFlags(model_mode="fixed", **kwargs)  # type: ignore[arg-type]
     with pytest.raises(DdeError):
         validate_configuration(flags)
 
 
-def test_governance_rejects_fixed_model_id_with_off_mode() -> None:
+def test_governance_rejects_undeclared_fixed_provider() -> None:
     flags = RuntimeFlags(
-        openrouter_mode="off", openrouter_fixed_model_id="poolside/laguna-s-2.1:free"
+        model_mode="fixed",
+        model_fixed_id="vendor/model",
+        model_fixed_provider="not-a-provider",
     )
     with pytest.raises(DdeError):
         validate_configuration(flags)
+
+
+@pytest.mark.parametrize("model_mode", ["off", "auto"])
+def test_governance_rejects_pins_contradicting_off_or_auto(model_mode: str) -> None:
+    """A pin attached to anything but mode=fixed is a contradiction, not an
+    override — either field alone is enough to reject."""
+    with pytest.raises(DdeError):
+        validate_configuration(
+            RuntimeFlags(
+                model_mode=model_mode,
+                model_fixed_id="google/gemma-4-31b-it:free",
+            )
+        )
+    with pytest.raises(DdeError):
+        validate_configuration(
+            RuntimeFlags(
+                model_mode=model_mode,
+                model_fixed_provider="openrouter",
+            )
+        )
+
+
+# --- Directive resolution (registry.resolve_model_selection) --------------
 
 
 def test_resolve_model_selection_maps_all_three_modes() -> None:
-    assert resolve_model_selection("off", None) == (False, None)
-    assert resolve_model_selection("auto", None) == (True, None)
+    assert resolve_model_selection("off", None) == ModelSelectionDirective(
+        enabled=False
+    )
+    assert resolve_model_selection("auto", None) == ModelSelectionDirective(
+        enabled=True
+    )
+    # Two-argument fixed pins default the provider to openrouter.
     assert resolve_model_selection("fixed", "google/gemma-4-31b-it:free") == (
-        True,
-        "google/gemma-4-31b-it:free",
+        ModelSelectionDirective(
+            enabled=True,
+            pinned_model_id="google/gemma-4-31b-it:free",
+            pinned_provider="openrouter",
+        )
     )
 
 
-def test_resolve_model_selection_rejects_unknown_mode_and_bad_fixed_id() -> None:
+def test_resolve_model_selection_rejects_unknown_mode_and_empty_fixed_id() -> None:
     with pytest.raises(ValueError, match="unknown model-selection mode"):
         resolve_model_selection("random", None)
-    with pytest.raises(ValueError, match="not in the declared OpenRouter catalog"):
-        resolve_model_selection("fixed", "vendor/not-in-catalog:free")
+    with pytest.raises(ValueError, match="requires a fixed_model_id"):
+        resolve_model_selection("fixed", "")
+    with pytest.raises(ValueError, match="requires a fixed_model_id"):
+        resolve_model_selection("fixed", None)
 
 
-def test_fixed_mode_pins_the_model_in_reason_codes() -> None:
-    """A fixed selection reaches evaluate() as an override, recorded as
-    OPENROUTER_OVERRIDE rather than a strength match."""
-    enable, override = resolve_model_selection("fixed", "google/gemma-4-31b-it:free")
-    result = evaluate(
-        _task(task_class="implementation", risk_class="low"),
-        enable_openrouter_models=enable,
-        openrouter_model_override=override,
-    )
-    assert "OPENROUTER_MODEL:google/gemma-4-31b-it:free" in result.reason_codes
-    assert "OPENROUTER_OVERRIDE" in result.reason_codes
+def test_resolve_model_selection_rejects_undeclared_provider() -> None:
+    with pytest.raises(ValueError, match="not a declared"):
+        resolve_model_selection("fixed", "vendor/model", "not-a-provider")
+
+
+def test_openrouter_ids_are_not_whitelisted_to_the_free_catalog() -> None:
+    """OPENROUTER_FREE_MODELS is only the strength-match subset of the
+    catalog, never a whitelist: any well-formed <vendor>/<model> id resolves
+    for provider openrouter, including ids absent from the free list."""
+    catalog_ids = {spec.model_id for spec in OPENROUTER_FREE_MODELS}
+    unpinned = "paid/vendor-only-model:beta"
+    assert "/" in unpinned
+    assert unpinned not in catalog_ids
+    directive = resolve_model_selection("fixed", unpinned)
+    assert directive.enabled
+    assert directive.pinned_model_id == unpinned
+    assert directive.pinned_provider == "openrouter"
+
+
+@pytest.mark.parametrize("provider", ["deepseek", "anthropic"])
+def test_non_openrouter_declared_providers_take_their_own_ids(provider: str) -> None:
+    """Every declared provider accepts ids as-is; only openrouter enforces
+    the well-formed <vendor>/<model> shape."""
+    directive = resolve_model_selection("fixed", f"{provider}-internal-model", provider)
+    assert directive.enabled
+    assert directive.pinned_provider == provider
+    assert directive.pinned_model_id == f"{provider}-internal-model"
+
+
+def test_openrouter_fixed_id_must_be_well_formed() -> None:
+    """The one openrouter-side shape rule: a bare name is not a routable
+    OpenRouter id (<vendor>/<model>)."""
+    with pytest.raises(ValueError, match="well-formed"):
+        resolve_model_selection("fixed", "bare-model-name")

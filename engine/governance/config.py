@@ -30,45 +30,72 @@ class RuntimeFlags:
     #: default when no legal candidate survives a capacity/availability
     # - class failure. Never legal outside `development`.
     routing_degraded_default: bool = False
-    #: OpenRouter model selection for Appendix A harness profiles:
-    #: "off" (no resolution), "auto" (strength-matched per task), "fixed"
-    #: (pinned `openrouter_fixed_model_id`). Model choice only reorders
-    #: candidates downstream of every hard gate, so it is legal in all
-    #: environment classes; the enum itself is validated everywhere because
-    #: a typo must fail closed rather than silently mean "off".
-    openrouter_mode: str = "off"
-    openrouter_fixed_model_id: str | None = None
+    #: Provider-agnostic model selection for Appendix A harness profiles:
+    #: "off" (no resolution), "auto" (router strength-matches per task),
+    #: "fixed" (pin `model_fixed_id` served by `model_fixed_provider`).
+    #: Model choice only reorders candidates downstream of every hard gate,
+    #: so it is legal in all environment classes; every value is validated
+    #: everywhere anyway because a typo must fail closed rather than
+    #: silently mean "off". Selection records declared metadata on the
+    #: RouteDecision only — adapters make no live provider call until the
+    #: broker wires credentials (EDR-0001 Path B).
+    model_mode: str = "off"
+    model_fixed_id: str | None = None
+    model_fixed_provider: str | None = None
 
 
-OPENROUTER_MODES = ("off", "auto", "fixed")
+MODEL_MODES = ("off", "auto", "fixed")
+
+#: Mirrors the provider ids of `engine.routing.registry.MODEL_PROVIDERS`.
+#: Governance must not import engine.routing, so the ids are restated here;
+#: tests/unit/test_routing_adoption_features.py asserts the two stay aligned.
+MODEL_PROVIDERS = ("openrouter", "deepseek", "anthropic")
 
 
 def validate_configuration(flags: RuntimeFlags) -> None:
     """Chapter 13.7: a dangerous combination must be impossible to reach
     by editing a value. Raises POLICY_DENIED; does not coerce.
 
-    The OpenRouter mode checks run for every environment class: they are
+    The model-mode checks run for every environment class: they are
     enum/consistency hygiene, not environment-dependent danger — a model
-    selection never changes a hard-gate outcome, only which declared model
-    a surviving harness profile would call."""
-    if flags.openrouter_mode not in OPENROUTER_MODES:
+    selection never changes a hard-gate outcome, only which declared
+    model/provider a surviving harness profile would be annotated with."""
+    if flags.model_mode not in MODEL_MODES:
         raise DdeError(
             "POLICY_DENIED",
-            f"routing.openrouter.mode must be one of {OPENROUTER_MODES}",
+            f"routing.model.mode must be one of {MODEL_MODES}",
             retryable=False,
-            details={"openrouter_mode": flags.openrouter_mode},
+            details={"model_mode": flags.model_mode},
         )
-    if flags.openrouter_mode == "fixed" and not flags.openrouter_fixed_model_id:
+    if flags.model_mode == "fixed" and (
+        not flags.model_fixed_id or not flags.model_fixed_provider
+    ):
         raise DdeError(
             "POLICY_DENIED",
-            "routing.openrouter.mode=fixed requires routing.openrouter.fixed_model_id",
+            "routing.model.mode=fixed requires both routing.model.fixed_id "
+            "and routing.model.fixed_provider",
             retryable=False,
         )
-    if flags.openrouter_mode == "off" and flags.openrouter_fixed_model_id is not None:
+    if flags.model_fixed_provider is not None and (
+        flags.model_fixed_provider not in MODEL_PROVIDERS
+    ):
         raise DdeError(
             "POLICY_DENIED",
-            "routing.openrouter.fixed_model_id is contradictory with mode=off",
+            f"routing.model.fixed_provider must be one of {MODEL_PROVIDERS}",
             retryable=False,
+            details={"model_fixed_provider": flags.model_fixed_provider},
+        )
+    if flags.model_mode != "fixed" and (
+        flags.model_fixed_id is not None or flags.model_fixed_provider is not None
+    ):
+        # "off" must stay off; "auto" means the router chooses, so any pin
+        # attached to either mode is a contradiction, not an override.
+        raise DdeError(
+            "POLICY_DENIED",
+            "routing.model.fixed_id/fixed_provider are contradictory with "
+            f"mode={flags.model_mode!r} (only mode=fixed may pin)",
+            retryable=False,
+            details={"model_mode": flags.model_mode},
         )
     if flags.environment_class == DEVELOPMENT:
         return

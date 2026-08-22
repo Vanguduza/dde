@@ -44,6 +44,18 @@ HARNESS_DEEPSEEK = "harness.deepseek"
 # requirement; see docs/truth/edr/EDR-0001-subscription-based-worker-credentials.md).
 OPENROUTER_CREDENTIAL_PROVIDER = "deepseek_api_key"
 
+#: Provider id -> declared credential tier recorded on RouteDecisions when a
+#: selection is pinned or strength-matched. These are DECLARED metadata only:
+#: no broker binding exists yet (EDR-0001 Path B open), so nothing here makes
+#: a live provider call and adapters stay fail-closed until credentials land.
+#: Mirrors `engine.governance.config.MODEL_PROVIDERS` (governance cannot
+#: import routing); kept aligned by tests/unit/test_routing_adoption_features.
+MODEL_PROVIDERS: dict[str, str] = {
+    "openrouter": OPENROUTER_CREDENTIAL_PROVIDER,
+    "deepseek": OPENROUTER_CREDENTIAL_PROVIDER,
+    "anthropic": "anthropic_api_key",
+}
+
 
 @dataclass(frozen=True)
 class WorkerProfile:
@@ -134,39 +146,70 @@ PROFILE_HARNESS_CLASS: dict[str, str] = {
     PROFILE_PREMIUM_REASONING: HARNESS_DEEPSEEK,
 }
 
-#: Mirrors `engine.governance.config.OPENROUTER_MODES` without importing it
+#: Mirrors `engine.governance.config.MODEL_MODES` without importing it
 #: (governance stays dependency-minimal). Kept in sync by tests.
 MODEL_SELECTION_MODES = ("off", "auto", "fixed")
 
 
-def resolve_model_selection(
-    mode: str, fixed_model_id: str | None
-) -> tuple[bool, str | None]:
-    """Translate an operator's model-selection mode into the
-    `(enable_openrouter_models, openrouter_model_override)` pair
-    `engine.routing.rules.evaluate` consumes.
+@dataclass(frozen=True)
+class ModelSelectionDirective:
+    """Resolved operator intent for one routing call: whether any model
+    selection is active, and, for fixed mode, the pinned model/provider.
+    Declared metadata only — recorded on RouteDecisions, never a live
+    provider binding (EDR-0001 Path B open)."""
 
-    - "off" disables resolution entirely;
-    - "auto" enables strength-matched selection per task;
-    - "fixed" pins `fixed_model_id`, which must name a declared catalog
-      entry (any harness class — a pinned id that cannot serve the selected
-      profile's harness class resolves to no model downstream, disclosed
-      via reason codes rather than silently substituted).
+    enabled: bool
+    pinned_model_id: str | None = None
+    pinned_provider: str | None = None
+
+
+def resolve_model_selection(
+    mode: str,
+    fixed_model_id: str | None,
+    fixed_provider: str | None = None,
+) -> ModelSelectionDirective:
+    """Translate an operator's model-selection mode into the
+    `ModelSelectionDirective` that `engine.routing.rules.evaluate` consumes.
+
+    - "off" disables selection entirely;
+    - "auto" enables selection with no pin — the router strength-matches
+      the OpenRouter free catalog per task downstream;
+    - "fixed" pins (`fixed_model_id`, `fixed_provider`), the id being
+      required. The provider defaults to "openrouter" when omitted and
+      must be declared in MODEL_PROVIDERS.
+
+    For provider "openrouter" any well-formed `<vendor>/<model>` id is
+    accepted: OPENROUTER_FREE_MODELS is only the strength-match subset of
+    OpenRouter's catalog (free tier verified 2026-08-22), not the whole
+    thing, so paid/catalog ids must resolve too. Non-openrouter providers
+    take the id as-is. Raises ValueError naming the offending value for an
+    unknown mode, an undeclared provider or a fixed pin without an id.
     """
     if mode == "off":
-        return (False, None)
+        return ModelSelectionDirective(enabled=False)
     if mode == "auto":
-        return (True, None)
-    if mode == "fixed":
-        if fixed_model_id is None:
-            raise ValueError("mode='fixed' requires a fixed_model_id")
-        if not any(spec.model_id == fixed_model_id for spec in OPENROUTER_FREE_MODELS):
-            raise ValueError(
-                f"fixed_model_id {fixed_model_id!r} is not in the declared "
-                "OpenRouter catalog"
-            )
-        return (True, fixed_model_id)
-    raise ValueError(f"unknown model-selection mode: {mode!r}")
+        return ModelSelectionDirective(enabled=True)
+    if mode != "fixed":
+        raise ValueError(f"unknown model-selection mode: {mode!r}")
+    if not fixed_model_id:
+        raise ValueError("mode='fixed' requires a fixed_model_id")
+    if fixed_provider is None:
+        fixed_provider = "openrouter"
+    elif fixed_provider not in MODEL_PROVIDERS:
+        raise ValueError(
+            f"fixed_provider {fixed_provider!r} is not a declared "
+            f"model provider ({sorted(MODEL_PROVIDERS)})"
+        )
+    if fixed_provider == "openrouter" and "/" not in fixed_model_id:
+        raise ValueError(
+            f"fixed_model_id {fixed_model_id!r} is not a well-formed "
+            "OpenRouter id (<vendor>/<model>)"
+        )
+    return ModelSelectionDirective(
+        enabled=True,
+        pinned_model_id=fixed_model_id,
+        pinned_provider=fixed_provider,
+    )
 
 
 def resolve_openrouter_model(

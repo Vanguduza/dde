@@ -48,7 +48,10 @@ from engine.routing.policy import (
     apply_cost_tier,
 )
 from engine.routing.registry import (
+    MODEL_PROVIDERS,
+    PROFILE_HARNESS_CLASS,
     PROFILES,
+    ModelSelectionDirective,
     required_environment_class,
     resolve_openrouter_model,
 )
@@ -307,8 +310,7 @@ def evaluate(
     enable_mission_affinity: bool = False,
     last_selected_profile_id: str | None = None,
     capacity_blocked_profiles: frozenset[str] | None = None,
-    enable_openrouter_models: bool = False,
-    openrouter_model_override: str | None = None,
+    model_selection: ModelSelectionDirective | None = None,
 ) -> RoutingResult:
     """Run every registered profile through Chapter 6.1's gates 0-5 for
     `task`, then rank survivors by Chapter 6.2's declared `prefer[]` order
@@ -334,10 +336,16 @@ def evaluate(
       affinity never reorders survivors.
     - `capacity_blocked_profiles`: optional gate-5 capacity signal for tests
       or future Worker Manager integration.
-    - `enable_openrouter_models` + `openrouter_model_override` (§6.2/6.3,
-      Appendix A Hermes/DeepSeek harnesses): resolve a declared OpenRouter
-      free-tier model for the selected profile's harness class; uses the
-      DeepSeek API key credential tier per project-owner requirement.
+    - `model_selection` (§6.2/6.3, Appendix A harnesses; provider-agnostic):
+      a resolved `ModelSelectionDirective` from
+      `engine.routing.registry.resolve_model_selection`. Pinned (fixed) mode
+      records `PINNED_MODEL/PINNED_PROVIDER/PINNED_CREDENTIAL` reason codes
+      for the selected profile's harness class and skips strength matching;
+      auto (unpinned) strength-matches the OpenRouter free catalog exactly as
+      before. Either way the selection only annotates survivors with declared
+      metadata — no live provider call is made and gate outcomes are never
+      changed (adapters stay fail-closed pending broker credentials,
+      EDR-0001 Path B).
     """
     resolved_workload_class = workload_class or classify_workload(task)
     policy = WORKLOAD_CLASSES[resolved_workload_class]
@@ -439,19 +447,39 @@ def evaluate(
 
     finalized = _finalize_candidates(evaluations, ranked_survivors)
 
-    if enable_openrouter_models and selected_profile_id != HUMAN_DECISION_TASK:
-        model_selection = resolve_openrouter_model(
-            profile_id=selected_profile_id,
-            workload_class=resolved_workload_class,
-            model_override=openrouter_model_override,
-        )
-        if model_selection is not None:
-            reason_codes.append(f"OPENROUTER_MODEL:{model_selection.model_id}")
-            reason_codes.append(
-                f"OPENROUTER_CREDENTIAL:{model_selection.credential_provider}"
+    if (
+        model_selection is not None
+        and model_selection.enabled
+        and selected_profile_id != HUMAN_DECISION_TASK
+    ):
+        if model_selection.pinned_model_id is not None:
+            harness_class = PROFILE_HARNESS_CLASS.get(selected_profile_id)
+            if (
+                harness_class is not None
+                and model_selection.pinned_provider is not None
+            ):
+                # A pin is an operator instruction, not a match: no strength
+                # scoring runs, and the credential tier is the provider's
+                # DECLARED tier — no broker binding backs it yet (EDR-0001).
+                reason_codes.append(f"PINNED_MODEL:{model_selection.pinned_model_id}")
+                reason_codes.append(
+                    f"PINNED_PROVIDER:{model_selection.pinned_provider}"
+                )
+                reason_codes.append(
+                    f"PINNED_CREDENTIAL:{MODEL_PROVIDERS[model_selection.pinned_provider]}"
+                )
+        else:
+            openrouter_selection = resolve_openrouter_model(
+                profile_id=selected_profile_id,
+                workload_class=resolved_workload_class,
             )
-            for code in model_selection.reason_codes:
-                reason_codes.append(code)
+            if openrouter_selection is not None:
+                reason_codes.append(f"OPENROUTER_MODEL:{openrouter_selection.model_id}")
+                reason_codes.append(
+                    f"OPENROUTER_CREDENTIAL:{openrouter_selection.credential_provider}"
+                )
+                for code in openrouter_selection.reason_codes:
+                    reason_codes.append(code)
 
     return RoutingResult(
         workload_class=resolved_workload_class,
