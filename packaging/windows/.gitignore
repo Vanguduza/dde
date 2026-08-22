@@ -1,0 +1,9 @@
+# .NET build outputs (WPF setup wizard)
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+
+# Installer build artifacts
+Output/
+*.iss.bak

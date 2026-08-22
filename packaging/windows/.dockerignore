@@ -1,0 +1,16 @@
+# Build context exclusions for DDE Core appliance image.
+.git
+.mypy_cache
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+dist
+.devcontainer
+packaging/windows/DdeSetupWizard
+packaging/windows/scripts
+tests
+docs/truth
+evals
+infra
+.mypy_cache

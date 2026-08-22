@@ -1,0 +1,64 @@
+{
+  "name": "dde-code-desktop",
+  "productName": "DDE Code",
+  "version": "0.1.0",
+  "description": "Standalone DDE Code desktop client (Electron). Gateway client only — not Core.",
+  "main": "out/desktop/src/main.js",
+  "author": "DDE",
+  "license": "UNLICENSED",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "check": "tsc -p ./ --noEmit",
+    "test": "npm run check",
+    "start": "npm run compile && electron .",
+    "dist:win": "npm run compile && electron-builder --win nsis portable --x64",
+    "dist:dir": "npm run compile && electron-builder --win dir --x64"
+  },
+  "build": {
+    "appId": "dev.dde.code",
+    "productName": "DDE Code",
+    "copyright": "Copyright © DDE",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "out/desktop/src/**/*",
+      "out/shared/**/*",
+      "resources/**/*",
+      "!**/*.map"
+    ],
+    "extraResources": [],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "DDE-Code-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DDE Code",
+      "artifactName": "DDE-Code-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "DDE-Code-Portable-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.4.5"
+  }
+}

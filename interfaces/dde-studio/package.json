@@ -1,0 +1,305 @@
+{
+  "name": "dde-studio",
+  "displayName": "DDE Code",
+  "description": "DDE Code — VS Code / Cursor extension suite. Primary Mission Overview dashboard plus activity-bar Mission Control for missions, fleets (Hermes / Claude Code / DeepSeek), verification, and approvals. Gateway/CLI client only — never Core tables.",
+  "version": "0.1.0",
+  "publisher": "dde",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "dde",
+    "dde-code",
+    "hermes",
+    "claude-code",
+    "deepseek",
+    "harness"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "DDE Code",
+      "properties": {
+        "dde.studio.coreUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Base URL for local or remote DDE Core Gateway (no trailing slash)."
+        },
+        "dde.studio.cloudUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional cloud Gateway URL. When set and preferred target is cloud, health checks use this URL."
+        },
+        "dde.studio.preferredTarget": {
+          "type": "string",
+          "enum": [
+            "local",
+            "cloud"
+          ],
+          "default": "local",
+          "description": "Which Core endpoint to use for health and future mission APIs."
+        },
+        "dde.studio.pollIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "description": "How often to poll /healthz and /readyz."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "dde.studio.refreshHealth",
+        "title": "Refresh Core Health",
+        "category": "DDE Code",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dde.studio.openOverview",
+        "title": "Open Mission Overview",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.openConnection",
+        "title": "Open Connection View",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.openHermesDashboard",
+        "title": "Open Hermes Mission Control",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.openClaudeCodeDashboard",
+        "title": "Open Claude Code Mission Control",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.openDeepSeekDashboard",
+        "title": "Open DeepSeek Mission Control",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.morningReview",
+        "title": "Morning Review",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.openChat",
+        "title": "Open Chat Shell",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.setLocalTarget",
+        "title": "Use Local Core",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.setCloudTarget",
+        "title": "Use Cloud Core",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.setSessionToken",
+        "title": "Set Session Token",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.clearSessionToken",
+        "title": "Clear Session Token",
+        "category": "DDE Code"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "dde.studio.refreshHealth",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "view == dde.studio.overview || view == dde.studio.connection"
+      },
+      {
+        "command": "dde.studio.morningReview",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      },
+      {
+        "command": "dde.studio.openOverview",
+        "key": "ctrl+alt+o",
+        "mac": "cmd+alt+o"
+      },
+      {
+        "command": "dde.studio.openConnection",
+        "key": "ctrl+alt+d",
+        "mac": "cmd+alt+d"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dde-studio",
+          "title": "DDE Code",
+          "icon": "media/dde-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "dde-studio": [
+        {
+          "type": "webview",
+          "id": "dde.studio.overview",
+          "name": "Overview",
+          "icon": "media/icon-overview.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.connection",
+          "name": "Connection",
+          "icon": "media/icon-connection.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.mission",
+          "name": "Mission",
+          "icon": "media/icon-mission.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.integration",
+          "name": "Integration",
+          "icon": "media/icon-integration.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.context",
+          "name": "Context",
+          "icon": "media/icon-context.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.routing",
+          "name": "Routing",
+          "icon": "media/icon-routing.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.hermes",
+          "name": "Hermes",
+          "icon": "media/icon-worker.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.claudeCode",
+          "name": "Claude Code",
+          "icon": "media/icon-worker.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.deepSeek",
+          "name": "DeepSeek",
+          "icon": "media/icon-worker.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.verification",
+          "name": "Verification",
+          "icon": "media/icon-verify.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.approvals",
+          "name": "Approvals",
+          "icon": "media/icon-approvals.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.chat",
+          "name": "Chat",
+          "icon": "media/icon-chat.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.donor",
+          "name": "Donors",
+          "icon": "media/icon-donor.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.knowledge",
+          "name": "Knowledge",
+          "icon": "media/icon-knowledge.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.evaluation",
+          "name": "Evaluate",
+          "icon": "media/icon-eval.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.debug",
+          "name": "Debug",
+          "icon": "media/icon-debug.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.preview",
+          "name": "Preview",
+          "icon": "media/icon-preview.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "dde.studio.refreshHealth",
+          "when": "view == dde.studio.overview || view == dde.studio.connection",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dde.studio.openOverview"
+        },
+        {
+          "command": "dde.studio.openHermesDashboard"
+        },
+        {
+          "command": "dde.studio.openClaudeCodeDashboard"
+        },
+        {
+          "command": "dde.studio.openDeepSeekDashboard"
+        },
+        {
+          "command": "dde.studio.morningReview"
+        },
+        {
+          "command": "dde.studio.openChat"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc -p ./ --noEmit",
+    "test": "npm run check && npm run compile && node --test out/shared/*.test.js",
+    "test:visual": "npm run check && npm run compile && node --test out/shared/overviewVisual.test.js",
+    "package": "npm run compile && npx --yes @vscode/vsce package --no-dependencies",
+    "dist:win": "npm run compile && npm --prefix desktop run dist:win",
+    "desktop:start": "npm run compile && npm --prefix desktop start",
+    "desktop:install": "npm --prefix desktop install"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.5"
+  }
+}

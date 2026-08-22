@@ -1,0 +1,69 @@
+# Local appliance stack for Windows installer mode.
+# Requires Docker Desktop with WSL2.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dde
+      POSTGRES_PASSWORD: dde
+      POSTGRES_DB: dde
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dde_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dde -d dde"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    image: ${DDE_CORE_IMAGE:-dde-core:local}
+    profiles: ["bootstrap"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DDE_DATABASE_URL: postgresql+asyncpg://dde:dde@postgres:5432/dde
+    entrypoint: ["/entrypoint.sh", "migrate"]
+    restart: "no"
+
+  core:
+    image: ${DDE_CORE_IMAGE:-dde-core:local}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DDE_DATABASE_URL: postgresql+asyncpg://dde:dde@postgres:5432/dde
+      DDE_REDIS_URL: redis://redis:6379/0
+      DDE_OBJECT_STORE_ROOT: /var/dde/artifacts
+      DDE_CURSOR_API_KEY: ${DDE_CURSOR_API_KEY:-}
+      DDE_ANTHROPIC_API_KEY: ${DDE_ANTHROPIC_API_KEY:-}
+      DDE_OPENAI_API_KEY: ${DDE_OPENAI_API_KEY:-}
+      DDE_DEEPSEEK_API_KEY: ${DDE_DEEPSEEK_API_KEY:-}
+      DDE_GITHUB_TOKEN: ${DDE_GITHUB_TOKEN:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - dde_artifacts:/var/dde/artifacts
+    entrypoint: ["/entrypoint.sh", "serve"]
+
+volumes:
+  dde_pgdata:
+  dde_artifacts:
