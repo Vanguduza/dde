@@ -37,6 +37,17 @@ Visual retriever as unbuilt until Stage 5+, DDE-044) and inventing a
 keyword heuristic for it would be exactly the fabricated subsystem the
 mission brief prohibits. It remains reachable only if a future caller with
 a real modality signal supplies `workload_class` directly.
+
+**Cost tiers (`COST_TIERS`, `apply_cost_tier`).** Chapter 6.2's additive
+"cost tiers" subsection: an operator-facing band (`low|medium|high|xhigh|max`)
+that reorders a workload's declared `prefer[]` before gates 6-7 rank
+survivors. Tiers reorder legal candidates only — they are consumed after
+gates 0-5 have already eliminated, so no tier can resurrect a candidate the
+hard gates removed ("Gates 6-9 only ever reorder legal candidates"). With
+no real cost telemetry yet (`engine.telemetry`'s disclosed gap: no
+UsageRecord writer exists), tier membership is derived from profile naming
+conventions (`*_economy`, `premium_*`) as declared metadata, to be replaced
+by measured cost bands once DDE-035's actual-cost gap closes.
 """
 
 from __future__ import annotations
@@ -61,6 +72,9 @@ NEXT_ELIGIBLE_BY_SCORE = "next_eligible_by_score"
 
 RISK_LEVELS = ("low", "medium", "high", "critical")
 RISK_ORDER = {level: index for index, level in enumerate(RISK_LEVELS)}
+
+#: Chapter 6.2 cost tiers — ordered cheapest to most capable.
+COST_TIERS = ("low", "medium", "high", "xhigh", "max")
 
 
 @dataclass(frozen=True)
@@ -94,6 +108,69 @@ WORKLOAD_CLASSES: dict[str, WorkloadPolicy] = {
         require=(CAPABILITY_BROWSER, MODALITY_IMAGE),
     ),
 }
+
+
+def apply_cost_tier(policy: WorkloadPolicy, tier: str) -> WorkloadPolicy:
+    """Reorder `policy.prefer` per Chapter 6.2's cost_tier setting.
+
+    Deterministic, pure and survivor-preserving: returns a policy whose
+    `prefer` order expresses the tier's bias without changing membership or
+    any hard-gate field (`require`/`forbid_generator`/risk bounds), so gate
+    outcomes are identical and only the gates 6-7 ordering moves.
+
+    - `medium` is the neutral band and returns the declared order unchanged
+      (the chapter's default behaviour).
+    - `low` moves economy-class profiles (declared via the `*_economy`
+      convention) to the front.
+    - `high`/`xhigh`/`max` move premium-class profiles (`premium_*`)
+      forward; `max` puts them first outright.
+    """
+    if tier not in COST_TIERS:
+        raise ValueError(f"unknown cost tier: {tier!r} (expected one of {COST_TIERS})")
+    if tier == "medium":
+        return policy
+
+    def _band(profile_id: str) -> str:
+        # Band membership is declared via naming convention on the
+        # post-namespace segment ("profile.premium_x" / "profile.x_economy").
+        name = profile_id.split(".", 1)[-1]
+        if name.startswith("premium_"):
+            return "premium"
+        if name.endswith("_economy"):
+            return "economy"
+        return "standard"
+
+    if tier == "low":
+        return dataclasses_replace(
+            policy,
+            prefer=tuple(
+                sorted(policy.prefer, key=lambda p: 0 if _band(p) == "economy" else 1)
+            ),
+        )
+    if tier in ("xhigh", "max"):
+        return dataclasses_replace(
+            policy,
+            prefer=tuple(
+                sorted(policy.prefer, key=lambda p: 0 if _band(p) == "premium" else 1)
+            ),
+        )
+    # `high`: promote premium profiles ahead of cheaper ones while keeping
+    # the declared order among non-premium survivors.
+    premium = tuple(p for p in policy.prefer if _band(p) == "premium")
+    rest = tuple(p for p in policy.prefer if _band(p) != "premium")
+    return dataclasses_replace(policy, prefer=premium + rest)
+
+
+def dataclasses_replace(policy: WorkloadPolicy, **changes: object) -> WorkloadPolicy:
+    """Local frozen-dataclass replacement (dataclasses.replace equivalent),
+    kept explicit because `WorkloadPolicy` gains no mutable surface."""
+    return WorkloadPolicy(
+        prefer=changes.get("prefer", policy.prefer),  # type: ignore[arg-type]
+        require=changes.get("require", policy.require),  # type: ignore[arg-type]
+        forbid_generator=bool(changes.get("forbid_generator", policy.forbid_generator)),
+        min_risk=changes.get("min_risk", policy.min_risk),  # type: ignore[arg-type]
+        max_risk=changes.get("max_risk", policy.max_risk),  # type: ignore[arg-type]
+    )
 
 
 @dataclass(frozen=True)

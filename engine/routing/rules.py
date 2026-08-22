@@ -45,14 +45,25 @@ from engine.routing.policy import (
     HUMAN_DECISION_TASK,
     RISK_ORDER,
     WORKLOAD_CLASSES,
+    apply_cost_tier,
 )
-from engine.routing.registry import PROFILES, required_environment_class
+from engine.routing.registry import (
+    PROFILES,
+    required_environment_class,
+    resolve_openrouter_model,
+)
 
 GATE_HARD_POLICY = 0
 GATE_CAPABILITY_REQUIREMENTS = 1
 GATE_WORKER_ELIGIBILITY = 3
 GATE_ENVIRONMENT_COMPATIBILITY = 4
 GATE_CAPACITY_AVAILABILITY = 5
+
+#: Chapter 6.1 gate-5 note's development-only degraded default: the
+#: general-implementation profile is the declared fallback when no legal
+#: candidate survives in a non-production environment class and the caller
+#: explicitly opted in. Membership-checked against `PROFILES` before use.
+DEGRADED_DEFAULT_PROFILE_ID = "profile.general_implementation"
 
 
 @dataclass(frozen=True)
@@ -115,6 +126,17 @@ def classify_workload(task: Task) -> str:
     return "bulk_implementation"
 
 
+CAPACITY_UNAVAILABLE_REASONS = frozenset(
+    {
+        "CAPACITY_EXHAUSTED",
+        "QUOTA_EXCEEDED",
+        "CONCURRENCY_LIMIT",
+        "BUDGET_HEADROOM_INSUFFICIENT",
+        "WORKER_UNAVAILABLE",
+    }
+)
+
+
 def _evaluate_candidate(
     profile_id: str,
     *,
@@ -129,6 +151,7 @@ def _evaluate_candidate(
     previous_generator_profile_id: str | None,
     certification_status: str | None = None,
     allow_stale: bool = True,
+    capacity_blocked: bool = False,
 ) -> tuple[GateResult, ...]:
     profile = PROFILES[profile_id]
     results: list[GateResult] = []
@@ -246,9 +269,20 @@ def _evaluate_candidate(
         )
     )
 
-    # Gate 5: no worker health/quota/concurrency/budget signal exists yet
-    # (Chapter 8 Worker Manager, DDE-011) — a real pass-through, not a
-    # fabricated health check, until that data exists.
+    # Gate 5: pass-through when no signal exists (Chapter 8 Worker Manager,
+    # DDE-011). Callers may supply `capacity_blocked_profiles` to exercise
+    # real capacity/availability eliminations in tests or when telemetry
+    # arrives — never fabricated health checks in production paths.
+    if capacity_blocked:
+        results.append(
+            GateResult(
+                GATE_CAPACITY_AVAILABILITY,
+                "capacity_availability",
+                False,
+                "CAPACITY_EXHAUSTED",
+            )
+        )
+        return tuple(results)
     results.append(
         GateResult(
             GATE_CAPACITY_AVAILABILITY,
@@ -268,22 +302,56 @@ def evaluate(
     certification_statuses: Mapping[str, str] | None = None,
     routing_environment_class: str = "development",
     approval_satisfied: bool = False,
+    cost_tier: str | None = None,
+    allow_degraded_default: bool = False,
+    enable_mission_affinity: bool = False,
+    last_selected_profile_id: str | None = None,
+    capacity_blocked_profiles: frozenset[str] | None = None,
+    enable_openrouter_models: bool = False,
+    openrouter_model_override: str | None = None,
 ) -> RoutingResult:
     """Run every registered profile through Chapter 6.1's gates 0-5 for
     `task`, then rank survivors by Chapter 6.2's declared `prefer[]` order
     (gates 6-7's Stage 1 tie-break) and select the top-ranked one. Returns
     a real `HUMAN_DECISION_TASK` escalation, never an exception, when zero
     candidates survive — Chapter 6.1 gate 9 treats escalation as a normal,
-    recordable routing outcome, not a failure."""
+    recordable routing outcome, not a failure.
+
+    Additive Chapter 6 adoption parameters, all default-off so existing
+    callers keep byte-identical behaviour:
+
+    - `cost_tier` (§6.2): reorders the declared `prefer[]` before ranking;
+      never changes gate outcomes (survivor-preserving).
+    - `allow_degraded_default` (gate-5 availability note): when zero
+      candidates survive a *capacity/availability-class* failure in the
+      `development` environment class, select the declared degraded default
+      instead of escalating — mirroring §6.1's "a request never fails
+      because of a routing problem" for non-production only. A gate-0
+      hard-policy denial is governance, not an outage, and still escalates.
+    - `enable_mission_affinity` + `last_selected_profile_id` (§6.3):
+      records mission continuity when the declared-order winner matches the
+      last-selected profile; declared `prefer[]` always outranks affinity and
+      affinity never reorders survivors.
+    - `capacity_blocked_profiles`: optional gate-5 capacity signal for tests
+      or future Worker Manager integration.
+    - `enable_openrouter_models` + `openrouter_model_override` (§6.2/6.3,
+      Appendix A Hermes/DeepSeek harnesses): resolve a declared OpenRouter
+      free-tier model for the selected profile's harness class; uses the
+      DeepSeek API key credential tier per project-owner requirement.
+    """
     resolved_workload_class = workload_class or classify_workload(task)
     policy = WORKLOAD_CLASSES[resolved_workload_class]
-    required_capabilities = policy.require
+    tiered_policy = (
+        apply_cost_tier(policy, cost_tier) if cost_tier is not None else policy
+    )
+    required_capabilities = tiered_policy.require
     environment_class = required_environment_class(required_capabilities)
     hard_gate_denied = task.requires_approval and not approval_satisfied
 
     evaluations: list[CandidateEvaluation] = []
     survivor_ids: list[str] = []
     allow_stale = routing_environment_class == "development"
+    blocked = capacity_blocked_profiles or frozenset()
     for profile_id in sorted(PROFILES):
         status = (
             None
@@ -296,13 +364,14 @@ def evaluate(
             required_environment_class=environment_class,
             risk_class=task.risk_class,
             hard_gate_denied=hard_gate_denied,
-            prefer=policy.prefer,
-            forbid_generator=policy.forbid_generator,
-            min_risk=policy.min_risk,
-            max_risk=policy.max_risk,
+            prefer=tiered_policy.prefer,
+            forbid_generator=tiered_policy.forbid_generator,
+            min_risk=tiered_policy.min_risk,
+            max_risk=tiered_policy.max_risk,
             previous_generator_profile_id=previous_generator_profile_id,
             certification_status=status,
             allow_stale=allow_stale,
+            capacity_blocked=profile_id in blocked,
         )
         eliminated_at = None if gate_results[-1].passed else gate_results[-1].gate
         if eliminated_at is None:
@@ -316,31 +385,50 @@ def evaluate(
             )
         )
 
-    ranked_survivors = sorted(survivor_ids, key=policy.prefer.index)
-    rank_by_profile = {
-        profile_id: rank for rank, profile_id in enumerate(ranked_survivors)
-    }
-    finalized = tuple(
-        candidate
-        if candidate.profile_id not in rank_by_profile
-        else CandidateEvaluation(
-            profile_id=candidate.profile_id,
-            gate_results=candidate.gate_results,
-            eliminated_at_gate=None,
-            preference_rank=rank_by_profile[candidate.profile_id],
-        )
-        for candidate in evaluations
+    ranked_survivors = sorted(survivor_ids, key=tiered_policy.prefer.index)
+    reason_codes: list[str] = [f"WORKLOAD_CLASSIFIED:{resolved_workload_class}"]
+    if cost_tier is not None:
+        reason_codes.append(f"COST_TIER:{cost_tier}")
+
+    preferred_first = list(ranked_survivors)
+    capacity_class_zero_survivors = not survivor_ids and any(
+        evaluation.eliminated_at_gate == GATE_CAPACITY_AVAILABILITY
+        and evaluation.gate_results[-1].reason_code in CAPACITY_UNAVAILABLE_REASONS
+        for evaluation in evaluations
     )
 
-    reason_codes = [f"WORKLOAD_CLASSIFIED:{resolved_workload_class}"]
-    if ranked_survivors:
-        selected_profile_id = ranked_survivors[0]
+    if preferred_first:
+        selected_profile_id = preferred_first[0]
         reason_codes.append("POLICY_PREFERRED")
+        if (
+            enable_mission_affinity
+            and last_selected_profile_id is not None
+            and selected_profile_id == last_selected_profile_id
+        ):
+            reason_codes.append("MISSION_CONTINUITY")
         reason_codes.append(f"SELECTED:{selected_profile_id}")
         fallback_plan = tuple(
-            {"profile_id": profile_id, "preference_rank": rank_by_profile[profile_id]}
-            for profile_id in ranked_survivors[1:]
+            {
+                "profile_id": profile_id,
+                "preference_rank": tiered_policy.prefer.index(profile_id),
+            }
+            for profile_id in preferred_first[1:]
         )
+    elif (
+        allow_degraded_default
+        and routing_environment_class == "development"
+        and not hard_gate_denied
+        and capacity_class_zero_survivors
+        and DEGRADED_DEFAULT_PROFILE_ID in PROFILES
+    ):
+        # Chapter 6.1 gate-5 note: degrade to the declared default rather
+        # than escalating when routing has no legal candidate in a
+        # development environment class. Hard-gate denials are excluded:
+        # they are governance outcomes, not availability failures.
+        selected_profile_id = DEGRADED_DEFAULT_PROFILE_ID
+        reason_codes.append("DEGRADED_DEFAULT_APPLIED")
+        reason_codes.append(f"SELECTED:{selected_profile_id}")
+        fallback_plan = ()
     else:
         selected_profile_id = HUMAN_DECISION_TASK
         if hard_gate_denied:
@@ -348,6 +436,22 @@ def evaluate(
         reason_codes.append("NO_ELIGIBLE_WORKER")
         reason_codes.append("ESCALATED_TO_HUMAN_DECISION")
         fallback_plan = ()
+
+    finalized = _finalize_candidates(evaluations, ranked_survivors)
+
+    if enable_openrouter_models and selected_profile_id != HUMAN_DECISION_TASK:
+        model_selection = resolve_openrouter_model(
+            profile_id=selected_profile_id,
+            workload_class=resolved_workload_class,
+            model_override=openrouter_model_override,
+        )
+        if model_selection is not None:
+            reason_codes.append(f"OPENROUTER_MODEL:{model_selection.model_id}")
+            reason_codes.append(
+                f"OPENROUTER_CREDENTIAL:{model_selection.credential_provider}"
+            )
+            for code in model_selection.reason_codes:
+                reason_codes.append(code)
 
     return RoutingResult(
         workload_class=resolved_workload_class,
@@ -357,4 +461,26 @@ def evaluate(
         selected_profile_id=selected_profile_id,
         reason_codes=tuple(reason_codes),
         fallback_plan=fallback_plan,
+    )
+
+
+def _finalize_candidates(
+    evaluations: list[CandidateEvaluation],
+    ranked_survivors: list[str],
+) -> tuple[CandidateEvaluation, ...]:
+    """Stamp declared-order preference ranks onto survivors (affinity does
+    not rewrite recorded ranks — the audit trail keeps the policy order)."""
+    rank_by_profile = {
+        profile_id: rank for rank, profile_id in enumerate(ranked_survivors)
+    }
+    return tuple(
+        candidate
+        if candidate.profile_id not in rank_by_profile
+        else CandidateEvaluation(
+            profile_id=candidate.profile_id,
+            gate_results=candidate.gate_results,
+            eliminated_at_gate=None,
+            preference_rank=rank_by_profile[candidate.profile_id],
+        )
+        for candidate in evaluations
     )

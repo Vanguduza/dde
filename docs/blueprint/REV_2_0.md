@@ -1161,6 +1161,12 @@ escalation:
 
 Every decision emits **reason codes** — an operator sees not only which profile was chosen but whether it was chosen by policy, capability fit, availability, cost or escalation. Explainability is a Stage 1 requirement, not a Stage 5 feature.
 
+**Cost tiers (additive, operator-facing).** A caller may set `cost_tier` (`low | medium | high | xhigh | max`) on a route evaluation. The tier **reorders the declared `prefer[]` of the matched workload class before gates 6–7 rank survivors** — `low` promotes economy-class profiles, `high`/`xhigh`/`max` promote premium-class ones, `medium` is the declared order. Tier membership is declared metadata on the profile; it never changes gate outcomes: a tier can reorder legal candidates but can never resurrect one the hard gates eliminated ("gates 6–9 only ever reorder legal candidates"). Every tiered decision records `COST_TIER:<tier>` in its `reason_codes`. Until real cost telemetry exists (Ch.6.5's actual-cost gap), band membership is derived from declared profile naming (`*_economy`, `premium_*`) and is replaced by measured cost bands once that gap closes.
+
+**Degraded-mode default (development only, additive).** When zero candidates survive the hard gates due to a capacity/availability-class failure, the router may — only in the `development` environment class, only when explicitly enabled (`routing.degraded_default`), and never when the failure is a gate-0 hard-policy denial (which is a governance outcome, not an outage) — select a declared degraded default profile instead of escalating, recording `DEGRADED_DEFAULT_APPLIED` in `reason_codes`. In every non-development environment class the behaviour is unchanged: `NO_ELIGIBLE_WORKER` escalates to a human-decision task, because the absence of a legal candidate is information, never a routing error to paper over.
+
+**Mission-affinity tie-break (additive).** Within a mission, the router may prefer the profile it last selected for a sibling task as a tie-break among survivors — subordinate to the declared `prefer[]` order, which always outranks it, and recorded as `MISSION_CONTINUITY` in `reason_codes`. Affinity never rewrites the recorded candidate ranking (the audit trail keeps the declared order) and can never select a profile the hard gates eliminated.
+
 **Why this rather than a simulator.** A hand-authored policy table and a hand-parameterised simulator encode the same knowledge — the author's priors. The table is inspectable, diffable, unit-testable, instantly changeable and honest about being a heuristic. The simulator wraps the same priors in machinery whose validity cannot be assessed until the real data arrives that would make it unnecessary. The simulator is therefore kept for what it is genuinely good at (§6.4).
 
 ## 6.3 RouteDecision
@@ -1975,6 +1981,8 @@ Before significant actions, a deterministic check: does this advance the mission
 ```
 routing.mode = deterministic | shadow_learning | canary | promoted_historical
 routing.exploration.epsilon                     (default 0.0 in production)
+routing.degraded_default                        (legal only in development)
+routing.cost_tier = low | medium | high | xhigh | max   (default: declared order)
 routing.learning.enabled
 routing.learning.min_eligible_attempts_per_class / _global
 routing.learning.calibration_threshold / uplift_threshold
@@ -1990,7 +1998,7 @@ android.offline_queue.enabled
 donor.reuse_policy_version
 ```
 
-**Configuration validation is a startup gate.** The process refuses to start if any of these hold in a non-development environment class: `capability.enforcement.mode = audit_only`; `autonomy.default_ceiling ≥ 4` without a configured mission oracle policy; `routing.mode = promoted_historical` without a certified policy artifact; `integration.merge_queue.concurrency > 1`; `routing.exploration.epsilon > 0` with `autonomy.default_ceiling ≥ 5`. A dangerous combination must be impossible to reach by editing a value.
+**Configuration validation is a startup gate.** The process refuses to start if any of these hold in a non-development environment class: `capability.enforcement.mode = audit_only`; `routing.degraded_default = true`; `autonomy.default_ceiling ≥ 4` without a configured mission oracle policy; `routing.mode = promoted_historical` without a certified policy artifact; `integration.merge_queue.concurrency > 1`; `routing.exploration.epsilon > 0` with `autonomy.default_ceiling ≥ 5`. A dangerous combination must be impossible to reach by editing a value.
 
 ## 13.8 External evidence and donor governance
 

@@ -26,6 +26,10 @@ class RuntimeFlags:
     merge_queue_concurrency: int = 1
     mission_oracle_policy_configured: bool = False
     routing_policy_artifact_certified: bool = False
+    #: Chapter 6.1 gate-5 note / §6.3 adoption: development-only degraded
+    #: default when no legal candidate survives a capacity/availability
+    # - class failure. Never legal outside `development`.
+    routing_degraded_default: bool = False
 
 
 def validate_configuration(flags: RuntimeFlags) -> None:
@@ -33,6 +37,14 @@ def validate_configuration(flags: RuntimeFlags) -> None:
     by editing a value. Raises POLICY_DENIED; does not coerce."""
     if flags.environment_class == DEVELOPMENT:
         return
+    if flags.routing_degraded_default:
+        raise DdeError(
+            "POLICY_DENIED",
+            "routing.degraded_default is legal only in the development "
+            "environment class",
+            retryable=False,
+            details={"environment_class": flags.environment_class},
+        )
     if flags.capability_enforcement_mode == "audit_only":
         raise DdeError(
             "POLICY_DENIED",
