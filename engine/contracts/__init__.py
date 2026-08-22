@@ -32,6 +32,7 @@ from engine.contracts.evidence import Evidence
 from engine.contracts.execution_environment import ExecutionEnvironment
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.external_effect import ExternalEffect
+from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
@@ -91,6 +92,7 @@ __all__ = [
     "ExecutionEnvironment",
     "ExecutionPlan",
     "ExternalEffect",
+    "FailureAttribution",
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",

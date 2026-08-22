@@ -377,6 +377,27 @@ CREATE TABLE derived_edges (
     UNIQUE (project_id, edge_type, source_key, target_key)
 );
 
+CREATE TABLE failure_attributions (
+    attribution_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    task_attempt_id uuid NOT NULL,
+    verification_run_id uuid NOT NULL,
+    outcome text NOT NULL,
+    category text NOT NULL,
+    method text NOT NULL,
+    rule_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
+    confidence numeric NOT NULL,
+    eligible_for_promotion_gating boolean NOT NULL,
+    excluded_from_routing_learning boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (attribution_id),
+    UNIQUE (verification_run_id)
+);
+
 CREATE TABLE route_decisions (
     decision_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1078,6 +1099,10 @@ ALTER TABLE asserted_edges ADD CONSTRAINT asserted_edges_project_id_fkey FOREIGN
 ALTER TABLE derived_edges ADD CONSTRAINT derived_edges_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE derived_edges ADD CONSTRAINT derived_edges_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
+ALTER TABLE failure_attributions ADD CONSTRAINT failure_attributions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE failure_attributions ADD CONSTRAINT failure_attributions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE failure_attributions ADD CONSTRAINT failure_attributions_verification_run_id_fkey FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
+
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE route_decisions ADD CONSTRAINT route_decisions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1312,6 +1337,10 @@ CREATE POLICY asserted_edges_tenant_isolation ON asserted_edges USING (tenant_id
 ALTER TABLE derived_edges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE derived_edges FORCE ROW LEVEL SECURITY;
 CREATE POLICY derived_edges_tenant_isolation ON derived_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE failure_attributions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE failure_attributions FORCE ROW LEVEL SECURITY;
+CREATE POLICY failure_attributions_tenant_isolation ON failure_attributions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE route_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE route_decisions FORCE ROW LEVEL SECURITY;

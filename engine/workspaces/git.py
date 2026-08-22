@@ -82,3 +82,14 @@ def rev_parse_head(worktree_path: Path) -> str:
 
 def status_porcelain(worktree_path: Path) -> str:
     return _run(["status", "--porcelain"], cwd=worktree_path)
+
+
+def diff_name_only(worktree_path: Path, base_revision: str) -> list[str]:
+    """Every path that differs between `base_revision` and the worktree's
+    current state -- committed *and* uncommitted (no second ref: `git
+    diff --name-only <base>` diffs against the working tree directly).
+    Chapter 5.11's "did it edit outside the supplied scope?" deterministic
+    rule (`engine.attribution.rules`) needs the real set of touched paths,
+    not merely the last commit's."""
+    output = _run(["diff", "--name-only", base_revision], cwd=worktree_path)
+    return [line for line in output.splitlines() if line.strip()]

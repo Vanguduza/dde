@@ -33,6 +33,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.attribution.service import FailureAttributionService
 from engine.contracts.acceptance_oracle import AcceptanceOracle, ObservableOutcome
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.evidence import Evidence
@@ -136,6 +137,7 @@ class VerificationRunnerService:
         attempts: TaskAttemptService | None = None,
         checkpoints: CheckpointService | None = None,
         worker_events: WorkerEventRepository | None = None,
+        attribution: FailureAttributionService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -149,6 +151,9 @@ class VerificationRunnerService:
             engine, events=self._events, clock=self._clock
         )
         self._worker_events = worker_events or WorkerEventRepository()
+        self._attribution = attribution or FailureAttributionService(
+            engine, events=self._events
+        )
 
     async def _run_uow(
         self,
@@ -378,6 +383,17 @@ class VerificationRunnerService:
                     worker_run=worker_run,
                     workspace=workspace,
                     verification_run_id=finished.verification_run_id,
+                )
+                # Chapter 5.11: verification records whether this failure
+                # was plausibly caused by context, in the same transaction
+                # as the FAILED VerificationRun/TaskAttempt -- never a
+                # detached, best-effort side query.
+                await self._attribution.attribute_verification_failure(
+                    task=task,
+                    task_attempt_id=worker_run.task_attempt_id,
+                    verification_run_id=finished.verification_run_id,
+                    workspace=workspace,
+                    uow=active,
                 )
                 await self._events.append(
                     tenant_id=tenant_id,

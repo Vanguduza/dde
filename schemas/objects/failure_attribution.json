@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/failure_attribution.json",
+  "title": "FailureAttribution",
+  "description": "Chapter 5.11 failure attribution: verification and recovery record whether a FAILED VerificationRun was plausibly caused by context omission, contradiction, staleness, contamination or mis-ranking. `method` is `rule_based` first; a deterministic rule set decides `outcome` from real, already-persisted signals (Chapter 5.8 coverage partial/missing, and whether the worker edited outside the task's declared write scope). `model_judgment` is the Chapter 5.11 fallback for when the rules are inconclusive -- not produced by any writer in this codebase yet (Stage 1 gap, disclosed, never silently claimed). `eligible_for_promotion_gating` is true only for a rule-derived, non-inconclusive outcome (Chapter 5.11: 'rule-derived attributions carry higher confidence and are the only ones eligible to gate policy promotion'). `excluded_from_routing_learning` is true only when `outcome` is `context_attributed` (Chapter 6.8: 'a failure attributed to context must not teach the router that a worker is weak'). Owned by engine.attribution (Chapter 3.8).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "failure_attributions",
+    "order": 129,
+    "pk": ["attribution_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["verification_run_id"]],
+    "foreign_keys": [
+      {
+        "name": "failure_attributions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "failure_attributions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "failure_attributions_verification_run_id_fkey",
+        "columns": ["verification_run_id"],
+        "ref_table": "verification_runs",
+        "ref_columns": ["verification_run_id"]
+      }
+    ]
+  },
+  "required": [
+    "attribution_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "task_attempt_id",
+    "verification_run_id",
+    "outcome",
+    "category",
+    "method",
+    "rule_reasons",
+    "confidence",
+    "eligible_for_promotion_gating",
+    "excluded_from_routing_learning",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "attribution_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "task_attempt_id": { "type": "string", "format": "uuid" },
+    "verification_run_id": { "type": "string", "format": "uuid" },
+    "outcome": {
+      "type": "string",
+      "enum": ["context_attributed", "not_context_attributed", "inconclusive"]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "context_omission",
+        "contradiction",
+        "staleness",
+        "contamination",
+        "mis_ranking",
+        "none"
+      ]
+    },
+    "method": { "type": "string", "enum": ["rule_based", "model_judgment"] },
+    "rule_reasons": { "type": "array", "items": { "type": "string" } },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "eligible_for_promotion_gating": { "type": "boolean" },
+    "excluded_from_routing_learning": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
