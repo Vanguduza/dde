@@ -9,6 +9,7 @@ import {
 import { findClaudeExecutable } from "../shared/claudeCli";
 import { AuthService, type AuthState } from "./connection/authService";
 import { ClaudeCodeAuthService } from "./connection/claudeCodeAuthService";
+import { StudioGatewayService } from "./connection/studioGateway";
 import { HealthClient, type ProbeState } from "./connection/healthClient";
 import {
   ConnectionConfigError,
@@ -47,6 +48,7 @@ export function activate(context: vscode.ExtensionContext): void {
   let claudeAuthState: ClaudeCodeAuthState = { kind: "none" };
   let pollTimer: ReturnType<typeof setInterval> | undefined;
   const panels = new Map<HarnessId, HarnessPanel>();
+  let gatewayService: StudioGatewayService | undefined;
 
   const overviewView = new OverviewViewProvider((msg) =>
     void handleMessage(msg),
@@ -195,6 +197,19 @@ export function activate(context: vscode.ExtensionContext): void {
     pushUi();
 
     probe = await health.probe(connection.effectiveUrl);
+    const principalId = String(
+      vscode.workspace.getConfiguration(CONFIG_SECTION).get("principalId") ?? "",
+    );
+    if (
+      !gatewayService ||
+      gatewayService.baseUrl !== connection.effectiveUrl ||
+      gatewayService.getPrincipalId() !== principalId
+    ) {
+      gatewayService = new StudioGatewayService(
+        connection.effectiveUrl,
+        principalId,
+      );
+    }
     pushUi();
     restartPoll(connection.pollIntervalMs);
   }
@@ -453,6 +468,28 @@ export function activate(context: vscode.ExtensionContext): void {
       const missions = await gateway.listMissions(harness);
       const runs = await gateway.listRuns(harness);
       panel.setData(missions, runs);
+      // Live /v1 read for any tracked mission (real Gateway session).
+      if (
+        gatewayService &&
+        probe.kind === "ok" &&
+        gatewayService.trackedMissionIds.length > 0
+      ) {
+        const first = gatewayService.trackedMissionIds[0];
+        const result = await gatewayService.readMission(first);
+        if (result.ok && result.mission) {
+          panel.setData(
+            [
+              {
+                missionId: result.mission.mission_id,
+                title: result.mission.title,
+                state: result.mission.status,
+                note: result.mission.intent,
+              },
+            ],
+            runs,
+          );
+        }
+      }
     })();
   }
 

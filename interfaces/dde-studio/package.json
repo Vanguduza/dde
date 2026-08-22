@@ -51,6 +51,17 @@
           "default": 5000,
           "minimum": 1000,
           "description": "How often to poll /healthz and /readyz."
+        },
+        "dde.studio.principalId": {
+          "type": "string",
+          "format": "uuid",
+          "default": "",
+          "description": "DDE principal UUID for Gateway /v1 session calls. Empty disables mission reads."
+        },
+        "dde.studio.cliPath": {
+          "type": "string",
+          "default": "dde",
+          "description": "Command used by the CLI-JSON bridge (Core CLI entry point)."
         }
       }
     },
