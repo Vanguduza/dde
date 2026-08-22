@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/routing_simulation_run.json",
+  "title": "RoutingSimulationRun",
+  "description": "Chapter 6.4: the Routing Simulation Model, retained and repositioned as an evaluation/fixture-generation subsystem -- 'never a training source for a production policy and never an authority'. One row is written per regression/stress-testing invocation of `engine.simulation`, against a real, deterministic adversarial fixture generator (never a hand-parameterised probability model), driving the real `engine.routing.rules.evaluate()` pipeline the same way production routing does. `experience_origin` is fixed to `simulation` and `excluded_from_routing_learning` is fixed `true` on every row -- Chapter 6.4: 'excluded by construction from any dataset used to train or promote a production policy.' `seed`, `scenario_classes` and `model_version` are persisted for reproducibility, exactly as the chapter requires ('simulation seeds, parameter sets and model versions are persisted'). `disclosed_gaps` names any requested `scenario_classes` this Stage 1 slice cannot generate a real fixture for (no fabricated elimination signal), never silently skipped. Owned by engine.simulation (Chapter 3.8).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "routing_simulation_runs",
+    "order": 132,
+    "pk": ["run_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "routing_simulation_runs_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "routing_simulation_runs_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "run_id",
+    "tenant_id",
+    "project_id",
+    "seed",
+    "policy_version",
+    "model_version",
+    "scenario_classes",
+    "scenario_results",
+    "experience_origin",
+    "excluded_from_routing_learning",
+    "disclosed_gaps",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "seed": { "type": "string" },
+    "policy_version": { "type": "string" },
+    "model_version": { "type": "string" },
+    "scenario_classes": { "type": "array", "items": { "type": "string" } },
+    "scenario_results": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "experience_origin": { "type": "string", "enum": ["simulation"] },
+    "excluded_from_routing_learning": { "type": "boolean" },
+    "disclosed_gaps": { "type": "array", "items": { "type": "string" } },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

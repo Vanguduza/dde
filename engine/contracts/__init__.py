@@ -49,6 +49,7 @@ from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
 from engine.contracts.route_decision import RouteDecision
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
+from engine.contracts.routing_simulation_run import RoutingSimulationRun
 from engine.contracts.standing_approval import StandingApproval
 from engine.contracts.task import Task
 from engine.contracts.task_attempt import TaskAttempt
@@ -110,6 +111,7 @@ __all__ = [
     "Requirement",
     "RouteDecision",
     "RoutingDecisionOutcome",
+    "RoutingSimulationRun",
     "StandingApproval",
     "Task",
     "TaskAttempt",

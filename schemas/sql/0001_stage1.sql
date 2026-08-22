@@ -452,6 +452,23 @@ CREATE TABLE routing_decision_outcomes (
     UNIQUE (verification_run_id)
 );
 
+CREATE TABLE routing_simulation_runs (
+    run_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    seed text NOT NULL,
+    policy_version text NOT NULL,
+    model_version text NOT NULL,
+    scenario_classes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    scenario_results jsonb NOT NULL DEFAULT '[]'::jsonb,
+    experience_origin text NOT NULL,
+    excluded_from_routing_learning boolean NOT NULL,
+    disclosed_gaps jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (run_id)
+);
+
 CREATE TABLE execution_environments (
     environment_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1141,6 +1158,9 @@ ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_r
 ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_verification_run_id_fkey FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
 ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_failure_attribution_id_fkey FOREIGN KEY (failure_attribution_id) REFERENCES failure_attributions (attribution_id);
 
+ALTER TABLE routing_simulation_runs ADD CONSTRAINT routing_simulation_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE routing_simulation_runs ADD CONSTRAINT routing_simulation_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1382,6 +1402,10 @@ CREATE POLICY route_decisions_tenant_isolation ON route_decisions USING (tenant_
 ALTER TABLE routing_decision_outcomes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routing_decision_outcomes FORCE ROW LEVEL SECURITY;
 CREATE POLICY routing_decision_outcomes_tenant_isolation ON routing_decision_outcomes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE routing_simulation_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE routing_simulation_runs FORCE ROW LEVEL SECURITY;
+CREATE POLICY routing_simulation_runs_tenant_isolation ON routing_simulation_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE execution_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_environments FORCE ROW LEVEL SECURITY;
