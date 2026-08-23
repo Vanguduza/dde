@@ -42,9 +42,7 @@ ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
 #: acceptance runner can reconcile them once accepted, but never proposed or
 #: accepted by this script's run loop itself. Acceptance is always a human
 #: act; registration only records that the markdown pre-image exists.
-PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
-    {"EDR-0012", "EDR-0013"}
-)
+PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset({"EDR-0012", "EDR-0013"})
 
 
 def _payload(slug: str) -> dict[str, object]:

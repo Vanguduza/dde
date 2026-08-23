@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/invariant_evaluation.json",
+  "title": "InvariantEvaluation",
+  "description": "Chapter 11.5 recorded outcome of evaluating one DomainInvariant against real rows of one ProductEnvironment. Append-only result: a re-evaluation creates a new row (idempotent replay returns the first row via the command ledger), never an overwrite. status=FAILED on a financial_state invariant carries the Chapter 11.5 human-visibility marker: repair only through a named repair task, never auto-repair. Owned by engine.verification per Chapter 3.6's repository layout.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "invariant_evaluations",
+    "order": 209,
+    "pk": ["evaluation_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "invariant_id", "product_env_id", "sequence"]],
+    "foreign_keys": [
+      {
+        "name": "invariant_evaluations_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "invariant_evaluations_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "invariant_evaluations_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "invariant_evaluations_invariant_id_fkey",
+        "columns": ["invariant_id"],
+        "ref_table": "domain_invariants",
+        "ref_columns": ["invariant_id"]
+      },
+      {
+        "name": "invariant_evaluations_product_env_id_fkey",
+        "columns": ["product_env_id"],
+        "ref_table": "product_environments",
+        "ref_columns": ["product_env_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "Violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "detail"],
+      "properties": {
+        "kind": { "type": "string" },
+        "detail": { "type": "string" }
+      }
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "tenant_id",
+    "project_id",
+    "invariant_id",
+    "definition_version",
+    "product_env_id",
+    "sequence",
+    "status",
+    "violations",
+    "rows_checked",
+    "financial_state",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "evaluation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "invariant_id": { "type": "string", "format": "uuid" },
+    "definition_version": { "type": "string" },
+    "product_env_id": { "type": "string", "format": "uuid" },
+    "datastore_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "sequence": { "type": "integer" },
+    "status": { "type": "string", "enum": ["PASSED", "FAILED", "ERRORED"] },
+    "violations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Violation" }
+    },
+    "rows_checked": { "type": "integer" },
+    "financial_state": { "type": "boolean" },
+    "repair_task_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "seed_dataset_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

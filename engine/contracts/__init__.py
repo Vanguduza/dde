@@ -24,6 +24,7 @@ from engine.contracts.credential_handle import CredentialHandle
 from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.derived_edge import DerivedEdge
 from engine.contracts.diff_gate_report import DiffGateReport
+from engine.contracts.domain_invariant import DomainInvariant
 from engine.contracts.edr import Edr
 from engine.contracts.error import Error
 from engine.contracts.eval_case import EvalCase
@@ -36,6 +37,7 @@ from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
+from engine.contracts.invariant_evaluation import InvariantEvaluation
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
 from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
@@ -89,6 +91,7 @@ __all__ = [
     "DependencyAdmission",
     "DerivedEdge",
     "DiffGateReport",
+    "DomainInvariant",
     "Edr",
     "Error",
     "EvalCase",
@@ -101,6 +104,7 @@ __all__ = [
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",
+    "InvariantEvaluation",
     "Mission",
     "MissionControl",
     "MissionOracleEvaluation",

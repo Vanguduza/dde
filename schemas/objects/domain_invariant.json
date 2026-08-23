@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/domain_invariant.json",
+  "title": "DomainInvariant",
+  "description": "Chapter 11.5 named, versioned executable check over a real datastore, declared like code. The definition is immutable (Chapter 3.10): a material change registers a new definition_version content-hashed over the definition fields, never an overwrite. predicate_kind admits only the deterministic structural predicates this engine can genuinely evaluate (unique_columns, inclusion_column, tuple_condition); free-form SQL is deliberately refused so an invariant stays declarative and auditable. financial_state marks Chapter 11.5's human-visibility class: a failing financial invariant is never auto-repaired without a repair task.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "domain_invariants",
+    "order": 208,
+    "pk": ["invariant_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "name", "definition_version"]],
+    "foreign_keys": [
+      {
+        "name": "domain_invariants_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "domain_invariants_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "PredicateSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "table_ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["unique_columns", "inclusion_column", "tuple_condition"]
+        },
+        "table_ref": { "type": "string" },
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "allowed_values": { "type": "array", "items": { "type": "string" } },
+        "condition": { "type": "string" },
+        "where": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "required": [
+    "invariant_id",
+    "tenant_id",
+    "project_id",
+    "name",
+    "description",
+    "predicate",
+    "financial_state",
+    "required_fixture_class",
+    "product_env_class",
+    "definition_version",
+    "status",
+    "created_by",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "invariant_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "predicate": { "$ref": "#/$defs/PredicateSpec" },
+    "financial_state": { "type": "boolean" },
+    "required_fixture_class": { "type": "string" },
+    "product_env_class": {
+      "type": "string",
+      "enum": ["ephemeral_preview", "integration", "staging", "production"]
+    },
+    "definition_version": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "status": { "type": "string", "enum": ["ACTIVE", "RETIRED"] },
+    "created_by": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

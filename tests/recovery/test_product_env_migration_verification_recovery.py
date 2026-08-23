@@ -29,7 +29,7 @@ async def test_forward_empty_verifies_full_chain_on_fresh_database() -> None:
         verifier = await MigrationVerifier.create(engine)
         try:
             result = await verifier.verify_forward_empty(
-                head="0012", previous_release_revision="0011"
+                head="0013", previous_release_revision="0012"
             )
         finally:
             await verifier.dispose()
@@ -61,10 +61,10 @@ async def test_both_halves_run_against_the_same_snapshot_contract() -> None:
         verifier = await MigrationVerifier.create(engine)
         try:
             empty = await verifier.verify_forward_empty(
-                head="0012", previous_release_revision="0011"
+                head="0013", previous_release_revision="0012"
             )
             previous = await verifier.verify_forward_previous(
-                previous_release_revision="0011"
+                previous_release_revision="0012"
             )
         finally:
             await verifier.dispose()

@@ -13,6 +13,8 @@ DROP TABLE IF EXISTS dependency_admissions CASCADE;
 DROP TABLE IF EXISTS diff_gate_reports CASCADE;
 DROP TABLE IF EXISTS integration_proposals CASCADE;
 DROP TABLE IF EXISTS verification_runs CASCADE;
+DROP TABLE IF EXISTS invariant_evaluations CASCADE;
+DROP TABLE IF EXISTS domain_invariants CASCADE;
 DROP TABLE IF EXISTS product_environments CASCADE;
 DROP TABLE IF EXISTS mission_oracle_evaluations CASCADE;
 DROP TABLE IF EXISTS acceptance_oracles CASCADE;

@@ -849,6 +849,48 @@ CREATE TABLE product_environments (
     UNIQUE (tenant_id, project_id, idempotency_key)
 );
 
+CREATE TABLE domain_invariants (
+    invariant_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    name text NOT NULL,
+    description text NOT NULL,
+    predicate jsonb NOT NULL,
+    financial_state boolean NOT NULL,
+    required_fixture_class text NOT NULL,
+    product_env_class text NOT NULL,
+    definition_version text NOT NULL,
+    status text NOT NULL,
+    created_by text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (invariant_id),
+    UNIQUE (project_id, name, definition_version)
+);
+
+CREATE TABLE invariant_evaluations (
+    evaluation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    invariant_id uuid NOT NULL,
+    definition_version text NOT NULL,
+    product_env_id uuid NOT NULL,
+    datastore_ref text,
+    sequence integer NOT NULL,
+    status text NOT NULL,
+    violations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    rows_checked integer NOT NULL,
+    financial_state boolean NOT NULL,
+    repair_task_ref text,
+    seed_dataset_id uuid,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (evaluation_id),
+    UNIQUE (tenant_id, project_id, invariant_id, product_env_id, sequence)
+);
+
 CREATE TABLE verification_runs (
     verification_run_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1320,6 +1362,15 @@ ALTER TABLE product_environments ADD CONSTRAINT product_environments_mission_id_
 ALTER TABLE product_environments ADD CONSTRAINT product_environments_seed_dataset_id_fkey FOREIGN KEY (seed_dataset_id) REFERENCES seed_datasets (dataset_id);
 ALTER TABLE product_environments ADD CONSTRAINT product_environments_credentials_profile_id_fkey FOREIGN KEY (credentials_profile_id) REFERENCES credential_handles (handle_id);
 
+ALTER TABLE domain_invariants ADD CONSTRAINT domain_invariants_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE domain_invariants ADD CONSTRAINT domain_invariants_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_invariant_id_fkey FOREIGN KEY (invariant_id) REFERENCES domain_invariants (invariant_id);
+ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_product_env_id_fkey FOREIGN KEY (product_env_id) REFERENCES product_environments (product_env_id);
+
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1547,6 +1598,14 @@ CREATE POLICY mission_oracle_evaluations_tenant_isolation ON mission_oracle_eval
 ALTER TABLE product_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_environments FORCE ROW LEVEL SECURITY;
 CREATE POLICY product_environments_tenant_isolation ON product_environments USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE domain_invariants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE domain_invariants FORCE ROW LEVEL SECURITY;
+CREATE POLICY domain_invariants_tenant_isolation ON domain_invariants USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE invariant_evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invariant_evaluations FORCE ROW LEVEL SECURITY;
+CREATE POLICY invariant_evaluations_tenant_isolation ON invariant_evaluations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE verification_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_runs FORCE ROW LEVEL SECURITY;

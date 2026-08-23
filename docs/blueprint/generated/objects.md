@@ -330,6 +330,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## DomainInvariant
+
+- table: `domain_invariants`
+- primary key: invariant_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## InvariantEvaluation
+
+- table: `invariant_evaluations`
+- primary key: evaluation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## VerificationRun
 
 - table: `verification_runs`
