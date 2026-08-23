@@ -14,10 +14,12 @@ their real side effect. `revoke` implements Chapter 9.2's "expired and
 revoked leases fail closed at the enforcement boundary" -- a lease revoked
 between two gated calls in the same run denies the next one, which is this
 mission's real, achievable granularity for "lease revocation mid-run fails
-closed" (S2's exit-gate fixture, AGENTS.md/Chapter 18.2 section 18.2): there
-is no per-syscall interception without T2 containment (DDE-018), so
-revocation is observed at the next discrete `require_active` call, not
-inside an already-in-flight uninterruptible subprocess.
+closed" (S2's exit-gate fixture, AGENTS.md/Chapter 18.2 section 18.2):
+there is no per-syscall interception without T2 containment (DDE-018), so
+revocation is observed at the next discrete `require_active` call -- while
+the in-flight process itself is now terminated at arm time through
+`engine.capabilities.process_registry` (this mission; see the kill-flag
+paragraph below for what remains out of reach).
 
 **CapabilityLease vs WriteScopeLease.** Chapter 9.2's `CapabilityLease`
 decides *whether a caller may invoke a capability at all* -- tenant/mission/
@@ -62,10 +64,17 @@ still-held leases on refusal as a BACKSTOP for leases granted between arm
 and checkout (the sweep is primary). Live broker handles of the stopped
 run's leases are revoked by pairing `arm_run_stop` with
 `CredentialBrokerService.revoke_handles_for_leases` in one shared unit
-of work. Remaining disclosed limits: network egress is not gated by this
-flag (T2 EDR); an already-in-flight subprocess stays uninterruptible
-(T2/DDE-018). The in-memory registry is a per-instance cache of the
-durable row, never a second source of truth.
+of work, and the run's LIVE local processes -- the last uninterruptible
+surface -- are terminated at arm time by `arm_run_stop` itself through
+`engine.capabilities.process_registry`'s registry (registered by
+`engine.environments.backends.local_process.LocalProcessBackend.
+run_for_authority`), each termination journalled as an external effect.
+Remaining disclosed limits: network egress is not gated by this flag (T2
+EDR-0011); process termination reaches only locally-registered children
+of THIS process -- containers, remote executors and grandchild processes
+a command spawned itself stay out of reach until the container backend
+(EDR-0011). The two registries are per-instance caches of live state,
+never sources of authority truth.
 """
 
 from __future__ import annotations
@@ -91,6 +100,14 @@ from engine.capabilities.lease_states import (
     CAPABILITY_LEASE_TRANSITIONS,
     HELD_LEASE_STATUSES,
 )
+from engine.capabilities.process_registry import (
+    PROCESS_KILL_OPERATION,
+    PROCESS_KILL_TARGET_SYSTEM,
+    SHARED_PROCESS_REGISTRY,
+    ProcessHandleRegistry,
+    TerminationOutcome,
+)
+from engine.capabilities.seed import side_effect_class_for
 from engine.capabilities.service import CapabilityRegistryService
 from engine.contracts.capability_lease import CapabilityLease
 from engine.contracts.command_idempotency import CommandIdempotency
@@ -100,6 +117,8 @@ from engine.core.ids import uuid7
 from engine.core.state_machine import transition
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.recovery.hashing import effect_response_hash
+from engine.recovery.service import ExternalEffectService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
 T = TypeVar("T")
@@ -109,6 +128,14 @@ T = TypeVar("T")
 #: convention) -- no chapter names a literal value for CapabilityLease's
 #: `issued_by_policy_version`.
 CAPABILITY_LEASE_POLICY_VERSION = "capability-lease-v1"
+
+#: The seeded capability whose real implementation spawns local OS
+#: subprocesses (`engine.environments.backends.local_process`). Its
+#: declared side_effect_class governs the arm-time termination journal
+#: exactly as it governs the spawn-side journal in
+#: `engine.workers.scripted_adapter` -- never a second, independent
+#: mapping.
+CAPABILITY_RUN_LOCAL_PROCESS = "capability.run_local_process"
 
 #: Chapter 9.2: "expires by default". No chapter names a concrete TTL for a
 #: CapabilityLease (unlike `command_idempotency`'s explicit 30-day rule,
@@ -144,6 +171,8 @@ class CapabilityLeaseService:
         capabilities: CapabilityRegistryService | None = None,
         clock: Clock | None = None,
         kill_switch: KillSwitchRegistry | None = None,
+        process_registry: ProcessHandleRegistry | None = None,
+        effects: ExternalEffectService | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or CapabilityLeaseRepository()
@@ -159,6 +188,14 @@ class CapabilityLeaseService:
         #: shape while this module is the sole writer of
         #: `capability_leases` in the process.
         self.kill_switch = kill_switch or SHARED_KILL_SWITCH
+        #: Live local-process handles the arm-time stop sweeps (see
+        #: `arm_run_stop`). Same shared-by-default discipline as the kill
+        #: switch: one process-wide registry, never a second one.
+        self.process_registry = process_registry or SHARED_PROCESS_REGISTRY
+        #: The Chapter 12.4 journal the arm-time termination sweep writes
+        #: through -- the same service `engine.workers.scripted_adapter`
+        #: and `engine.workspaces.service` already use, never a second one.
+        self._effects = effects or ExternalEffectService(engine, clock=self._clock)
 
     async def _run(
         self,
@@ -401,12 +438,17 @@ class CapabilityLeaseService:
         every still-held lease of the run via the repository's held-only
         list query, (4) transition each through this service's existing
         `REVOKED` path (`_transition` -- the same state machine `revoke()`
-        uses; no duplicated logic) with reason `kill_flag`, (5) journal
-        ONE `CapabilityRunStopArmed` summary event (aggregate = the run).
-        All inside ONE transaction. Returns the revoked leases.
-        Idempotent: re-arming presents the ledger's existing dedup key
-        (no second row) and finds an empty held set; it journals only the
-        summary."""
+        uses; no duplicated logic) with reason `kill_flag`, (5) terminate
+        every registered LIVE local process of the run and journal each
+        termination as an external effect through the EXISTING
+        `ExternalEffectService` (`_sweep_live_processes` -- Chapter 7.2's
+        T2 revocation latency, "revocation ... terminates the run",
+        reached for the one substrate this codebase has), and (6) journal
+        ONE `CapabilityRunStopArmed` summary event (aggregate = the run,
+        payload naming the terminated pids). All inside ONE transaction.
+        Returns the revoked leases. Idempotent: re-arming presents the
+        ledger's existing dedup key (no second row) and finds an empty
+        held set; it journals only the summary."""
 
         async def _op(active: PostgresUnitOfWork) -> list[CapabilityLease]:
             self.kill_switch.arm(
@@ -439,6 +481,13 @@ class CapabilityLeaseService:
                         },
                     )
                 )
+            terminated = await self._sweep_live_processes(
+                active,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+                mission_id=revoked[0].mission_id if revoked else None,
+            )
             mission_id = revoked[0].mission_id if revoked else None
             task_id = revoked[0].task_id if revoked else None
             await self._events.append(
@@ -453,12 +502,109 @@ class CapabilityLeaseService:
                     "reason": KILL_FLAG_REASON,
                     "revoked_count": len(revoked),
                     "revoked_lease_ids": [str(lease.lease_id) for lease in revoked],
+                    "terminated_processes": [
+                        {"pid": outcome.pid, "phase": outcome.phase}
+                        for outcome in terminated
+                    ],
                 },
                 uow=active,
             )
             return revoked
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _sweep_live_processes(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+        mission_id: UUID | None,
+    ) -> list[TerminationOutcome]:
+        """Terminate every registered live local process of the stopped run
+        and journal each termination as a Chapter 12.4 external effect
+        (target_system `process_termination`, side_effect_class from
+        `capability.run_local_process`, carrying the authorizing lease id
+        and pid). Must be called inside a unit of work the caller holds --
+        the journal rows commit atomically with the stop itself.
+
+        The OS kill happens before each row's `prepare` inside that same
+        transaction: the process is dying regardless of what the
+        transaction later does, so recording first would be exactly the
+        phantom journal row Chapter 12.4's prepare-before-act discipline
+        exists to prevent. The cost -- a crash between kill and commit
+        loses the rows -- is disclosed rather than papered over with a
+        second transaction that would break the one-unit-of-work stop
+        composition every other surface follows.
+
+        Best-effort by construction: per-pid failures are journaled with
+        their error detail (`failed` outcomes) but never fail the stop,
+        the same discipline as the broker handle sweep. `mission_id` may
+        be `None` when the run held no lease to derive it from; a
+        termination with no mission context journals nothing rather than
+        inventing one (Chapter 12.4 requires the runtime mission binding)."""
+        if mission_id is None:
+            return await self.process_registry.sweep_run(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+            )
+        handles = self.process_registry.list_for_run(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            worker_run_id=worker_run_id,
+        )
+        outcomes = await self.process_registry.sweep_run(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            worker_run_id=worker_run_id,
+        )
+        outcome_by_pid = {outcome.pid: outcome for outcome in outcomes}
+        for handle in handles:
+            outcome = outcome_by_pid.get(handle.pid)
+            if outcome is None:
+                continue
+            operation = f"{PROCESS_KILL_OPERATION}:{handle.pid}"
+            effect = await self._effects.prepare(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                worker_run_id=worker_run_id,
+                capability_lease_id=handle.capability_lease_id,
+                target_system=PROCESS_KILL_TARGET_SYSTEM,
+                target_resource=f"pid:{handle.pid}",
+                operation=operation,
+                side_effect_class=side_effect_class_for(CAPABILITY_RUN_LOCAL_PROCESS),
+                idempotency_key=(
+                    f"{worker_run_id}:effect:{operation}:{handle.capability_lease_id}"
+                ),
+                evidence_ref=outcome.phase if outcome.detail is None else None,
+                uow=active,
+            )
+            await self._effects.mark_sent(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                effect_id=effect.effect_id,
+                uow=active,
+            )
+            await self._effects.mark_confirmed(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                effect_id=effect.effect_id,
+                external_reference=(
+                    outcome.phase if outcome.detail is None else outcome.detail
+                ),
+                response_hash=effect_response_hash(
+                    {
+                        "pid": handle.pid,
+                        "phase": outcome.phase,
+                        "detail": outcome.detail,
+                    }
+                ),
+                uow=active,
+            )
+        return outcomes
 
     async def disarm_run_stop(
         self,
@@ -560,8 +706,9 @@ class CapabilityLeaseService:
         new status invented). The same durable consult gates broker
         credential admission (`CredentialBrokerService.
         _require_active_lease`). Disclosed limits: network egress does
-        not consult the stop, and an already-in-flight subprocess cannot
-        be interrupted (T2 containment, Chapter 14/DDE-018)."""
+        not consult the stop, and termination of an in-flight subprocess
+        reaches only locally-registered children (containers/remote
+        executors/grandchildren out of reach -- EDR-0011)."""
 
         async def _op(active: PostgresUnitOfWork) -> CapabilityLease:
             if await self._is_run_stopped(

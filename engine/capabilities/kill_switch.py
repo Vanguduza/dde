@@ -40,6 +40,15 @@ the existing lease rows -- no new table, no new state-machine status.
 - Wired: `require_active` keeps its own "revoke still-held leases on first
   refusal" behaviour purely as a BACKSTOP for leases granted between arm
   and the next checkout; the sweep-on-arm is primary.
+- Wired: the last disclosed T2 gap -- an in-flight subprocess holding a
+  live secret -- is closed for local backends: arming now also terminates
+  registered live processes of the run
+  (`CapabilityLeaseService._sweep_live_processes`, fed by
+  `engine.environments.backends.local_process.LocalProcessBackend.
+  run_for_authority`'s registrations in
+  `engine.capabilities.process_registry`) and journals each termination
+  as an external effect. Best-effort, local-only: containers/remote
+  executors and grandchild processes stay out of reach (EDR-0011).
 - NOT wired (named honestly): network egress is not gated by this flag.
   The recovery matrix's distinct intentionally-stopped attribution
   (research: "lands as INTENTIONALLY_STOPPED, not FAILED") does not exist
@@ -47,10 +56,9 @@ the existing lease rows -- no new table, no new state-machine status.
   -> AUTHORIZATION_FAILURE -> request_approval/requires_human, which is
   where a killed run's attempt lands today -- adopting a new matrix row
   would be a Project Truth change, proposed, not made here.
-- Remaining honest limits: an already-in-flight subprocess cannot be
-  interrupted mid-call (T2 containment, DDE-018) and network egress is
-  still ungated (T2 EDR); the in-memory registry remains a per-instance
-  cache of the durable row, not a second source of truth.
+- Remaining honest limits: network egress remains ungated (T2 EDR-0011);
+  the two in-memory registries remain per-instance caches of live
+  state (the durable stop row; live OS pids), not second sources of truth.
 """
 
 from __future__ import annotations

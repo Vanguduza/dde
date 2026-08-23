@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+from engine.capabilities.process_registry import RegisteredAuthority
+
 
 @dataclass(frozen=True)
 class EnvironmentSpec:
@@ -91,6 +93,26 @@ class EnvironmentBackend(Protocol):
         """Spawn a real process rooted at `cwd` and return its captured
         result. Must never raise for a non-zero exit or for exceeding
         `timeout_seconds` — both are represented in `CommandResult`."""
+        ...
+
+    async def run_for_authority(
+        self,
+        *,
+        cwd: Path,
+        command: list[str],
+        timeout_seconds: float,
+        authority: RegisteredAuthority,
+    ) -> CommandResult:
+        """The T2 revocation-latency twin of `run()` (Chapter 7.2:
+        "revocation ... terminates the run"): spawn the same contained
+        process while registering a live, revocable handle under the
+        `(run, lease)` authority that authorized it, so
+        `engine.capabilities.process_registry`'s arm-time sweep can
+        terminate it mid-flight. Backends whose substrate cannot expose a
+        revocable OS process handle (containers, remote executors) refuse
+        here rather than silently registering nothing -- an unregistered
+        spawn would be exactly the uninterruptible surface this method
+        exists to close."""
         ...
 
     def teardown(self, handle: ProvisionedEnvironment) -> None: ...

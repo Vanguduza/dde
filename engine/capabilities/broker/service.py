@@ -58,9 +58,14 @@ lease_service.CapabilityLeaseService.arm_run_stop` (which also writes the
 durable record) with this service's `revoke_handles_for_leases` in ONE
 shared unit of work, so the run's held leases and every still-live handle
 bound to them die together at arm time; the symmetric operator undo is
-`CapabilityLeaseService.disarm_run_stop`. Honest limits: an in-flight
-subprocess holding a live secret cannot be interrupted (T2/DDE-018), and
-network egress remains ungated by the stop (T2 EDR).
+`CapabilityLeaseService.disarm_run_stop`. Honest limits: the run's LIVE
+local processes are terminated by `arm_run_stop` itself through
+`engine.capabilities.process_registry` (registered by
+`engine.environments.backends.local_process.LocalProcessBackend.
+run_for_authority`), but only locally-registered children of the DDE
+process -- containers, remote executors and grandchild processes a
+command spawned itself stay out of reach (T2/EDR-0011), and network
+egress remains ungated by the stop (same EDR).
 
 **What this module does NOT do** -- deferred, not stubbed:
   - Wiring a real caller (`engine.workers`/`engine.workspaces`) to actually
