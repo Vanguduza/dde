@@ -31,6 +31,10 @@ FAILURE_CLASSES: Final[frozenset[str]] = frozenset(
         "RESOURCE_EXHAUSTION",
         "SIDE_EFFECT_UNKNOWN",
         "DRIFT_FAILURE",
+        # EDR-0010 (accepted 2026-08-23): an operator's intentional stop is
+        # not a failure of the work; it is governed on its own row instead
+        # of borrowing AUTHORIZATION_FAILURE.
+        "INTENTIONALLY_STOPPED",
     }
 )
 
@@ -40,15 +44,12 @@ FAILURE_CLASS_ALIASES: Final[dict[str, str]] = {
     "WORKER_COMMAND_FAILED": "WORKER_FAILURE",
     "WORKER_PREPARE_FAILED": "WORKER_FAILURE",
     "WORKER_FAILURE": "WORKER_FAILURE",
+    # Kill-flag refusal at capability checkout (EDR-0010, accepted
+    # 2026-08-23): an intentionally stopped run is governed on its own
+    # INTENTIONALLY_STOPPED row -- acknowledge_stop, requires_human,
+    # no automatic retry, no new WorkerRun until the operator acknowledges.
+    "KILL_FLAG_ACTIVE": "INTENTIONALLY_STOPPED",
     "WORKER_CAPABILITY_DENIED": "AUTHORIZATION_FAILURE",
-    # Kill-flag refusal at capability checkout (research §6): an
-    # intentionally stopped run is an authorization outcome -- the operator
-    # withdrew authority mid-run. It maps onto the existing
-    # AUTHORIZATION_FAILURE row (request_approval, requires_human, no
-    # silent retry) because Chapter 12.3's taxonomy has no distinct
-    # intentionally-stopped class; adding one would be a Project Truth
-    # change, proposed not made.
-    "KILL_FLAG_ACTIVE": "AUTHORIZATION_FAILURE",
     "SIDE_EFFECT_UNKNOWN": "SIDE_EFFECT_UNKNOWN",
     "EFFECT_UNKNOWN": "SIDE_EFFECT_UNKNOWN",
     "EFFECT_CONFLICT": "SIDE_EFFECT_UNKNOWN",
@@ -109,6 +110,7 @@ RecoveryAction = Literal[
     "request_budget",
     "clarification",
     "drift_review",
+    "acknowledge_stop",
 ]
 
 
@@ -368,6 +370,29 @@ def _resource(occurrence_count: int, unreconciled: bool) -> RecoveryDecision:
     )
 
 
+def _intentionally_stopped(
+    occurrence_count: int, unreconciled: bool
+) -> RecoveryDecision:
+    """EDR-0010's row (accepted 2026-08-23): authority was deliberately
+    withdrawn by an operator -- the work is expected to stay stopped. No
+    automatic retry and no replan; a new WorkerRun is permitted only after
+    the operator acknowledges the stop (and, while the durable stop record
+    is ARMED, `RecoveryService.assert_clear_to_retry` refuses outright)."""
+    del occurrence_count, unreconciled
+    return RecoveryDecision(
+        failure_class="INTENTIONALLY_STOPPED",
+        action="acknowledge_stop",
+        allow_new_worker_run=False,
+        requires_replan=False,
+        requires_human=True,
+        error_code="KILL_FLAG_ACTIVE",
+        message=(
+            "INTENTIONALLY_STOPPED: acknowledge the operator stop; never blind-retried"
+        ),
+        retryable=False,
+    )
+
+
 def _unknown(occurrence_count: int, unreconciled: bool) -> RecoveryDecision:
     del occurrence_count
     return RecoveryDecision(
@@ -416,6 +441,7 @@ _ROW: dict[str, Callable[[int, bool], RecoveryDecision]] = {
     "RESOURCE_EXHAUSTION": _resource,
     "SIDE_EFFECT_UNKNOWN": _unknown,
     "DRIFT_FAILURE": _drift,
+    "INTENTIONALLY_STOPPED": _intentionally_stopped,
 }
 
 

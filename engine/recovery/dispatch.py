@@ -6,6 +6,13 @@ dispatches on failure class. `IntegrationQueueService` consults `decide()`
 on CONFLICT. `VerificationRunnerService` fails the TaskAttempt on
 VERIFICATION_FAILURE.
 
+**Intentional stops (EDR-0010, accepted 2026-08-23).** A run whose durable
+stop record is ARMED (`engine.capabilities.kill_switch`) is governed by the
+matrix's own INTENTIONALLY_STOPPED row: `classify_run_stop_failure_class`
+is the classification writer for the kill-flag refusal sites, and
+`assert_clear_to_retry` refuses any new WorkerRun for a stopped task before
+the matrix is even consulted -- acknowledge-gated, never blind-retried.
+
 **Deferred.** Context critic recompile (DDE-031), alternate adapters
 (DDE-025, now present), automatic git revert commits (Ch.10.7 --
 REVERT without a supplied revert task is refused), workspace discard plus
@@ -22,6 +29,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.kill_switch import read_durable_run_stop
 from engine.contracts.checkpoint import Checkpoint
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.replan_decision import ReplanDecision
@@ -146,6 +154,21 @@ class RecoveryService:
                 task_id=task_id,
                 uow=active,
             )
+            stopped = await self._find_armed_stop(
+                active, tenant_id, project_id, attempts
+            )
+            if stopped is not None:
+                raise DdeError(
+                    "KILL_FLAG_ACTIVE",
+                    "Run is intentionally stopped; acknowledge the operator "
+                    "stop before a new WorkerRun (EDR-0010)",
+                    retryable=False,
+                    details={
+                        "worker_run_id": str(stopped),
+                        "failure_class": "INTENTIONALLY_STOPPED",
+                        "action": "acknowledge_stop",
+                    },
+                )
             failed = [row for row in attempts if row.status == "FAILED"]
             verification_failures = await self._count_verification_failures(
                 active, task_id
@@ -185,7 +208,17 @@ class RecoveryService:
                 decision = decide(
                     canonical, occurrence_count=count, unreconciled=unreconciled
                 )
-                self._raise_unless_allowed(decision)
+                if canonical == "INTENTIONALLY_STOPPED":
+                    # EDR-0010: reaching this branch means the guard above
+                    # verified NO run of this task holds an ARMED stop record
+                    # -- the DISARMED durable row IS the operator's
+                    # acknowledgement, which permits one new guarded
+                    # WorkerRun. The matrix row itself stays
+                    # allow_new_worker_run=False so every other dispatch path
+                    # (automatic retries) keeps refusing.
+                    pass
+                else:
+                    self._raise_unless_allowed(decision)
                 return lead.attempt_id
             decision = decide(
                 "VERIFICATION_FAILURE", occurrence_count=verification_failures
@@ -200,6 +233,36 @@ class RecoveryService:
         self, *, failure_class: str, occurrence_count: int = 1
     ) -> RecoveryDecision:
         return decide(failure_class, occurrence_count=occurrence_count)
+
+    async def classify_run_stop_failure_class(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> str:
+        """Classification writer for the kill-flag refusal sites (EDR-0010).
+
+        Returns `INTENTIONALLY_STOPPED` when the run's durable stop record is
+        ARMED, else the borrowed legacy class `AUTHORIZATION_FAILURE` so a
+        refusal without a durable stop record keeps its pre-EDR-0010 meaning.
+        The kill-flag checkout/admission sites raise `KILL_FLAG_ACTIVE`
+        without knowing which row governs; they consult this before writing
+        the attempt's failure_class, and the matrix dispatches on the result.
+        """
+
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as active:
+            armed = await read_durable_run_stop(
+                self._commands,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+                uow=active,
+            )
+        return "INTENTIONALLY_STOPPED" if armed else "AUTHORIZATION_FAILURE"
 
     async def replan(
         self,
@@ -604,6 +667,32 @@ class RecoveryService:
     ) -> int:
         rows = await self._verifications.list_for_task(active.connection, task_id)
         return sum(1 for row in rows if row.status == "FAILED")
+
+    async def _find_armed_stop(
+        self,
+        active: PostgresUnitOfWork,
+        tenant_id: UUID,
+        project_id: UUID,
+        attempts: Sequence[TaskAttempt],
+    ) -> UUID | None:
+        """The most recent run of this task whose durable stop record is
+        ARMED, or None. Consulted before the matrix so an acknowledged-never
+        stop refuses a new WorkerRun outright (Chapter 12.4: only verified
+        absence of a stop permits a new mutation)."""
+        for attempt in reversed(attempts):
+            runs = await self._runs.list_for_attempt(
+                active.connection, attempt.attempt_id
+            )
+            for run in reversed(runs):
+                if await read_durable_run_stop(
+                    self._commands,
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    worker_run_id=run.run_id,
+                    uow=active,
+                ):
+                    return run.run_id
+        return None
 
     def _raise_unless_allowed(self, decision: RecoveryDecision) -> None:
         if decision.allow_new_worker_run:

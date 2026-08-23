@@ -1,16 +1,27 @@
 # EDR-0010 — Chapter 12.3 recovery matrix: no governed row for an
 # intentionally stopped run (kill flag)
 
-> **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
-> written only by `engine/truth/`. No such row exists yet. Following the
-> convention established in `EDR-0001`–`EDR-0008`, this file is a
-> **markdown pre-image** of the eventual `edrs` row, filed as the proposal
-> itself (AGENTS.md forbids editing `docs/truth/**` as a side effect).
-> **This file is not itself an accepted EDR.** `status` is `proposed`; only a
-> human decision can move it to `accepted`.
+> **ACCEPTED 2026-08-23 by explicit human project-owner decision.** The
+> authoritative record is the accepted row in the Project Truth `edrs` table
+> (`edr_id=01a02e5d-cc96-730e-99c3-cc9d69a22415`, owner project
+> `9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11`, written via
+> `engine.truth.service.TruthService.propose_edr` + `accept_edr`). This file
+> remains as readable documentation; where wording differs, the `edrs` row
+> outranks it. Acceptance authorizes the `INTENTIONALLY_STOPPED` recovery
+> classification and its governed row (`acknowledge_stop`,
+> `requires_human=True`, no automatic retry, no new WorkerRun until an
+> operator acknowledges), replacing the borrowed
+> `KILL_FLAG_ACTIVE → AUTHORIZATION_FAILURE` mapping.
 
-- **slug:** `EDR-0010` (provisional)
-- **status:** `proposed`
+> **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
+> written only by `engine/truth/`. The durable row now exists (see the
+> acceptance note above). Following the convention established in
+> `EDR-0001`–`EDR-0008`, this file stays as a readable pre-image of that
+> row, filed as the proposal itself (AGENTS.md forbids editing
+> `docs/truth/**` as a side effect).
+
+- **slug:** `EDR-0010`
+- **status:** `accepted (2026-08-23)`
 - **supersedes:** none
 - **affected_requirement_slugs:** none filed yet — should be linked to
   whatever requirement charters the Chapter 12.3 recovery matrix once one

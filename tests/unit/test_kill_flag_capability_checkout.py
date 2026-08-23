@@ -434,19 +434,18 @@ async def test_kill_flag_with_no_existing_lease_still_fails_closed() -> None:
     assert excinfo.value.error_code == "KILL_FLAG_ACTIVE"
 
 
-def test_recovery_matrix_maps_kill_refusal_to_authorization_failure() -> None:
+def test_recovery_matrix_maps_kill_refusal_to_intentionally_stopped() -> None:
     """A mid-run kill refusal that reaches recovery dispatches onto the
-    closest existing taxonomy row: AUTHORIZATION_FAILURE (request_approval,
-    requires_human, never silently retried). Chapter 12.3 names no distinct
-    intentionally-stopped class; adopting one would be a Project Truth
-    change, proposed not made -- this pins the honest mapping instead."""
+    INTENTIONALLY_STOPPED taxonomy row (EDR-0010, accepted 2026-08-23):
+    acknowledge_stop, requires_human, never silently retried -- the stop
+    is an operator act to acknowledge, not a failure to approve away."""
     from engine.recovery.matrix import canonical_failure_class, decide
 
-    assert canonical_failure_class("KILL_FLAG_ACTIVE") == "AUTHORIZATION_FAILURE"
+    assert canonical_failure_class("KILL_FLAG_ACTIVE") == ("INTENTIONALLY_STOPPED")
     decision = decide("KILL_FLAG_ACTIVE", occurrence_count=1)
     assert decision.allow_new_worker_run is False
     assert decision.requires_human is True
-    assert decision.action == "request_approval"
+    assert decision.action == "acknowledge_stop"
 
 
 async def test_refusal_journals_kill_flag_enforced_in_the_same_transaction() -> None:
