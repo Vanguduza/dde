@@ -19,6 +19,7 @@ test-unit:
 
 contract-test:
     uv run python -m scripts.generate_contracts --check
+    uv run python -m scripts.generate_design_tokens --check
     uv run pytest tests/contract
 
 db-upgrade:
@@ -34,11 +35,15 @@ lint:
 typecheck:
     uv run mypy
 
-check: lint typecheck test contract-test
+check: lint typecheck test contract-test design-lints studio-check
+
+design-lints:
+    uv run python -m scripts.design_lints --baseline
 
 studio-check:
     npm --prefix interfaces/dde-studio ci
     npm --prefix interfaces/dde-studio run check
+    npm --prefix interfaces/dde-studio test
     npm --prefix interfaces/dde-studio/desktop ci
     npm --prefix interfaces/dde-studio/desktop run check
 

@@ -47,6 +47,8 @@ jobs:
         run: just typecheck
       - name: Contract drift check
         run: just contract-test
+      - name: Design lints (shrink-only budget)
+        run: just design-lints
       - name: Unit tests
         run: just test
       - name: Migration validation (empty database, reversible)
@@ -59,7 +61,8 @@ jobs:
       - name: Fail on generated drift
         run: |
           uv run python -m scripts.generate_contracts
-          git diff --exit-code -- engine/contracts schemas/sql schemas/api/openapi.yaml docs/blueprint/generated
+          uv run python -m scripts.generate_design_tokens
+          git diff --exit-code -- engine/contracts schemas/sql schemas/api/openapi.yaml docs/blueprint/generated interfaces/dde-studio/shared/ui/tokens.ts
 
   windows:
     # The ubuntu ci job is authoritative (services, migrations, integration).

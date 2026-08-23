@@ -4,10 +4,18 @@ on:
   push:
     paths:
       - "interfaces/dde-studio/**"
+      - "schemas/design/**"
+      - "scripts/generate_design_tokens.py"
+      - "scripts/design_lints.py"
+      - "docs/design/lint-baseline.json"
       - ".github/workflows/dde-studio.yml"
   pull_request:
     paths:
       - "interfaces/dde-studio/**"
+      - "schemas/design/**"
+      - "scripts/generate_design_tokens.py"
+      - "scripts/design_lints.py"
+      - "docs/design/lint-baseline.json"
       - ".github/workflows/dde-studio.yml"
 
 jobs:
@@ -27,6 +35,8 @@ jobs:
         run: npm ci
       - name: Typecheck / compile extension
         run: npm run check
+      - name: Client tests (PR-blocking)
+        run: npm test
       - name: Emit JS
         run: npm run compile
       - name: Install desktop
@@ -35,3 +45,15 @@ jobs:
       - name: Typecheck desktop
         working-directory: interfaces/dde-studio/desktop
         run: npm run check
+
+  design-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Token sheet drift check (SSOT law)
+        run: uv run python -m scripts.generate_design_tokens --check
+      - name: Design lints (shrink-only budget)
+        run: uv run python -m scripts.design_lints --baseline
