@@ -8,10 +8,13 @@ VERIFICATION_FAILURE.
 
 **Intentional stops (EDR-0010, accepted 2026-08-23).** A run whose durable
 stop record is ARMED (`engine.capabilities.kill_switch`) is governed by the
-matrix's own INTENTIONALLY_STOPPED row: `classify_run_stop_failure_class`
-is the classification writer for the kill-flag refusal sites, and
-`assert_clear_to_retry` refuses any new WorkerRun for a stopped task before
-the matrix is even consulted -- acknowledge-gated, never blind-retried.
+matrix's own INTENTIONALLY_STOPPED row: the mid-run failure writer in
+`engine.workers.service._drive_lifecycle` records an adapter-start
+`KILL_FLAG_ACTIVE` refusal as INTENTIONALLY_STOPPED (EDR-0012 Finding A),
+and `assert_clear_to_retry` refuses any new WorkerRun for a stopped task
+before the matrix is even consulted -- acknowledge-gated, never
+blind-retried. `resume_run` answers to the same armed-stop guard (EDR-0012
+Finding B).
 
 **Deferred.** Context critic recompile (DDE-031), alternate adapters
 (DDE-025, now present), automatic git revert commits (Ch.10.7 --
@@ -234,6 +237,31 @@ class RecoveryService:
     ) -> RecoveryDecision:
         return decide(failure_class, occurrence_count=occurrence_count)
 
+    async def find_armed_stop_for_task(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> UUID | None:
+        """The most recent run of this task whose durable stop record is
+        ARMED, or None. The public half of `_find_armed_stop` for callers
+        that need the stop verdict WITHOUT the full matrix walk
+        (`WorkerManagerService.resume_run`'s EDR-0012 Finding B guard):
+        same durable read, no task-status or failure-class preconditions."""
+
+        async def _op(active: PostgresUnitOfWork) -> UUID | None:
+            attempts = await self._attempts.list_for_task(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_id=task_id,
+                uow=active,
+            )
+            return await self._find_armed_stop(active, tenant_id, project_id, attempts)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def classify_run_stop_failure_class(
         self,
         *,
@@ -242,19 +270,21 @@ class RecoveryService:
         worker_run_id: UUID,
         uow: PostgresUnitOfWork | None = None,
     ) -> str:
-        """Classification writer for the kill-flag refusal sites (EDR-0010).
+        """Classification for a run's stop outcome (EDR-0010).
 
         Returns `INTENTIONALLY_STOPPED` when the run's durable stop record is
         ARMED, else the borrowed legacy class `AUTHORIZATION_FAILURE` so a
         refusal without a durable stop record keeps its pre-EDR-0010 meaning.
-        The kill-flag checkout/admission sites raise `KILL_FLAG_ACTIVE`
-        without knowing which row governs; they consult this before writing
-        the attempt's failure_class, and the matrix dispatches on the result.
+        Its one production consumer is the mid-run failure writer:
+        `WorkerManagerService._drive_lifecycle` consults this when
+        adapter-start raises `KILL_FLAG_ACTIVE` and durably records the
+        intentional stop on its own row. The kill-flag refusal surfaces
+        themselves (`require_active` checkout, broker credential admission)
+        raise without writing attempt rows -- their durable trail is the
+        enforcement events plus the ARMED ledger row.
         """
 
-        async with open_unit_of_work(
-            self._engine, tenant_id=tenant_id, project_id=project_id
-        ) as active:
+        async def _op(active: PostgresUnitOfWork) -> str:
             armed = await read_durable_run_stop(
                 self._commands,
                 tenant_id=tenant_id,
@@ -262,7 +292,9 @@ class RecoveryService:
                 worker_run_id=worker_run_id,
                 uow=active,
             )
-        return "INTENTIONALLY_STOPPED" if armed else "AUTHORIZATION_FAILURE"
+            return "INTENTIONALLY_STOPPED" if armed else "AUTHORIZATION_FAILURE"
+
+        return await self._run(uow, tenant_id, project_id, _op)
 
     async def replan(
         self,

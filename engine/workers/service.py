@@ -236,6 +236,11 @@ WORKER_COMMAND_FAILED = "WORKER_COMMAND_FAILED"
 WORKER_COMMAND_TIMEOUT = "WORKER_COMMAND_TIMEOUT"
 WORKER_FAILURE = "WORKER_FAILURE"
 WORKER_CAPABILITY_DENIED = "WORKER_CAPABILITY_DENIED"
+#: EDR-0012 Finding A: the typed code a kill-flag refusal raises; the
+#: lifecycle writer maps it to INTENTIONALLY_STOPPED, never the borrowed
+#: WORKER_CAPABILITY_DENIED class.
+KILL_FLAG_ACTIVE = "KILL_FLAG_ACTIVE"
+INTENTIONALLY_STOPPED = "INTENTIONALLY_STOPPED"
 #: Chapter 12.3 -- subprocess timeout of a journaled side effect is not
 #: classified as a generic command timeout alone; recovery dispatches on
 #: this class ("Reconcile before any retry").
@@ -1006,6 +1011,41 @@ class WorkerManagerService:
                     details={"status": attempt.status},
                 )
 
+            # EDR-0012 Finding B: the resume path answers to the same
+            # armed-stop law as invoke_run (Chapter 12.4: an intentional
+            # stop is never blind-retried; only the operator's durable
+            # acknowledgement -- disarm -- permits a new mutation). Checked
+            # before ANY prior-run replace, new-run insert or lease grant:
+            # a resume minted past an unacknowledged stop would be a fresh
+            # WorkerRun unknown to the kill-switch registry.
+            stopped_run = await self._recovery.find_armed_stop_for_task(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_id=task.task_id,
+                uow=active,
+            )
+            if stopped_run is not None:
+                await self._record_resume_refusal(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    task_id=task.task_id,
+                    mission_id=execution_plan.mission_id,
+                    attempt_id=attempt_id,
+                    reason_class="INTENTIONALLY_STOPPED",
+                    observed_status="ARMED",
+                )
+                raise DdeError(
+                    KILL_FLAG_ACTIVE,
+                    "Run is intentionally stopped; acknowledge the operator "
+                    "stop before a resumed WorkerRun (EDR-0012)",
+                    retryable=False,
+                    details={
+                        "worker_run_id": str(stopped_run),
+                        "failure_class": INTENTIONALLY_STOPPED,
+                        "action": "acknowledge_stop",
+                    },
+                )
+
             await self._replay.assert_clear_to_start_attempt(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -1380,6 +1420,27 @@ class WorkerManagerService:
         try:
             handle = await adapter.start(run)
         except DdeError as exc:
+            if exc.error_code == KILL_FLAG_ACTIVE:
+                # EDR-0012 Finding A: a typed kill-flag refusal reaching a
+                # RUNNING run classifies through the durable stop record --
+                # an ARMED record is an operator's intentional stop,
+                # recorded on its own Chapter 12.3 row so recovery's
+                # acknowledge_stop gate governs what happens next; it must
+                # never be absorbed by the borrowed
+                # WORKER_CAPABILITY_DENIED class.
+                classification = await self._recovery.classify_run_stop_failure_class(
+                    tenant_id=run.tenant_id,
+                    project_id=run.project_id,
+                    worker_run_id=run.run_id,
+                    uow=active,
+                )
+                return await self._fail(
+                    active,
+                    run,
+                    task_id=task_id,
+                    failure_class=classification,
+                    payload={"error_code": exc.error_code, "message": exc.message},
+                )
             failure_class = (
                 SIDE_EFFECT_UNKNOWN
                 if exc.error_code == EFFECT_CONFLICT

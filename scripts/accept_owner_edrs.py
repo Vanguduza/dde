@@ -38,6 +38,12 @@ ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
     f"EDR-{number:04d}" for number in range(1, 11)
 )
 
+#: PROPOSED pre-images awaiting a human decision -- registered here so the
+#: acceptance runner can reconcile them once accepted, but never proposed or
+#: accepted by this script's run loop itself. Acceptance is always a human
+#: act; registration only records that the markdown pre-image exists.
+PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset({"EDR-0012"})
+
 
 def _payload(slug: str) -> dict[str, object]:
     """Faithful transcription of the accepted markdown pre-images."""

@@ -5,7 +5,7 @@
 **Supersedes:** REV 1.3 Gap-Closure Construction Baseline (all REV 1.3 content is preserved, corrected, or superseded explicitly in [Chapter 20](#chapter-20--change-control-and-traceability-to-rev-13))
 **Target deployment:** cloud-first, self-hostable, model-agnostic, MCP-first
 **Document status:** Authoritative construction baseline. Buildable without inventing missing contracts.
-**Amended:** 22 August 2026 — safety-envelope mechanisms landed and specified in place (stop authority, attempt budgets, guardrail classification), design-gate toolchain adopted (EDR-0008), queue-closure policies recorded (usage metering, batch approval, routing health eviction, T2 termination scope, oracle confidence semantics). Chapter-local notes marked *(amended 2026-08-22)*; nothing renumbered, nothing superseded.
+**Amended:** 22 August 2026 — safety-envelope mechanisms landed and specified in place (stop authority, attempt budgets, guardrail classification), design-gate toolchain adopted (EDR-0008), queue-closure policies recorded (usage metering, batch approval, routing health eviction, T2 termination scope, oracle confidence semantics). Chapter-local notes marked *(amended 2026-08-22)*; nothing renumbered, nothing superseded. **23 August 2026 — intentional-stop classification wired at its real site and the resume path brought under the same armed-stop law** (Ch.12.3 matrix row + Ch.12.4 new-mutation rule; EDR-0010 accepted, EDR-0012 wiring).
 
 ---
 
@@ -1874,6 +1874,9 @@ An attempt becomes durable when its result, artifact references and state are co
 | `BUDGET_EXCEEDED` | Dispatch-time refusal against the plan's durable attempt budget; checkpoint and pause for a human budget decision (Ch.7.1) | Budget increased via approval (Ch.13.1) |
 | `SIDE_EFFECT_UNKNOWN` | Reconcile before any retry (12.4) | Reconciliation impossible → human |
 | `DRIFT_FAILURE` | Stop the mutation path, trigger drift review | Always |
+| `INTENTIONALLY_STOPPED` | Acknowledge the operator stop (`requires_human`, never auto-retried); a new WorkerRun only after the durable stop record is DISARMED (amended 2026-08-23, EDR-0010/EDR-0012) | Operator acknowledgement required — always human |
+
+> **Intentional stops are classified at their real site and gate every new-run path (amended 2026-08-23; EDR-0010 accepted, EDR-0012 wiring).** A run killed mid-flight by an armed stop is durably recorded `INTENTIONALLY_STOPPED` by the run lifecycle's failure writer — never absorbed by the borrowed `WORKER_CAPABILITY_DENIED`/`AUTHORIZATION_FAILURE` classes — with the durable stop record as the classification authority. The guard is total across WorkerRun-minting paths: dispatch-time retry checks AND the resume path consult it before any prior-run replace, new-run insert or lease grant, so no fresh WorkerRun can be created past an unacknowledged stop (Ch.12.4's law applied to resumes).
 
 ## 12.4 External effect journal
 
@@ -1894,6 +1897,8 @@ PREPARED → SENT → CONFIRMED
 ```
 
 **Recovery rule.** An `UNKNOWN` effect is never blind-retried. The capability adapter reconciles using the idempotency key, the external reference, a read-after-write query, or a provider-specific method. **Only a verified absence permits a new mutation attempt.** For `IRREVERSIBLE` effects (§9.3), reconciliation failure escalates to a human rather than resolving automatically.
+
+**The law covers every new-mutation path, not only retries (amended 2026-08-23; EDR-0012).** "Only verified absence permits a new mutation" binds resume/restart paths exactly as it binds dispatch-time retry: a path that mints a fresh WorkerRun on an existing attempt consults the same durable stop record before any prior-run replace, new-run insert or lease grant. An operator's unacknowledged stop cannot be routed around by re-entering through resume instead of retry.
 
 T2 (contained) workers produce effect records from the egress proxy log (Ch.7.2), so a harness with its own tool plane still yields an auditable effect trail.
 
