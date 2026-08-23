@@ -5,6 +5,14 @@ command before it reaches Core, enforces the idempotency key, and separates
 command acceptance (202) from eventual completion. It never owns Project
 Truth or mission state — the dispatched domain service is the authoritative
 mutation (Chapter 15.1).
+
+Approval commands (`approval.batch_decide`,
+`approval.request_budget_increase`, `approval.decide_budget_increase`) are
+dispatched onto `engine.governance.service.ApprovalService`, which keeps its
+own Chapter 12.5 ledger entries for the batch and budget-request commands.
+The gateway's outer ledger row stays authoritative for acceptance/replay;
+the inner rows give each governance command a durable audit identity of its
+own (Chapter 13.1 batch amendment, Ch.7.1/12.3 budget workflow).
 """
 
 from __future__ import annotations
@@ -29,6 +37,12 @@ from engine.gateway.scopes import (
     required_target_type,
 )
 from engine.gateway.sessions.service import GatewaySessionService
+from engine.governance.service import (
+    ApprovalService,
+    BatchDecisionResult,
+    BudgetDecision,
+    BudgetRequest,
+)
 from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
 from engine.projections.service import MissionControlService
@@ -97,6 +111,53 @@ def _param_int(parameters: dict[str, object], name: str) -> int:
     return value
 
 
+def _param_int_opt(parameters: dict[str, object], name: str) -> int | None:
+    """Optional integer parameter: absent means None, malformed means
+    FORBIDDEN."""
+    value = parameters.get(name)
+    if value is None:
+        return None
+    return _param_int(parameters, name)
+
+
+def _param_uuid(parameters: dict[str, object], name: str) -> UUID | None:
+    """Parse one optional UUID-valued parameter. `None` means absent; a
+    present-but-malformed value is a FORBIDDEN parameter error, not a
+    silent default."""
+    value = parameters.get(name)
+    if value is None:
+        return None
+    try:
+        return UUID(str(value))
+    except ValueError as exc:
+        raise DdeError(
+            "FORBIDDEN",
+            f"Missing or invalid parameter '{name}'",
+            details={"parameter": name, "value": str(value)},
+        ) from exc
+
+
+def _param_uuid_list(parameters: dict[str, object], name: str) -> list[UUID]:
+    value = parameters.get(name)
+    if not isinstance(value, list):
+        raise DdeError(
+            "FORBIDDEN",
+            f"Missing or invalid parameter '{name}'",
+            details={"parameter": name},
+        )
+    parsed: list[UUID] = []
+    for item in value:
+        try:
+            parsed.append(UUID(str(item)))
+        except ValueError as exc:
+            raise DdeError(
+                "FORBIDDEN",
+                f"Missing or invalid parameter '{name}'",
+                details={"parameter": name, "value": item},
+            ) from exc
+    return parsed
+
+
 class CommandDispatcher:
     """Dispatches an authorized command onto its owning domain service."""
 
@@ -105,6 +166,9 @@ class CommandDispatcher:
 
     def _missions(self) -> MissionService:
         return MissionService(self._engine, EventService(self._engine))
+
+    def _approvals(self) -> ApprovalService:
+        return ApprovalService(self._engine)
 
     async def load_mission(self, mission_id: UUID) -> Mission:
         async with self._engine.connect() as connection:
@@ -131,6 +195,12 @@ class CommandDispatcher:
             return await self._control_mission(
                 command, tenant_id, project_id, command_type
             )
+        if command_type == "approval.batch_decide":
+            return await self._batch_decide(command, tenant_id, project_id)
+        if command_type == "approval.request_budget_increase":
+            return await self._request_budget_increase(command, tenant_id, project_id)
+        if command_type == "approval.decide_budget_increase":
+            return await self._decide_budget_increase(command, tenant_id, project_id)
         raise DdeError(
             "FORBIDDEN",
             "Unsupported command_type",
@@ -185,6 +255,202 @@ class CommandDispatcher:
             payload={"mission_id": str(mission.mission_id), "status": mission.status},
         )
 
+    async def _batch_decide(
+        self, command: Command, tenant_id: UUID, project_id: UUID
+    ) -> CommandAcceptance:
+        """Chapter 13.1 batch-approve amendment over the command path.
+
+        Parameters (all required unless noted): `approval_ids` (UUID
+        strings), `scope_hashes` (parallel list), `decision`
+        (`APPROVED`|`REJECTED`), `rationale`, optional `human_minutes`,
+        optional `edr_id`. The command's own idempotency key is passed down
+        so `ApprovalService.batch_decide` records the batch under it; a
+        gateway-level replay therefore returns the stored first outcome
+        without a second decision pass. `target_id` is the addressed
+        project; the payload's primary identity is `batch_id` — the
+        durable command identity of the batch itself.
+        """
+        params = command.parameters
+        result = await self._approvals().batch_decide(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            approval_ids=_param_uuid_list(params, "approval_ids"),
+            decision=_param_str(params, "decision"),
+            decided_by=command.principal_id,
+            rationale=_param_str(params, "rationale"),
+            scope_hashes=_param_list(params, "scope_hashes"),
+            human_minutes=float(_param_int_opt(params, "human_minutes") or 0),
+            edr_id=_param_uuid(params, "edr_id"),
+            # Namespaced inner key: the gateway's outer ledger owns the
+            # raw command key; ApprovalService keeps its own Chapter 12.5
+            # row under a derived one so the two `begin` calls never
+            # collide on the same row with different request hashes.
+            idempotency_key=f"approval.batch:{command.idempotency_key}",
+        )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="approval_batch",
+            target_id=result.batch_id or project_id,
+            payload=batch_decision_payload(result),
+        )
+
+    async def _request_budget_increase(
+        self, command: Command, tenant_id: UUID, project_id: UUID
+    ) -> CommandAcceptance:
+        """Human/service budget-request half (Ch.7.1/12.3) over the command
+        path.
+
+        Parameters: `mission_id`, `task_id` (required by the service: the
+        request binds to exactly one task), `reason`, and at least one of
+        `requested_max_tokens` / `requested_max_tool_calls`; optional
+        `human_minutes` is not accepted here — a request costs no human
+        minutes yet. The service records its own ledger row under a
+        namespaced derivative of this command's idempotency key.
+        `target_id` is the addressed project; the payload's primary
+        identity is `approval_id` — the durable Approval a human later
+        decides on.
+        """
+        params = command.parameters
+        result = await self._approvals().request_budget_increase(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=_required_uuid_param(params, "mission_id"),
+            task_id=_required_uuid_param(params, "task_id"),
+            requested_by=command.principal_id,
+            reason=_param_str(params, "reason"),
+            requested_max_tokens=_param_int_opt(params, "requested_max_tokens"),
+            requested_max_tool_calls=_param_int_opt(params, "requested_max_tool_calls"),
+            # Namespaced inner key -- see `_batch_decide`.
+            idempotency_key=f"approval.budget_request:{command.idempotency_key}",
+        )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="budget_request",
+            target_id=result.approval.approval_id,
+            payload=budget_request_payload(result),
+        )
+
+    async def _decide_budget_increase(
+        self, command: Command, tenant_id: UUID, project_id: UUID
+    ) -> CommandAcceptance:
+        """Human budget-decision half (Ch.7.1/12.3) over the command path.
+
+        Parameters: `approval_id` (the `budget_increase` approval),
+        `decision` (`APPROVED`|`REJECTED`), `rationale`, optional
+        `human_minutes`. On APPROVED the service re-plans the bound task
+        with the raised ceiling in the same transaction; on REJECTED
+        nothing is widened. `target_id` is the addressed project; the
+        payload's primary identity is `approval_id`.
+        """
+        params = command.parameters
+        result = await self._approvals().decide_budget_increase(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            approval_id=_required_uuid_param(params, "approval_id"),
+            decided_by=command.principal_id,
+            decision=_param_str(params, "decision"),
+            rationale=_param_str(params, "rationale"),
+            human_minutes=float(_param_int_opt(params, "human_minutes") or 0),
+        )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="budget_request",
+            target_id=result.approval.approval_id,
+            payload=budget_decision_payload(result),
+        )
+
+
+def _required_uuid_param(parameters: dict[str, object], name: str) -> UUID:
+    value = _param_uuid(parameters, name)
+    if value is None:
+        raise DdeError(
+            "FORBIDDEN",
+            f"Missing or invalid parameter '{name}'",
+            details={"parameter": name},
+        )
+    return value
+
+
+def _uuid_or_none(value: UUID | None) -> str | None:
+    return None if value is None else str(value)
+
+
+def _int_or_none(value: int | None) -> int | None:
+    return value
+
+
+def batch_decision_payload(result: BatchDecisionResult) -> dict[str, object]:
+    """JSON-able Chapter 13.1 batch outcome. `batch_id` is the batch's own
+    durable command identity (None when the caller supplied none); every
+    member carries its post-decision state with all UUIDs stringified."""
+    return {
+        "batch_id": _uuid_or_none(result.batch_id),
+        "decision": result.decision,
+        "decided_by": str(result.decided_by),
+        "created_at": result.created_at.isoformat(),
+        "replayed": result.replayed,
+        "member_count": len(result.approvals),
+        "approvals": [
+            {
+                "approval_id": str(approval.approval_id),
+                "mission_id": str(approval.mission_id),
+                "task_id": _uuid_or_none(approval.task_id),
+                "approval_type": approval.approval_type,
+                "status": approval.status,
+                "decided_by": _uuid_or_none(approval.decided_by),
+                "decided_at": (
+                    None
+                    if approval.decided_at is None
+                    else approval.decided_at.isoformat()
+                ),
+                "rationale": approval.rationale,
+            }
+            for approval in result.approvals
+        ],
+    }
+
+
+def budget_request_payload(result: BudgetRequest) -> dict[str, object]:
+    """JSON-able BudgetRequest outcome: the durable Approval handle plus
+    the exact requested ceiling, all UUIDs stringified."""
+    return {
+        "approval_id": str(result.approval.approval_id),
+        "mission_id": str(result.approval.mission_id),
+        "task_id": _uuid_or_none(result.task_id),
+        "status": result.approval.status,
+        "requested_by": str(result.approval.requested_by),
+        "requested_max_tokens": _int_or_none(result.requested_max_tokens),
+        "requested_max_tool_calls": _int_or_none(result.requested_max_tool_calls),
+        "reason": result.reason,
+        "expires_at": (
+            None
+            if result.approval.expires_at is None
+            else result.approval.expires_at.isoformat()
+        ),
+    }
+
+
+def budget_decision_payload(result: BudgetDecision) -> dict[str, object]:
+    """JSON-able BudgetDecision outcome: the decided approval plus, on
+    grant, the new ACTIVE plan carrying the raised ceiling."""
+    plan = result.plan
+    budget = result.budget
+    return {
+        "approval_id": str(result.approval.approval_id),
+        "mission_id": str(result.approval.mission_id),
+        "task_id": _uuid_or_none(result.approval.task_id),
+        "granted": result.granted,
+        "status": result.approval.status,
+        "plan_id": _uuid_or_none(plan.plan_id if plan is not None else None),
+        "granted_max_tokens": _int_or_none(budget.max_tokens if budget else None),
+        "granted_max_tool_calls": _int_or_none(
+            budget.max_tool_calls if budget else None
+        ),
+    }
+
 
 class GatewayCommandService:
     """Composes session authorization, project authorization, the idempotency
@@ -226,9 +492,7 @@ class GatewayCommandService:
             request_hash=request_hash,
         )
         if not is_new:
-            return self._replay(
-                command, record.command_id, record.status, record.result
-            )
+            return self._replay(command, record.status, record.result)
         try:
             acceptance = await self._dispatcher.dispatch(
                 command=command,
@@ -326,13 +590,16 @@ class GatewayCommandService:
     def _replay(
         self,
         command: Command,
-        command_id: UUID,
         status: str,
         result: dict[str, object] | None,
     ) -> CommandAcceptance:
+        """Replay keeps the CLIENT-facing identity stable: the first
+        acceptance echoed `command.command_id`, so a true retry of the same
+        body sees the same acceptance shape (the ledger's internal
+        `command_id` is storage identity, not part of the 202 contract)."""
         if status == "completed" and result is not None:
             return CommandAcceptance(
-                command_id=command_id,
+                command_id=command.command_id,
                 status="completed",
                 target_type=str(result["target_type"]),
                 target_id=UUID(str(result["target_id"])),
@@ -341,7 +608,7 @@ class GatewayCommandService:
                 else {},
             )
         return CommandAcceptance(
-            command_id=command_id,
+            command_id=command.command_id,
             status=status,
             target_type=command.target_type,
             target_id=command.target_id,

@@ -1,6 +1,6 @@
-"""Idempotent acceptance of the six human-approved EDRs into Project Truth.
+"""Idempotent acceptance of the human-approved EDRs into Project Truth.
 
-The project owner explicitly accepted EDR-0001..EDR-0006 (the markdown
+The project owner explicitly accepted EDR-0001..EDR-0010 (the markdown
 pre-images under docs/truth/edr/). Per Chapter 2.2 rank 4 and Chapter 3.6 the
 authoritative record of that acceptance is a row in `edrs` written by
 `engine.truth.service.TruthService` — the sole Project Truth writer — never a
@@ -35,7 +35,7 @@ OWNER_PROJECT_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11")
 OWNER_PRINCIPAL_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d12")
 
 ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
-    f"EDR-{number:04d}" for number in range(1, 7)
+    f"EDR-{number:04d}" for number in range(1, 11)
 )
 
 
@@ -471,6 +471,275 @@ def _payload(slug: str) -> dict[str, object]:
                 "capable registry (Chapter 8 territory), a modality signal "
                 "(Stage 5), or a capacity signal (Chapter 7.4, DDE-029) — "
                 "each a future mission's natural entry point.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0007": {
+            "context": (
+                "Chapter 11.3: 'Task oracles prove the tasks were done. The "
+                "mission oracle proves the right product was built.' Three "
+                "production rules: every mission with risk >= medium carries "
+                "a mission oracle whose observable_outcomes are end-to-end "
+                "and user-visible; mission completion requires the mission "
+                "oracle to pass on the mission branch before merge to main "
+                "(Ch.10.8); and if all task oracles pass while the mission "
+                "oracle fails, the outcome is WRONG_PRODUCT -- the mission "
+                "enters replanning with the failing outcomes as context, and "
+                "the discrepancy is a first-class learning signal about "
+                "decomposition quality, not worker quality. DDE-037 "
+                "implemented a real mission-scope AcceptanceOracle (task_id "
+                "null -- never a fabricated task identity), a durable "
+                "evaluator (MissionOracleService.evaluate(), CommandLedger-"
+                "guarded, driving the same run_check path task oracles use), "
+                "and a completion gate on MissionService.transition_mission("
+                "..., COMPLETED). WRONG_PRODUCT is recorded only when every "
+                "defined task-scope oracle has a latest PASSED "
+                "VerificationRun and the mission oracle itself fails."
+            ),
+            "alternatives": [
+                "Ship only the oracle contract and disclose Chapter 11.3 as "
+                "unimplemented.",
+                "Implement the completion gate plus a partial evaluator, "
+                "disclosing each deferred chapter rule per persisted row.",
+                "Fabricate ProductEnvironment e2e probes or an origin-main "
+                "merge gate to claim full scope.",
+            ],
+            "decision": (
+                "Accepted as designed, in documented partial scope. Deferred: "
+                "(1) end-to-end user-visible outcomes against a "
+                "ProductEnvironment -- Stage 1 has only test/invariant "
+                "executable bindings; api_probe/visual_diff/browser and "
+                "ProductEnvironment lifecycle are DDE-038/043/044; the slice "
+                "runs test/invariant bindings in the supplied workspace and "
+                "names the gap in every evaluation's disclosed_gaps. (2) "
+                "Merge-to-main gating (Ch.10.8): IntegrationQueueService "
+                "still advances the mission integration branch; the "
+                "production completion gate is MissionService."
+                "transition_mission to COMPLETED; origin-mainline merge "
+                "remains the DDE-013 deferral. (3) Automatic replan "
+                "invocation: RecoveryService.replan(trigger=WRONG_PRODUCT) "
+                "exists (DDE-024) but this slice classifies WRONG_PRODUCT, "
+                "attaches decide(WRONG_PRODUCT) to the evaluation row, and "
+                "refuses COMPLETED without calling replan() itself. (4) "
+                "Mission.risk is derived from max(task.risk_class) -- the "
+                "only real signal. (5) 'Authored during planning' is "
+                "process sequencing, not a second database lock."
+            ),
+            "rationale": (
+                "The wrong-product classification and completion refusal are "
+                "real at their production call sites; deferring the missing "
+                "substrates by name keeps every persisted evaluation honest "
+                "about its own evidentiary basis instead of fabricating a "
+                "product runtime or a merge gate that does not exist."
+            ),
+            "consequences": [
+                "A planted wrong-product whose task oracles are green and "
+                "whose mission oracle fails is classified WRONG_PRODUCT with "
+                "learning_signal_class=decomposition_quality and "
+                "excluded_from_routing_learning=true -- by construction, not "
+                "caller discretion.",
+                "Medium-or-higher missions cannot COMPLETE without an ACCEPT "
+                "evaluation; a WRONG_PRODUCT evaluation refuses COMPLETED "
+                "even on a low-risk mission that happened to define a "
+                "mission oracle.",
+                "Recovery matrix WRONG_PRODUCT remains the operator/dispatch "
+                "path for actually replanning.",
+                "ProductEnvironment e2e outcomes, merge-to-main gating and "
+                "automatic replan invocation stay gated on their own "
+                "missions.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0008": {
+            "context": (
+                "Playbook guardrail 4.4 (screenshot-evidence gate, Phase B) "
+                "and 4.9 (accessibility floor automation) require two "
+                "capabilities no existing repo toolchain provides: pixel-"
+                "level screenshot goldens over gallery/prototype pages (DOM "
+                "string fingerprints pin structure and token usage but "
+                "cannot see rendered geometry, contrast failures, or layout "
+                "collapse at viewport extremes), and automated WCAG 2.x "
+                "A/AA evaluation of shipped surfaces (manual keyboard walks "
+                "and contrast math cover design-time, not regression-time "
+                "enforcement). AGENTS.md Chapter 9.6 admits a new dependency "
+                "only with licence, maintenance signal, and why the stdlib/"
+                "existing toolchain is insufficient."
+            ),
+            "alternatives": [
+                "Storybook/Ladle -- rejected: no component framework or "
+                "bundler exists to host them.",
+                "Chromatic/Percy/Lost Pixel -- rejected: SaaS cost and "
+                "Storybook-centric architecture.",
+                "stylelint plugins -- rejected: DDE styles live in TS strings.",
+                "Rive/Lottie/Figma Motion -- rejected: CSP + admission bar.",
+                "Adopt exactly Playwright + @axe-core/playwright behind one "
+                "dependency-admission decision -- accepted.",
+            ],
+            "decision": (
+                "Accepted as designed. Adopt exactly two dependencies: "
+                "@playwright/test (Apache-2.0, Microsoft-backed) for "
+                "expect(page).toHaveScreenshot() goldens over Prototype "
+                "Gallery pages -- light/dark/high-contrast x reduced-motion "
+                "on/off x widths 320/900/1280, baselines generated in the CI "
+                "container and updated only in owning PRs; and "
+                "@axe-core/playwright (MPL-2.0, Deque Systems) for WCAG "
+                "scans per gallery page with tags wcag2a,wcag2aa,wcag22aa "
+                "and zero critical/serious violations gating the PR, "
+                "target-size rule enabled. Scope when accepted: one new "
+                "'visual' job in .github/workflows/dde-studio.yml after the "
+                "compile job; screenshots attached as VerificationRun/"
+                "Evidence artifact refs; baselines never updated by CI "
+                "itself. Implementation proceeds in a separate workstream -- "
+                "the visual CI job, golden baselines and axe gates are gated "
+                "on their own missions and are not landed by this decision."
+            ),
+            "rationale": (
+                "Node stdlib and node:test have no browser runtime -- "
+                "rendered-pixel capture is the entire point of guardrail "
+                "4.4 -- and accessibility rule evaluation against live DOM "
+                "cannot be reproduced from static strings; both are "
+                "industry-standard, actively maintained OSS tools admitted "
+                "once instead of re-litigated per PR."
+            ),
+            "consequences": [
+                "node_modules footprint grows materially (browser binaries); "
+                "the CI cache key must include the Playwright version.",
+                "Flaky-diff risk managed via maxDiffPixels budgets per "
+                "element class; threshold tuning documented in playbook "
+                "section 4.4 sources.",
+                "Rejection would have kept screenshot/a11y gates at Phase-A "
+                "state: fingerprints + manual review remain enforcement and "
+                "Phase-B rows stay deferred.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0009": {
+            "context": (
+                "Chapter 6.5 requires DDE to record, for every routing "
+                "decision, its actual verified outcome among other outcome-"
+                "side signals; the durable shape is the RoutingDecisionOutcome "
+                "row, whose actual_verified_outcome enum admits only PASSED/"
+                "FAILED, and RoutingTelemetryService.record_decision_outcome "
+                "refuses any VerificationRun whose status is not terminal "
+                "PASSED or FAILED. The verification self-grading guardrails "
+                "introduced a third real verdict: when VerificationRunner"
+                "Service.run() detects harness-gaming edits via engine."
+                "verification.guardrails.assess_diff_independence, it still "
+                "runs the oracle's checks but forces the run's status to "
+                "PARTIAL (never PASSED) so an untrusted clean pass is not "
+                "certified; the attempt is durably FAILED with "
+                "failure_class=SCOPE_VIOLATION through the existing recovery "
+                "surface -- but the PARTIAL VerificationRun itself can never "
+                "produce a telemetry outcome row. Consequence: every "
+                "guardrail-demoted verification silently drops out of "
+                "Chapter 6.5's decision-outcome history, even though those "
+                "runs are exactly the population a learning pipeline must "
+                "not train on as successes and worth counting when tuning "
+                "guardrail thresholds."
+            ),
+            "alternatives": [
+                "Widen the enum/schema: admit PARTIAL in "
+                "actual_verified_outcome and add a demotion_reason field to "
+                "RoutingDecisionOutcome -- rejected: changes a Chapter 6.5 "
+                "schema contract for a Stage-1-only producer and blurs the "
+                "chapter's meaning of actual_verified_outcome.",
+                "Side-table keyed by verification_run_id (recommended): keep "
+                "actual_verified_outcome PASSED/FAILED and "
+                "record_decision_outcome's terminal gate untouched; add a "
+                "small durable side-table (verification_run_demotions) "
+                "written by the same guarded runner path that forces "
+                "PARTIAL; telemetry consumers join on verification_run_id "
+                "when they need the demoted population.",
+            ],
+            "decision": (
+                "Accepted as designed, option 2 (the recommended side-table). "
+                "schemas/objects/routing_decision_outcome.json stays byte-"
+                "stable; RoutingTelemetryService is unchanged; every "
+                "guardrail-demoted PARTIAL run gains its own durable, "
+                "queryable demotion record keyed by verification_run_id "
+                "instead of overloading an outcome enum designed before the "
+                "guardrails existed."
+            ),
+            "rationale": (
+                "Gives the demotion its own durable identity without "
+                "blueprint enum surgery: the main Chapter 6.5 row stays "
+                "exactly as the blueprint defines it while consumers can "
+                "explicitly exclude or count the demoted population via a "
+                "join on verification_run_id."
+            ),
+            "consequences": [
+                "Every guardrail-demoted PARTIAL run leaves a queryable "
+                "trace; Chapter 6.5 consumers can exclude or count them "
+                "explicitly.",
+                "The blueprint enum stays untouched; no change to "
+                "RoutingTelemetryService or its terminal gate.",
+                "A new table + writer + tests were required (landed with "
+                "migration 0011 in the implementing mission).",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0010": {
+            "context": (
+                "Chapter 12.3's recovery matrix dispatches on failure class. "
+                "The implemented matrix recognises WORKER_FAILURE, "
+                "MERGE_CONFLICT, SCOPE_VIOLATION, VERIFICATION_FAILURE, "
+                "WRONG_PRODUCT, SPECIFICATION_FAILURE, RESOURCE_EXHAUSTION, "
+                "SIDE_EFFECT_UNKNOWN and DRIFT_FAILURE -- every row "
+                "describes something going wrong with the work. An operator "
+                "stopping a run via the kill flag is not a failure of the "
+                "work: the durable stop record lives in the CommandLedger "
+                "under one deterministic key per run "
+                "(kill_flag_run_stop:{worker_run_id}), armed/flipped by "
+                "CapabilityLeaseService.arm_run_stop/disarm_run_stop, and "
+                "enforcement fails closed at capability checkout and broker "
+                "admission with typed KILL_FLAG_ACTIVE. Because the taxonomy "
+                "had no distinct intentionally-stopped class, the mapping "
+                "layer routed the refusal onto a borrowed row: KILL_FLAG_"
+                "ACTIVE -> AUTHORIZATION_FAILURE -- chosen because adding a "
+                "class would be a Project Truth change, proposed not made. "
+                "The mismatch is semantic, not cosmetic: AUTHORIZATION_"
+                "FAILURE means 'the system refused to act; a human must "
+                "grant authority', while an intentional stop withdraws "
+                "authority deliberately; resuming should require an explicit "
+                "acknowledge-style action after review rather than being "
+                "misread downstream as an authorization-failure episode."
+            ),
+            "alternatives": [
+                "Keep the borrowed AUTHORIZATION_FAILURE mapping and record "
+                "the semantic mismatch in a comment only -- rejected once a "
+                "human decision adopted the dedicated row.",
+                "Add a distinct INTENTIONALLY_STOPPED classification raised "
+                "from the existing KILL_FLAG_ACTIVE refusal sites and/or the "
+                "durable ledger stop record, governed on its own terms -- "
+                "accepted.",
+            ],
+            "decision": (
+                "Accepted as designed. Add INTENTIONALLY_STOPPED to the "
+                "Chapter 12.3 recovery matrix with governed action "
+                "acknowledge_stop: requires_human=True, no automatic retry, "
+                "no replan, allow_new_worker_run=False until an operator "
+                "acknowledges the stop; after acknowledgement a new "
+                "WorkerRun is permitted through the normal guarded path, "
+                "never a silent continuation of the stopped attempt. The "
+                "KILL_FLAG_ACTIVE -> AUTHORIZATION_FAILURE alias mapping is "
+                "retired for this case."
+            ),
+            "rationale": (
+                "An intentional stop is authority deliberately withdrawn by "
+                "an operator, not a refusal the system made; governing it on "
+                "its own matrix row stops failure-counting consumers from "
+                "conflating operator stops with authorization refusals or "
+                "verification failures, and makes acknowledge-gated restarts "
+                "a property of the data rather than operator discipline."
+            ),
+            "consequences": [
+                "Intentional stops become a first-class, queryable recovery "
+                "outcome with acknowledge-gated restarts.",
+                "The borrowed AUTHORIZATION_FAILURE row is retired for this "
+                "case; consumers that count failures stop conflating "
+                "operator stops with refusals.",
+                "Required the classification addition plus matrix wiring in "
+                "its own mission (landed alongside this ratification).",
             ],
             "affected_requirement_slugs": [],
         },

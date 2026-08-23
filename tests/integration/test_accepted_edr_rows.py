@@ -1,4 +1,4 @@
-"""Verification that the six human-accepted EDR records (EDR-0001..EDR-0006)
+"""Verification that the human-accepted EDR records (EDR-0001..EDR-0010)
 are durably persisted as accepted rows in the real `edrs` table (Chapter 3.6
 sole-writer path), readable back through the Project Truth repository and
 valid against the generated `Edr` contract (Chapter 3.1).
@@ -29,7 +29,7 @@ def _owner_engine() -> AsyncEngine:
 
 
 @pytest.mark.asyncio
-async def test_all_six_owner_edrs_are_persisted_as_accepted() -> None:
+async def test_all_accepted_owner_edrs_are_persisted_as_accepted() -> None:
     """Every accepted owner EDR slug resolves to exactly one accepted row
     decided by the recorded owner principal."""
     engine = _owner_engine()
@@ -56,7 +56,7 @@ async def test_all_six_owner_edrs_are_persisted_as_accepted() -> None:
 
 
 @pytest.mark.asyncio
-async def test_owner_project_holds_exactly_the_six_accepted_slugs() -> None:
+async def test_owner_project_holds_exactly_the_accepted_slugs() -> None:
     """No extra or half-proposed EDR rows leak into the owner project."""
     engine = _owner_engine()
     try:
