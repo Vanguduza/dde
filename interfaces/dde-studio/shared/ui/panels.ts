@@ -45,6 +45,84 @@ function emptyTableCell(cols: number, text = "—"): string {
 
 const UNAVAILABLE = "Unavailable";
 
+/**
+ * Factual tooltip for controls whose engine surface is not callable yet.
+ * Honesty law: the UI states what is missing, never a fake success state.
+ */
+const ENGINE_SURFACE_PENDING = "engine surface pending";
+
+/**
+ * Batch-approve affordance (wave-2d, research #10 client half).
+ *
+ * The engine surface (`batch_approve`, being landed on engine/governance)
+ * is not resolvable from this build yet, so every control renders disabled
+ * with the factual tooltip above. When the surface lands, wire it at:
+ *   shared/ui/panels.ts approvalsBody() → data-cmd="batchApprove"
+ *   → src/webviews/providers.ts StudioMessage union
+ *   → src/extension.ts handleMessage → StudioGatewayService.sendCommand.
+ */
+function approvalsBody(module: ModuleDescriptor): string {
+  return `
+  ${header(module)}
+
+  <h2>Pending approvals</h2>
+  <div class="banner empty" role="status">
+    <table aria-label="Pending approvals">
+      <thead>
+        <tr>
+          <th><span class="visually-hidden">Select</span></th>
+          <th>Type</th><th>Subject</th><th>Requested</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${emptyTableCell(5, "None")}</tbody>
+    </table>
+    <div class="row" role="group" aria-label="Batch actions">
+      <label class="batch-select-all">
+        <input type="checkbox" data-batch="select-all" disabled aria-disabled="true"
+          title="${ENGINE_SURFACE_PENDING}" />
+        Select all
+      </label>
+      <button type="button" class="secondary" data-cmd="batchApprove" disabled
+        title="${ENGINE_SURFACE_PENDING}">Approve selected</button>
+      <span class="muted batch-count" data-batch="count">0 selected</span>
+    </div>
+  </div>
+
+  <h2>Standing approval</h2>
+  <div class="banner empty">
+    <div class="row">
+      <button type="button" class="secondary" disabled title="${UNAVAILABLE}">Grant standing approval</button>
+      <button type="button" class="secondary" disabled title="${UNAVAILABLE}">Revoke all</button>
+    </div>
+  </div>
+
+  <h2>Morning Review</h2>
+  <div class="banner">
+    <button type="button" data-cmd="openMorningReview" aria-label="Open Morning Review panel">Open Morning Review</button>
+  </div>
+`;
+}
+
+const BATCH_STYLES = `
+  .batch-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--type-sm);
+  }
+  .batch-select-all input { width: auto; }
+  .batch-count { font-size: var(--type-sm); }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+`;
+
 function missionBody(module: ModuleDescriptor): string {
   return `
   ${header(module)}
@@ -217,33 +295,6 @@ function verificationBody(module: ModuleDescriptor): string {
     <button type="button" class="secondary" disabled title="${UNAVAILABLE}">View failing outcome</button>
     <button type="button" class="secondary" disabled title="${UNAVAILABLE}">View diff</button>
     <button type="button" class="secondary" disabled title="${UNAVAILABLE}">Repair task</button>
-  </div>
-`;
-}
-
-function approvalsBody(module: ModuleDescriptor): string {
-  return `
-  ${header(module)}
-
-  <h2>Pending approvals</h2>
-  <div class="banner empty" role="status">
-    <table aria-label="Pending approvals">
-      <thead><tr><th>Type</th><th>Subject</th><th>Requested</th><th>Actions</th></tr></thead>
-      <tbody>${emptyTableCell(4, "None")}</tbody>
-    </table>
-  </div>
-
-  <h2>Standing approval</h2>
-  <div class="banner empty">
-    <div class="row">
-      <button type="button" class="secondary" disabled title="${UNAVAILABLE}">Grant standing approval</button>
-      <button type="button" class="secondary" disabled title="${UNAVAILABLE}">Revoke all</button>
-    </div>
-  </div>
-
-  <h2>Morning Review</h2>
-  <div class="banner">
-    <button type="button" data-cmd="openMorningReview" aria-label="Open Morning Review panel">Open Morning Review</button>
   </div>
 `;
 }
@@ -434,6 +485,9 @@ export function modulePanelHtml(module: ModuleDescriptor): string {
     return pageShell(module.title, `${header(module)}`);
   }
   const build = BODY_BY_ID[module.id];
-  const extra = module.id === "dde-chat" ? CHAT_STYLES : "";
+  let extra = module.id === "dde-chat" ? CHAT_STYLES : "";
+  if (module.id === "dde-approvals") {
+    extra += BATCH_STYLES;
+  }
   return pageShell(module.title, build(module), extra);
 }

@@ -3,3 +3,7 @@ out/
 *.vsix
 .vscode-test/
 *.log
+visual/.test-results/
+visual/playwright-report/
+visual/fixtures/.screens.txt
+visual/fixtures/.animated.txt

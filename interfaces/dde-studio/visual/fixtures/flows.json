@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "flows": [
+    {
+      "id": "open-approvals",
+      "entry": "overview.ready.html",
+      "steps": [
+        {
+          "from": "overview.ready.html",
+          "on": "[data-cmd='openApprovals']",
+          "to": "approvals.pending.html"
+        },
+        {
+          "from": "approvals.pending.html",
+          "on": "[data-cmd='startMission']",
+          "to": "mission.running.html"
+        }
+      ]
+    }
+  ]
+}

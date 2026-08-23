@@ -15,5 +15,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "out", "desktop"]
+  "exclude": ["node_modules", "out", "desktop", "visual"]
 }

@@ -57,3 +57,45 @@ jobs:
         run: uv run python -m scripts.generate_design_tokens --check
       - name: Design lints (shrink-only budget)
         run: uv run python -m scripts.design_lints --baseline
+
+  visual:
+    # EDR-0008 scope: Playwright goldens + axe scans over the Prototype
+    # Gallery rendering path. Baselines are committed under
+    # interfaces/dde-studio/visual/__screenshots__/; CI never rewrites them.
+    needs: compile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: interfaces/dde-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: interfaces/dde-studio/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Cache Playwright browsers (key includes @playwright/test version)
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('interfaces/dde-studio/package-lock.json') }}
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
+      - name: Generate baselines on first run (no-op when goldens are committed)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright test --config visual/playwright.config.ts --update-snapshots
+      - name: Visual gate (goldens + axe wcag2a/wcag2aa/wcag22aa)
+        run: npm run test:visual
+      - name: Upload visual evidence (report + traces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dde-studio-visual-evidence
+          path: |
+            interfaces/dde-studio/visual/playwright-report/
+            interfaces/dde-studio/visual/.test-results/
+          if-no-files-found: ignore
+          retention-days: 14

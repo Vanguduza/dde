@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>mission.running — visual fixture</title>
+<style>
+  body {
+    margin: 0;
+    padding: var(--space-4);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--type-font-family-body);
+    font-size: var(--type-body);
+    line-height: 1.45;
+  }
+  h1 { font-size: var(--type-lg); font-weight: 600; margin: 0 0 var(--space-1); }
+  table { width: 100%; border-collapse: collapse; font-size: var(--type-body); }
+  th, td {
+    text-align: left;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: top;
+  }
+  th { color: var(--text-muted); font-weight: 500; }
+  .pill {
+    display: inline-block;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    font-size: var(--type-xs);
+  }
+  .pill.ok { border-color: var(--ok-border-line); color: var(--status-ok); }
+  .pill.warn { border-color: var(--warn-border-line); color: var(--status-warn); }
+</style>
+</head>
+<body data-sample="demo">
+<main id="main">
+  <h1>Mission · running</h1>
+  <table aria-label="Tasks">
+    <thead><tr><th>Task</th><th>State</th><th>Worker</th></tr></thead>
+    <tbody>
+      <tr><td>Compile context</td><td><span class="pill ok">done</span></td><td>hermes</td></tr>
+      <tr><td>Route candidates</td><td><span class="pill ok">done</span></td><td>hermes</td></tr>
+      <tr><td>Apply patch set</td><td><span class="pill warn">running</span></td><td>claude-code</td></tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

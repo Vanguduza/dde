@@ -781,6 +781,36 @@ describe("html honesty and panel structure", () => {
 
   });
 
+  it("approvals batch affordance is disabled until engine surface resolves", () => {
+
+    const html = modulePanelHtml(moduleById("dde-approvals")!);
+
+    // One multi-select action button, verb-first, factual pending tooltip.
+
+    assert.match(html, /data-cmd="batchApprove"/);
+
+    assert.match(
+
+      html,
+
+      /disabled[^>]*title="engine surface pending"[^>]*>Approve selected</,
+
+    );
+
+    assert.match(html, /data-batch="select-all"/);
+
+    assert.match(html, /data-batch="count"/);
+
+    assert.match(html, /0 selected/);
+
+    // No fabricated success state: nothing claims an approval happened.
+
+    assert.doesNotMatch(html, /[Aa]pproved\b/);
+
+    assertNoHelperCopy(html, "approvals batch");
+
+  });
+
 
 
   it("donor panel shows Ch.13.8 taxonomy badges", () => {

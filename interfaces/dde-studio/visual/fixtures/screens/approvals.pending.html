@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>approvals.pending — visual fixture</title>
+<style>
+  body {
+    margin: 0;
+    padding: var(--space-4);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--type-font-family-body);
+    font-size: var(--type-body);
+    line-height: 1.45;
+  }
+  h1 { font-size: var(--type-lg); font-weight: 600; margin: 0 0 var(--space-1); }
+  .banner {
+    border: 1px solid var(--border-default);
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    margin: var(--space-3) 0;
+  }
+  .row { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; margin-top: var(--space-2); }
+  button {
+    background: var(--accent-primary);
+    color: var(--accent-on-accent);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    font: inherit;
+    min-height: 28px;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  label { display: block; margin-bottom: var(--space-1); }
+  @keyframes pulse-warn {
+    from { border-color: var(--warn-border-line); }
+    to { border-color: var(--status-warn); }
+  }
+  .pulse {
+    animation: pulse-warn var(--motion-duration-slow) var(--motion-easing-state)
+      infinite alternate;
+  }
+</style>
+</head>
+<body data-sample="demo">
+<main id="main">
+  <h1>Approvals · pending</h1>
+  <div class="banner pulse" role="status">
+    <strong>3 approvals waiting</strong>
+    <div class="row">
+      <label><input type="checkbox" data-sample="demo" /> Select all</label>
+      <button type="button">Approve selected</button>
+      <button type="button" class="secondary">Reject selected</button>
+    </div>
+  </div>
+</main>
+</body>
+</html>
