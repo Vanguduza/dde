@@ -1,0 +1,72 @@
+---
+description: DDE design guardrails - binding law for any UI code, prototypes, or copy
+alwaysApply: false
+globs: "**/*.tsx,**/*.css,**/*.html,interfaces/dde-studio/**/*.ts,schemas/design/**,docs/design/**"
+---
+
+# DDE Design Guardrails (binding)
+
+Authority: `docs/planning/dde-frontend-ux-playbook.md` (v1.1). The mockup
+(`interfaces/dde-studio/docs/dde-mission-overview-mockup.png`), the token sheet
+(`schemas/design/tokens.json` → generated `interfaces/dde-studio/shared/ui/tokens.ts`),
+and that playbook are the ONLY visual authorities. Repos and generator output are
+engineering references; their theme values, layouts, motion specs, and copy are
+never minable (playbook §2).
+
+## Before you write any UI
+
+1. Name the declared layout pattern for the surface (dashboard `ov-*` grid,
+   mission-control columnar shell, status/form panels, settings form). If none
+   fits, STOP and propose an EDR — do not improvise a new grammar.
+2. Produce/refresh the prototype set first (`prototypes/screens/*.html`,
+   `flows.json`, regenerated `index.html`) per playbook §5. If the charter
+   declares `ui_plan_checkpoint: required`, publish the screens × states plan
+   as text for owner comment BEFORE authoring (§5.0 P1).
+3. Load the matching skill: `screen-implementation`, `prototype-authoring`,
+   `copy-voice`, `ui-review`, `repo-mining`, or `component-gallery`.
+
+## The nevers (anti-tell catalog, playbook §1.1)
+
+- No gradient fills as primary device; no purple/indigo defaults.
+- No emoji as icons, bullets, or nav items.
+- No identical repeated card grids, pill-spam badges, glassmorphism/backdrop-blur.
+- No terminal mockups with traffic-light dots; no centered-marketing hero in
+  operator tooling; no pure #fff/#000 text pairs.
+- No decorative charts/sparklines without real data (also violates honesty law).
+- No helper essays in empty states; no marketing superlatives, exclamation
+  marks, "simply/easily/just", "Welcome to".
+
+## Token law (enforced by CI — violations block the PR)
+
+- Every color, spacing, radius, shadow, type size, duration, easing, z-index
+  comes from the generated tokens module (`shared/ui/tokens.ts` /
+  `tokenCssRoot()`), never inline literals. Edit `schemas/design/tokens.json`
+  and regenerate; NEVER hand-edit the generated module.
+- Motion only via `--motion-duration-*` / `--motion-easing-*`; every animated
+  state carries a `prefers-reduced-motion: reduce` variant preserving
+  end-states. Springs/bounce/overshoot banned; loops bounded (§5.2).
+- New lint debt is forbidden: `docs/design/lint-baseline.json` is a
+  shrink-only budget (guardrail 4.14). A PR may not increase any count.
+
+## Completeness law
+
+- Every interactive surface declares idle/loading/empty/error/disabled
+  states; happy-path-only fails review (guardrail 8).
+- Empty states are composed: shared stroke icon + one-line factual title;
+  truthful ≠ barren (guardrail 10).
+- Usable under vscode-light, vscode-dark, vscode-high-contrast; all
+  `var(--vscode-*)` reads carry literal fallbacks (guardrail 12).
+- Copy is verb-first, sentence case, figures over words, manufacturing-
+  vocabulary exact (`clientHonesty.test.ts` gate, guardrail 6).
+
+## Gates before merge
+
+1. Studio suite green (`npm test` in dde-studio.yml) — fingerprints updated in the same PR.
+2. `just design-lints` green; `generate_design_tokens --check` green.
+3. Fresh-context critic scored ≥4 on every §8.1 dimension from rendered pixels (guardrail 7).
+4. Prototypes validated against `prototype_flow.schema.json`; index regenerates byte-stable (guardrail 16).
+5. Owner pixel sign-off recorded through the approvals surface BEFORE the implementation PR merges (§5.4). Auto-resume honors PASS / PASS-WITH-EDR only.
+6. Any mined repo: licence-cleared pre-read, layer-legal extraction, provenance ledger row + `References:` footer (guards 13, 15).
+
+Tests green ≠ UI done. A guardrail without a wired enforcement point is
+deferred, never "implicitly handled" (chapter-gate rule).
