@@ -28,6 +28,7 @@ from sys import executable
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import text
 
 from engine.context.repo import repo_root
 from engine.contracts.acceptance_oracle import (
@@ -420,6 +421,16 @@ async def test_violating_diff_run_is_partial_and_classified_scope_violation(
                 attempt_id=fixture.worker_run.task_attempt_id,
                 uow=uow,
             )
+            demotion = (
+                await uow.connection.execute(
+                    text(
+                        "SELECT source, failure_class, confidence "
+                        "FROM verification_run_demotions "
+                        "WHERE verification_run_id = :rid"
+                    ),
+                    {"rid": run.verification_run_id},
+                )
+            ).first()
             await uow.commit()
 
         assert evidence_rows
@@ -431,6 +442,14 @@ async def test_violating_diff_run_is_partial_and_classified_scope_violation(
             assert any(item["violation"] for item in findings)
 
         assert telemetry is None
+
+        # EDR-0009: the demotion is durably recorded on its own surface --
+        # keyed by the verification run, carrying the same source string as
+        # the recovery event and the SCOPE_VIOLATION classification.
+        assert demotion is not None
+        assert demotion.source == "guardrail_test_scope_violation"
+        assert demotion.failure_class == "SCOPE_VIOLATION"
+        assert float(demotion.confidence) == pytest.approx(1.0)
 
         assert attempt.status == "FAILED"
         assert attempt.failure_class == "SCOPE_VIOLATION"

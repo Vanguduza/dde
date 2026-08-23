@@ -70,8 +70,12 @@ Still disclosed: the PARTIAL `VerificationRun` gets no
 `routing_decision_outcomes` telemetry row (Chapter 6.5's
 `actual_verified_outcome` enum admits only PASSED/FAILED, and
 `RoutingTelemetryService.record_decision_outcome` gates on terminal
-PASSED/FAILED status), context-attribution for the violation is not
-computed, and automated workspace quarantine remain deferred.
+PASSED/FAILED status); per EDR-0009 (accepted 2026-08-23) that gap is
+closed on its own surface -- every demotion is durably recorded in
+`verification_run_demotions` (same transaction) with its source,
+failure class and confidence, so consumers join on `verification_run_id`
+instead of the enum being widened. Context-attribution for the violation
+is not computed, and automated workspace quarantine remain deferred.
 
 **Flaky-check quarantine (adoption #7).** Every terminal run refreshes
 flaky detection over the task's ordered history in the same transaction
@@ -127,6 +131,10 @@ from engine.verification.checks import (
     DEFAULT_CHECK_TIMEOUT_SECONDS,
     CheckSpec,
     run_check,
+)
+from engine.verification.demotions import (
+    VerificationRunDemotionService,
+    source_for,
 )
 from engine.verification.flaky_quarantine import FlakyQuarantineService
 from engine.verification.guardrails import (
@@ -278,6 +286,7 @@ class VerificationRunnerService:
         attribution: FailureAttributionService | None = None,
         telemetry: RoutingTelemetryService | None = None,
         flaky_quarantine: FlakyQuarantineService | None = None,
+        demotions: VerificationRunDemotionService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -301,6 +310,11 @@ class VerificationRunnerService:
         # 3.6: verification owns the surface a flaky check pollutes).
         self._flaky_quarantine = flaky_quarantine or FlakyQuarantineService(
             engine, events=self._events, clock=self._clock
+        )
+        # EDR-0009 wiring: the runner owns the demotion record (same
+        # guarded path that forces PARTIAL writes the durable trace).
+        self._demotions = demotions or VerificationRunDemotionService(
+            engine, events=self._events
         )
 
     async def _run_uow(
@@ -584,10 +598,27 @@ class VerificationRunnerService:
                 # identically but classifies as plain VERIFICATION_FAILURE:
                 # a broken manifest is ordinary failed verification, not
                 # harness gaming -- no new recovery-matrix row invented.
+                # EDR-0009: the demotion itself gains a durable, queryable
+                # identity in `verification_run_demotions`, written in THIS
+                # transaction -- the Chapter 6.5 gap (demoted runs silently
+                # absent from decision-outcome history) closes without
+                # touching that schema.
                 failure_class = (
                     "SCOPE_VIOLATION"
                     if guardrail.violations
                     else "VERIFICATION_FAILURE"
+                )
+                await self._demotions.record(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=task.mission_id,
+                    task_id=task.task_id,
+                    worker_run_id=worker_run.run_id,
+                    verification_run_id=finished.verification_run_id,
+                    source=source_for(guardrail.violations),
+                    failure_class=failure_class,
+                    confidence=float(finished.confidence),
+                    uow=active,
                 )
                 await self._fail_unverified_attempt(
                     active,
