@@ -117,15 +117,6 @@ class MigrationVerifier:
                 text(f'DROP DATABASE IF EXISTS "{database}"')  # noqa: S608
             )
 
-    def _script_head(self) -> str:
-        """The alembic revision the script directory resolves to as head."""
-        config = self._alembic_config()
-        script = alembic.script.ScriptDirectory.from_config(config)
-        heads = script.get_heads()
-        if len(heads) != 1:
-            raise RuntimeError(f"expected exactly one alembic head, found {heads}")
-        return str(heads[0])
-
     @staticmethod
     def _database_revision_sync(connection) -> str | None:  # type: ignore[no-untyped-def]
         """The revision THIS database is currently at (its alembic_version
