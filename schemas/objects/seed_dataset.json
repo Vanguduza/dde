@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/seed_dataset.json",
+  "title": "SeedDataset",
+  "description": "Chapter 11.6 versioned seed dataset artifact: content-hashed so an invariant failure is reproducible by re-seeding from the same dataset_id + content_hash. Immutable after creation (Chapter 3.10: a material change creates a new version, never an overwrite).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "seed_datasets",
+    "order": 204,
+    "pk": ["dataset_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "slug", "version"]],
+    "foreign_keys": [
+      {
+        "name": "seed_datasets_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "seed_datasets_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "seed_datasets_supersedes_dataset_id_fkey",
+        "columns": ["supersedes_dataset_id"],
+        "ref_table": "seed_datasets",
+        "ref_columns": ["dataset_id"]
+      }
+    ]
+  },
+  "required": [
+    "dataset_id",
+    "tenant_id",
+    "project_id",
+    "slug",
+    "version",
+    "content_hash",
+    "artifact_ref",
+    "status",
+    "created_by",
+    "created_at"
+  ],
+  "properties": {
+    "dataset_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "slug": { "type": "string" },
+    "version": { "type": "integer" },
+    "content_hash": { "type": "string" },
+    "artifact_ref": { "type": "string" },
+    "supersedes_dataset_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "status": { "type": "string", "enum": ["ACTIVE", "SUPERSEDED"] },
+    "created_by": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

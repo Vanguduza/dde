@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/product_environment.json",
+  "title": "ProductEnvironment",
+  "description": "Chapter 11.6 throwaway deployment of the software DDE builds, used to verify it. Distinct from ExecutionEnvironment, which is where workers run. Lifecycle only per Chapter 3.8's ownership matrix (owner engine.verification): PROVISIONING -> MIGRATING -> SEEDING -> READY -> IN_USE -> TEARDOWN, plus FAILED reachable from every pre-terminal state. Every ephemeral_preview carries a TTL and is destroyed on expiry; production rows are never provisioned by a worker and never reachable from an ExecutionEnvironment.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "product_environments",
+    "order": 207,
+    "pk": ["product_env_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "idempotency_key"]],
+    "foreign_keys": [
+      {
+        "name": "product_environments_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "product_environments_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "product_environments_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "product_environments_seed_dataset_id_fkey",
+        "columns": ["seed_dataset_id"],
+        "ref_table": "seed_datasets",
+        "ref_columns": ["dataset_id"]
+      },
+      {
+        "name": "product_environments_credentials_profile_id_fkey",
+        "columns": ["credentials_profile_id"],
+        "ref_table": "credential_handles",
+        "ref_columns": ["handle_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "MigrationVerification": {
+      "description": "Chapter 11.6's mandatory bidirectional verification record. A migration that only works on an empty database is not verified: forward_empty proves the chain applies to a fresh schema and forward_previous proves it applies to a snapshot of the previous release's schema.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["forward_empty", "forward_previous"],
+      "properties": {
+        "forward_empty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["verified", "verified_at"],
+          "properties": {
+            "verified": { "type": "boolean" },
+            "verified_at": { "type": "string", "format": "date-time" },
+            "target_ref": { "type": "string" }
+          }
+        },
+        "forward_previous": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["verified", "verified_at"],
+          "properties": {
+            "verified": { "type": "boolean" },
+            "verified_at": { "type": "string", "format": "date-time" },
+            "target_ref": { "type": "string" }
+          }
+        }
+      }
+    },
+    "FailureSnapshot": {
+      "description": "Evidence-artifact reference recorded when the environment failed mid-lifecycle. Retention/WORM wiring is Chapter 17.5 (later stage); this carries the reference and its content hash only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshot_ref", "content_hash", "captured_at"],
+      "properties": {
+        "snapshot_ref": { "type": "string" },
+        "content_hash": { "type": "string" },
+        "captured_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "required": [
+    "product_env_id",
+    "tenant_id",
+    "project_id",
+    "class",
+    "source_revision",
+    "build_artifact_ref",
+    "runtime_topology_ref",
+    "datastore_ref",
+    "migration_state",
+    "status",
+    "idempotency_key",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "product_env_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "class": {
+      "type": "string",
+      "enum": ["ephemeral_preview", "integration", "staging", "production"]
+    },
+    "source_revision": { "type": "string" },
+    "build_artifact_ref": { "type": "string" },
+    "runtime_topology_ref": { "type": "object", "additionalProperties": true },
+    "datastore_ref": { "type": "string" },
+    "seed_dataset_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "migration_state": {
+      "type": "string",
+      "enum": [
+        "PENDING_BASELINE",
+        "BASELINE_APPLIED",
+        "FORWARD_VERIFIED_EMPTY",
+        "FORWARD_VERIFIED_PREVIOUS_SCHEMA",
+        "FORWARD_FAILED"
+      ]
+    },
+    "migration_verification": { "$ref": "#/$defs/MigrationVerification" },
+    "base_url": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "credentials_profile_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PROVISIONING",
+        "MIGRATING",
+        "SEEDING",
+        "READY",
+        "IN_USE",
+        "TEARDOWN",
+        "FAILED"
+      ]
+    },
+    "ttl_expires_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "failure_snapshot": { "$ref": "#/$defs/FailureSnapshot" },
+    "idempotency_key": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -766,6 +766,22 @@ CREATE TABLE artifacts (
     PRIMARY KEY (artifact_id)
 );
 
+CREATE TABLE seed_datasets (
+    dataset_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    slug text NOT NULL,
+    version integer NOT NULL,
+    content_hash text NOT NULL,
+    artifact_ref text NOT NULL,
+    supersedes_dataset_id uuid,
+    status text NOT NULL,
+    created_by text NOT NULL,
+    created_at timestamptz NOT NULL,
+    PRIMARY KEY (dataset_id),
+    UNIQUE (tenant_id, project_id, slug, version)
+);
+
 CREATE TABLE acceptance_oracles (
     oracle_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -806,6 +822,31 @@ CREATE TABLE mission_oracle_evaluations (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (evaluation_id)
+);
+
+CREATE TABLE product_environments (
+    product_env_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    "class" text NOT NULL,
+    source_revision text NOT NULL,
+    build_artifact_ref text NOT NULL,
+    runtime_topology_ref jsonb NOT NULL DEFAULT '{}'::jsonb,
+    datastore_ref text NOT NULL,
+    seed_dataset_id uuid,
+    migration_state text NOT NULL,
+    migration_verification jsonb,
+    base_url text,
+    credentials_profile_id uuid,
+    status text NOT NULL,
+    ttl_expires_at timestamptz,
+    failure_snapshot jsonb,
+    idempotency_key text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (product_env_id),
+    UNIQUE (tenant_id, project_id, idempotency_key)
 );
 
 CREATE TABLE verification_runs (
@@ -1258,6 +1299,10 @@ ALTER TABLE artifacts ADD CONSTRAINT artifacts_tenant_id_fkey FOREIGN KEY (tenan
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 
+ALTER TABLE seed_datasets ADD CONSTRAINT seed_datasets_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE seed_datasets ADD CONSTRAINT seed_datasets_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE seed_datasets ADD CONSTRAINT seed_datasets_supersedes_dataset_id_fkey FOREIGN KEY (supersedes_dataset_id) REFERENCES seed_datasets (dataset_id);
+
 ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE acceptance_oracles ADD CONSTRAINT acceptance_oracles_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1268,6 +1313,12 @@ ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations
 ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
 ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_oracle_id_fkey FOREIGN KEY (oracle_id) REFERENCES acceptance_oracles (oracle_id);
 ALTER TABLE mission_oracle_evaluations ADD CONSTRAINT mission_oracle_evaluations_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+
+ALTER TABLE product_environments ADD CONSTRAINT product_environments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE product_environments ADD CONSTRAINT product_environments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE product_environments ADD CONSTRAINT product_environments_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE product_environments ADD CONSTRAINT product_environments_seed_dataset_id_fkey FOREIGN KEY (seed_dataset_id) REFERENCES seed_datasets (dataset_id);
+ALTER TABLE product_environments ADD CONSTRAINT product_environments_credentials_profile_id_fkey FOREIGN KEY (credentials_profile_id) REFERENCES credential_handles (handle_id);
 
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -1481,6 +1532,10 @@ ALTER TABLE artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE artifacts FORCE ROW LEVEL SECURITY;
 CREATE POLICY artifacts_tenant_isolation ON artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
+ALTER TABLE seed_datasets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE seed_datasets FORCE ROW LEVEL SECURITY;
+CREATE POLICY seed_datasets_tenant_isolation ON seed_datasets USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
 ALTER TABLE acceptance_oracles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE acceptance_oracles FORCE ROW LEVEL SECURITY;
 CREATE POLICY acceptance_oracles_tenant_isolation ON acceptance_oracles USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
@@ -1488,6 +1543,10 @@ CREATE POLICY acceptance_oracles_tenant_isolation ON acceptance_oracles USING (t
 ALTER TABLE mission_oracle_evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mission_oracle_evaluations FORCE ROW LEVEL SECURITY;
 CREATE POLICY mission_oracle_evaluations_tenant_isolation ON mission_oracle_evaluations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE product_environments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_environments FORCE ROW LEVEL SECURITY;
+CREATE POLICY product_environments_tenant_isolation ON product_environments USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE verification_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_runs FORCE ROW LEVEL SECURITY;

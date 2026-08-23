@@ -43,6 +43,7 @@ from engine.contracts.outbox import Outbox
 from engine.contracts.principal import Principal
 from engine.contracts.principal_grant import PrincipalGrant
 from engine.contracts.product_constitution_version import ProductConstitutionVersion
+from engine.contracts.product_environment import ProductEnvironment
 from engine.contracts.project import Project
 from engine.contracts.promotion_gate_run import PromotionGateRun
 from engine.contracts.readyz import Readyz
@@ -51,6 +52,7 @@ from engine.contracts.requirement import Requirement
 from engine.contracts.route_decision import RouteDecision
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
 from engine.contracts.routing_simulation_run import RoutingSimulationRun
+from engine.contracts.seed_dataset import SeedDataset
 from engine.contracts.standing_approval import StandingApproval
 from engine.contracts.task import Task
 from engine.contracts.task_attempt import TaskAttempt
@@ -106,6 +108,7 @@ __all__ = [
     "Principal",
     "PrincipalGrant",
     "ProductConstitutionVersion",
+    "ProductEnvironment",
     "Project",
     "PromotionGateRun",
     "Readyz",
@@ -114,6 +117,7 @@ __all__ = [
     "RouteDecision",
     "RoutingDecisionOutcome",
     "RoutingSimulationRun",
+    "SeedDataset",
     "StandingApproval",
     "Task",
     "TaskAttempt",

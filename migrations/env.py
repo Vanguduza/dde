@@ -53,6 +53,21 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run against a live database.
+
+    Two entry shapes share this path. The CLI (`alembic upgrade head`)
+    supplies no connection and opens its own async engine. Programmatic
+    callers (Chapter 11.6's MigrationVerifier) place an already-open
+    synchronous connection in ``config.attributes['connection']`` -- the
+    migration body then runs on that connection, because ``asyncio.run``
+    is forbidden inside an already-running event loop.
+    """
+    provided = config.attributes.get("connection", None)
+    if provided is not None:
+        context.configure(connection=provided, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
     asyncio.run(run_async_migrations())
 
 

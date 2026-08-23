@@ -298,6 +298,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## SeedDataset
+
+- table: `seed_datasets`
+- primary key: dataset_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## AcceptanceOracle
 
 - table: `acceptance_oracles`
@@ -310,6 +318,14 @@ Generated from `schemas/objects`. Do not edit.
 
 - table: `mission_oracle_evaluations`
 - primary key: evaluation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ProductEnvironment
+
+- table: `product_environments`
+- primary key: product_env_id
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
