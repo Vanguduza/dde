@@ -66,15 +66,24 @@ class RoutingDecisionOutcomeRepository:
         self,
         connection: AsyncConnection,
         *,
+        tenant_id: UUID,
+        project_id: UUID,
         limit: int = 200,
     ) -> list[tuple[RoutingDecisionOutcome, str | None]]:
-        """Newest-first recent outcomes joined to the selected profile id
-        of the RouteDecision each outcome belongs to (Chapter 6.5's join
-        back through ``route_decision_id``) -- the read pattern shadow
-        promotion replays over, without duplicating it. Outcome rows
-        carry no profile column; the RouteDecision is where selection was
-        recorded. Returns oldest-first so windowed consumers can treat
-        the list as an append-only stream."""
+        """Recent outcomes joined to the selected profile id of the
+        RouteDecision each outcome belongs to (Chapter 6.5's join back
+        through ``route_decision_id``) -- the read pattern shadow promotion
+        replays over, without duplicating it. Outcome rows carry no
+        profile column; the RouteDecision is where selection was recorded.
+        Returns oldest-first so windowed consumers can treat the list as
+        an append-only stream.
+
+        Scoped to ONE tenant and project. Health is a property of how a
+        deployment's own profiles have been performing for that project;
+        mixing in other tenants' outcomes (or unrelated suites sharing a
+        dev database) lets foreign failure histories evict this caller's
+        perfectly healthy profiles -- the same cross-tenant leak Chapter
+        3.5/13.9 forbid everywhere else."""
         result = await connection.execute(
             select(
                 routing_decision_outcomes,
@@ -84,6 +93,10 @@ class RoutingDecisionOutcomeRepository:
                 route_decisions,
                 routing_decision_outcomes.c.route_decision_id
                 == route_decisions.c.decision_id,
+            )
+            .where(
+                routing_decision_outcomes.c.tenant_id == tenant_id,
+                routing_decision_outcomes.c.project_id == project_id,
             )
             .order_by(routing_decision_outcomes.c.created_at.desc())
             .limit(limit)

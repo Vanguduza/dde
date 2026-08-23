@@ -17,6 +17,7 @@ import pytest
 
 from engine.attribution.repository import FailureAttributionRepository
 from engine.context.repo import repo_root
+from engine.core.ids import uuid7
 from engine.telemetry.model import ACTUAL_COST_GAP_DISCLOSED
 from engine.telemetry.repository import RoutingDecisionOutcomeRepository
 from engine.truth.db import open_unit_of_work
@@ -246,6 +247,77 @@ async def test_telemetry_is_idempotent_on_verification_run(tmp_path: Path) -> No
             await uow.commit()
         assert was_new is False
         assert second.outcome_id == first.outcome_id
+    finally:
+        if workspace is not None:
+            await WorkspaceService(db_engine, root=root).cleanup(workspace=workspace)
+        await db_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_health_read_is_scoped_to_tenant_and_project(tmp_path: Path) -> None:
+    """The router's health read must never see other tenants' outcomes.
+
+    Regression: `list_recent_with_selected_profiles` read globally; on a
+    shared database, foreign FAILED outcomes stacked into the rolling
+    window and health-evicted this project's healthy profiles -- routing
+    escalated to `human_decision_task` and downstream runs died with
+    PROFILE_STALE. Chapter 3.5/13.9's cross-tenant law applies to reads
+    with behavioural consequences exactly as to writes."""
+    root = repo_root()
+    db_engine = new_engine()
+    workspace = None
+    try:
+        fixture = await build_verification_fixture(
+            db_engine, tmp_path, mission_slug="MISSION-TELEMETRY-SCOPE"
+        )
+        workspace = fixture.workspace
+        workspaces = WorkspaceService(db_engine, root=root)
+        workspaces.write(workspace, "verification_check.py", CLEAN_MODULE.encode())
+        lint_outcome = CheckSpec(
+            outcome_id=uuid4(),
+            statement="ruff check reports no lint violations on verification_check.py",
+            kind="test",
+            ref="ruff:verification_check.py",
+            command=[sys.executable, "-m", "ruff", "check", "verification_check.py"],
+        )
+        oracles = AcceptanceOracleService(db_engine)
+        oracle = await oracles.define(
+            task=fixture.task, outcomes=[lint_outcome], minimum_confidence=1.0
+        )
+        runner = VerificationRunnerService(db_engine, workspaces)
+        run = await runner.run(
+            task=fixture.task,
+            worker_run=fixture.worker_run,
+            workspace=fixture.workspace,
+            oracle=oracle,
+            idempotency_key="telemetry-run-scope-1",
+        )
+        assert run.status == "PASSED"
+
+        async with open_unit_of_work(
+            db_engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            repo = RoutingDecisionOutcomeRepository()
+            mine = await repo.list_recent_with_selected_profiles(
+                uow.connection,
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+            )
+            # A different tenant/project must be invisible to this scope.
+            foreign = await repo.list_recent_with_selected_profiles(
+                uow.connection,
+                tenant_id=uuid7(),
+                project_id=uuid7(),
+            )
+            await uow.commit()
+
+        attributed_mine = [pid for _, pid in mine]
+        assert attributed_mine, "expected this run's own outcome row"
+        assert all(pid is not None for pid in attributed_mine)
+        assert set(attributed_mine) == {"profile.deterministic_runner"}
+        assert foreign == []
     finally:
         if workspace is not None:
             await WorkspaceService(db_engine, root=root).cleanup(workspace=workspace)

@@ -163,7 +163,9 @@ class RouterService:
 
         async def _op(active: PostgresUnitOfWork) -> RouteDecision:
             recent = await self._outcomes.list_recent_with_selected_profiles(
-                active.connection
+                active.connection,
+                tenant_id=tenant_id,
+                project_id=project_id,
             )
             health_report = compute_model_health(
                 health_samples_from_outcomes(recent),
