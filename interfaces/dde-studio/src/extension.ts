@@ -32,8 +32,10 @@ import {
   OverviewViewProvider,
   type StudioMessage,
 } from "./webviews/providers";
+import { PreviewGalleryProvider as GalleryProvider } from "./webviews/previewGalleryProvider";
 
 const CONFIG_SECTION = "dde.studio";
+const PROTOTYPES_PATH_SETTING = "prototypesPath";
 
 export function activate(context: vscode.ExtensionContext): void {
   const health = new HealthClient();
@@ -75,6 +77,7 @@ export function activate(context: vscode.ExtensionContext): void {
     "deepseek",
     (msg) => void handleMessage(msg, "deepseek"),
   );
+  const galleryView = new GalleryProvider("dde.studio.preview");
 
   context.subscriptions.push(
     statusBar,
@@ -95,6 +98,8 @@ export function activate(context: vscode.ExtensionContext): void {
       deepSeekView.viewType,
       deepSeekView,
     ),
+    vscode.window.registerWebviewViewProvider(galleryView.viewType, galleryView),
+    galleryView,
     vscode.commands.registerCommand("dde.studio.refreshHealth", () =>
       refreshAll(),
     ),
@@ -147,6 +152,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration(CONFIG_SECTION)) {
         void refreshAll();
+      }
+      if (
+        e.affectsConfiguration(`${CONFIG_SECTION}.${PROTOTYPES_PATH_SETTING}`)
+      ) {
+        galleryView.refresh();
       }
     }),
     {

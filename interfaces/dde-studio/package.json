@@ -62,6 +62,11 @@
           "type": "string",
           "default": "dde",
           "description": "Command used by the CLI-JSON bridge (Core CLI entry point)."
+        },
+        "dde.studio.prototypesPath": {
+          "type": "string",
+          "default": "prototypes",
+          "description": "Workspace-relative directory of prototype screens (screens/*.html, flows.json) streamed live into the Preview view."
         }
       }
     },

@@ -299,7 +299,7 @@ describe("registry completeness vs research §7", () => {
 
     const exists = MODULE_REGISTRY.filter((m) => m.status === "exists");
 
-    assert.equal(exists.length, 1);
+    assert.equal(exists.length, 2);
 
   });
 
@@ -321,7 +321,7 @@ describe("registry completeness vs research §7", () => {
 
 
 
-  it("contributes chat/donor/knowledge/evaluation/debug/preview as stubs", () => {
+  it("contributes chat/donor/knowledge/evaluation/debug as stubs", () => {
 
     for (const id of [
 
@@ -335,8 +335,6 @@ describe("registry completeness vs research §7", () => {
 
       "dde-debug",
 
-      "product-environment",
-
     ] as const) {
 
       const m = moduleById(id);
@@ -348,6 +346,24 @@ describe("registry completeness vs research §7", () => {
       assert.ok(m.viewId, `${id} must have viewId`);
 
     }
+
+  });
+
+
+
+  it("preview gallery is live: exists status, honest liveToday, sandboxed law cited", () => {
+
+    const m = moduleById("product-environment");
+
+    assert.ok(m);
+
+    assert.equal(m.status, "exists");
+
+    assert.match(m.liveToday, /sandboxed srcdoc/);
+
+    assert.match(m.summary, /Prototype Gallery/);
+
+    assert.match(m.liveToday, /DDE-038.*not exposed/);
 
   });
 

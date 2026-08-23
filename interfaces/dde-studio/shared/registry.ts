@@ -61,8 +61,7 @@ export const RESEARCH_MODULE_IDS: readonly ModuleId[] = [
 
 /** Sidebar / activity webview stubs (not Connection, not harness worker tabs). */
 export const SIDEBAR_STUB_MODULES: readonly ModuleDescriptor[] = [
-  {
-    id: "dde-mission",
+  {    id: "dde-mission",
     title: "Mission",
     viewId: "dde.studio.mission",
     earliestStage: "S1",
@@ -178,16 +177,6 @@ export const SIDEBAR_STUB_MODULES: readonly ModuleDescriptor[] = [
     summary: "Raw event / trace inspection.",
     liveToday: "None — event stream API not exposed yet.",
   },
-  {
-    id: "product-environment",
-    title: "Preview",
-    viewId: "dde.studio.preview",
-    earliestStage: "S4",
-    chapters: "Ch.11.6",
-    status: "stub",
-    summary: "ProductEnvironment ephemeral_preview link + TTL.",
-    liveToday: "None — ProductEnvironment lifecycle (DDE-038) not exposed.",
-  },
 ];
 
 export const MODULE_REGISTRY: readonly ModuleDescriptor[] = [
@@ -200,6 +189,18 @@ export const MODULE_REGISTRY: readonly ModuleDescriptor[] = [
     status: "exists",
     summary: "Shell, Mission Overview (primary home), connection settings, SecretStorage auth seam, live health polling.",
     liveToday: "GET /healthz and GET /readyz against configured Core URL; Overview shows live System zone.",
+  },
+  {
+    id: "product-environment",
+    title: "Preview",
+    viewId: "dde.studio.preview",
+    earliestStage: "S4",
+    chapters: "Ch.11.6, playbook §5.0 P2",
+    status: "exists",
+    summary:
+      "Prototype Gallery: live read-only stream of the workspace prototypes/ directory during authoring missions. ProductEnvironment ephemeral_preview link + TTL remains future scope.",
+    liveToday:
+      "Live gallery over workspace prototypes/: screens list with state suffixes, flows.json table when present, sandboxed srcdoc previews, file-watch auto-refresh, reduced-motion toggle. ProductEnvironment lifecycle (DDE-038) not exposed.",
   },
   ...SIDEBAR_STUB_MODULES,
   {
