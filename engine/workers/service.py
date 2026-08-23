@@ -112,11 +112,25 @@ matrix already looks: a durable FAILED `TaskAttempt` with
 `engine.recovery.matrix.decide()` -- the RESOURCE_EXHAUSTION row
 (`action="request_budget"`, `requires_human=True`, no new worker run),
 i.e. pause-for-human through existing machinery only. Still honest:
-Stage 1 has no token meter to decrement -- the check compares the
-attempt's declared demand against the resolved ceiling at admission
-time; live provider metering remains deferred. Default `None` from a
-plan without an explicit ceiling = unlimited = behaviour unchanged for
-every existing caller.
+Stage 1's dispatch check compares the attempt's declared demand against
+the resolved ceiling at admission time.
+
+**Runtime meter (`record_run_usage`).** The consumption half now exists:
+a public, CommandLedger-guarded writer accepts a provider-usage report
+for a run and persists it as an ordinary `WorkerRunUsageReported`
+`worker_events` row; remaining budget is always DERIVED (persisted
+ceiling minus sum of report payloads) -- no balance column, no new table,
+no migration. When a report drives derived remaining to zero-or-below,
+the same `_pause_attempt_for_budget` path records the identical durable
+outcome as dispatch-time refusal: FAILED TaskAttempt,
+`failure_class="BUDGET_EXCEEDED"`, recovery matrix RESOURCE_EXHAUSTION
+pause-for-human. **Disclosed deferral:** no production call site forwards
+usage yet -- every certified adapter reports zero model usage today
+(`ScriptedWorkerAdapter.collect_usage`, `ClaudeCodeWorkerAdapter.
+collect_usage`: honest zeros per EDR-0001 Research Finding 3;
+`CursorWorkerAdapter.start()` fails closed before any model runs). The
+writer ships public and tested for the first adapter that can report
+honestly; nothing fabricated in its place.
 
 **DDE-025.** `get_certified_adapter` is called with the provisioned
 `ExecutionEnvironment.class_`. A STALE `profile_hash` (smoke not passed
@@ -192,6 +206,14 @@ from engine.workers.budget import (
 from engine.workers.registry import WorkerProfileRegistry
 from engine.workers.repository import WorkerEventRepository, WorkerRunRepository
 from engine.workers.states import TERMINAL_STATES, WORKER_RUN_TRANSITIONS
+from engine.workers.usage import (
+    USAGE_REPORTED_EVENT_TYPE,
+    RecordedUsage,
+    ceiling_tokens_from_plan,
+    consumed_tokens_from_worker_events,
+    remaining_tokens,
+    total_tokens_of,
+)
 
 T = TypeVar("T")
 
@@ -219,6 +241,11 @@ WORKER_CAPABILITY_DENIED = "WORKER_CAPABILITY_DENIED"
 #: this class ("Reconcile before any retry").
 SIDE_EFFECT_UNKNOWN = "SIDE_EFFECT_UNKNOWN"
 
+#: `resume_run`'s refusal trail (Chapter 8.3/12.3): the refusal itself is
+#: already durable via the create+fail attempt path; this event type makes
+#: it observable in the event store without inventing infrastructure.
+RESUME_REFUSED_EVENT_TYPE = "ResumeRefused"
+
 #: DDE-016's real, seeded `capability_id`s -- see the module docstring's
 #: DDE-017 addition for which of these a given `action` actually needs.
 CAPABILITY_RUN_LOCAL_PROCESS = "capability.run_local_process"
@@ -238,6 +265,13 @@ def _required_capability_ids(action: WorkerAction) -> tuple[str, ...]:
             CAPABILITY_RUN_LOCAL_PROCESS,
         )
     return (CAPABILITY_RUN_LOCAL_PROCESS,)
+
+
+def _int_or_none(value: object) -> int | None:
+    """JSONB round-trip guard: booleans and non-ints are not counters."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
 
 
 def _invoke_request_hash(
@@ -340,6 +374,269 @@ class WorkerManagerService:
             result = await body(owned)
             await owned.commit()
             return result
+
+    async def record_run_usage(
+        self,
+        *,
+        run_id: UUID,
+        execution_plan: ExecutionPlan,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        total_tokens: int | None = None,
+        cost_basis: str | None = None,
+        idempotency_key: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> RecordedUsage:
+        """Public runtime usage meter (Chapter 8.4's budgeted attempt,
+        consumption half): accept one provider-usage report for a
+        WorkerRun and atomically decrement its remaining budget.
+
+        **Where the state lives.** The ceiling is the plan's persisted
+        `token_budget` (`attempt_max_tokens`, else the planner's
+        effort-derived `max_tokens` hint, else unlimited); consumption
+        persists as ordinary per-run `worker_events` rows of type
+        `WorkerRunUsageReported`. Remaining budget is derived --
+        ceiling minus the sum of report payloads -- never stored as a
+        second balance. The report and its decrement land in one unit of
+        work; a caller may share an open `uow` (Chapter 3.5).
+
+        **Idempotency.** CommandLedger-guarded on the caller-supplied key:
+        at-least-once adapter forwarding replays the first outcome and
+        never decrements twice.
+
+        **Zero-crossing.** When derived remaining reaches zero-or-below,
+        the SAME pause-for-human machinery the dispatch-time check uses
+        fires: a durable FAILED TaskAttempt with
+        `failure_class="BUDGET_EXCEEDED"` (the recovery matrix's
+        RESOURCE_EXHAUSTION row: `request_budget`, `requires_human`,
+        no new worker run). A terminal attempt is left alone -- the
+        matrix already reads terminal states.
+
+        **No production ingestion point yet (disclosed).** Every
+        certified adapter reports zero model usage today (see
+        `engine.workers.usage`'s module docstring); this writer ships
+        public and tested for the first adapter that can report honestly.
+        """
+        tokens = total_tokens_of(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+        )
+        first_seen_exceeded = False
+        if tokens < 0:
+            raise DdeError(
+                "POLICY_DENIED",
+                "usage totals must be non-negative",
+                details={"run_id": str(run_id), "total_tokens": tokens},
+            )
+        if input_tokens < 0 or output_tokens < 0:
+            raise DdeError(
+                "POLICY_DENIED",
+                "usage components must be non-negative",
+                details={
+                    "run_id": str(run_id),
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                },
+            )
+        ceiling = ceiling_tokens_from_plan(execution_plan.token_budget)
+        request_hash = sha256_hex(
+            canonical_json(
+                {
+                    "command": "record_run_usage",
+                    "run_id": str(run_id),
+                    "execution_plan_id": str(execution_plan.plan_id),
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": tokens,
+                }
+            )
+        )
+
+        async def _op(active: PostgresUnitOfWork) -> RecordedUsage:
+            nonlocal first_seen_exceeded
+            record, is_new = await self._commands.begin(
+                tenant_id=execution_plan.tenant_id,
+                project_id=execution_plan.project_id,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                uow=active,
+            )
+            if not is_new:
+                return self._usage_replay_or_raise(record)
+
+            run = await self._require_run(active, run_id)
+            if (
+                run.tenant_id != execution_plan.tenant_id
+                or run.project_id != execution_plan.project_id
+            ):
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "Usage report tenant/project does not match the run",
+                    details={"run_id": str(run_id)},
+                )
+
+            now = self._clock.now()
+            payload: dict[str, object] = {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": tokens,
+                "source": "adapter",
+                "cost_basis": cost_basis,
+                "idempotency_key": idempotency_key,
+            }
+            sequence = await self._event_repository.next_sequence(
+                active.connection, run_id
+            )
+            integrity_hash = sha256_hex(
+                canonical_json(
+                    {
+                        "run_id": str(run_id),
+                        "sequence": sequence,
+                        "event_type": USAGE_REPORTED_EVENT_TYPE,
+                        "payload": payload,
+                    }
+                )
+            )
+            event = WorkerEvent(
+                event_id=uuid7(),
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                mission_id=run.mission_id,
+                run_id=run_id,
+                task_id=execution_plan.task_id,
+                sequence=sequence,
+                event_type=USAGE_REPORTED_EVENT_TYPE,
+                occurred_at=now,
+                actor="worker_manager",
+                correlation_id=str(run_id),
+                causation_id=None,
+                payload=payload,
+                schema_version="1",
+                integrity_hash=integrity_hash,
+                created_at=now,
+                updated_at=now,
+            )
+            await self._event_repository.insert_event(active.connection, event)
+            await self._events.append(
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                event_type=USAGE_REPORTED_EVENT_TYPE,
+                aggregate_type="worker_run",
+                aggregate_id=run_id,
+                mission_id=run.mission_id,
+                task_id=execution_plan.task_id,
+                payload=payload,
+                uow=active,
+            )
+
+            history = await self._event_repository.list_for_run(
+                active.connection, run_id
+            )
+            consumed = consumed_tokens_from_worker_events(history)
+            remaining_now = remaining_tokens(ceiling=ceiling, consumed=consumed)
+            exceeded = remaining_now is not None and remaining_now <= 0
+
+            if exceeded:
+                first_seen_exceeded = True
+                await self._pause_attempt_for_budget(active, run=run)
+
+            outcome = RecordedUsage(
+                event_sequence=sequence,
+                consumed_tokens=tokens,
+                ceiling_tokens=ceiling,
+                remaining_tokens=remaining_now,
+                budget_exceeded=exceeded,
+            )
+            await self._commands.complete(
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                command_id=record.command_id,
+                result={
+                    "event_sequence": outcome.event_sequence,
+                    "consumed_tokens": outcome.consumed_tokens,
+                    "ceiling_tokens": outcome.ceiling_tokens,
+                    "remaining_tokens": outcome.remaining_tokens,
+                    "budget_exceeded": outcome.budget_exceeded,
+                },
+                uow=active,
+            )
+            return outcome
+
+        committed = await self._run(
+            uow, execution_plan.tenant_id, execution_plan.project_id, _op
+        )
+        if first_seen_exceeded:
+            # The durable refusal (usage report + FAILED attempt) has
+            # committed; the caller still gets dispatch-time's typed
+            # signal -- replaying the key replays the stored outcome
+            # instead of re-raising, exactly as `_record_budget_refusal`
+            # + `raise` composes at admission.
+            raise BudgetExhaustedError(
+                "live usage crossed the attempt's token ceiling -- "
+                "pause-for-human recorded",
+                details={
+                    "run_id": str(run_id),
+                    "total_tokens": tokens,
+                    "ceiling_tokens": ceiling,
+                },
+            )
+        return committed
+
+    async def _pause_attempt_for_budget(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        run: WorkerRun,
+    ) -> None:
+        """Commit 0464933's mechanism, reused verbatim at zero-crossing:
+        fail the attempt durably with `failure_class="BUDGET_EXCEEDED"`
+        so `RecoveryService.assert_clear_to_retry` lands on the recovery
+        matrix's RESOURCE_EXHAUSTION row (`request_budget`,
+        `requires_human=True`, no new worker run). An already-terminal
+        attempt is never resurrected."""
+        current = await self._attempts.get_attempt(
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            attempt_id=run.task_attempt_id,
+            uow=active,
+        )
+        if current.status != "IN_PROGRESS":
+            return
+        await self._attempts.fail(
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            attempt_id=run.task_attempt_id,
+            failure_class=BUDGET_EXCEEDED_FAILURE_CLASS,
+            checkpoint_id=current.checkpoint_id,
+            uow=active,
+        )
+
+    def _usage_replay_or_raise(self, record: CommandIdempotency) -> RecordedUsage:
+        if record.status == "completed" and record.result is not None:
+            result = record.result
+            ceiling = _int_or_none(result.get("ceiling_tokens"))
+            remaining = _int_or_none(result.get("remaining_tokens"))
+            sequence = _int_or_none(result.get("event_sequence"))
+            consumed = _int_or_none(result.get("consumed_tokens"))
+            if sequence is None or consumed is None:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "Stored usage outcome is malformed; refusing to replay",
+                    details={"idempotency_key": record.idempotency_key},
+                )
+            return RecordedUsage(
+                event_sequence=sequence,
+                consumed_tokens=consumed,
+                ceiling_tokens=ceiling,
+                remaining_tokens=remaining,
+                budget_exceeded=bool(result["budget_exceeded"]),
+            )
+        raise DdeError(
+            "VERSION_CONFLICT",
+            "Command previously failed; refusing to re-execute",
+            details={"idempotency_key": record.idempotency_key},
+        )
 
     async def invoke_run(
         self,
@@ -694,6 +991,15 @@ class WorkerManagerService:
                     details={"attempt_id": str(attempt_id)},
                 )
             if attempt.status != "IN_PROGRESS":
+                await self._record_resume_refusal(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    task_id=task.task_id,
+                    mission_id=execution_plan.mission_id,
+                    attempt_id=attempt_id,
+                    reason_class="ATTEMPT_NOT_IN_PROGRESS",
+                    observed_status=attempt.status,
+                )
                 raise DdeError(
                     "VERSION_CONFLICT",
                     "resume_run requires an IN_PROGRESS attempt",
@@ -873,6 +1179,45 @@ class WorkerManagerService:
             attempt_id=attempt.attempt_id,
             failure_class=BUDGET_EXCEEDED_FAILURE_CLASS,
             checkpoint_id=None,
+            uow=None,
+        )
+
+    async def _record_resume_refusal(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        task_id: UUID,
+        mission_id: UUID,
+        attempt_id: UUID,
+        reason_class: str,
+        observed_status: str | None = None,
+    ) -> None:
+        """Explicit observability trail for a refused resume (Chapter
+        8.3/12.3). The refusal is already durable through the existing
+        create+fail attempt path -- that behaviour is unchanged; this
+        append only makes the decision observable in the generic event
+        store, following `VerificationFailureRecovery`'s payload shape
+        (`action` + failure context). It commits in its own unit of work
+        because the guarded command's transaction rolls back with the
+        raised refusal (the same treatment `_record_budget_refusal`
+        gets). A failure while recording propagates rather than being
+        swallowed: it is the same database the refusal path itself needs."""
+        await self._events.append(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_type=RESUME_REFUSED_EVENT_TYPE,
+            aggregate_type="task_attempt",
+            aggregate_id=attempt_id,
+            mission_id=mission_id,
+            task_id=task_id,
+            payload={
+                "reason_class": reason_class,
+                "observed_status": observed_status,
+                "action": "reject",
+                "allow_new_worker_run": False,
+                "source": "resume_run",
+            },
             uow=None,
         )
 
