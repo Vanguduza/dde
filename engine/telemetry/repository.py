@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
+from engine.routing.tables import route_decisions
 from engine.telemetry.tables import routing_decision_outcomes
 
 
@@ -60,6 +61,45 @@ class RoutingDecisionOutcomeRepository:
         if row is None:
             return None
         return RoutingDecisionOutcome.model_validate(dict(row))
+
+    async def list_recent_with_selected_profiles(
+        self,
+        connection: AsyncConnection,
+        *,
+        limit: int = 200,
+    ) -> list[tuple[RoutingDecisionOutcome, str | None]]:
+        """Newest-first recent outcomes joined to the selected profile id
+        of the RouteDecision each outcome belongs to (Chapter 6.5's join
+        back through ``route_decision_id``) -- the read pattern shadow
+        promotion replays over, without duplicating it. Outcome rows
+        carry no profile column; the RouteDecision is where selection was
+        recorded. Returns oldest-first so windowed consumers can treat
+        the list as an append-only stream."""
+        result = await connection.execute(
+            select(
+                routing_decision_outcomes,
+                route_decisions.c.selected_worker_profile_id,
+            )
+            .join(
+                route_decisions,
+                routing_decision_outcomes.c.route_decision_id
+                == route_decisions.c.decision_id,
+            )
+            .order_by(routing_decision_outcomes.c.created_at.desc())
+            .limit(limit)
+        )
+        rows: list[tuple[RoutingDecisionOutcome, str | None]] = []
+        for row in result.mappings().all():
+            mapping = dict(row)
+            mapping.pop("selected_worker_profile_id", None)
+            rows.append(
+                (
+                    RoutingDecisionOutcome.model_validate(mapping),
+                    row["selected_worker_profile_id"],
+                )
+            )
+        rows.reverse()
+        return rows
 
     async def list_for_route_decision(
         self, connection: AsyncConnection, route_decision_id: UUID

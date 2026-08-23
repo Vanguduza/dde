@@ -123,3 +123,25 @@ evidence = Table(
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
+
+#: Durable flaky-check quarantine markers (adoption #7). Owned by
+#: `engine.verification` (Chapter 3.6: verification owns "oracle, runners,
+#: product envs"; the flaky defect lives on the verification surface it
+#: pollutes). `lifted_at IS NULL` means the quarantine is active; a lift
+#: stamps `lifted_at`/`lifted_by` and never deletes the row.
+flaky_quarantines = Table(
+    "flaky_quarantines",
+    metadata,
+    Column("quarantine_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=False),
+    Column("task_id", Uuid(as_uuid=True), nullable=False),
+    Column("check_ref", Text, nullable=False),
+    Column("detected_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("lifted_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("lifted_by", Text, nullable=True),
+    Column("sample_size", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)

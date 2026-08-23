@@ -42,20 +42,56 @@ Chapter 12.3's matrix row engages through its existing consumer --
 `RecoveryService.assert_clear_to_retry` (`engine.recovery.dispatch`) calls
 `decide("SCOPE_VIOLATION")` before any new WorkerRun: action `reject`,
 `requires_human`, `allow_new_worker_run=False` -- never a silent retry.
+
+**Confidence bands and the elapsed control (mid-band semantics).**
+`_evaluate`'s verdict bands are exact: 1.0 is a certified PASS (every
+outcome holds, no violation, `minimum_confidence` cleared -- the elapsed
+control can never touch a certified value), 0.0 is FAILED, and everything
+between is PARTIAL, graded by construction: above 0.5 the majority of
+outcomes hold (near-pass for repair-scope reading), below 0.5 a minority
+(near-fail), exactly 0.5 left deliberately uninterpreted. Downstream this
+mapping is already total: Chapter 12.3's matrix keys on failure-class
+strings only (`engine.recovery.matrix.decide`) and Chapter 6.5 telemetry
+admits only PASSED/FAILED, so PARTIAL's graded semantics live entirely in
+the persisted confidence value itself.
+
+Within that PARTIAL band an elapsed control erodes confidence
+mechanically: each check's real captured `duration_ms` pressure against
+the check timeout (`CHECK_TIMEOUT_MS`, from the check runner's default)
+starts at `ELAPSED_DEGRADE_ONSET_FRACTION` of the deadline and grows
+linearly to full pressure AT the deadline; the mean excess pressure
+across checks scales a haircut of at most `ELAPSED_PENALTY_MAX_FRACTION`
+off the raw pass ratio. The control is degrade-only: it applies inside
+the mid band alone and can never demote a would-be PASS or lift anything
+out of FAILED -- mirroring the guardrail rule that findings never improve
+a worker's result. Absence of timing data leaves every verdict and value
+unchanged.
 Still disclosed: the PARTIAL `VerificationRun` gets no
 `routing_decision_outcomes` telemetry row (Chapter 6.5's
 `actual_verified_outcome` enum admits only PASSED/FAILED, and
 `RoutingTelemetryService.record_decision_outcome` gates on terminal
 PASSED/FAILED status), context-attribution for the violation is not
 computed, and automated workspace quarantine remain deferred.
+
+**Flaky-check quarantine (adoption #7).** Every terminal run refreshes
+flaky detection over the task's ordered history in the same transaction
+as its own terminal write (`FlakyQuarantineService.refresh_quarantines`);
+a check whose verdict alternated PASSED/FAILED across runs is durably
+quarantined (`flaky_quarantines`, migration 0010). On a FAILED run, the
+two-tier gate consults active quarantines first: while the cadence says
+wait, the recovery event records `action="deferred_flaky_quarantine"`
+instead of the matrix row -- surfaced, never silently swallowed; on an
+Nth-run or interval re-entry the plain VERIFICATION_FAILURE decision
+applies again. Quarantine never deletes anything; only an operator lift
+(`lift`) deactivates a marker.
 """
 
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
-from typing import TypeVar
+from typing import Final, TypeVar
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -87,7 +123,12 @@ from engine.recovery.checkpoint_service import (
 from engine.recovery.matrix import decide
 from engine.telemetry.service import RoutingTelemetryService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
-from engine.verification.checks import CheckSpec, run_check
+from engine.verification.checks import (
+    DEFAULT_CHECK_TIMEOUT_SECONDS,
+    CheckSpec,
+    run_check,
+)
+from engine.verification.flaky_quarantine import FlakyQuarantineService
 from engine.verification.guardrails import (
     TestScopeAssessment,
     TestScopeFinding,
@@ -116,6 +157,59 @@ T = TypeVar("T")
 #: no worker profile is ever invoked here.
 EVIDENCE_PRODUCED_BY = "capability:engine.verification.runner"
 EVIDENCE_STATUS_RECORDED = "RECORDED"
+
+#: Effective ceiling for one oracle check: `run()` executes every check via
+#: `WorkspaceService.execute` with the check runner's default timeout, so
+#: this -- not the workspace layer's own default -- is the deadline the
+#: elapsed control measures pressure against.
+CHECK_TIMEOUT_MS: Final[float] = DEFAULT_CHECK_TIMEOUT_SECONDS * 1000.0
+
+#: Point of `CHECK_TIMEOUT_MS` beyond which a check's runtime starts to
+#: erode its evidentiary weight; at or below it, duration carries no penalty.
+ELAPSED_DEGRADE_ONSET_FRACTION: Final[float] = 0.75
+
+#: Largest fraction of the raw pass ratio removable when every check ran to
+#: the timeout (mean excess pressure of 1.0).
+ELAPSED_PENALTY_MAX_FRACTION: Final[float] = 0.5
+
+
+def _excess_elapsed_pressure(
+    duration_ms: int,
+    *,
+    timeout_ms: float,
+    onset_fraction: float,
+) -> float:
+    """Linear 0->1 pressure over the onset..timeout span of one check's
+    real runtime; 0 at or below the onset point. Pure: no clock access."""
+    if timeout_ms <= 0.0:
+        return 0.0
+    pressure = min(max(duration_ms, 0) / timeout_ms, 1.0)
+    if pressure <= onset_fraction:
+        return 0.0
+    return min((pressure - onset_fraction) / (1.0 - onset_fraction), 1.0)
+
+
+def _elapsed_penalty_factor(
+    durations_ms: Sequence[int],
+    *,
+    timeout_ms: float,
+    onset_fraction: float,
+    max_penalty_fraction: float,
+) -> float:
+    """Multiplicative confidence factor in
+    `[1 - max_penalty_fraction, 1]`: the mean excess pressure over all
+    checks scales the maximum haircut. No data -> 1.0 (absence of timing
+    evidence never moves a verdict)."""
+    if not durations_ms:
+        return 1.0
+    pressures = [
+        _excess_elapsed_pressure(
+            item, timeout_ms=timeout_ms, onset_fraction=onset_fraction
+        )
+        for item in durations_ms
+    ]
+    mean_excess = sum(pressures) / len(pressures)
+    return 1.0 - max_penalty_fraction * mean_excess
 
 
 def _run_request_hash(
@@ -183,6 +277,7 @@ class VerificationRunnerService:
         worker_events: WorkerEventRepository | None = None,
         attribution: FailureAttributionService | None = None,
         telemetry: RoutingTelemetryService | None = None,
+        flaky_quarantine: FlakyQuarantineService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -201,6 +296,11 @@ class VerificationRunnerService:
         )
         self._telemetry = telemetry or RoutingTelemetryService(
             engine, events=self._events
+        )
+        # Adoption #7 wiring: the runner owns flaky detection (Chapter
+        # 3.6: verification owns the surface a flaky check pollutes).
+        self._flaky_quarantine = flaky_quarantine or FlakyQuarantineService(
+            engine, events=self._events, clock=self._clock
         )
 
     async def _run_uow(
@@ -392,6 +492,7 @@ class VerificationRunnerService:
                 minimum_confidence=oracle.minimum_confidence,
                 guardrail=guardrail,
                 prototype_check=prototype_check,
+                check_durations_ms=[item.duration_ms for item in check_results],
             )
             ended_at = self._clock.now()
             next_status = transition(run.status, status, VERIFICATION_RUN_TRANSITIONS)
@@ -454,6 +555,15 @@ class VerificationRunnerService:
                     verification_run=finished,
                     rework_count=rework_count,
                     recovery_decision=None,
+                    uow=active,
+                )
+                # Adoption #7: every terminal run refreshes flaky
+                # detection, in the same transaction as the run's own
+                # terminal write. A newly alternating check ref is durably
+                # quarantined here -- never retried into green.
+                await self._flaky_quarantine.refresh_quarantines(
+                    task=task,
+                    runs=prior,
                     uow=active,
                 )
             elif next_status == "PARTIAL" and (
@@ -546,22 +656,61 @@ class VerificationRunnerService:
                     failure_attribution_id=attribution.attribution_id,
                     uow=active,
                 )
-                await self._events.append(
-                    tenant_id=tenant_id,
-                    project_id=project_id,
-                    event_type="VerificationFailureRecovery",
-                    aggregate_type="verification_run",
-                    aggregate_id=finished.verification_run_id,
-                    mission_id=task.mission_id,
-                    task_id=task.task_id,
-                    payload={
-                        "action": decision.action,
-                        "requires_replan": decision.requires_replan,
-                        "allow_new_worker_run": decision.allow_new_worker_run,
-                        "occurrence_count": count,
-                    },
+                # Adoption #7 two-tier gate: a quarantined ref's failure
+                # does not escalate recovery while the cadence says wait;
+                # on an Nth-run/interval re-entry (or for never-quarantined
+                # refs) the plain VERIFICATION_FAILURE row applies.
+                # `count` includes the current run, so the Nth-run cadence
+                # fires exactly when THIS failure is the Nth terminal run
+                # since detection -- tier two is a real, evaluated gate,
+                # not a permanent amnesty. Detection refresh runs in the
+                # same transaction as the FAILED write either way.
+                deferred_refs = await self._flaky_quarantine.deferred_failure_refs(
+                    task=task,
+                    runs=prior,
+                    failed_check_refs=self._failed_check_refs(finished),
                     uow=active,
                 )
+                await self._flaky_quarantine.refresh_quarantines(
+                    task=task, runs=prior, uow=active
+                )
+                if deferred_refs:
+                    await self._events.append(
+                        tenant_id=tenant_id,
+                        project_id=project_id,
+                        event_type="VerificationFailureRecovery",
+                        aggregate_type="verification_run",
+                        aggregate_id=finished.verification_run_id,
+                        mission_id=task.mission_id,
+                        task_id=task.task_id,
+                        payload={
+                            "action": "deferred_flaky_quarantine",
+                            "requires_replan": False,
+                            "allow_new_worker_run": True,
+                            "failure_class": "VERIFICATION_FAILURE",
+                            "occurrence_count": count,
+                            "source": "flaky_quarantine_tier_one",
+                            "deferred_check_refs": sorted(deferred_refs),
+                        },
+                        uow=active,
+                    )
+                else:
+                    await self._events.append(
+                        tenant_id=tenant_id,
+                        project_id=project_id,
+                        event_type="VerificationFailureRecovery",
+                        aggregate_type="verification_run",
+                        aggregate_id=finished.verification_run_id,
+                        mission_id=task.mission_id,
+                        task_id=task.task_id,
+                        payload={
+                            "action": decision.action,
+                            "requires_replan": decision.requires_replan,
+                            "allow_new_worker_run": decision.allow_new_worker_run,
+                            "occurrence_count": count,
+                        },
+                        uow=active,
+                    )
             await self._commands.complete(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -879,6 +1028,15 @@ class VerificationRunnerService:
             raise DdeError("POLICY_DENIED", "Unknown verification run")
         return record
 
+    @staticmethod
+    def _failed_check_refs(run: VerificationRun) -> list[str]:
+        """Check refs this run's captured results actually failed."""
+        return [
+            result.check_ref
+            for result in run.check_results
+            if result.status == "FAILED"
+        ]
+
 
 def _evaluate(
     *,
@@ -887,6 +1045,8 @@ def _evaluate(
     minimum_confidence: float,
     guardrail: TestScopeAssessment | None = None,
     prototype_check: PrototypeAssessment | None = None,
+    check_durations_ms: Sequence[int] | None = None,
+    timeout_ms: float = CHECK_TIMEOUT_MS,
 ) -> tuple[str, float]:
     """The AcceptanceOracle's own judgment (Chapter 11.1: "AcceptanceOracle
     evaluation"), operating purely on already-collected evidence status --
@@ -895,6 +1055,34 @@ def _evaluate(
     confidence to clear `minimum_confidence`; a single `ERRORED` check means
     the oracle cannot render any verdict at all (a check that could not run
     proves nothing, in either direction).
+
+    Confidence bands (deterministic, load-independent; downstream
+    `RecoveryService.assert_clear_to_retry` -> `recovery.matrix.decide`
+    reads only failure-class strings and Chapter 6.5 telemetry admits only
+    PASSED/FAILED, so these bands are the whole PARTIAL contract):
+
+    - 1.0 -- certified pass. Every check PASSED (negative cases FAILED as
+      expected), no guardrail/prototype violation, confidence clears
+      `minimum_confidence`. The elapsed control below can NEVER touch this
+      value: certification is exact.
+    - 0.0 -- every check failed: near-certain product truth is false.
+    - (0.0, 1.0) -- PARTIAL, graded by construction:
+      - high-water (> 0.5): majority of outcomes hold; behaves near-pass
+        for any human reading of repair scope.
+      - low-water (< 0.5): minority hold; behaves near-fail.
+      - exactly 0.5 is the boundary, deliberately left uninterpreted.
+
+    Elapsed control (degrade-only, mechanical): each check's real
+    `duration_ms` pressure against `timeout_ms` starts at
+    `ELAPSED_DEGRADE_ONSET_FRACTION` of the deadline and grows linearly to
+    full pressure AT the deadline; the mean excess pressure across checks
+    scales a haircut of at most `ELAPSED_PENALTY_MAX_FRACTION` off the raw
+    ratio. The penalty applies ONLY inside the PARTIAL band -- it can
+    deepen a mid-band value toward 0 but can never demote a would-be
+    PASSED verdict or lift anything out of FAILED, mirroring the
+    guardrail's rule that findings never improve a worker's result.
+    Durations are optional (`None`: factor 1.0) so absence of timing data
+    leaves every existing verdict and value bit-identical.
 
     Self-grading guardrail: when the pre-oracle sweep recorded a harness-
     gaming violation (undeclared test edits / shadowed expected-test
@@ -908,13 +1096,20 @@ def _evaluate(
     if any(item.status == "ERRORED" for item in all_results):
         return "ERRORED", 0.0
     passed = sum(1 for item in all_results if item.status == "PASSED")
-    confidence = passed / len(all_results)
-    if confidence == 1.0 and confidence >= minimum_confidence:
+    raw_ratio = passed / len(all_results)
+    if raw_ratio == 1.0 and raw_ratio >= minimum_confidence:
         if guardrail is not None and guardrail.violations:
-            return "PARTIAL", confidence
+            return "PARTIAL", raw_ratio
         if prototype_check is not None and prototype_check.violations:
-            return "PARTIAL", confidence
-        return "PASSED", confidence
-    if confidence == 0.0:
-        return "FAILED", confidence
-    return "PARTIAL", confidence
+            return "PARTIAL", raw_ratio
+        return "PASSED", raw_ratio
+    if raw_ratio == 0.0:
+        return "FAILED", raw_ratio
+    # Mid band only: degrade-only erosion of the persisted confidence.
+    factor = _elapsed_penalty_factor(
+        check_durations_ms or [],
+        timeout_ms=timeout_ms,
+        onset_fraction=ELAPSED_DEGRADE_ONSET_FRACTION,
+        max_penalty_fraction=ELAPSED_PENALTY_MAX_FRACTION,
+    )
+    return "PARTIAL", min(raw_ratio * factor, raw_ratio)

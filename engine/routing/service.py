@@ -50,10 +50,19 @@ from engine.core.clock import Clock, SystemClock
 from engine.core.ids import uuid7
 from engine.events.service import EventService
 from engine.routing.hashing import decision_hash
+from engine.routing.health import (
+    compute_model_health,
+    health_samples_from_outcomes,
+    thresholds_from_policy_overrides,
+)
 from engine.routing.policy import POLICY_VERSION, escalation_plan_json
 from engine.routing.registry import resolve_model_selection
 from engine.routing.repository import RouteDecisionRepository
-from engine.routing.rules import evaluate
+from engine.routing.rules import (
+    HEALTH_EVICTED_REASON_CODE,
+    evaluate,
+)
+from engine.telemetry.repository import RoutingDecisionOutcomeRepository
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
 T = TypeVar("T")
@@ -74,11 +83,17 @@ class RouterService:
         events: EventService | None = None,
         repository: RouteDecisionRepository | None = None,
         clock: Clock | None = None,
+        outcomes: RoutingDecisionOutcomeRepository | None = None,
+        health_policy_overrides: Mapping[str, object] | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
         self._repository = repository or RouteDecisionRepository()
         self._clock = clock or SystemClock()
+        self._outcomes = outcomes or RoutingDecisionOutcomeRepository()
+        self._health_thresholds = thresholds_from_policy_overrides(
+            health_policy_overrides
+        )
 
     async def _run(
         self,
@@ -124,7 +139,17 @@ class RouterService:
         pre-selection behaviour. The selection only annotates surviving
         candidates with the declared model a harness profile would call —
         it never changes gate outcomes, and no live provider call is made
-        (adapters fail-closed pending broker credentials, EDR-0001 Path B)."""
+        (adapters fail-closed pending broker credentials, EDR-0001 Path B).
+
+        Health-based eviction (adoption #4): before evaluating, the most
+        recent recorded `routing_decision_outcomes` (Chapter 6.5) are read
+        and reduced to a per-profile rolling health verdict. Profiles
+        breaching the failure-rate threshold are hard-eliminated at gate 5
+        and the selection falls through to the next `prefer[]` entry; the
+        eviction is recorded as a typed `HEALTH_EVICTED:<profiles>` reason
+        code on the decision and a `ModelHealthEvicted` event. The window
+        self-clears as healthy outcomes accumulate, so expiry needs no
+        policy edit."""
         tenant_id = task.tenant_id
         project_id = task.project_id
         mission_id = task.mission_id
@@ -137,6 +162,14 @@ class RouterService:
         )
 
         async def _op(active: PostgresUnitOfWork) -> RouteDecision:
+            recent = await self._outcomes.list_recent_with_selected_profiles(
+                active.connection
+            )
+            health_report = compute_model_health(
+                health_samples_from_outcomes(recent),
+                thresholds=self._health_thresholds,
+            )
+            health_evicted_profiles = health_report.unhealthy_profiles()
             result = evaluate(
                 task,
                 workload_class=workload_class,
@@ -145,10 +178,16 @@ class RouterService:
                 routing_environment_class=routing_environment_class,
                 approval_satisfied=approval_satisfied,
                 model_selection=selection_directive,
+                health_evicted_profiles=health_evicted_profiles,
             )
             candidates_json = [candidate.to_json() for candidate in result.candidates]
             required_capabilities = list(result.required_capabilities)
             reason_codes = list(result.reason_codes)
+            if health_evicted_profiles:
+                reason_codes.append(
+                    f"{HEALTH_EVICTED_REASON_CODE}:"
+                    + ",".join(sorted(health_evicted_profiles))
+                )
             fallback_plan = [dict(entry) for entry in result.fallback_plan]
             escalation_plan = escalation_plan_json()
             digest = decision_hash(
@@ -195,6 +234,28 @@ class RouterService:
                 updated_at=now,
             )
             await self._repository.insert_route_decision(active.connection, decision)
+            if health_evicted_profiles:
+                # One event per evicted profile: aggregate_id is a UUID
+                # column (Chapter 3.7), so the profile id rides in payload.
+                for profile_id in sorted(health_evicted_profiles):
+                    await self._events.append(
+                        tenant_id=tenant_id,
+                        project_id=project_id,
+                        event_type="ModelHealthEvicted",
+                        aggregate_type="worker_profile",
+                        aggregate_id=uuid7(),
+                        mission_id=mission_id,
+                        task_id=task.task_id,
+                        payload={
+                            "evicted_worker_profile_id": profile_id,
+                            "evicted_worker_profile_ids": sorted(
+                                health_evicted_profiles
+                            ),
+                            "route_decision_id": str(decision.decision_id),
+                            "reason_code": HEALTH_EVICTED_REASON_CODE,
+                        },
+                        uow=active,
+                    )
             await self._events.append(
                 tenant_id=tenant_id,
                 project_id=project_id,

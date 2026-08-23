@@ -62,6 +62,15 @@ GATE_WORKER_ELIGIBILITY = 3
 GATE_ENVIRONMENT_COMPATIBILITY = 4
 GATE_CAPACITY_AVAILABILITY = 5
 
+#: Health-based eviction (adoption #4): a profile whose rolling failure
+#: rate over recorded `routing_decision_outcomes` breaches its threshold
+#: is removed at Chapter 6.1's gate 5 -- hard-elimination semantics,
+#: "removed, not penalised". Expiry is automatic: once recent outcomes no
+#: longer breach the threshold, the window clears itself and the profile
+#: becomes eligible again without any policy edit.
+HEALTH_EVICTED_REASON_CODE = "HEALTH_EVICTED"
+
+
 #: Chapter 6.1 gate-5 note's development-only degraded default: the
 #: general-implementation profile is the declared fallback when no legal
 #: candidate survives in a non-production environment class and the caller
@@ -155,6 +164,7 @@ def _evaluate_candidate(
     certification_status: str | None = None,
     allow_stale: bool = True,
     capacity_blocked: bool = False,
+    health_evicted: bool = False,
 ) -> tuple[GateResult, ...]:
     profile = PROFILES[profile_id]
     results: list[GateResult] = []
@@ -286,6 +296,16 @@ def _evaluate_candidate(
             )
         )
         return tuple(results)
+    if health_evicted:
+        results.append(
+            GateResult(
+                GATE_CAPACITY_AVAILABILITY,
+                "capacity_availability",
+                False,
+                HEALTH_EVICTED_REASON_CODE,
+            )
+        )
+        return tuple(results)
     results.append(
         GateResult(
             GATE_CAPACITY_AVAILABILITY,
@@ -310,6 +330,7 @@ def evaluate(
     enable_mission_affinity: bool = False,
     last_selected_profile_id: str | None = None,
     capacity_blocked_profiles: frozenset[str] | None = None,
+    health_evicted_profiles: frozenset[str] | None = None,
     model_selection: ModelSelectionDirective | None = None,
 ) -> RoutingResult:
     """Run every registered profile through Chapter 6.1's gates 0-5 for
@@ -336,6 +357,11 @@ def evaluate(
       affinity never reorders survivors.
     - `capacity_blocked_profiles`: optional gate-5 capacity signal for tests
       or future Worker Manager integration.
+    - `health_evicted_profiles` (adoption #4): profiles whose recorded
+      outcome health breached its threshold. Each is hard-eliminated at
+      gate 5 with a `HEALTH_EVICTED` reason code and the selection falls
+      through to the next `prefer[]` entry -- the policy table itself is
+      the fallback chain, walked once in declared order, never looping.
     - `model_selection` (§6.2/6.3, Appendix A harnesses; provider-agnostic):
       a resolved `ModelSelectionDirective` from
       `engine.routing.registry.resolve_model_selection`. Pinned (fixed) mode
@@ -360,6 +386,7 @@ def evaluate(
     survivor_ids: list[str] = []
     allow_stale = routing_environment_class == "development"
     blocked = capacity_blocked_profiles or frozenset()
+    evicted = health_evicted_profiles or frozenset()
     for profile_id in sorted(PROFILES):
         status = (
             None
@@ -380,6 +407,7 @@ def evaluate(
             certification_status=status,
             allow_stale=allow_stale,
             capacity_blocked=profile_id in blocked,
+            health_evicted=profile_id in evicted,
         )
         eliminated_at = None if gate_results[-1].passed else gate_results[-1].gate
         if eliminated_at is None:
@@ -402,6 +430,11 @@ def evaluate(
     capacity_class_zero_survivors = not survivor_ids and any(
         evaluation.eliminated_at_gate == GATE_CAPACITY_AVAILABILITY
         and evaluation.gate_results[-1].reason_code in CAPACITY_UNAVAILABLE_REASONS
+        for evaluation in evaluations
+    )
+    health_class_zero_survivors = not survivor_ids and any(
+        evaluation.eliminated_at_gate == GATE_CAPACITY_AVAILABILITY
+        and evaluation.gate_results[-1].reason_code == HEALTH_EVICTED_REASON_CODE
         for evaluation in evaluations
     )
 
@@ -427,12 +460,15 @@ def evaluate(
         and routing_environment_class == "development"
         and not hard_gate_denied
         and capacity_class_zero_survivors
+        and not health_class_zero_survivors
         and DEGRADED_DEFAULT_PROFILE_ID in PROFILES
     ):
         # Chapter 6.1 gate-5 note: degrade to the declared default rather
         # than escalating when routing has no legal candidate in a
         # development environment class. Hard-gate denials are excluded:
-        # they are governance outcomes, not availability failures.
+        # they are governance outcomes, not availability failures. A
+        # health-driven wipeout is likewise excluded -- degrading into a
+        # profile the evidence just evicted would defeat the eviction.
         selected_profile_id = DEGRADED_DEFAULT_PROFILE_ID
         reason_codes.append("DEGRADED_DEFAULT_APPLIED")
         reason_codes.append(f"SELECTED:{selected_profile_id}")
