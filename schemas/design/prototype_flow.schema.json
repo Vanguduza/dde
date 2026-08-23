@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/design/prototype_flow.json",
+  "title": "PrototypeFlow",
+  "description": "Frontend/UX playbook section 5: contract for a mission workspace's prototypes/flows.json manifest, linking self-contained prototype screens into named flows. A workspace's prototypes/ directory is validated against this during WorkerRun verification; every transition target must exist and every animated declaration must reference motion tokens. Authoritative form is this schema, not the playbook snippet.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "flows"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "screens": {
+      "type": "array",
+      "description": "Declared screens x states. Every file listed must exist under prototypes/screens/.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "surface", "state"],
+        "properties": {
+          "file": { "type": "string", "pattern": "^[A-Za-z0-9._-]+\\.html$" },
+          "surface": { "type": "string", "minLength": 1 },
+          "state": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "description": "Local assets embedded by reference. Self-contained pages may not reference network URLs.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "path"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["svg", "png", "font", "other"] },
+          "path": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Self-contained HTML constraints (playbook 5.1a): no framework, no CDN, no build step; token variables only in inline style.",
+      "required": ["selfContained", "tokenizedStyles"],
+      "properties": {
+        "selfContained": { "type": "boolean" },
+        "tokenizedStyles": { "type": "boolean" },
+        "sampleDataMarked": { "type": "boolean" },
+        "reducedMotionVariants": { "type": "boolean" }
+      }
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "entry", "steps"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "minLength": 1
+          },
+          "entry": { "type": "string", "pattern": "^[A-Za-z0-9._-]+\\.html$" },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["from", "on", "to"],
+              "properties": {
+                "from": { "type": "string", "pattern": "^[A-Za-z0-9._-]+\\.html$" },
+                "on": {
+                  "type": "string",
+                  "description": "Trigger: click target selector inside the source screen.",
+                  "minLength": 1
+                },
+                "to": { "type": "string", "pattern": "^[A-Za-z0-9._-]+\\.html$" },
+                "animation": { "$ref": "#/$defs/AnimationRef" },
+                "stateAnnotation": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "AnimationRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tokenized motion only: durations/easings are token names from schemas/design/tokens.json, never literals.",
+      "required": ["durationToken", "easingToken"],
+      "properties": {
+        "durationToken": {
+          "type": "string",
+          "enum": ["motion-duration-fast", "motion-duration-base", "motion-duration-slow"]
+        },
+        "easingToken": {
+          "type": "string",
+          "enum": [
+            "motion-easing-arrival",
+            "motion-easing-state",
+            "motion-easing-linear"
+          ]
+        },
+        "reducedMotionVariant": { "type": "boolean" },
+        "boundedLoopMs": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 2000
+        }
+      }
+    }
+  }
+}
