@@ -46,22 +46,44 @@ function emptyTableCell(cols: number, text = "—"): string {
 const UNAVAILABLE = "Unavailable";
 
 /**
- * Factual tooltip for controls whose engine surface is not callable yet.
- * Honesty law: the UI states what is missing, never a fake success state.
+ * Factual tooltip for the batch-approve affordance: the WRITE half is live
+ * (`approval.batch_decide` on POST /v1/commands), but no Gateway READ
+ * surface enumerates pending approvals yet, so the client has no ids to
+ * select and cannot enable these controls from real state.
  */
-const ENGINE_SURFACE_PENDING = "engine surface pending";
+const APPROVALS_READ_PENDING = "approvals read surface pending";
+
+export interface ApprovalsBatchControls {
+  /**
+   * True only when a live Gateway session with `approval.decide` scope
+   * exists AND pending approvals are known (from a read surface). The
+   * default render stays disabled because that read surface does not
+   * exist yet; this flag must be fed by real session/read state, never
+   * assumed.
+   */
+  batchApproveEnabled?: boolean;
+}
 
 /**
  * Batch-approve affordance (wave-2d, research #10 client half).
  *
- * The engine surface (`batch_approve`, being landed on engine/governance)
- * is not resolvable from this build yet, so every control renders disabled
- * with the factual tooltip above. When the surface lands, wire it at:
+ * Engine side is live: `approval.batch_decide` accepts
+ * `{approval_ids, scope_hashes, decision, rationale, human_minutes}` on
+ * POST /v1/commands (Chapter 13.1 amendment) and Studio's gateway service
+ * can send it. What is still missing is the READ side — there is no
+ * endpoint listing pending approvals — so until one lands the controls
+ * render disabled naming exactly that gap. When a read surface exists,
+ * pass `batchApproveEnabled` from verified session + row state and wire:
  *   shared/ui/panels.ts approvalsBody() → data-cmd="batchApprove"
  *   → src/webviews/providers.ts StudioMessage union
- *   → src/extension.ts handleMessage → StudioGatewayService.sendCommand.
+ *   → src/extension.ts handleMessage → StudioGatewayService.sendBatchApprove.
  */
-function approvalsBody(module: ModuleDescriptor): string {
+function approvalsBody(
+  module: ModuleDescriptor,
+  controls: ApprovalsBatchControls = {},
+): string {
+  const enabled = controls.batchApproveEnabled === true;
+  const attr = enabled ? "" : "disabled aria-disabled=\"true\"";
   return `
   ${header(module)}
 
@@ -78,12 +100,12 @@ function approvalsBody(module: ModuleDescriptor): string {
     </table>
     <div class="row" role="group" aria-label="Batch actions">
       <label class="batch-select-all">
-        <input type="checkbox" data-batch="select-all" disabled aria-disabled="true"
-          title="${ENGINE_SURFACE_PENDING}" />
+        <input type="checkbox" data-batch="select-all" ${attr}
+          title="${APPROVALS_READ_PENDING}" />
         Select all
       </label>
-      <button type="button" class="secondary" data-cmd="batchApprove" disabled
-        title="${ENGINE_SURFACE_PENDING}">Approve selected</button>
+      <button type="button" class="secondary" data-cmd="batchApprove" ${attr}
+        title="${APPROVALS_READ_PENDING}">Approve selected</button>
       <span class="muted batch-count" data-batch="count">0 selected</span>
     </div>
   </div>
@@ -463,7 +485,7 @@ export function morningReviewHtml(): string {
 
 const BODY_BY_ID: Record<
   Exclude<ModuleId, "dde-core-ui" | "dde-workers">,
-  (m: ModuleDescriptor) => string
+  (m: ModuleDescriptor, controls: ApprovalsBatchControls) => string
 > = {
   "dde-mission": missionBody,
   "dde-integration": integrationBody,
@@ -480,7 +502,10 @@ const BODY_BY_ID: Record<
 };
 
 /** Rich panel for a sidebar stub module; falls back to generic empty shell. */
-export function modulePanelHtml(module: ModuleDescriptor): string {
+export function modulePanelHtml(
+  module: ModuleDescriptor,
+  controls: ApprovalsBatchControls = {},
+): string {
   if (module.id === "dde-core-ui" || module.id === "dde-workers") {
     return pageShell(module.title, `${header(module)}`);
   }
@@ -489,5 +514,5 @@ export function modulePanelHtml(module: ModuleDescriptor): string {
   if (module.id === "dde-approvals") {
     extra += BATCH_STYLES;
   }
-  return pageShell(module.title, build(module), extra);
+  return pageShell(module.title, build(module, controls), extra);
 }

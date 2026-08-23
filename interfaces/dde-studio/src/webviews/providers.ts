@@ -44,7 +44,8 @@ export type StudioMessage =
   | { type: "resumeMission" }
   | { type: "cancelMission" }
   | { type: "approve" }
-  | { type: "reject" };
+  | { type: "reject" }
+  | { type: "batchApprove"; ids?: string[] };
 
 export class OverviewViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dde.studio.overview";

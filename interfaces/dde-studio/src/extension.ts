@@ -448,6 +448,52 @@ export function activate(context: vscode.ExtensionContext): void {
       case "openIntegration":
         await vscode.commands.executeCommand("dde.studio.integration.focus");
         break;
+      case "batchApprove": {
+        // No Gateway read surface enumerates pending approvals yet, so
+        // real selection ids never arrive today; without them there is
+        // nothing truthful to send, and the control stays disabled.
+        const ids = msg.ids ?? [];
+        if (ids.length === 0) {
+          break;
+        }
+        if (!gatewayService) {
+          void vscode.window.showErrorMessage(
+            "DDE batch approve needs a live Gateway session (set dde.studio.principalId).",
+          );
+          break;
+        }
+        const projectId = String(
+          vscode.workspace.getConfiguration(CONFIG_SECTION).get("projectId") ?? "",
+        );
+        // scope_hashes must be parallel to approval_ids per the engine
+        // contract; until an approvals read surface supplies them, the
+        // service refuses the call instead of guessing values.
+        const result = await gatewayService.sendBatchApprove(projectId, ids, {
+          scopeHashes: [],
+          rationale: `Batch decide from DDE Studio (${ids.length} approval${ids.length === 1 ? "" : "s"}).`,
+        });
+        if (!result.ok || !result.acceptance) {
+          void vscode.window.showErrorMessage(
+            `DDE batch approve failed: ${result.reason ?? "unknown error"}`,
+          );
+          break;
+        }
+        // Chapter 15.1: acceptance (202) is not completion — worded as such.
+        if (result.acceptance.status === "accepted") {
+          void vscode.window.showInformationMessage(
+            `DDE batch approve accepted by Gateway for ${ids.length} approval${ids.length === 1 ? "" : "s"}; decisions are applied asynchronously.`,
+          );
+        } else if (result.acceptance.status === "completed") {
+          void vscode.window.showInformationMessage(
+            `DDE batch approve completed for ${ids.length} approval${ids.length === 1 ? "" : "s"}.`,
+          );
+        } else {
+          void vscode.window.showErrorMessage(
+            `DDE batch approve returned status "${result.acceptance.status}".`,
+          );
+        }
+        break;
+      }
       case "startMission":
       case "pauseMission":
       case "resumeMission":

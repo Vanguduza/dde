@@ -185,11 +185,95 @@ export class StudioGatewayService {
     }
   }
 
+  /**
+   * Accept `approval.batch_decide` for a set of pending approvals
+   * (Chapter 13.1 amendment on POST /v1/commands). The engine requires
+   * scope_hashes parallel to approval_ids and rejects an empty batch or
+   * mismatched lists with POLICY_DENIED, so the caller supplies the hash
+   * list it read from the approvals surface; nothing is guessed here.
+   * The session does not carry project_id, so it must be given — a
+   * non-UUID projectId fails fast instead of addressing a fabricated
+   * target. Acceptance is 202 only; it never implies the decisions are
+   * applied yet.
+   */
+  async sendBatchApprove(
+    projectId: string,
+    approvalIds: string[],
+    opts: {
+      scopeHashes: string[];
+      rationale: string;
+      humanMinutes?: number;
+    },
+  ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
+    if (!isUuid(projectId.trim())) {
+      return {
+        ok: false,
+        reason:
+          "batch approve needs the DDE project UUID (no project_id exists in the Gateway session); set dde.studio.projectId",
+      };
+    }
+    if (approvalIds.length === 0 || approvalIds.some((id) => !isUuid(id.trim()))) {
+      return { ok: false, reason: "batch approve needs at least one approval UUID" };
+    }
+    if (
+      opts.scopeHashes.length !== approvalIds.length ||
+      opts.scopeHashes.some((h) => typeof h !== "string" || h.length === 0)
+    ) {
+      return {
+        ok: false,
+        reason: "scopeHashes must be parallel to approvalIds (one per approval)",
+      };
+    }
+    const parameters: Record<string, unknown> = {
+      approval_ids: approvalIds.map((id) => id.trim()),
+      scope_hashes: opts.scopeHashes,
+      decision: "APPROVED",
+      rationale: opts.rationale,
+    };
+    if (typeof opts.humanMinutes === "number" && Number.isInteger(opts.humanMinutes)) {
+      parameters.human_minutes = opts.humanMinutes;
+    }
+    const state = await this.state();
+    if (state.kind !== "ready" || !this.session) {
+      return {
+        ok: false,
+        reason:
+          state.kind === "ready"
+            ? "session not open yet"
+            : (state as { reason: string }).reason,
+      };
+    }
+    try {
+      const acceptance = await this.client!.acceptCommand({
+        commandId: randomUUID(),
+        idempotencyKey: `approval.batch:${randomUUID()}`,
+        principalId: this.principalId,
+        clientSessionId: this.session.session_id,
+        targetType: "project",
+        targetId: projectId.trim(),
+        commandType: "approval.batch_decide",
+        parameters,
+      });
+      return { ok: true, acceptance };
+    } catch (err) {
+      if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
+        this.session = null;
+      }
+      return { ok: false, reason: describe(err) };
+    }
+  }
+
   private async open(): Promise<void> {
     const session = await this.client!.openSession({
       principalId: this.principalId,
       clientType: this.clientType,
-      scopes: ["mission.read", "mission.create", "mission.control"],
+      scopes: [
+        "mission.read",
+        "mission.create",
+        "mission.control",
+        "approval.read",
+        "approval.decide",
+      ],
       subscriptions: ["mission"],
     });
     this.session = session;

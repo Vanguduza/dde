@@ -30,6 +30,7 @@ import {
 
 import { readConnection, ConnectionConfigError } from "./settings";
 import { claudeCodeAuthBannerHtml, CLAUDE_CODE_DOCS_AUTH } from "./claudeAuth";
+import { messageBridgeScript } from "./ui/base";
 
 import {
 
@@ -67,9 +68,76 @@ import type { AuthState } from "./authTypes";
 
 
 
-/** Phrases that must not appear as user-visible helper / tutorial copy. */
+/** Tiny DOM stub sufficient to execute messageBridgeScript() in node. */
 
-const FORBIDDEN_HELPER = [
+interface BridgeElementStub {
+
+  getAttribute(name: string): string | null;
+
+  addEventListener(type: string, handler: (event?: unknown) => void): void;
+
+}
+
+
+
+function bridgeWindow(): {
+
+  window: Record<string, unknown>;
+
+  document: { querySelectorAll(sel: string): BridgeElementStub[]; elements: BridgeElementStub[] };
+
+  posted: Array<Record<string, unknown>>;
+
+  handlers: Array<(event?: unknown) => void>;
+
+} {
+
+  const posted: Array<Record<string, unknown>> = [];
+
+  const handlers: Array<(event?: unknown) => void> = [];
+
+  const document = {
+
+    elements: [] as BridgeElementStub[],
+
+    querySelectorAll(_sel: string) {
+
+      return this.elements;
+
+    },
+
+  };
+
+  const window: Record<string, unknown> = {
+
+    document,
+
+    ddeDesktop: { postMessage: (m: Record<string, unknown>) => posted.push(m) },
+
+  };
+
+  return { window, document, posted, handlers };
+
+}
+
+
+
+function runBridge(window: Record<string, unknown>): void {
+
+  // The bridge is emitted as inline script text; evaluating it here keeps
+
+  // the contract test client-local with a minimal DOM stub.
+
+  const fn = new Function("window", "document", "JSON", messageBridgeScript());
+
+  fn(window, window.document, JSON);
+
+}
+
+
+
+
+/** Phrases that must not appear as user-visible helper / tutorial copy. */const FORBIDDEN_HELPER = [
 
   /Blocked on Gateway/i,
 
@@ -781,7 +849,7 @@ describe("html honesty and panel structure", () => {
 
   });
 
-  it("approvals batch affordance is disabled until engine surface resolves", () => {
+  it("approvals batch affordance is disabled until approvals read surface exists", () => {
 
     const html = modulePanelHtml(moduleById("dde-approvals")!);
 
@@ -793,15 +861,37 @@ describe("html honesty and panel structure", () => {
 
       html,
 
-      /disabled[^>]*title="engine surface pending"[^>]*>Approve selected</,
+      /disabled[^>]*title="approvals read surface pending"[^>]*>Approve selected</,
 
     );
+
+    // Engine write surface is live; only the read side is missing. The
+    // panel must not claim otherwise.
+
+    assert.doesNotMatch(html, /engine surface pending/);
 
     assert.match(html, /data-batch="select-all"/);
 
     assert.match(html, /data-batch="count"/);
 
     assert.match(html, /0 selected/);
+
+    // Prop-driven enablement defaults to disabled; no caller passes a
+    // flag today because no read surface can populate real selections.
+
+    const enabledHtml = modulePanelHtml(moduleById("dde-approvals")!, {
+
+      batchApproveEnabled: true,
+
+    });
+
+    assert.doesNotMatch(
+
+      enabledHtml,
+
+      /data-cmd="batchApprove"[^>]*disabled/,
+
+    );
 
     // No fabricated success state: nothing claims an approval happened.
 
@@ -810,6 +900,90 @@ describe("html honesty and panel structure", () => {
     assertNoHelperCopy(html, "approvals batch");
 
   });
+
+
+
+describe("messageBridgeScript batch ids", () => {
+
+  it("posts ids parsed from data-batch-ids", async () => {
+
+    const { window, document, posted, handlers } = bridgeWindow();
+
+    document.elements.push({
+
+      getAttribute(name: string) {
+
+        if (name === "data-cmd") return "batchApprove";
+
+        if (name === "data-batch-ids") {
+
+          return JSON.stringify(["0f0e0d0c-1111-4222-8333-444455556666"]);
+
+        }
+
+        return null;
+
+      },
+
+      addEventListener(_type: string, handler: () => void) {
+
+        handlers.push(handler);
+
+      },
+
+    } as unknown as BridgeElementStub);
+
+    runBridge(window);
+
+    await handlers[0]();
+
+    assert.equal(posted.length, 1);
+
+    assert.equal(posted[0].type, "batchApprove");
+
+    assert.deepEqual(posted[0].ids, [
+
+      "0f0e0d0c-1111-4222-8333-444455556666",
+
+    ]);
+
+  });
+
+
+
+  it("ignores malformed data-batch-ids instead of posting", async () => {
+
+    const { window, document, posted, handlers } = bridgeWindow();
+
+    document.elements.push({
+
+      getAttribute(name: string) {
+
+        if (name === "data-cmd") return "batchApprove";
+
+        if (name === "data-batch-ids") return "{not json";
+
+        return null;
+
+      },
+
+      addEventListener(_type: string, handler: () => void) {
+
+        handlers.push(handler);
+
+      },
+
+    } as unknown as BridgeElementStub);
+
+    runBridge(window);
+
+    await handlers[0]();
+
+    assert.deepEqual(posted, []);
+
+  });
+
+});
 
 
 

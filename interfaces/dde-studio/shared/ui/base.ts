@@ -14,6 +14,16 @@ export function messageBridgeScript(): string {
         const msg = { type: el.getAttribute("data-cmd") };
         const harness = el.getAttribute("data-harness");
         if (harness) msg.harness = harness;
+        // Batch controls report their selected rows; malformed payloads
+        // are ignored rather than posted as a partial batch.
+        const batchIds = el.getAttribute("data-batch-ids");
+        if (batchIds) {
+          try {
+            msg.ids = JSON.parse(batchIds);
+          } catch {
+            return;
+          }
+        }
         api.postMessage(msg);
       });
     });
