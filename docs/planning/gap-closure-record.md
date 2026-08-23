@@ -153,3 +153,50 @@ is admitted but not landed, and will be recorded when its missions land.
 - The Preview module moved from stub to exists-with-honest-liveToday; the
   honesty tests still forbid fabricated gallery rows.
 
+## 6. Open items with explicit closure triggers (2026-08-23)
+
+Recorded so the next mission chain sees not just WHAT is open but exactly
+WHEN each item must be picked up. Per AGENTS.md these stay open until their
+trigger fires; do not improvise them early, and do not silently drop them.
+
+### 6.1 Usage-meter ingestion — trigger: first usage-forwarding harness adapter
+
+The engine half is LANDED (`035d5bb`): `engine/workers/usage.py` derives
+remaining budget from `execution_plans.token_budget` minus summed
+`WorkerRunUsageReported` event payloads; `WorkerManagerService.
+record_run_usage` is public, ledger-guarded and tested. What does NOT exist
+is any producer: `ScriptedWorkerAdapter.collect_usage` /
+`ClaudeCodeWorkerAdapter.collect_usage` honestly return zero (EDR-0001
+Finding 3) and no live adapter forwards real provider usage today.
+
+**Trigger:** the FIRST mission that certifies a worker/harness adapter
+capable of reporting real provider token usage MUST call
+`record_run_usage` from its ingestion path as an acceptance criterion.
+That mission closes this item and EDR-0005's Finding-3 hole together.
+Until then, building a producer would fabricate data — forbidden.
+
+### 6.2 Independent chapter-gate review before DDE-(N+1) — trigger: standing
+
+Per `.cursor/rules/mission-chapter-gate.mdc`, CI green ≠ chapter done. The
+2026-08-22/23 landing batch (commits `f97b9c7`…`baad25a` plus its follow-up
+missions) touched Chapters 7 (T2), 9 (kill flag/budgets), 11 (guardrails),
+12 (recovery/confidence), 13 (approvals), 14 (containment admission), 17
+(design gates). Before any new chartered DDE-N mission starts, an
+independent chapter-gate review must confirm every in-scope MUST/shall/
+recovery rule names a production mutation call site — or is deferred with
+its EDR named.
+
+**Trigger:** standing requirement, evaluated at every "start DDE-(N+1)"
+decision point. With standing auto-resume in force, a PASS or
+PASS-WITH-EDR verdict permits the chain to continue without re-asking; a
+FAIL freezes progression until corrected.
+
+### 6.3 Network egress + container containment (EDR-0011) — trigger: first non-DDE-native execution substrate
+
+DEFERRED by human decision (2026-08-23), with a hard precondition: before
+ANY mission lets a third-party/non-DDE-native harness execute real commands
+on this deployment (live Claude Code / Cursor / container backends), EDR-
+0011's first slice — broker-level egress admission — must land. The local
+process backend discloses its residual gaps honestly (`AMBIENT_ENVIRONMENT_GAP`,
+grandchild reach); those disclosures must never be silently widened.
+
