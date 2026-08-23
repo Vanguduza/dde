@@ -1,16 +1,26 @@
 # EDR-0008 — Frontend/UX playbook Phase 1 visual-gate toolchain: adopt Playwright
 # and axe-core behind one dependency-admission decision
 
-> **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
-> written only by `engine/truth/`. Following the convention established in
-> `EDR-0001`–`EDR-0007`, this file is a **markdown pre-image** of the eventual
-> `edrs` row, filed as the proposal itself (AGENTS.md forbids editing
-> `docs/truth/**` as a side effect). **This file is not itself an accepted
-> EDR.** `status` is `proposed`; only a human decision can move it to
-> `accepted`.
+> **ACCEPTED 2026-08-22 by explicit human project-owner decision.** The
+> authoritative record is the accepted row in the Project Truth `edrs` table
+> (`edr_id=01a02cf3-0213-7150-8248-3d5ce40653ca`, owner project
+> `9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11`, written via
+> `engine.truth.service.TruthService.propose_edr` + `accept_edr`). This file
+> remains as readable documentation; where wording differs, the `edrs` row
+> outranks it. Acceptance authorizes the dependency adoption (Playwright +
+> `@axe-core/playwright`); implementation proceeds in a separate workstream —
+> the visual CI job, golden baselines and axe gates are gated on their own
+> missions and are not landed by this decision.
 
-- **slug:** `EDR-0008` (provisional)
-- **status:** `proposed`
+> **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
+> written only by `engine/truth/`. The durable row now exists (see the
+> acceptance note above). Following the convention established in
+> `EDR-0001`–`EDR-0007`, this file stays as a readable pre-image of that row,
+> filed as the proposal itself (AGENTS.md forbids editing `docs/truth/**`
+> as a side effect).
+
+- **slug:** `EDR-0008`
+- **status:** `accepted (2026-08-22)`
 - **supersedes:** none
 - **affected_requirement_slugs:** none filed yet
 - **raised during:** operationalization of

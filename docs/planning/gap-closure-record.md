@@ -113,3 +113,43 @@ AGENTS.md they are recorded, not improvised:
 - The auto-marking conftest only *deselects* tests that provably need live
   services; pure tests can never be accidentally skipped.
 - CI keeps the ubuntu job as authoritative; Windows is additive coverage.
+
+## 5. Closed in this pass — frontend/UX design-gate infrastructure (2026-08-22)
+
+Appended after the v1.1 frontend/UX playbook was operationalized. Only items
+with landed commit evidence are recorded here; in-flight work (EDR-0008
+implementation of Playwright/axe visual gates) is **not** listed below — it
+is admitted but not landed, and will be recorded when its missions land.
+
+### 5.1 Design gates wired into CI (`5f31142`)
+- Token SSOT pipeline landed first (`58015fb`): `schemas/design/tokens.json`
+  pins every leaf; codegen emits typed `tokens.ts` + CSS root; the generated
+  artifact is covered by the existing generated-drift gate.
+- Static design lints DD201–DD206 (`d03d415`) run as their own justfile
+  recipe and CI step in committed baseline mode (shrink-only budget; legacy
+  off-scale values frozen in a committed baseline rather than waived).
+- dde-studio client tests became PR-blocking in `.github/workflows/
+  dde-studio.yml`, closing the R5 hole where the workflow stopped at
+  typecheck.
+- Owner: none — wired at its production enforcement point; regressions fail
+  the same PR that introduces them.
+
+### 5.2 Prototype-manifest sweep pre-oracle (`b5a0ebb`, contract via `29cc55a`)
+- `engine/verification/prototypes.py` validates a workspace's
+  `prototypes/flows.json` structurally (version, flow ids, entry points,
+  every transition target and declared screen exists on disk) before oracle
+  evaluation; violations demote a clean PASS to PARTIAL with
+  `VERIFICATION_FAILURE` classification on the existing recovery rows.
+- Manifest shape is contracted by `schemas/design/prototype_flow.schema.json`
+  under the normal SSOT/drift discipline.
+- Byte-stable `index.html` regeneration remains deferred until a gallery
+  generator ships (currently a review-skill concern); disclosed above in the
+  playbook's §5.3 table.
+
+### 5.3 Live Prototype Gallery (`a80f5a6`)
+- `interfaces/dde-studio/src/webviews/previewGalleryProvider.ts`: sandboxed
+  srcdoc previews over the workspace `prototypes/` directory, flows table,
+  file-watch streaming for mid-mission viewing, reduced-motion toggle.
+- The Preview module moved from stub to exists-with-honest-liveToday; the
+  honesty tests still forbid fabricated gallery rows.
+

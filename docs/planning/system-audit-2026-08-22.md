@@ -172,8 +172,18 @@ path. Contract tests validate shapes; they do not prove the spine is wired.
 | Broker secret material | **No real creds** | `engine/capabilities/broker/service.py` |
 | RLS | Enforced in tests | DDE-022; `tests/support/db.py` |
 | Claude approval gating | Adapter-level | Subscription path deferred (EDR-0001) |
-| Kill switch / budget | **Not implemented** | Comparable-systems research §6 — not in code |
+| Kill switch / budget | **Landed later on 2026-08-22** (see note below) | commits `1de8b72`, `4d7cf1a`, `0df07eb`, `0464933` |
 | Audit hash chain | Ledger exists | `engine/audit/ledger.py`; external pin not implemented |
+
+> **Same-day amendment (2026-08-22, post-audit landings).** The kill-switch and
+> budget row above was true at audit time and is now superseded: kill flag at
+> broker admission (`1de8b72`), journaled refusals + lease sweep on arm
+> (`4d7cf1a`), durable CommandLedger stop record surviving restarts
+> (`0df07eb`), persisted attempt budgets + dispatch-time `BUDGET_EXCEEDED`
+> classification (`0464933`), and self-grading guardrails classifying
+> `SCOPE_VIOLATION` (`e730a9e`). The blueprint chapters (Ch.7.1, Ch.9.2,
+> Ch.12.3, Ch.14) carry the corresponding specification.
+
 
 **Realistic threat model at current stage:** Insider with DB access bypasses RLS if granted
 BYPASSRLS role; worker with T2 lease and no egress proxy (partial) could exfiltrate;

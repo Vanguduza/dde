@@ -5,6 +5,7 @@
 **Supersedes:** REV 1.3 Gap-Closure Construction Baseline (all REV 1.3 content is preserved, corrected, or superseded explicitly in [Chapter 20](#chapter-20--change-control-and-traceability-to-rev-13))
 **Target deployment:** cloud-first, self-hostable, model-agnostic, MCP-first
 **Document status:** Authoritative construction baseline. Buildable without inventing missing contracts.
+**Amended:** 22 August 2026 — safety-envelope mechanisms landed and specified in place (stop authority, attempt budgets, guardrail classification), design-gate toolchain adopted (EDR-0008), queue-closure policies recorded (usage metering, batch approval, routing health eviction, T2 termination scope, oracle confidence semantics). Chapter-local notes marked *(amended 2026-08-22)*; nothing renumbered, nothing superseded.
 
 ---
 
@@ -1206,6 +1207,12 @@ Even under deterministic routing, DDE records for every decision: candidate set 
 
 This is cheap, must never be skipped, and is the only thing that makes later learning possible without an architectural migration.
 
+> **Health-based eviction and fallback (amended 2026-08-22; owner queue-closure decision).** Recorded telemetry outcomes are the input to routing health, not merely training data. The deterministic router **shall** maintain per-profile health derived from recorded outcomes and evict a profile from the eligible set when its health falls below policy threshold, substituting the profile's declared fallback chain — ordered candidates declared in advance, never improvised at failure time. Eviction is a gate-5 outcome: it removes a candidate, it does not reorder survivors, and it is recorded in `reason_codes` like any other elimination. Health recovers only through new recorded outcomes, never through operator override of the recorded data.
+
+> **Flaky-check quarantine (amended 2026-08-22; owner queue-closure decision).** A check whose flake rate exceeds threshold (§11.8) is quarantined from routing-learning eligibility and from blocking verification verdicts, and moves to a two-tier verification cadence: it runs on the slow tier out-of-band for signal repair, and on the fast tier as advisory-only, until its measured flake rate returns under threshold. Quarantine is a measured, reversible state — never a silent deletion of the check and never a retry into green.
+
+**Shadow-mode policy promotion keys on success-yield (landed 2026-08-22; commit `ae970f5`).** A shadow policy is replayed against its evaluation window's real decisions and each replayed pair lands in exactly one of four measured quadrants; the promotion verdict derives from those quadrant counts, not from `success_yield` alone (routed-and-passed over all decisions), which rises under permissiveness. A candidate can no longer win by approving more — it must pass where it routed and fail where it declined.
+
 ## 6.6 Route Critic — triggered
 
 Runs when: `risk_class ≥ high`; financial, security or production blast radius; a prior attempt on this task failed verification; or predicted-success confidence is below threshold. It may upgrade a route or force escalation; it can never downgrade below a hard gate. Its cost counts against the overhead budget (§16.4).
@@ -1276,6 +1283,7 @@ ExecutionPlan
   worker_profile_id, execution_environment_id, workspace_policy
   capability_requirements[], enforcement_tier   -- 7.2
   autonomy_level, resource_budget, time_budget, token_budget
+  attempt_budget                                -- durable ceiling, amended 2026-08-22
   network_policy, filesystem_policy
   verification_plan_id, acceptance_oracle_id
   write_scope_lease_id                          -- Ch.10.3
@@ -1286,6 +1294,8 @@ ExecutionPlan
 The RouteDecision answers *which worker*. The ExecutionPlan answers *exactly how it may act*. Keeping these separate is what stops the router from accumulating infrastructure, secrets and recovery concerns.
 
 **Planner steps** (deterministic): verify the profile is certified for the exact model+harness+toolset+environment tuple · select a compatible environment · allocate a workspace · resolve capabilities to implementations · request minimum leases · bind context and oracle · compute budgets · select policy-permitted fallbacks · hash and persist **before** execution.
+
+**Attempt budgets are durable plan state (amended 2026-08-22).** The attempt ceiling lives on the persisted, hashed ExecutionPlan — not as a caller parameter and not in process memory — so a restart, a replan, or a different dispatcher cannot silently widen it. At dispatch, the remaining budget is checked against the durable plan: a dispatch beyond the ceiling is refused and classified `BUDGET_EXCEEDED` on the attempt (Ch.12.3), which routes to the pause-for-human recovery path rather than a retry.
 
 ## 7.2 Enforcement tiers — the correction
 
@@ -1302,6 +1312,7 @@ Capability authority is decided by the lease. **How that decision is enforced de
 3. **Git access is proxied.** The worker pushes to a DDE-managed remote, never to the origin. Mainline access belongs to the integration manager (Ch.10).
 4. **The workspace is the only writable path** besides `/tmp` with a size cap.
 5. **Egress proxy logs are effect records.** Every allowed request is journalled with run, lease and effect identity — this is how a T2 worker's side effects remain auditable despite not passing through the T1 gateway.
+6. **Termination reaches the process (amended 2026-08-22; owner queue-closure decision).** Arming run stop sweeps every registered run-scoped process handle through the escalation ladder — terminate, then grace period, then kill — so "stop" for third-party harnesses means the worker's processes are actually gone, not merely denied new credentials. Network egress cutoff and container-level containment at stop are **not** covered by this amendment; they remain open under forthcoming EDR candidate EDR-0011.
 
 `enforcement_tier = audit_only` exists for local development and simulation and is **rejected by configuration validation** in any environment class other than `development` (§13.7).
 
@@ -1351,6 +1362,8 @@ Normally a Git worktree bound to one environment and one task, branched from the
 The boundary must prevent path escape, symlink escape, access to another project's repository or another task's workspace, and reads of credential paths. These are security failures, not worker failures, and the Flight Lab attempts all of them (§19.2).
 
 Workspace creation, cleanup and recovery are performed by DDE, never by the worker.
+
+**Future-state scrubbing is opt-in policy (landed 2026-08-22; commit `81546d1`).** A workspace created under a policy that enables it has its *future state* — worktree metadata that would let a run see or resume another run's in-progress state — scrubbed before first use. The default remains off because shared-store garbage collection makes unconditional scrubbing hazardous; when enabled it happens at provisioning time, inside DDE, never by the worker.
 
 ---
 ---
@@ -1404,6 +1417,10 @@ RUNNING → PAUSING → PAUSED → RESUMING → RUNNING
 RUNNING → CANCELLING → CANCELLED
 FAILED  → RECOVERING → RUNNING | (attempt reroutes / escalates)
 ```
+
+**Refused resumes are observable, never silent (amended 2026-08-22; owner queue-closure decision).** A resume request that is refused — stop authority active (Ch.14), lease no longer matching the active run (Ch.9.2), budget exhausted (Ch.7.1), plan hash drift — emits an observability event carrying the run identity, the refusal reason and the correlation id of the triggering command, on the same event surface as every other lifecycle transition. A refused resume leaves the run in its current state; it never falls back to an unobserved retry loop.
+
+**Live usage metering (amended 2026-08-22; owner queue-closure decision).** Each run produces a run-scoped usage report from its actual token/tool consumption, and the reported usage **decrements the persisted attempt budget** on the run's execution plan (Ch.7.1). When the budget crosses zero, dispatch classifies `BUDGET_EXCEEDED` and the existing pause-for-human path (Ch.12.3, Ch.13.1) engages. Usage reporting is scoped to the run and recorded as run evidence; it is not a free-floating counter and cannot outlive its run.
 
 ## 8.3 WorkerEvent
 
@@ -1472,6 +1489,8 @@ CapabilityLease
 **States:** `REQUESTED → EVALUATING → GRANTED → ACTIVE → CONSUMED`; `GRANTED|ACTIVE → EXPIRED | REVOKED`.
 
 Invariants: a lease is scoped to mission/task/run/resource and expires by default · a worker profile never implies access to every registered capability · credential material is brokered only after a lease is valid · every call is attributable to a lease and a run · **lease denial is a normal control outcome, not an error** · expired and revoked leases fail closed at the enforcement boundary even if the worker holds cached schemas · a lease is rejected if any bound identity no longer matches the active run.
+
+**Run stop authority (landed 2026-08-22; commits `1de8b72`, `4d7cf1a`, `0df07eb`).** Arming run stop for a worker run gates the capability plane at its admission edge: the broker refuses issue/renew of credentials for that run, and arming sweeps every still-held lease and live handle in one transaction so no capability call survives the arm. Refusals are journalled atomically with the sweep — an enforcement event that cannot be lost independently of the action it refused. The stop record itself is durable: it lives in the command ledger as a flipping row keyed per run, consulted first from memory then from the ledger, so a restart cannot resurrect a stopped run; disarming flips the same record symmetrically.
 
 ## 9.3 Side-effect taxonomy
 
@@ -1734,6 +1753,10 @@ Task oracles prove the tasks were done. The **mission** oracle proves the right 
 - Mission completion requires the mission oracle to pass on the mission branch **before** merge to `main` (Ch.10.8).
 - If all task oracles pass and the mission oracle fails, the outcome is `WRONG_PRODUCT`: the mission enters replanning with the failing outcomes as context, and the discrepancy is recorded as a first-class learning signal about decomposition quality, not about worker quality.
 
+> **Scope note — Accepted EDR-0007 (2026-08-22).** The mechanism above is accepted in partial scope: ProductEnvironment end-to-end outcomes, merge-to-main gating and automatic replan invocation are deferred and tracked by that decision; the oracle contract and wrong-product classification stand as specified.
+
+**Confidence semantics (amended 2026-08-22; owner queue-closure decision).** Oracle evaluation treats confidence as a mid-band, not a coin-flip: outcomes above the policy threshold count toward acceptance, outcomes below it fail, and outcomes in the mid-band are held as inconclusive rather than rounded to a verdict. Evidence degrades with age on a declared per-binding-kind cadence: evidence past its freshness window can lower an outcome's standing (including demoting an acceptance), but degradation is degrade-only — stale or degraded evidence never promotes an outcome that did not independently pass.
+
 ## 11.4 Generator/verifier independence
 
 | Rule | Enforcement |
@@ -1792,7 +1815,9 @@ Evidence is append-only, content-hashed, signed, and references the **integrated
 
 False-positive and false-negative rates per verification type · flake rate per test (a flaky test is a defect, tracked and repaired, never retried into green) · coverage of oracle outcomes by deterministic vs judge vs human bindings · judge agreement with human review on a sampled subset · mean time from failure to attributed cause.
 
-A verification suite whose flake rate exceeds threshold **blocks routing learning** (§6.8), because a noisy verifier corrupts every downstream signal in the system.
+A verification suite whose flake rate exceeds threshold **blocks routing learning** (§6.8), because a noisy verifier corrupts every downstream signal in the system. Above that threshold the check enters quarantine with a two-tier cadence (§6.5, amended 2026-08-22): advisory-only in the fast tier, signal-repairing out-of-band on the slow tier, restored only by measured evidence.
+
+**Self-grading guardrails (landed 2026-08-22; commit `e730a9e`).** Verification assesses the producing run's own behaviour before its outcome is trusted: diff-independence (did the run author tests that merely certify itself?), declared-path scope, and oracle-declared-path adherence. A guardrail violation classifies `SCOPE_VIOLATION` on the attempt (Ch.12.3) — always a containment finding, never a retryable verification failure — so a green suite produced by a misbehaving run cannot launder itself into acceptance.
 
 ---
 ---
@@ -1846,6 +1871,7 @@ An attempt becomes durable when its result, artifact references and state are co
 | `WRONG_PRODUCT` | Replan from mission oracle failures | Always — human visibility |
 | `SPECIFICATION_FAILURE` | Create decision/clarification task; **never guess** | Human authority required |
 | `RESOURCE_EXHAUSTION` | Checkpoint, request budget or reschedule | Budget cannot be increased |
+| `BUDGET_EXCEEDED` | Dispatch-time refusal against the plan's durable attempt budget; checkpoint and pause for a human budget decision (Ch.7.1) | Budget increased via approval (Ch.13.1) |
 | `SIDE_EFFECT_UNKNOWN` | Reconcile before any retry (12.4) | Reconciliation impossible → human |
 | `DRIFT_FAILURE` | Stop the mutation path, trigger drift review | Always |
 
@@ -1905,7 +1931,7 @@ Approval
   approval_id, tenant_id, project_id, mission_id, task_id NULL
   approval_type enum(architecture_change, production_change, scope_widening,
                      capability_grant, oracle_approval, irreversible_effect,
-                     dependency_addition, donor_reuse)
+                     dependency_addition, donor_reuse, budget_increase)
   scope_hash                     -- binds to the exact plan/action
   requested_by, required_role, evidence_refs[], suggested_decision NULL
   status enum(REQUESTED, UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, WITHDRAWN)
@@ -1913,6 +1939,10 @@ Approval
 ```
 
 An approval is bound to an exact mission/task/plan/action scope by `scope_hash`. It **cannot be reused** for a materially different plan — a re-planned action requires a new approval even if it looks similar.
+
+**Batch approval (amended 2026-08-22; owner queue-closure decision).** The approvals surface accepts a batch command that decides multiple pending approvals in one server-side, all-or-nothing transaction: either every approval in the batch records its decision or none does — no partial batches. Batch decisions obey the same `scope_hash` binding and expiry rules as single ones, and the batch itself is one auditable command with its own idempotency key.
+
+`budget_increase` is the decision type for the pause-for-human budget path (Ch.7.1, Ch.12.3): when a run pauses on `BUDGET_EXCEEDED`, the attention model surfaces a `budget_increase` request; granting it raises the plan's durable attempt ceiling through the governed approval surface — never through a dispatcher parameter (amended 2026-08-22; owner queue-closure decision).
 
 ## 13.2 Pre-authorization — how overnight autonomy actually works
 
@@ -2068,6 +2098,7 @@ A worker connects, proves identity, presents its configuration and version, is m
 7. Capability revocation takes effect at the enforcement boundary even when the worker holds stale state.
 8. Credential material is never logged, never rendered into screenshots, and is redacted from artifacts by a scrubber before storage.
 9. Every security-relevant decision — grant, denial, revocation, escalation, containment violation — produces an `audit_event` in the hash-chained ledger (§3.7).
+10. Run-stop arming is enforced at credential admission: after stop is armed for a run, the broker issues no new credential material to it (landed 2026-08-22; commit `1de8b72`).
 
 ---
 ---
@@ -2285,13 +2316,16 @@ Readiness returning 503 on migration mismatch is deliberate: a Core running agai
 
 ```
 commit → lint → typecheck → contract drift check → unit → contract tests →
-migration validation (empty DB + previous-release snapshot) → integration →
-security scans (SAST, secrets, SBOM, vulnerabilities) → build image →
-Flight Lab smoke → staging deploy → post-deploy verification →
-approval → production → post-deploy verification → auto-rollback on failure
+design token drift + static design lints → migration validation (empty DB +
+previous-release snapshot) → integration → security scans (SAST, secrets,
+SBOM, vulnerabilities) → build image → Flight Lab smoke → staging deploy →
+post-deploy verification → approval → production → post-deploy verification →
+auto-rollback on failure
 ```
 
 Any change touching a contract runs contract tests against the previous compatible version. Any change to a worker profile's manifest triggers smoke certification (§8.5). The golden mission fixture runs on every merge to `main`.
+
+**Design gates (landed 2026-08-22; commit `5f31142`).** CI additionally enforces the frontend playbook's deterministic layer: a generated-token drift check (the `tokens.ts` artifact is regenerated and must diff clean) and the static design-lint suite over studio surfaces run on every PR; dde-studio client tests are PR-blocking rather than compile-only. These are the Phase-0/1 guardrails of the frontend/UX playbook, wired at their production enforcement point.
 
 ## 17.5 Backup, retention and disaster recovery
 
