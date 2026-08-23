@@ -1,4 +1,5 @@
 import type { ProbeState } from "../healthClient";
+import { tokenCssRoot } from "./tokens";
 
 /** Injected into every page so VS Code webviews and Electron share one UI. */
 export function messageBridgeScript(): string {
@@ -29,19 +30,9 @@ export function escapeHtml(value: string): string {
 
 export function sharedStyles(): string {
   return `
+    ${tokenCssRoot()}
     :root {
       color-scheme: light dark;
-      --bg: #1e1e1e;
-      --fg: #e6e6e6;
-      --muted: #b0b0b0;
-      --border: rgba(200,200,200,0.28);
-      --accent: #1177bb;
-      --accent-fg: #ffffff;
-      --card: #252526;
-      --ok: #3fb950;
-      --warn: #e3b341;
-      --err: #f85149;
-      --focus: #4fc1ff;
       --vscode-sideBar-background: var(--bg);
       --vscode-foreground: var(--fg);
       --vscode-descriptionForeground: var(--muted);
@@ -52,9 +43,9 @@ export function sharedStyles(): string {
       --vscode-testing-iconPassed: var(--ok);
       --vscode-editorWarning-foreground: var(--warn);
       --vscode-editorError-foreground: var(--err);
-      --vscode-font-family: "Segoe UI", system-ui, sans-serif;
-      --vscode-font-size: 13px;
-      --vscode-editor-font-family: Consolas, "Courier New", monospace;
+      --vscode-font-family: var(--type-font-family-body);
+      --vscode-font-size: var(--type-body);
+      --vscode-editor-font-family: var(--type-font-family-mono);
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
     }
@@ -182,7 +173,7 @@ export function sharedStyles(): string {
       font: inherit;
     }
     input:hover, select:hover, textarea:hover {
-      border-color: rgba(200,200,200,0.45);
+      border-color: var(--border-hover);
     }
     textarea { resize: vertical; min-height: 56px; }
     .chat-shell .chat-thread {
