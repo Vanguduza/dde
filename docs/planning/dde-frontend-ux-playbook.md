@@ -1,7 +1,8 @@
 # DDE — Frontend & UX/UI Design Playbook: Guardrails, Prototypes, Skills & Tools
 
-**Version:** 1.0 (PROPOSED — awaiting owner review; nothing here modifies engine/interfaces code, `.cursor/rules`, or skills yet)
+**Version:** 1.1 (PROPOSED — awaiting owner review; nothing here modifies engine/interfaces code, `.cursor/rules`, or skills yet)
 **Date:** 22 August 2026
+**1.1 changelog:** Cocodly loop-shape ports folded in — pre-generation plan checkpoint (P1, §5.0/§5.1), live-streaming prototype gallery (P2, §5.3/§7.6), refine-in-place protocol (P3, §5.6), believable-density scorecard line (P4, §8.3). Process/engineering layers only per §2; no Cocodly values, layouts, or copy.
 **Purpose:** One operational document for producing clean, modern, professional DDE surfaces — and for *seeing* them (screens, flows, animations) during development, not after. Adapted from the Farm OS frontend playbook to DDE's actual stack: **string-rendered HTML webviews + plain CSS variables, no framework, no build-time CSS pipeline** (VS Code extension + Electron shell).
 **Reads with:** `AGENTS.md` (authority ranks, dependency admission) · `.cursor/rules/mission-chapter-gate.mdc` ("CI green ≠ done") · `docs/planning/gap-closure-record.md` · `interfaces/dde-studio/docs/overview-mockup-alignment.md`.
 **Binding on:** all humans and agents producing UI code, prototype artifacts, copy, or reviews for DDE surfaces (`interfaces/**` today; any future web frontend inherits this document unless superseded by an EDR).
@@ -17,6 +18,7 @@
 | 3 | Licence hygiene for reference repos |
 | 4 | Guardrails — the complete list |
 | 5 | Visual samples & living prototypes during development |
+| 5.0 | Cocodly loop-shape ports (P1–P4) |
 | 6 | Agent skills (loadable playbooks) |
 | 7 | Toolchain catalog |
 | 8 | Quality scorecards & thresholds |
@@ -119,6 +121,18 @@ Each guardrail names its production enforcement point in *this* repo. Per the ch
 
 ## 5. Visual samples & living prototypes during development
 
+### 5.0 Cocodly loop-shape ports (P1–P4)
+
+Cocodly's finished-feeling output is driven by loop shape, not aesthetics: a visible plan before generation, pixels within seconds of starting, and many small in-place refinements instead of one-shot deliveries ([cocodly.com](https://www.cocodly.com/), [about](https://www.cocodly.com/about), [docs](https://www.cocodly.com/docs)). DDE ports the **process/engineering layers only** (§2.1): no Cocodly theme values, layouts, motion specs, or copy — those are never-minable rows. Four ports; each names its enforcement point.
+
+**P1 — Pre-generation UI plan checkpoint (§✋).** Before authoring any prototype set, the worker publishes the intended screens × states manifest as *text* through the existing mission-plan/approval surface for owner comment; owner edits at this stage cost minutes, not re-authored pages. Blocking only when the mission charter declares `ui_plan_checkpoint: required` (default: advisory comment window); the checkpoint artifact is the same manifest shape later validated by §7.7.
+
+**P2 — Live-streaming prototype gallery (⚙◆).** The Prototype Gallery webview (§7.6) is not a post-hoc viewer: while an authoring mission runs, it renders the workspace's live `prototypes/` directory (read-only, sandboxed per §5.3) with file-change polling, so the owner watches screens appear and corrects course mid-mission. Implementation: `interfaces/dde-studio/**` webview extension; no engine changes.
+
+**P3 — Refine-in-place protocol (✋§).** Pixel feedback does not open a new mission cycle. The `prototype-authoring` skill (6.6) gains a refine pass: annotate specific screens/states → revise those pages **in place** → regenerate `index.html` → deliver a per-round delta summary → request re-sign-off. Latency budget tracked under §8.4 (`prototype sign-off latency`); two consecutive rounds with no delta on a flagged screen escalate to an EDR candidate rather than silent churn.
+
+**P4 — Believable-density scorecard line (◆).** Sample data inside prototypes is already permitted and marked (`data-sample="demo"`, §5.1a). The §8.3 prototype scorecard gains a blocking dimension: sample data must be realistic enough to evaluate hierarchy, rhythm, and states — placeholder-grade filler ("Item 1", "Lorem") scores <4 even though it violates nothing, because density that cannot be judged cannot be approved.
+
 **Requirement:** during implementation missions — not after — DDE must produce visual samples of how the app will look when complete, including multi-screen flows and animations, reviewable by the owner as pixels. The industry has converged on exactly this "preview-before-build" posture: v0/Lovable/Bolt made generate→preview→approve the core loop ([ToolChase](https://toolchase.com/blog/v0-vs-lovable-vs-bolt/), [DevReviewer](https://devreviewer.com/bolt-new-vs-v0-vs-lovable-full-stack-prototypes-2/)), single-file HTML galleries became the zero-infrastructure living spec for agentic work ([Spooner /prototype gallery](https://flexingforks.com/posts/one-slash-command-instant-prototype-gallery-no-figma-required), [static preview pattern](https://previewship-engineering.hashnode.dev/static-preview-pattern-ai-generated-html), [ShowDeck](https://github.com/GadatheGod/ShowDeck)), and Anthropic's own artifact guidance mandates self-contained single-file HTML output ([web-artifacts-builder](https://github.com/anthropics/skills/blob/HEAD/skills/web-artifacts-builder/SKILL.md)). DDE adopts the *pattern* with its own enforcement spine, not the SaaS tools.
 
 ### 5.1 The prototype pipeline — what the worker produces
@@ -175,10 +189,10 @@ Rive/Lottie/Figma-Motion-class runtimes are **not adopted**: they add runtime de
 | Pipeline stage | DDE surface | Mechanism |
 |---|---|---|
 | `flows.json` contract | `schemas/objects/prototype_flow.json` *(proposed)* → `scripts/generate_contracts.py --check` | Same SSOT/drift discipline as every other contract: schema edited, contracts regenerated, drift fails the ci.yml **"Fail on generated drift"** step ([schema-as-versioned-artifact practice](https://medium.com/@duckweave/tool-schema-drift-11-checks-before-agents-guess-6038c1748309), [contract-drift CI pattern](https://github.com/KingInYellows/yellow-plugins/blob/main/docs/operations/ci-pipeline.md)) |
-| Manifest validity of a workspace | pytest verification check | `engine/verification/runner.py` gains a check that validates workspace `prototypes/flows.json` against the generated contract, confirms every referenced screen exists, and confirms `index.html` regenerates byte-stable — a real command, per the runner's philosophy |
+| Manifest validity of a workspace | pytest verification check | `engine/verification/prototypes.py` *(wired in v1.1)*: the verification runner validates a workspace's `prototypes/flows.json` structurally (version, flow ids, entry points, every transition target and declared screen exists on disk) pre-oracle; violations demote a clean PASS to PARTIAL with `VERIFICATION_FAILURE` classification. Byte-stable `index.html` regeneration is deferred until a gallery generator ships — currently a review-skill concern (`component-gallery`) |
 | Visual evidence | `VerificationRun` / `Evidence` artifacts (`schemas/objects/verification_run.json`, `evidence.json`) | Once 4.4-Phase-B lands, gallery/prototype screenshots captured in CI are attached as verification evidence; until then the DOM fingerprints serve as the machine-checkable stand-in |
 | Owner pixel-approval | Approvals surface (`schemas/objects/approval.json`, standing approvals) + chapter gate | Approval gate `prototype_pixel_signoff` is REQUIRED before the implementation PR merges; recorded like any governance approval; auto-resume proceeds only on PASS / PASS-WITH-EDR (`.cursor/rules/mission-chapter-gate.mdc` parity) |
-| In-development viewing | dde-studio **Prototype Gallery webview** *(proposed)* | The `dde.studio.preview` view already contributed in `package.json` becomes a read-only gallery: renders the active workspace's `prototypes/index.html` (or a picker over `screens/`), click-through via sandboxed iframe |
+| In-development viewing | dde-studio **Prototype Gallery webview** *(proposed)* | The `dde.studio.preview` view already contributed in `package.json` becomes a read-only gallery: renders the active workspace's `prototypes/index.html` (or a picker over `screens/`), click-through via sandboxed iframe; during authoring missions it **live-streams** the workspace `prototypes/` directory with file-change polling (P2) |
 | Sandbox security | webview iframe policy | `sandbox="allow-scripts"` **without** `allow-same-origin` (the pair is the classic escape — [Invicti](https://www.invicti.com/blog/web-security/iframe-security-best-practices), [performanceisolation](https://www.performanceisolation.com/third-party-isolation-sandboxing-strategies/building-secure-iframes-for-third-party-widgets/), [showyourcode](https://www.showyourcode.app/blog/sandboxed-html-preview), [single-file skill](https://www.developersdigest.tech/library/skills/single-file-app-generation)), content served via `srcdoc`/blob, inner CSP `default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'` matching the existing webview CSP in `html.ts`; no network, no storage |
 
 ### 5.4 The gate, in chapter-gate grammar
@@ -247,10 +261,13 @@ Load before writing or editing any user-facing string. Steps:
 
 Load before producing/updating a `prototypes/` directory. Steps:
 1. Enumerate surfaces × states from the charter; missing state = missing screen.
-2. Emit self-contained pages using token-sheet variables only; mark sample data `data-sample="demo"`.
+0. P1 — if the charter declares `ui_plan_checkpoint: required`, publish the screens × states manifest as text for owner comment and wait for the comment window (or explicit pass) before authoring.
+2. Emit self-contained pages using token-sheet variables only; mark sample data `data-sample="demo"`, realistic enough to judge hierarchy and rhythm (P4).
 3. Wire `flows.json` to the current schema; every transition target must exist.
 4. Embed motion via tokens; write the reduced-motion variant for every animated rule.
 5. Regenerate `index.html`; run the manifest validator; request the pixel-signoff approval.
+
+**Refine-in-place protocol (P3):** pixel feedback never opens a new mission cycle. Per round: annotate only the flagged screens/states → revise those pages **in place** → regenerate `index.html` → deliver a delta summary naming each change against its annotation → request re-sign-off. Two consecutive rounds with no delta on a flagged screen escalate to an EDR candidate instead of silent churn; per-round latency feeds §8.4 sign-off-latency tracking.
 
 ---
 
@@ -265,7 +282,7 @@ Only tools compatible with the actual stack (TS template strings, inline CSS, CS
 | 7.3 | Stdlib design-lint scanner *(proposed)* | Bans raw values/gradients/emoji/motion literals in `shared/**` — the TS-string port of stylelint token rules ([strict-value](https://www.npmjs.com/package/stylelint-declaration-strict-value), [Discourse require-design-tokens](https://feicode.com/Discourse/discourse/src/tag/esr/stylelint-rules/require-design-tokens.mjs)) | pytest unit leg ⚙◆ | Build cost only |
 | 7.4 | Playwright + `toHaveScreenshot` *(post-EDR)* | Pixel goldens over gallery/prototype states; CI-container baselines; diff budgets ([Playwright](https://playwright.dev/docs/test-snapshots), [tuning](https://web-automations.com/debugging-and-test-observability/visual-regression-testing/tuning-screenshot-comparison-thresholds/)) | New `visual` job in dde-studio.yml ⚙; evidence into VerificationRun | OSS, Apache-2.0 — requires dependency-admission EDR (4.13) |
 | 7.5 | `@axe-core/playwright` *(post-EDR)* | WCAG 2.2 AA zero-critical gate; target-size rule enabled ([MFA11y](https://modern-framework-accessibility.com/testing-and-automating-accessibility/gating-accessibility-in-ci-cd-pipelines/)) | Same visual job, runs before critic ⚙ | OSS, MPL-2.0 — same EDR |
-| 7.6 | Prototype Gallery webview (`dde.studio.preview`) *(proposed)* | Living style guide + flow click-through; sandboxed iframe per 5.3 | Manual pixel-review surface ✋; screenshot source | Build cost only |
+| 7.6 | Prototype Gallery webview (`dde.studio.preview`) *(proposed)* | Living style guide + flow click-through; **live-streams the workspace's `prototypes/` directory during authoring missions** (P2), not only post-hoc viewing; sandboxed iframe per 5.3 | Manual pixel-review surface ✋; screenshot source | Build cost only |
 | 7.7 | `prototype_flow` schema + manifest validator *(proposed)* | Flows-manifest contract; index freshness | Schema drift ▣ + verification-runner check ◆ | Build cost only |
 | 7.8 | VerificationRunner screenshot evidence *(proposed)* | Prototype/gallery captures persisted as VerificationRun/Evidence rows | Chapter/release gate evidence ▣✋ | Existing infra |
 | 7.9 | **Storybook / Ladle** | Rejected: React/Vite component workshops; DDE has no component framework and no bundler — fingerprints + gallery cover the same need ([Ladle](https://blog.logrocket.com/ladle-storybook-performance-project-sizes/) assessed, inapplicable) | — | — |
@@ -312,6 +329,7 @@ Used by reviewers and the fresh-context critic. Each dimension scored 1–5; **a
 | State coverage | <4 blocks | Every chartered surface × state present | Entry + happy path only |
 | Flow completeness | <4 blocks | `flows.json` covers the chartered journeys; every transition resolves | Single screens, dangling triggers |
 | Motion restraint | <4 blocks | Token motion, bounded loops, working reduced-motion toggle | Infinite decorative loops, no reduce variant |
+| Believable density (P4) | <4 blocks | Realistic marked sample data (`data-sample="demo"`) that lets hierarchy, rhythm, and states be judged | Placeholder filler ("Item 1", lorem) that cannot be evaluated |
 | Manifest validity | Blocking (binary) | Validator green, index regenerates stable | Stale index, unresolved targets |
 
 ### 8.4 Aggregate health metrics (reviewed at chapter gates)
@@ -330,6 +348,7 @@ Used by reviewers and the fresh-context critic. Each dimension scored 1–5; **a
 A UI slice passes when every box is checkable:
 
 - [ ] Declared pattern matches implementation; one-surface-one-pattern holds
+- [ ] P1 plan checkpoint honored when chartered (`ui_plan_checkpoint`); owner comments addressed or answered
 - [ ] Tokens only: generated-module imports; design-lint scanner green; no debt added
 - [ ] Prototype set delivered under §5: screens × states, valid `flows.json`, regenerated `index.html`
 - [ ] Animations use motion tokens; reduced-motion variant present per state; loops bounded
@@ -363,6 +382,7 @@ A UI slice passes when every box is checkable:
 | Component-API discipline informing 2.1 | [shadcn Base-UI default](https://ui.shadcn.com/docs/changelog/2026-07-base-ui-default) · [unified radix package](https://ui.shadcn.com/docs/changelog/2026-02-radix-ui) · [three-layer wrappers](https://thecodeforge.io/javascript/reusable-component-library-shadcn-ui/) · [Headless UI rationale](https://tailwindcss.com/blog/headless-ui-unstyled-accessible-ui-components) · [headlessui.com](https://headlessui.com/) · [MakerStack review](https://makerstack.co/reviews/headless-ui-review/) |
 | Gallery/storybook-first context | [Storybook MCP sneak peek](https://storybook.js.org/blog/storybook-mcp-sneak-peek/) · [manifests docs](https://storybook.js.org/docs/ai/manifests.md) · [Rachel Cantor manifest pitfalls](https://rachel.fyi/posts/storybook-mcp-reads-your-manifest-not-your-docs-tab) + [agent design systems](https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system) · [Ladle intro](https://ladle.dev/blog/introducing-ladle/) · [helpmetest Ladle](https://helpmetest.com/blog/ladle-react-component-development/) · [LogRocket Ladle perf](https://blog.logrocket.com/ladle-storybook-performance-project-sizes/) |
 | §5 prototypes/preview loops | [Spooner /prototype gallery](https://flexingforks.com/posts/one-slash-command-instant-prototype-gallery-no-figma-required) · [static preview pattern](https://previewship-engineering.hashnode.dev/static-preview-pattern-ai-generated-html) · [ShowDeck](https://github.com/GadatheGod/ShowDeck) · [Bun standalone HTML](https://github.com/oven-sh/bun/blob/a0e221e0/docs/bundler/standalone-html.mdx) · [DevReviewer v0/Lovable/Bolt](https://devreviewer.com/bolt-new-vs-v0-vs-lovable-full-stack-prototypes-2/) · [DEV product-studio lessons](https://dev.to/jakub_inithouse/lovable-vs-bolt-vs-v0-vs-cursor-for-shipping-mvps-what-we-learned-running-a-product-studio-625) · [Causo founder guide](https://hub.causo.ai/guides/v0-vs-lovable-vs-bolt-for-founders-2026) |
+| §5.0 Cocodly loop-shape ports | [cocodly.com](https://www.cocodly.com/) · [About Cocodly](https://www.cocodly.com/about) · [Cocodly docs](https://www.cocodly.com/docs) — loop-shape mechanics observed from public product behavior; process/engineering layers ported per §2.1, zero visual-layer transfer |
 | §5.2 motion law | [MDN prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion) · [two-layer cascade](https://www.css-animation.com/accessible-motion-architecture/prefers-reduced-motion-architecture/) · [Verdigris reduced-motion guide](https://design.verdigris.co/categories/animation/reduced-motion) · [motion tokens override reach](https://www.css-scroll-driven.com/accessibility-inclusive-motion-standards/implementing-prefers-reduced-motion/reduced-motion-in-design-systems-and-tokens/) · [Master CSS motion](https://rc.css.master.co/guide/motion) · [PkgPulse formats 2026](https://www.pkgpulse.com/guides/lottie-vs-rive-vs-css-animations-web-animation-formats-2026) · [shaheermalik Rive/Figma Motion](https://www.shaheermalik.com/compare/rive-vs-figma-motion) · [Beryl comparison](https://www.beryldesign.fr/en/post/figma-motion-vs-rive-jitter-lottie) |
 | §5.3 sandboxing | [Invicti iframe practices](https://www.invicti.com/blog/web-security/iframe-security-best-practices) · [performanceisolation isolation ladder](https://www.performanceisolation.com/third-party-isolation-sandboxing-strategies/building-secure-iframes-for-third-party-widgets/) · [showyourcode sandboxing](https://www.showyourcode.app/blog/sandboxed-html-preview) · [thedevtools sandbox guide](https://www.thedevtools.in/blog/html-renderer-sandbox-guide) · [single-file-app generation skill](https://www.developersdigest.tech/library/skills/single-file-app-generation) |
 | §5.3 manifest contracts | [schema-drift checks](https://medium.com/@duckweave/tool-schema-drift-11-checks-before-agents-guess-6038c1748309) · [contract-drift CI pattern](https://github.com/KingInYellows/yellow-plugins/blob/main/docs/operations/ci-pipeline.md) · [schemadiff](https://github.com/jsleekr/schemadiff) |

@@ -94,6 +94,11 @@ from engine.verification.guardrails import (
     assess_diff_independence,
     merge_flags,
 )
+from engine.verification.prototypes import (
+    PrototypeAssessment,
+    assess_prototype_dir,
+    merge_prototype_flags,
+)
 from engine.verification.repository import (
     EvidenceRepository,
     VerificationRunRepository,
@@ -332,11 +337,16 @@ class VerificationRunnerService:
             # Self-grading guardrail (research §4 item 1): mechanically
             # inspect the diff under verification BEFORE any oracle
             # outcome runs, so a harness-gaming patch is recorded on every
-            # evidence row this run produces.
+            # evidence row this run produces. The prototype-manifest sweep
+            # (playbook §5.3, guardrail 16) runs in the same pre-oracle
+            # slot: real reads over the workspace's prototypes/ directory.
             guardrail = await self._assess_guardrails(
                 active,
                 task=task,
                 oracle=oracle,
+                workspace=workspace,
+            )
+            prototype_check = await self._assess_prototypes(
                 workspace=workspace,
             )
 
@@ -352,6 +362,7 @@ class VerificationRunnerService:
                     workspace=workspace,
                     integrated_revision=integrated_revision,
                     guardrail=guardrail,
+                    prototype_check=prototype_check,
                 )
                 check_results.append(result)
                 outcome_results.append(outcome_result)
@@ -369,6 +380,7 @@ class VerificationRunnerService:
                     workspace=workspace,
                     integrated_revision=integrated_revision,
                     guardrail=guardrail,
+                    prototype_check=prototype_check,
                 )
                 check_results.append(result)
                 negative_results.append(outcome_result)
@@ -379,6 +391,7 @@ class VerificationRunnerService:
                 negative_results=negative_results,
                 minimum_confidence=oracle.minimum_confidence,
                 guardrail=guardrail,
+                prototype_check=prototype_check,
             )
             ended_at = self._clock.now()
             next_status = transition(run.status, status, VERIFICATION_RUN_TRANSITIONS)
@@ -443,7 +456,9 @@ class VerificationRunnerService:
                     recovery_decision=None,
                     uow=active,
                 )
-            elif next_status == "PARTIAL" and guardrail.violations:
+            elif next_status == "PARTIAL" and (
+                guardrail.violations or prototype_check.violations
+            ):
                 # A clean check-set over a harness-gaming diff is demoted
                 # to PARTIAL and classified SCOPE_VIOLATION on the surface
                 # the recovery path already reads: the TaskAttempt is
@@ -455,13 +470,22 @@ class VerificationRunnerService:
                 # PARTIAL (append-only terminal status), and no telemetry
                 # outcome row exists for it: Chapter 6.5's
                 # actual_verified_outcome enum admits only PASSED/FAILED.
+                # A prototype-manifest violation (playbook §5.3) demotes
+                # identically but classifies as plain VERIFICATION_FAILURE:
+                # a broken manifest is ordinary failed verification, not
+                # harness gaming -- no new recovery-matrix row invented.
+                failure_class = (
+                    "SCOPE_VIOLATION"
+                    if guardrail.violations
+                    else "VERIFICATION_FAILURE"
+                )
                 await self._fail_unverified_attempt(
                     active,
                     task=task,
                     worker_run=worker_run,
                     workspace=workspace,
                     verification_run_id=finished.verification_run_id,
-                    failure_class="SCOPE_VIOLATION",
+                    failure_class=failure_class,
                 )
                 await self._events.append(
                     tenant_id=tenant_id,
@@ -475,9 +499,13 @@ class VerificationRunnerService:
                         "action": "reject",
                         "requires_replan": False,
                         "allow_new_worker_run": False,
-                        "failure_class": "SCOPE_VIOLATION",
+                        "failure_class": failure_class,
                         "occurrence_count": 0,
-                        "source": "guardrail_test_scope_violation",
+                        "source": (
+                            "guardrail_test_scope_violation"
+                            if guardrail.violations
+                            else "prototype_manifest_violation"
+                        ),
                     },
                     uow=active,
                 )
@@ -597,6 +625,25 @@ class VerificationRunnerService:
             task=task, oracle=oracle, changed_files=changed_files
         )
 
+    async def _assess_prototypes(
+        self,
+        *,
+        workspace: Workspace,
+    ) -> PrototypeAssessment:
+        """Playbook §5.3: real reads over the workspace's prototypes/
+        directory, same pre-oracle slot as the guardrail sweep. Like the
+        guardrail diff read, this is a direct workspace *read* on DDE's own
+        behalf inside the verification chain -- not a worker-requested
+        capability operation and no external-effect journal entry."""
+        if not workspace.workspace_path:
+            return PrototypeAssessment(findings=())
+        try:
+            return await asyncio.to_thread(
+                assess_prototype_dir, Path(workspace.workspace_path)
+            )
+        except OSError:
+            return PrototypeAssessment(findings=())
+
     async def _finalise_passed_attempt(
         self,
         active: PostgresUnitOfWork,
@@ -713,6 +760,7 @@ class VerificationRunnerService:
         workspace: Workspace,
         integrated_revision: str,
         guardrail: TestScopeAssessment,
+        prototype_check: PrototypeAssessment,
     ) -> tuple[CheckResult, ObservableOutcomeResult, Evidence]:
         spec = _outcome_check_spec(outcome, is_negative_case=is_negative_case)
         check_result = await run_check(self._workspaces, workspace, spec, uow=active)
@@ -727,13 +775,16 @@ class VerificationRunnerService:
             "status": outcome_status,
         }
         content_hash = sha256_hex(canonical_json(evidence_content))
-        independence_flags = merge_flags(
-            {
-                "generator_worker_profile_id": worker_run.worker_profile_id,
-                "verifier": "engine.verification.runner",
-                "independent": True,
-            },
-            guardrail,
+        independence_flags = merge_prototype_flags(
+            merge_flags(
+                {
+                    "generator_worker_profile_id": worker_run.worker_profile_id,
+                    "verifier": "engine.verification.runner",
+                    "independent": True,
+                },
+                guardrail,
+            ),
+            prototype_check,
         )
         signature_payload = {
             "content_hash": content_hash,
@@ -835,6 +886,7 @@ def _evaluate(
     negative_results: list[ObservableOutcomeResult],
     minimum_confidence: float,
     guardrail: TestScopeAssessment | None = None,
+    prototype_check: PrototypeAssessment | None = None,
 ) -> tuple[str, float]:
     """The AcceptanceOracle's own judgment (Chapter 11.1: "AcceptanceOracle
     evaluation"), operating purely on already-collected evidence status --
@@ -859,6 +911,8 @@ def _evaluate(
     confidence = passed / len(all_results)
     if confidence == 1.0 and confidence >= minimum_confidence:
         if guardrail is not None and guardrail.violations:
+            return "PARTIAL", confidence
+        if prototype_check is not None and prototype_check.violations:
             return "PARTIAL", confidence
         return "PASSED", confidence
     if confidence == 0.0:
