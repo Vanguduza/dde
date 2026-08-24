@@ -1,14 +1,18 @@
-# Product Studio charter — PRD → playbook-aligned generation prompt +
+# Frontend Studio charter — PRD → playbook-aligned generation prompt +
 # Donor Lab feature-mapped donor discovery + Visual Verification & Critique Loop
 
-**Status:** proposed charter v2 (2026-08-24), awaiting owner sign-off.
-v2 hardens the output-quality loop into a blocking mission (DDE-068) per
-the owner's direction that generated products must be polished and
-non-generic, not merely produced. Prepared from the six-stream
-anti-generic-output research and verified against the repo state at
-`34127f4` (`09baee6` findings re-checked where cited below). This is a
-work-planning document, not an EDR; no Project Truth rows are created or
-modified by it.
+**Status:** proposed charter v3 (2026-08-24), awaiting owner sign-off.
+v3 renames the workstream **Frontend Studio** and adds the
+conformance-by-construction authoring law (§4.1) + GUI spec integration
+(`frontend-studio-gui-spec.md`) per the owner's >95% confidence bar:
+quality must be unautherable, not merely inspected. v2 hardened the
+output-quality loop into a blocking mission (DDE-068) per the owner's
+direction that generated products must be polished and non-generic, not
+merely produced. Prepared from the six-stream anti-generic-output
+research and verified against the repo state at `34127f4` (`09baee6`
+findings re-checked where cited below). This is a work-planning
+document, not an EDR; no Project Truth rows are created or modified by
+it.
 
 ## 0. Naming
 
@@ -17,8 +21,12 @@ Code") is already the **control-plane UI** — a Gateway/CLI client over
 `/v1` that never touches Core tables. This requirement is a
 **product-generation studio**: a pipeline that turns an approved PRD into
 UI-generation prompts plus a categorized donor/tool inventory for the
-*generated product*. "Product Studio" names the new workstream; "studio"
-alone stays reserved by the existing extension.
+*generated product*. Per owner decision 2026-08-24 the workstream is
+named **"Frontend Studio"** (was "Product Studio"); "studio" alone stays
+reserved by the existing extension. The GUI/UX specification for the
+studio surface lives in `docs/planning/frontend-studio-gui-spec.md`
+(button-add, drag-and-drop, live preview editing) and is binding input
+to DDE-067's charter scope below.
 
 ## 1. Mission decomposition
 
@@ -101,7 +109,7 @@ charter names. Inserted workstream of four missions:
  - Every outbound query carries an idempotency key and writes an
    ExternalEffect journal row before retry (Ch.12.4).
 
-### DDE-067 — Product Studio Surface & Consumption Wiring
+### DDE-067 — Frontend Studio Surface & Consumption Wiring
 
 - **Scope IN:** Studio-facing surface that accepts a PRD, triggers
   compilation, displays grouped donor results, feeds both consumers:
@@ -134,6 +142,36 @@ charter names. Inserted workstream of four missions:
    once DDE-068 lands; until then today's floor applies (DD201–DD206 +
    honesty tests), and no screen may merge on the promise of future
    gates.
+ - The GUI implements `docs/planning/frontend-studio-gui-spec.md`:
+   button-add, drag-and-drop, and live preview editing are ALL structured
+   manifest mutations through one command path — never raw DOM patches.
+   **Conformance by construction:** every value picker in the studio UI
+   offers ONLY token-valid options (colors/fonts/spacing/motion from
+   generated `tokens.ts`); there is no free-form style input anywhere in
+   v1. This makes DD201–DD206 violation classes unautherable at authoring
+   time rather than caught at lint time — the primary structural
+   advantage over generate-then-critique builders.
+
+### 4.1 Conformance by construction (the >95% bar)
+
+The charter's confidence claim rests on three interlocking mechanisms,
+each independently blocking:
+
+1. **Unautherable violations (DDE-067 GUI):** token-bound pickers +
+   manifest-mutation-only editing mean off-token values cannot be
+   expressed in the authoring surface at all.
+2. **Measured quality (DDE-068 loop):** rendered pixels judged against
+   rubric/silhouette/density gates with bounded revise — catches what
+   conformance-by-construction cannot (composition, hierarchy,
+   distinctiveness).
+3. **Constrained inputs (DDE-065 compiler):** generation prompts embed
+   nevers/tokens/copy-law as compile-time constraints with fail-closed
+   input resolution, so even model-generated first drafts start inside
+   the guardrail envelope.
+
+A builder that only generates (v0/Bolt-class) has none of these; Cocodly
+implements mainly (2); DDE implements all three, which is why the bar is
+"surpass" rather than "match."
 
 ### DDE-068 — Visual Verification & Critique Loop
 
@@ -346,6 +384,7 @@ cannot yet demonstrate (honesty law applies to process claims too).
 
 | Item | When | Why |
 |---|---|---|
+| DDE-067 GUI shell | may start after charter sign-off, in parallel | honest empty states only; implements `frontend-studio-gui-spec.md` navigation/canvas skeleton |
 | DDE-065 compiler | can start after charter sign-off | offline, stdlib-only, deps landed. Fail-closed rule replaces the old stubbed-input caveat: sequence the art-direction record first (it remains §6.5 adopt-now), and until then the compiler REFUSES rather than accepts stubs — no compiled prompt exists without art-direction record + resolved tokens pin |
 | Art-direction record + font corpus | before first real DDE-065 compile | §6.5 adopt-now items the compiler hard-depends on; owning missions named in gap-closure §6.5 table |
 | EDR-0015 | file at DDE-066 charter time | mirrors EDR-0008's accept-first pattern |
@@ -366,14 +405,14 @@ enters execution. On sign-off: (1) record acceptance in this file's
 status line; (2) file **EDR-0015** as PROPOSED at DDE-066 charter time
 and **EDR-0016** as PROPOSED immediately (both mirror EDR-0008's
 accept-first pattern — charters written now, implementations gated on
-acceptance); (3) launch DDE-065 (offline compiler) — it may start
-immediately under the standing auto-resume order since it touches no
-egress and no model calls, noting its fail-closed input rule makes the
-art-direction record (§6.5 adopt-now) the pacing item for the FIRST
-real compile; (4) treat DDE-068's chapter gate as covering the whole
-quality loop: per `.cursor/rules/mission-chapter-gate.mdc`, the gate is
-passed only when every §Definition-of-Polished gate names a production
-call site (or a named deferral + EDR), and the bounded-revise/human-
-escalation rules are wired where mutations actually happen — CI green
-alone closes nothing. Until signed off, nothing here authorizes
-implementation work.
+acceptance); (3) launch DDE-065 (offline compiler) and the DDE-067 GUI
+shell per `frontend-studio-gui-spec.md` — both may start immediately
+under the standing auto-resume order since they touch no egress and no
+model calls; DDE-065's fail-closed input rule makes the art-direction
+record (§6.5 adopt-now) the pacing item for the FIRST real compile;
+(4) treat DDE-068's chapter gate as covering the whole quality loop:
+per `.cursor/rules/mission-chapter-gate.mdc`, the gate is passed only
+when every §Definition-of-Polished gate names a production call site
+(or a named deferral + EDR), and the bounded-revise/human-escalation
+rules are wired where mutations actually happen — CI green alone closes
+nothing. Until signed off, nothing here authorizes implementation work.
