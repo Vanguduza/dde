@@ -238,7 +238,21 @@ export function buildShellHtml(model: ShellModel): string {
           cloudUrl: document.getElementById("cloudUrl").value,
           preferredTarget: document.getElementById("preferredTarget").value,
           pollIntervalMs: Number(document.getElementById("pollIntervalMs").value),
+          principalId: document.getElementById("principalId")?.value,
+          projectId: document.getElementById("projectId")?.value,
         });
+      });
+    }
+    const captureBtn = document.getElementById("captureOpensandbox");
+    if (captureBtn) {
+      captureBtn.addEventListener("click", () => {
+        const keyInput = document.getElementById("opensandboxApiKey");
+        api.postMessage({
+          type: "captureOpensandboxKey",
+          apiKey: keyInput ? keyInput.value : "",
+          domain: document.getElementById("opensandboxDomain")?.value ?? "",
+        });
+        if (keyInput) keyInput.value = "";
       });
     }
   </script>

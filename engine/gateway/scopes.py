@@ -31,10 +31,19 @@ BASELINE_SCOPES: Final[dict[str, frozenset[str]]] = {
             # stays behind `approval.decide`. No decide authority is
             # widened by this scope.
             "approval.request",
+            # Operator paste of static provider secrets (OpenSandbox API key)
+            # through Studio Settings → Credential Broker capture seam.
+            "credential.capture",
         }
     ),
     "service": frozenset(
-        {"mission.read", "mission.control", "event.read", "approval.request"}
+        {
+            "mission.read",
+            "mission.control",
+            "event.read",
+            "approval.request",
+            "credential.capture",
+        }
     ),
     "worker": frozenset({"worker.execute", "worker.events", "worker.artifacts"}),
     "device": frozenset({"device.read", "device.command"}),
@@ -63,6 +72,8 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     # widening any decide authority. Fail-closed: unknown command types
     # still raise FORBIDDEN in `required_scope`.
     "approval.request_budget_increase": "approval.request",
+    "credential.capture_opensandbox": "credential.capture",
+    "credential.inspect_opensandbox": "credential.capture",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -78,6 +89,8 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "approval.batch_decide": "project",
     "approval.request_budget_increase": "project",
     "approval.decide_budget_increase": "project",
+    "credential.capture_opensandbox": "project",
+    "credential.inspect_opensandbox": "project",
 }
 
 #: Mission control command -> target mission status (Chapter 4.8).

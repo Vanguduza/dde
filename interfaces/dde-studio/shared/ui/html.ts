@@ -321,7 +321,25 @@ export function harnessHtml(opts: {
 
 
 
-export function settingsFormHtml(connection: StudioConnection): string {
+export function settingsFormHtml(
+  connection: StudioConnection,
+  opensandbox?: {
+    domain?: string;
+    fingerprint?: string | null;
+    last4?: string | null;
+    captured?: boolean;
+    statusText?: string;
+    principalId?: string;
+    projectId?: string;
+  },
+): string {
+  const osbDomain = escapeHtml(opensandbox?.domain ?? "");
+  const principalId = escapeHtml(opensandbox?.principalId ?? "");
+  const projectId = escapeHtml(opensandbox?.projectId ?? "");
+  const chip =
+    opensandbox?.captured && opensandbox.fingerprint
+      ? `<p class="muted" id="opensandboxStatus" role="status">Captured · fingerprint <code>${escapeHtml(opensandbox.fingerprint)}</code>${opensandbox.last4 ? ` · …${escapeHtml(opensandbox.last4)}` : ""}</p>`
+      : `<p class="muted" id="opensandboxStatus" role="status">${escapeHtml(opensandbox?.statusText ?? "Not captured — paste a key or use DDE_OPENSANDBOX_* env fallback.")}</p>`;
 
   return `<!DOCTYPE html>
 
@@ -367,11 +385,39 @@ export function settingsFormHtml(connection: StudioConnection): string {
 
   <input id="pollIntervalMs" type="number" min="1000" value="${connection.pollIntervalMs}" />
 
+  <label class="field" for="principalId">Principal UUID</label>
+
+  <input id="principalId" value="${principalId}" autocomplete="off" />
+
+  <label class="field" for="projectId">Project UUID</label>
+
+  <input id="projectId" value="${projectId}" autocomplete="off" />
+
   <div class="row">
 
     <button type="button" id="save">Save</button>
 
     <button type="button" class="secondary" data-cmd="refresh">Cancel</button>
+
+  </div>
+
+  <h2>OpenSandbox API</h2>
+
+  <p class="muted">Paste captures through the Credential Broker. The raw key is hashed immediately; Studio only shows a fingerprint. Env <code>DDE_OPENSANDBOX_*</code> remains the headless fallback.</p>
+
+  ${chip}
+
+  <label class="field" for="opensandboxDomain">Domain (optional)</label>
+
+  <input id="opensandboxDomain" value="${osbDomain}" autocomplete="off" />
+
+  <label class="field" for="opensandboxApiKey">API key</label>
+
+  <input id="opensandboxApiKey" type="password" value="" autocomplete="off" />
+
+  <div class="row">
+
+    <button type="button" id="captureOpensandbox">Capture key</button>
 
   </div>
 
@@ -395,7 +441,29 @@ export function settingsFormHtml(connection: StudioConnection): string {
 
         pollIntervalMs: Number(document.getElementById("pollIntervalMs").value),
 
+        principalId: document.getElementById("principalId").value,
+
+        projectId: document.getElementById("projectId").value,
+
       });
+
+    });
+
+    document.getElementById("captureOpensandbox").addEventListener("click", () => {
+
+      const keyInput = document.getElementById("opensandboxApiKey");
+
+      api.postMessage({
+
+        type: "captureOpensandboxKey",
+
+        apiKey: keyInput.value,
+
+        domain: document.getElementById("opensandboxDomain").value,
+
+      });
+
+      keyInput.value = "";
 
     });
 

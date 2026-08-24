@@ -1226,6 +1226,26 @@ CREATE TABLE feature_dna (
     UNIQUE (project_id, dna_hash)
 );
 
+CREATE TABLE captured_provider_credentials (
+    capture_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    provider_id text NOT NULL,
+    domain text,
+    secret_hash text NOT NULL,
+    fingerprint text NOT NULL,
+    last4 text NOT NULL,
+    status text NOT NULL,
+    supersedes_capture_id uuid,
+    superseded_by_capture_id uuid,
+    captured_by text NOT NULL,
+    captured_at timestamptz NOT NULL,
+    revoked_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (capture_id)
+);
+
 CREATE TABLE events (
     event_id uuid NOT NULL,
     event_type text NOT NULL,
@@ -1582,6 +1602,11 @@ ALTER TABLE feature_dna ADD CONSTRAINT feature_dna_tenant_id_fkey FOREIGN KEY (t
 ALTER TABLE feature_dna ADD CONSTRAINT feature_dna_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE feature_dna ADD CONSTRAINT feature_dna_donor_artifact_id_fkey FOREIGN KEY (donor_artifact_id) REFERENCES donor_artifacts (donor_artifact_id);
 
+ALTER TABLE captured_provider_credentials ADD CONSTRAINT captured_provider_credentials_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE captured_provider_credentials ADD CONSTRAINT captured_provider_credentials_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE captured_provider_credentials ADD CONSTRAINT captured_provider_credentials_supersedes_capture_id_fkey FOREIGN KEY (supersedes_capture_id) REFERENCES captured_provider_credentials (capture_id);
+ALTER TABLE captured_provider_credentials ADD CONSTRAINT captured_provider_credentials_superseded_by_capture_id_fkey FOREIGN KEY (superseded_by_capture_id) REFERENCES captured_provider_credentials (capture_id);
+
 ALTER TABLE events ADD CONSTRAINT events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE events ADD CONSTRAINT events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1829,6 +1854,10 @@ CREATE POLICY donor_artifacts_tenant_isolation ON donor_artifacts USING (tenant_
 ALTER TABLE feature_dna ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feature_dna FORCE ROW LEVEL SECURITY;
 CREATE POLICY feature_dna_tenant_isolation ON feature_dna USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE captured_provider_credentials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE captured_provider_credentials FORCE ROW LEVEL SECURITY;
+CREATE POLICY captured_provider_credentials_tenant_isolation ON captured_provider_credentials USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events FORCE ROW LEVEL SECURITY;

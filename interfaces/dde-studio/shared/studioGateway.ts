@@ -263,6 +263,99 @@ export class StudioGatewayService {
     }
   }
 
+  /**
+   * Paste → hash → capture OpenSandbox API key via Credential Broker.
+   * Acceptance payload is fingerprint/last4 only — never the raw key.
+   */
+  async captureOpensandboxKey(
+    projectId: string,
+    apiKey: string,
+    domain?: string,
+  ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
+    if (!isUuid(projectId.trim())) {
+      return {
+        ok: false,
+        reason:
+          "OpenSandbox capture needs the DDE project UUID; set dde.studio.projectId",
+      };
+    }
+    if (!apiKey.trim()) {
+      return { ok: false, reason: "API key is empty" };
+    }
+    const parameters: Record<string, unknown> = { api_key: apiKey };
+    if (domain && domain.trim()) {
+      parameters.domain = domain.trim();
+    }
+    const state = await this.state();
+    if (state.kind !== "ready" || !this.session) {
+      return {
+        ok: false,
+        reason:
+          state.kind === "ready"
+            ? "session not open yet"
+            : (state as { reason: string }).reason,
+      };
+    }
+    try {
+      const acceptance = await this.client!.acceptCommand({
+        commandId: randomUUID(),
+        idempotencyKey: `credential.capture_opensandbox:${randomUUID()}`,
+        principalId: this.principalId,
+        clientSessionId: this.session.session_id,
+        targetType: "project",
+        targetId: projectId.trim(),
+        commandType: "credential.capture_opensandbox",
+        parameters,
+      });
+      return { ok: true, acceptance };
+    } catch (err) {
+      if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
+        this.session = null;
+      }
+      return { ok: false, reason: describe(err) };
+    }
+  }
+
+  async inspectOpensandboxKey(
+    projectId: string,
+  ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
+    if (!isUuid(projectId.trim())) {
+      return {
+        ok: false,
+        reason:
+          "OpenSandbox inspect needs the DDE project UUID; set dde.studio.projectId",
+      };
+    }
+    const state = await this.state();
+    if (state.kind !== "ready" || !this.session) {
+      return {
+        ok: false,
+        reason:
+          state.kind === "ready"
+            ? "session not open yet"
+            : (state as { reason: string }).reason,
+      };
+    }
+    try {
+      const acceptance = await this.client!.acceptCommand({
+        commandId: randomUUID(),
+        idempotencyKey: `credential.inspect_opensandbox:${randomUUID()}`,
+        principalId: this.principalId,
+        clientSessionId: this.session.session_id,
+        targetType: "project",
+        targetId: projectId.trim(),
+        commandType: "credential.inspect_opensandbox",
+        parameters: {},
+      });
+      return { ok: true, acceptance };
+    } catch (err) {
+      if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
+        this.session = null;
+      }
+      return { ok: false, reason: describe(err) };
+    }
+  }
+
   private async open(): Promise<void> {
     const session = await this.client!.openSession({
       principalId: this.principalId,
@@ -273,6 +366,7 @@ export class StudioGatewayService {
         "mission.control",
         "approval.read",
         "approval.decide",
+        "credential.capture",
       ],
       subscriptions: ["mission"],
     });

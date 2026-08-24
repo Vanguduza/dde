@@ -10,6 +10,7 @@ from engine.contracts.attention_item import AttentionItem
 from engine.contracts.audit_event import AuditEvent
 from engine.contracts.capability_descriptor import CapabilityDescriptor
 from engine.contracts.capability_lease import CapabilityLease
+from engine.contracts.captured_provider_credential import CapturedProviderCredential
 from engine.contracts.checkpoint import Checkpoint
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
@@ -86,6 +87,7 @@ __all__ = [
     "AuditEvent",
     "CapabilityDescriptor",
     "CapabilityLease",
+    "CapturedProviderCredential",
     "Checkpoint",
     "ClientSession",
     "Command",

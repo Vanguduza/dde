@@ -24,6 +24,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.broker.capture import StaticSecretCaptureService
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
@@ -66,19 +67,38 @@ def _hash_command(command: Command) -> str:
     """Fingerprint the logical command identity, excluding per-attempt fields
     (`command_id`, `idempotency_key`, `requested_at`, principal/session) so a
     true retry hashes identically while key reuse with a different logical
-    command is refused (Chapter 12.5)."""
+    command is refused (Chapter 12.5).
+
+    For `credential.capture_opensandbox`, the raw `api_key` is replaced by its
+    content hash before hashing so the outer ledger never fingerprints the
+    live secret material itself — only the already-hashed digest.
+    """
+    parameters = command.parameters
+    if command.command_type == "credential.capture_opensandbox":
+        parameters = _redact_capture_parameters(dict(parameters))
     canonical = json.dumps(
         {
             "command_type": command.command_type,
             "target_type": command.target_type,
             "target_id": str(command.target_id),
-            "parameters": command.parameters,
+            "parameters": parameters,
             "protocol_version": command.protocol_version,
         },
         sort_keys=True,
         default=str,
     )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _redact_capture_parameters(parameters: dict[str, object]) -> dict[str, object]:
+    """Replace raw api_key with its SHA-256 digest for ledger fingerprinting."""
+    from engine.core.hashing import sha256_hex
+
+    redacted = dict(parameters)
+    raw = redacted.get("api_key")
+    if isinstance(raw, str) and raw.strip():
+        redacted["api_key"] = sha256_hex(raw.strip())
+    return redacted
 
 
 def _param_str(parameters: dict[str, object], name: str) -> str:
@@ -173,6 +193,9 @@ class CommandDispatcher:
     def _approvals(self) -> ApprovalService:
         return ApprovalService(self._engine)
 
+    def _captures(self) -> StaticSecretCaptureService:
+        return StaticSecretCaptureService(self._engine)
+
     async def load_mission(self, mission_id: UUID) -> Mission:
         async with self._engine.connect() as connection:
             mission = await MissionsRepository().get_mission(connection, mission_id)
@@ -226,6 +249,10 @@ class CommandDispatcher:
             return await self._request_budget_increase(command, tenant_id, project_id)
         if command_type == "approval.decide_budget_increase":
             return await self._decide_budget_increase(command, tenant_id, project_id)
+        if command_type == "credential.capture_opensandbox":
+            return await self._capture_opensandbox(command, tenant_id, project_id)
+        if command_type == "credential.inspect_opensandbox":
+            return await self._inspect_opensandbox(command, tenant_id, project_id)
         raise DdeError(
             "FORBIDDEN",
             "Unsupported command_type",
@@ -385,6 +412,63 @@ class CommandDispatcher:
             target_type="budget_request",
             target_id=result.approval.approval_id,
             payload=budget_decision_payload(result),
+        )
+
+    async def _capture_opensandbox(
+        self, command: Command, tenant_id: UUID, project_id: UUID
+    ) -> CommandAcceptance:
+        """Studio Settings paste → hash → broker capture for OpenSandbox.
+
+        Parameters: `api_key` (required), optional `domain`. The raw key is
+        never returned in the acceptance payload — only fingerprint / last4 /
+        captured metadata. Inner ledger key is namespaced so it does not
+        collide with the gateway outer CommandLedger row.
+        """
+        params = command.parameters
+        domain_raw = params.get("domain")
+        domain = (
+            domain_raw.strip()
+            if isinstance(domain_raw, str) and domain_raw.strip()
+            else None
+        )
+        result = await self._captures().capture_opensandbox_api_key(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            api_key=_param_str(params, "api_key"),
+            domain=domain,
+            captured_by=str(command.principal_id),
+            idempotency_key=f"credential.capture:{command.idempotency_key}",
+        )
+        payload = StaticSecretCaptureService.public_status(result.record)
+        payload["replayed"] = result.replayed
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="project",
+            target_id=project_id,
+            payload=payload,
+        )
+
+    async def _inspect_opensandbox(
+        self, command: Command, tenant_id: UUID, project_id: UUID
+    ) -> CommandAcceptance:
+        """Return captured OpenSandbox fingerprint chip (never the raw key)."""
+        active = await self._captures().inspect(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        if active is None:
+            payload: dict[str, object] = {
+                "captured": False,
+                "provider_id": "opensandbox_api_key",
+            }
+        else:
+            payload = StaticSecretCaptureService.public_status(active)
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="project",
+            target_id=project_id,
+            payload=payload,
         )
 
 

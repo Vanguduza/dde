@@ -22,6 +22,7 @@ import {
   PendingGatewayClient,
   type HarnessId,
 } from "../../shared/stubGateway";
+import { StudioGatewayService } from "../../shared/studioGateway";
 import { MODULE_REGISTRY, SIDEBAR_STUB_MODULES } from "../../shared/registry";
 import type { AuthState } from "../../shared/authTypes";
 import {
@@ -55,6 +56,10 @@ interface StoredSettings {
   pollIntervalMs: number;
   /** User dismissed first-run wizard prompt for this install. */
   firstRunPromptDismissed?: boolean;
+  /** DDE principal UUID for Gateway session (Settings paste / capture). */
+  principalId?: string;
+  /** DDE project UUID addressed by project-scoped commands. */
+  projectId?: string;
 }
 
 const DEFAULT_SETTINGS: StoredSettings = {
@@ -63,6 +68,8 @@ const DEFAULT_SETTINGS: StoredSettings = {
   preferredTarget: "local",
   pollIntervalMs: 5000,
   firstRunPromptDismissed: false,
+  principalId: "",
+  projectId: "",
 };
 
 const health = new HealthClient();
@@ -72,6 +79,13 @@ let probe: ProbeState = { kind: "idle" };
 let auth: AuthState = { kind: "unauthenticated" };
 let claudeAuth: ClaudeCodeAuthState = { kind: "none" };
 let claudePendingSource: "claude_auth_login" | "claude_setup_token" | undefined;
+let opensandboxCapture: {
+  fingerprint?: string;
+  last4?: string;
+  domain?: string;
+  captured: boolean;
+  statusText?: string;
+} = { captured: false };
 
 function refreshAuth(): void {
   auth = loadAuthState();
@@ -301,13 +315,24 @@ async function renderContent(): Promise<string> {
   const { connection, error } = resolveConnection();
 
   if (currentNav === "settings") {
-    contentCache = settingsFormHtml({
-      coreUrl: settings.coreUrl,
-      cloudUrl: settings.cloudUrl,
-      preferredTarget: settings.preferredTarget,
-      pollIntervalMs: settings.pollIntervalMs,
-      effectiveUrl: connection?.effectiveUrl ?? settings.coreUrl,
-    });
+    contentCache = settingsFormHtml(
+      {
+        coreUrl: settings.coreUrl,
+        cloudUrl: settings.cloudUrl,
+        preferredTarget: settings.preferredTarget,
+        pollIntervalMs: settings.pollIntervalMs,
+        effectiveUrl: connection?.effectiveUrl ?? settings.coreUrl,
+      },
+      {
+        domain: opensandboxCapture.domain ?? "",
+        fingerprint: opensandboxCapture.fingerprint,
+        last4: opensandboxCapture.last4,
+        captured: opensandboxCapture.captured,
+        statusText: opensandboxCapture.statusText,
+        principalId: settings.principalId ?? "",
+        projectId: settings.projectId ?? "",
+      },
+    );
     return contentCache;
   }
 
@@ -646,6 +671,8 @@ function wireIpc(): void {
             msg.preferredTarget === "cloud" ? "cloud" : "local",
           pollIntervalMs: Number(msg.pollIntervalMs ?? 5000),
           firstRunPromptDismissed: settings.firstRunPromptDismissed,
+          principalId: String(msg.principalId ?? settings.principalId ?? ""),
+          projectId: String(msg.projectId ?? settings.projectId ?? ""),
         });
         currentNav = "connection";
         await refreshProbe();
@@ -653,6 +680,47 @@ function wireIpc(): void {
         pushShell();
         restartPoll();
         break;
+      case "captureOpensandboxKey": {
+        const apiKey = String(msg.apiKey ?? "");
+        const domain = String(msg.domain ?? "");
+        const { connection: conn } = resolveConnection();
+        const baseUrl = conn?.effectiveUrl ?? settings.coreUrl;
+        const gateway = new StudioGatewayService(
+          baseUrl,
+          settings.principalId ?? "",
+          "human",
+        );
+        const result = await gateway.captureOpensandboxKey(
+          settings.projectId ?? "",
+          apiKey,
+          domain || undefined,
+        );
+        if (result.ok && result.acceptance) {
+          const payload = result.acceptance.payload;
+          opensandboxCapture = {
+            captured: Boolean(payload.captured),
+            fingerprint:
+              typeof payload.fingerprint === "string"
+                ? payload.fingerprint
+                : undefined,
+            last4: typeof payload.last4 === "string" ? payload.last4 : undefined,
+            domain: typeof payload.domain === "string" ? payload.domain : domain,
+            statusText: undefined,
+          };
+        } else {
+          opensandboxCapture = {
+            ...opensandboxCapture,
+            statusText: result.reason ?? "Capture failed",
+          };
+          dialog.showErrorBox(
+            "OpenSandbox capture",
+            result.reason ?? "Capture failed",
+          );
+        }
+        await renderContent();
+        pushShell();
+        break;
+      }
       case "runSetupWizard": {
         const launched = launchSetupWizard();
         applianceStatus = launched.message;
