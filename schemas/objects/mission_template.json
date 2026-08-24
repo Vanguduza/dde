@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "x-dde-storage": {
     "table": "mission_templates",
-    "order": 210,
+    "order": 212,
     "pk": ["template_id"],
     "tenant_scoped": true,
     "project_scoped": true,
@@ -76,7 +76,7 @@
         },
         "blast_radius": {
           "type": "string",
-          "enum": ["local", "module", "cross_module", "system"]
+          "enum": ["local", "module", "cross_module", "systemic"]
         },
         "risk_class": {
           "type": "string",

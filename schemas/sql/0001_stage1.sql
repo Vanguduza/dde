@@ -891,24 +891,6 @@ CREATE TABLE invariant_evaluations (
     UNIQUE (tenant_id, project_id, invariant_id, product_env_id, sequence)
 );
 
-CREATE TABLE mission_templates (
-    template_id uuid NOT NULL,
-    tenant_id uuid NOT NULL,
-    project_id uuid NOT NULL,
-    template_key text NOT NULL,
-    template_version text NOT NULL,
-    description text NOT NULL,
-    nodes jsonb NOT NULL DEFAULT '[]'::jsonb,
-    edges jsonb NOT NULL DEFAULT '[]'::jsonb,
-    status text NOT NULL,
-    planner_policy_version text NOT NULL,
-    created_by text NOT NULL,
-    created_at timestamptz NOT NULL,
-    updated_at timestamptz NOT NULL,
-    PRIMARY KEY (template_id),
-    UNIQUE (project_id, template_key, template_version)
-);
-
 CREATE TABLE verification_runs (
     verification_run_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -953,6 +935,24 @@ CREATE TABLE plan_drafts (
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (draft_id),
     UNIQUE (tenant_id, project_id, provenance_key)
+);
+
+CREATE TABLE mission_templates (
+    template_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    template_key text NOT NULL,
+    template_version text NOT NULL,
+    description text NOT NULL,
+    nodes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    edges jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    planner_policy_version text NOT NULL,
+    created_by text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (template_id),
+    UNIQUE (project_id, template_key, template_version)
 );
 
 CREATE TABLE integration_proposals (
@@ -1410,9 +1410,6 @@ ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_mission_i
 ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_invariant_id_fkey FOREIGN KEY (invariant_id) REFERENCES domain_invariants (invariant_id);
 ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_product_env_id_fkey FOREIGN KEY (product_env_id) REFERENCES product_environments (product_env_id);
 
-ALTER TABLE mission_templates ADD CONSTRAINT mission_templates_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE mission_templates ADD CONSTRAINT mission_templates_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1425,6 +1422,9 @@ ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_oracle_id_fkey FO
 ALTER TABLE plan_drafts ADD CONSTRAINT plan_drafts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE plan_drafts ADD CONSTRAINT plan_drafts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE plan_drafts ADD CONSTRAINT plan_drafts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE mission_templates ADD CONSTRAINT mission_templates_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE mission_templates ADD CONSTRAINT mission_templates_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
 ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -1653,10 +1653,6 @@ ALTER TABLE invariant_evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invariant_evaluations FORCE ROW LEVEL SECURITY;
 CREATE POLICY invariant_evaluations_tenant_isolation ON invariant_evaluations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
-ALTER TABLE mission_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mission_templates FORCE ROW LEVEL SECURITY;
-CREATE POLICY mission_templates_tenant_isolation ON mission_templates USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
-
 ALTER TABLE verification_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_runs FORCE ROW LEVEL SECURITY;
 CREATE POLICY verification_runs_tenant_isolation ON verification_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
@@ -1664,6 +1660,10 @@ CREATE POLICY verification_runs_tenant_isolation ON verification_runs USING (ten
 ALTER TABLE plan_drafts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE plan_drafts FORCE ROW LEVEL SECURITY;
 CREATE POLICY plan_drafts_tenant_isolation ON plan_drafts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE mission_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mission_templates FORCE ROW LEVEL SECURITY;
+CREATE POLICY mission_templates_tenant_isolation ON mission_templates USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE integration_proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integration_proposals FORCE ROW LEVEL SECURITY;

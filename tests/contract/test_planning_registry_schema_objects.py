@@ -154,6 +154,22 @@ def test_mission_template_rejects_estimated_effort_l() -> None:
         MissionTemplate.model_validate(payload)
 
 
+def test_mission_template_blast_radius_vocabulary_matches_task_contract() -> None:
+    """Chapter 4.2's vocabulary is `systemic`; a template authored with
+    the retired `system` value must be refused at the registry boundary
+    -- accepting it would instantiate Tasks whose contract rejects the
+    value only later, mid-planning."""
+    payload = _valid_template_payload()
+    node = dict(payload["nodes"][0])  # type: ignore[arg-type]
+    node["blast_radius"] = "system"
+    payload["nodes"] = [node, payload["nodes"][1]]  # type: ignore[index]
+    with pytest.raises(ValidationError):
+        MissionTemplate.model_validate(payload)
+    node["blast_radius"] = "systemic"
+    payload["nodes"] = [node, payload["nodes"][1]]  # type: ignore[index]
+    assert MissionTemplate.model_validate(payload) is not None
+
+
 def test_plan_draft_valid_with_required_fields() -> None:
     record = PlanDraft.model_validate(_valid_draft_payload())
     assert record.status == "PROPOSED"

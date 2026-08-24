@@ -1,6 +1,6 @@
 # DDE — Frontend & UX/UI Design Playbook: Guardrails, Prototypes, Skills & Tools
 
-**Version:** 1.1.1 (v1.1 operationalized 2026-08-22: tokens SSOT + drift gate, design lints DD201–DD206, binding rule file, six skills, provenance ledger, Prototype Gallery, prototype-manifest verification sweep, design-gate CI; Phase 1 visual-gate toolchain admitted by **EDR-0008 ACCEPTED** — implementation in flight)
+**Version:** 1.2 (v1.2 2026-08-24: §10 distinctiveness adoption plan — six-stream anti-generic-output research integrated; art-direction record, combination lints DD207+, silhouette test, copy-specificity gate, template-sourcing law mapped to Ch.13.8 licence classes, motion-identity token layer; staged landing plan in gap-closure-record §6.5. v1.1 operationalized 2026-08-22: tokens SSOT + drift gate, design lints DD201–DD206, binding rule file, six skills, provenance ledger, Prototype Gallery, prototype-manifest verification sweep, design-gate CI; Phase 1 visual-gate toolchain admitted by **EDR-0008 ACCEPTED** — implementation in flight)
 **Date:** 22 August 2026
 **1.1 changelog:** Cocodly loop-shape ports folded in — pre-generation plan checkpoint (P1, §5.0/§5.1), live-streaming prototype gallery (P2, §5.3/§7.6), refine-in-place protocol (P3, §5.6), believable-density scorecard line (P4, §8.3). Process/engineering layers only per §2; no Cocodly values, layouts, or copy.
 **1.1.1 changelog:** EDR-0008 (Playwright + `@axe-core/playwright` admission for the Phase 1 visual gates) **ACCEPTED 2026-08-22** by owner decision; §4.4 Phase B and §4.9's axe scan move from *post-EDR* to *admitted, implementation in flight*. Landed Phase-0 items marked operational: token SSOT pipeline + drift gate, static design lints with committed shrink-only baseline, studio client tests PR-blocking, prototype-manifest sweep wired into the verification runner, live Prototype Gallery.
@@ -24,7 +24,8 @@
 | 7 | Toolchain catalog |
 | 8 | Quality scorecards & thresholds |
 | 9 | Gate-ready acceptance checklist |
-| 10 | Traceability |
+| 10 | Distinctiveness adoption plan (2026-08-24 research integration) |
+| 11 | Traceability |
 
 **Enforcement-point legend used throughout:** ⚙ = GitHub Actions job · ◆ = pytest / `node --test` check · ▣ = schema contract (`schemas/` + `scripts/generate_contracts.py`) · § = binding rule file (`.cursor/rules/*.mdc`) · ✋ = human/manual gate.
 
@@ -364,7 +365,82 @@ A UI slice passes when every box is checkable:
 
 ---
 
-## 10. Traceability
+## 10. Distinctiveness adoption plan (2026-08-24 research integration)
+
+The six-stream anti-generic-output research (AI-slop fingerprint catalogs,
+builder technique comparison, template-source licensing scan, motion/
+animation state of the art, mechanical quality gates) produced twelve
+recommendations. They integrate with THIS playbook's existing law as
+follows; the staged landing plan lives in
+`docs/planning/gap-closure-record.md §6.5`.
+
+### 10.1 Extends §4.2 tokens — the art-direction record
+
+Beyond the token sheet (palette/scale/motion), each product carries an
+**art-direction record**: chosen type pairing (display + body, from a
+curated corpus of distinctive, licence-cleared pairs — not Inter-only),
+accent identity, layout idiom, motion identity. Generated once per
+product at mission start, consumed by every screen. **Lands:** S4 tail /
+small dedicated mission; extends `schemas/design/tokens.json` + generator.
+
+### 10.2 Extends §4.5 design lints — combination lints (DD207+)
+
+DD201–DD206 ban raw literals per-property. The research adds the
+*fingerprint* level: flag the COMBINATION that marks generic output
+(Inter-only type + indigo-family accent + centered-hero-3-card skeleton,
+emoji-as-icon + pill-spam rows). A file can pass DD201–206 and still be
+slop; DD207 catches the silhouette. **Lands:** with 10.1 in the same
+mission; `tests/unit/test_studio_design_lints.py` scanner extension.
+
+### 10.3 New gate — the silhouette test (§4.4 sibling)
+
+Playwright screenshot → coarse layout-shape fingerprint (block positions,
+column count, hero grammar) compared against a corpus of documented
+generic layouts; near-match = review blocker regardless of palette.
+Evidence class: the VLM screenshot-critique loop measured +17.8% output
+quality in controlled studies. **Lands:** S5 (DDE-043/044) once the
+browser capability renders real pages under EDR-0008's admitted
+toolchain; needs an EDR for the VLM critic dependency.
+
+### 10.4 Copy voice — specificity gate (extends clientHonesty)
+
+`FORBIDDEN_HELPER` bans helper-essay tells. Research adds
+specificity-tells: generic superlatives ("seamless", "robust",
+"cutting-edge"), unexplained numbers, placeholder-grade nouns. Same test
+file, same enforcement point. **Lands:** next Studio surface touched;
+adopt-now.
+
+### 10.5 Template & component sourcing law (extends §2/§3)
+
+Research catalogued where polished output actually comes from:
+shadcn-ecosystem registries and blocks (**OPEN_REUSE**, programmatically
+ingestable), Tailwind Plus / Cruip (**CONDITIONAL_REUSE** — end products
+only, never into DDE's generator), ThemeForest-class marketplaces
+(**REJECTED** for builder use), galleries like godly.site/lapa.ninja/
+mobbin (**SOURCE_REFERENCE_ONLY** — art-direction input via the provenance
+ledger, zero code transfer). These map onto Chapter 13.8's licence
+classes; ingestion becomes real at Donor Lab (DDE-046) behind its EDR.
+Until then: mining protocol §2 applies unchanged.
+
+### 10.6 Motion identity (extends §5.2 motion law)
+
+Motion is a first-class distinctiveness axis, not decoration: View
+Transitions API, scroll-driven CSS animation, spring-vs-easing identity,
+shared-element morphs (`layoutId`-class), staggered entrances, text
+reveals — each expressible as MOTION TOKENS so the existing reduced-motion
+law keeps holding mechanically. Component libraries (Aceternity/Magic UI
+class) enter only through the licence-aware registry path (10.5).
+Performance floor: compositor-friendly properties only, animation-bundle
+budgets join Chapter 16.5 budgets at DDE-063. **Lands:** token layer with
+10.1; verification gates after EDR-0008 Phase B; budget amendment at S7.
+
+Standing rule: no generated UI ships from a DDE mission without passing
+the combination lints + silhouette test once both exist; until then
+DD201–DD206 and the honesty tests are the floor.
+
+---
+
+## 11. Traceability
 
 | Section | Source(s) |
 |---|---|

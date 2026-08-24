@@ -223,3 +223,38 @@ verification items OK). Three MINOR residuals, recorded with owners:
   failures a recorded evaluation outcome must either wire or retire the
   enum value.
 
+### 6.5 UI-distinctiveness adoption plan — trigger: staged per item (2026-08-24)
+
+From the six-stream anti-generic-output research (AI-slop tells, builder
+techniques, template sources, motion/animation state of the art,
+mechanical quality gates). Full report: research agent transcript,
+2026-08-24. The playbook (docs/planning/dde-frontend-ux-playbook.md)
+carries the design-law detail; this section records WHEN each item lands.
+
+**Adopt-now items — land with the next missions that touch their surface:**
+
+| Item | Lands in | Surface |
+|---|---|---|
+| Art-direction record schema (per-product type pairing, palette identity, layout idiom, motion identity) | S4 tail, alongside DDE-041's telemetry work or a small dedicated mission | `schemas/design/tokens.json` extension + generator |
+| Font-pairing corpus (curated distinctive pairs w/ licence metadata) | same | `schemas/design/` data file, no dependency |
+| Combination lints (DD207+: flag Inter-only + indigo-gradient + centered-hero-3-card fingerprint) | same | `tests/unit/test_studio_design_lints.py` scanner |
+| Silhouette test (layout-shape fingerprint distinctiveness vs generic corpus) | S5 DDE-043/044 once browser capability renders real pages | Playwright suite admitted by EDR-0008 |
+| Copy-specificity gate (reject generic AI-tell copy patterns) | extend existing clientHonesty.test.ts | Studio client suite |
+| Icon-system governance (single stroke set, no emoji icons) | already partially enforced by DD-lints; complete at S5 visual mission | DD-lints |
+
+**Needs-EDR items — filed when their enabling mission starts:**
+
+| Capability | Enabler / stage | EDR timing |
+|---|---|---|
+| Template-ingestion pipeline (shadcn registries = OPEN_REUSE, programmatically ingestable) | S5 Donor Lab (DDE-046) | EDR with DDE-046 charter |
+| Commercial-template licensing path (Tailwind Plus/Cruip = CONDITIONAL_REUSE end-products only) | S5, owner decision first | EDR before any purchase/use |
+| VLM design-critic loop (screenshot → critique → revise; evidence: +17.8% quality) | S5 DDE-044 multimodal evidence pipeline | EDR with DDE-044 charter |
+| Motion-component ingestion (Aceternity/Magic UI-class libraries via registry) | S5 visual mission | folds into the DDE-046 EDR |
+| Motion polish check class (per-interaction specs verified) | after EDR-0008 Phase B toolchain wired | verification-runner extension EDR |
+| Animation-bundle performance budgets (INP/bundle-cost gates) | S7 load/capacity (DDE-063) | Chapter 16.5 budget amendment |
+
+Standing rule: no generated UI ships from a DDE mission without passing
+the combination lints + silhouette test once both exist; until then the
+existing DD201-DD206 lints and honesty tests are the floor.
+
+

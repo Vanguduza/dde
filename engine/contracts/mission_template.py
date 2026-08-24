@@ -33,7 +33,7 @@ class TemplateNode(BaseModel):
     read_scope: list[str] | None = None
     success_criteria: list[str]
     estimated_effort: Literal["xs", "s", "m"]
-    blast_radius: Literal["local", "module", "cross_module", "system"] | None = None
+    blast_radius: Literal["local", "module", "cross_module", "systemic"] | None = None
     risk_class: Literal["low", "medium", "high", "critical"] | None = None
 
 
