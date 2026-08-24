@@ -216,9 +216,7 @@ class StaticSecretCaptureService:
                     "fingerprint": fingerprint,
                     "last4": last4,
                     "domain": domain_clean,
-                    "supersedes_capture_id": (
-                        str(prior.capture_id) if prior else None
-                    ),
+                    "supersedes_capture_id": (str(prior.capture_id) if prior else None),
                 },
                 uow=active,
             )

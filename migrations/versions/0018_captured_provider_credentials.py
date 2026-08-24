@@ -1,6 +1,6 @@
 """Captured provider credentials + broker-private vault (static-secret capture).
 
-Depends on 0016 so this revision lands without the DDE-046 donor-lab chain.
+Depends on 0017 (DDE-046 donor-lab chain).
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy import text
 
 revision = "0018"
-down_revision = "0016"
+down_revision = "0017"
 branch_labels = None
 depends_on = None
 

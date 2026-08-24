@@ -64,14 +64,18 @@ async def test_capture_persists_hash_and_vault_not_in_event() -> None:
             {"t": str(fixture.tenant_id), "p": str(fixture.project_id)},
         )
         event = (
-            await connection.execute(
-                text(
-                    "SELECT payload FROM events "
-                    "WHERE event_type = 'ProviderCredentialCaptured' "
-                    "ORDER BY created_at DESC LIMIT 1"
+            (
+                await connection.execute(
+                    text(
+                        "SELECT payload FROM events "
+                        "WHERE event_type = 'ProviderCredentialCaptured' "
+                        "ORDER BY created_at DESC LIMIT 1"
+                    )
                 )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
         vault = (
             await connection.execute(
                 text(
@@ -140,8 +144,7 @@ async def test_recapture_supersedes_and_drops_old_vault() -> None:
         old_vault = (
             await connection.execute(
                 text(
-                    "SELECT 1 FROM broker_static_secret_material "
-                    "WHERE capture_id = :id"
+                    "SELECT 1 FROM broker_static_secret_material WHERE capture_id = :id"
                 ),
                 {"id": first.record.capture_id},
             )
