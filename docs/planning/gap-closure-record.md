@@ -266,4 +266,24 @@ Definition-of-Polished battery in product-studio-charter.md §4 names the
 full gate list with per-gate status (live today vs lands-with-DDE-065/
 068); a screen may merge only when all eight gates are green.
 
+### 6.6 Owner decision sweep — closed 2026-08-24
+
+Owner standing directive "close all queued decisions per coordinator
+recommendations" (2026-08-24). Dispositions:
+
+- **EDR-0012/0013/0014 ACCEPTED** into Project Truth via
+  `scripts/accept_owner_edrs.py` (accepted processing now EDR-0001..0014).
+- **Frontend Studio charter v3 SIGNED OFF** (DDE-065..068); DDE-065 +
+  DDE-067 GUI shell authorized under standing auto-resume.
+- **EDR-0015** (donor-search egress admission) and **EDR-0016** (VLM
+  design-critic dependency & budget) filed PROPOSED same day; DDE-066/DDE-068
+  implementations stay gated on their acceptance.
+- **EDR-0011 remains proposed** — its containment precondition stays
+  deferred (§6.3); EDR-0015 amends it for the donor-search egress surface.
+- Silhouette generic-corpus sourcing folded into EDR-0016 as an open item
+  (licence-clean provenance; galleries are SOURCE_REFERENCE_ONLY, no APIs);
+  decided at DDE-068 charter time.
+- Density-floor calibration deferred to DDE-068 implementation (charter §4
+  gate 4 unchanged); GSAP unchanged — CONDITIONAL_REUSE pending legal read.
+
 

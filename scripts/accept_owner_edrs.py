@@ -8,6 +8,14 @@ hand-written SQL insert. This operator script provisions, once and
 idempotently, the durable tenant/project/principal scaffold those rows
 foreign-key against, then runs the propose -> accept path for each pre-image.
 
+On 2026-08-24 the project owner issued the standing directive "close all
+queued decisions per coordinator recommendations"; that decision accepted
+EDR-0012, EDR-0013 and EDR-0014 alongside the Frontend Studio charter v3
+sign-off, extending the accepted processing below to EDR-0001..EDR-0014.
+EDR-0011 remains proposed (its containment precondition is deferred) and
+EDR-0015/EDR-0016 are filed-proposed pre-images awaiting future human
+decisions; neither is ever accepted here.
+
 Slug uniqueness is per-project, so re-running after a full run is a no-op
 reconciliation read, and a partial run proposes+accepts only missing slugs.
 """
@@ -35,14 +43,32 @@ OWNER_PROJECT_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11")
 OWNER_PRINCIPAL_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d12")
 
 ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
-    f"EDR-{number:04d}" for number in range(1, 11)
+    {
+        *(f"EDR-{number:04d}" for number in range(1, 11)),
+        # Accepted by the owner standing directive 2026-08-24. EDR-0011 is
+        # deliberately absent here: it stays proposed -- see
+        # PROPOSED_OWNER_EDR_SLUGS below.
+        "EDR-0012",
+        "EDR-0013",
+        "EDR-0014",
+    }
 )
 
 #: PROPOSED pre-images awaiting a human decision -- registered here so the
 #: acceptance runner can reconcile them once accepted, but never proposed or
 #: accepted by this script's run loop itself. Acceptance is always a human
 #: act; registration only records that the markdown pre-image exists.
-PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset({"EDR-0012", "EDR-0013"})
+#:
+#: Owner standing directive 2026-08-24 ("close all queued decisions per
+#: coordinator recommendations") accepted EDR-0012/0013/0014 alongside the
+#: Frontend Studio charter v3 sign-off, moving them into
+#: ACCEPTED_OWNER_EDR_SLUGS above. EDR-0011 stays proposed (its containment
+#: precondition remains deferred; EDR-0015 amends it for the donor-search
+#: egress surface), and EDR-0015/EDR-0016 are newly filed proposals whose
+#: acceptance gates DDE-066/DDE-068 respectively.
+PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
+    {"EDR-0011", "EDR-0015", "EDR-0016"}
+)
 
 
 def _payload(slug: str) -> dict[str, object]:
@@ -746,6 +772,310 @@ def _payload(slug: str) -> dict[str, object]:
                 "operator stops with refusals.",
                 "Required the classification addition plus matrix wiring in "
                 "its own mission (landed alongside this ratification).",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0012": {
+            "context": (
+                "EDR-0010 (accepted 2026-08-23) added INTENTIONALLY_STOPPED "
+                "as a first-class Chapter 12.3 recovery class with governed "
+                "action acknowledge_stop (requires_human=True, no automatic "
+                "retry, no new WorkerRun until the operator acknowledges). "
+                "The implementation shipped three pieces: RecoveryService."
+                "classify_run_stop_failure_class (engine/recovery/dispatch."
+                'py) — described by its docstring as "the classification '
+                'writer for the kill-flag refusal sites"; RecoveryService.'
+                "assert_clear_to_retry — refuses any new WorkerRun for a "
+                "task whose runs hold an ARMED durable stop record; and "
+                "engine/recovery/matrix.py's KILL_FLAG_ACTIVE → "
+                "INTENTIONALLY_STOPPED mapping. The gate review found both "
+                "halves of exactly the failure mode .cursor/rules/mission-"
+                "chapter-gate.mdc exists to catch: a docstring claiming "
+                "wiring that does not exist at any production call site, "
+                "and an adversarial path around a control. Finding A — "
+                "classification gap (docstring overclaim): "
+                "classify_run_stop_failure_class has ZERO production "
+                'callers. The docstring says "the kill-flag checkout/'
+                "admission sites ... consult this before writing the "
+                "attempt's failure_class\" — they do not; they raise typed "
+                "KILL_FLAG_ACTIVE without recording any attempt "
+                "classification. The real mid-run failure writer is "
+                "_drive_lifecycle's adapter-start handler in engine/workers/"
+                "service.py, which catches every non-EFFECT_CONFLICT "
+                "DdeError and records WORKER_CAPABILITY_DENIED. "
+                "Consequence: a run killed mid-flight by an armed stop is "
+                "durably classified WORKER_CAPABILITY_DENIED, which aliases "
+                "to AUTHORIZATION_FAILURE in the matrix — the exact borrowed "
+                "classification EDR-0010 retired — instead of the accepted "
+                "INTENTIONALLY_STOPPED row; the accepted decision is not "
+                "operational at the one site where a mid-run stop actually "
+                "lands. Finding B — resume bypass (the adversarial "
+                "question): WorkerManagerService.resume_run creates a brand-"
+                "new WorkerRun on an IN_PROGRESS attempt with fresh "
+                "capability leases, guarded only by assert_clear_to_start_"
+                "attempt, completed-result refusal, effect-journal refusal "
+                "and budget checks. It never calls assert_clear_to_retry nor "
+                "consults _find_armed_stop. Exploit window: arm a stop on "
+                "run R1 while its attempt is still IN_PROGRESS and R1 has "
+                "not gone terminal — the operator's stop has not yet been "
+                "observed by R1's synchronous lifecycle. resume_run passes "
+                "the IN_PROGRESS check, fails R1 as replaced_by_resume_run, "
+                "inserts a NEW run whose id is unknown to the kill-switch "
+                "registry, grants it fresh leases, and drives its lifecycle: "
+                "continuing the intentional stop without operator "
+                "acknowledgement. This answers the gate rule's question "
+                '"could a new WorkerRun bypass this control?" — currently '
+                "yes. Chapter 12.4's law (\"only verified absence permits a "
+                'new mutation") is enforced for invoke_run but not for the '
+                "resume path."
+            ),
+            "alternatives": [
+                "Keep the borrowed AUTHORIZATION_FAILURE mapping and record "
+                "the semantic mismatch in a comment only — rejected once a "
+                "human decision adopted the dedicated row.",
+                "Add a distinct INTENTIONALLY_STOPPED classification raised "
+                "from the existing KILL_FLAG_ACTIVE refusal sites and/or the "
+                "durable ledger stop record, governed on its own terms — "
+                "accepted.",
+            ],
+            "decision": (
+                "Two wirings, minimal and at existing call sites; nothing "
+                "new invented. (1) Classification wired where failure "
+                "classes are durably written: the mid-run exception mapping "
+                "in WorkerManagerService._drive_lifecycle consults the "
+                "durable stop record when the caught DdeError carries "
+                'error_code == "KILL_FLAG_ACTIVE" and records '
+                "INTENTIONALLY_STOPPED instead of the borrowed "
+                "WORKER_CAPABILITY_DENIED; every other code keeps today's "
+                "mapping byte-identically (EFFECT_CONFLICT → "
+                "SIDE_EFFECT_UNKNOWN, everything else "
+                "WORKER_CAPABILITY_DENIED). The kill-flag refusal surfaces "
+                "themselves (require_active checkout, broker credential "
+                "admission) raise without writing attempt rows — their "
+                "durable trail remains the enforcement events plus the ARMED "
+                "ledger row, which the lifecycle writer now reads through "
+                "the classifier. classify_run_stop_failure_class's docstring "
+                "is corrected to name its real callers. (2) resume_run "
+                "routed through the armed-stop guard: immediately after "
+                "resolving the attempt (beside the existing recovery guards, "
+                "before any prior-run replace, new run insert or lease "
+                "grant), resume_run consults the same armed-stop semantics "
+                "assert_clear_to_retry uses and refuses with typed "
+                "KILL_FLAG_ACTIVE while any run of the task holds an ARMED "
+                "stop record, recording observability consistent with the "
+                "existing _record_resume_refusal pattern. After "
+                "disarm_run_stop (the operator acknowledgement), resume "
+                "proceeds exactly once as today. What stays deferred (named, "
+                "not silently open): operator acknowledgement remains a "
+                "service-layer act (CapabilityLeaseService.disarm_run_stop); "
+                "no gateway command exposes it yet — exposing run.stop_"
+                "acknowledge over the gateway is follow-on work behind its "
+                'own scope decision. "Exactly one new guarded run after '
+                'DISARM" is enforced as absence-of-ARMED plus per-failure-'
+                "class occurrence counters in assert_clear_to_retry, not by "
+                "a dedicated post-stop counter. The T2 egress/container "
+                "residuals remain under the distinct proposed EDR-0011; "
+                "nothing here touches them."
+            ),
+            "rationale": (
+                "Closes the two MAJOR findings of the independent chapter-"
+                "gate review of the DDE-024 recovery landing by implementing "
+                "the already-accepted EDR-0010 at its real mutation sites: a "
+                "mid-run intentional stop becomes durably queryable as its "
+                "own class instead of a borrowed authorization-failure "
+                "alias, and no new WorkerRun can be minted past an "
+                "unacknowledged stop — turning the accepted decision from a "
+                "docstring claim into enforcement at the production call "
+                "sites where failure classes are written and runs are born."
+            ),
+            "consequences": [
+                "If adopted: a mid-run intentional stop is durably queryable "
+                "as INTENTIONALLY_STOPPED end-to-end (matrix dispatch, "
+                "acknowledge_stop, requires_human), and the resume bypass "
+                "closes — no new WorkerRun can be minted past an "
+                "unacknowledged stop. EDR-0010 becomes true at its "
+                "production mutation call sites rather than in docstrings.",
+                "If rejected: the borrowed WORKER_CAPABILITY_DENIED "
+                "classification stands for mid-flight kills and resume_run "
+                "stays a documented bypass; both must then be recorded "
+                "explicitly as accepted divergences from accepted EDR-0010, "
+                "not left as docstring claims.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0013": {
+            "context": (
+                "The gate review verified every Chapter 11.6 and Chapter "
+                "12.3/12.4 rule in scope wired at real production call sites "
+                "(state machine single mutation site, worker/TTL/binding "
+                "refusals, bidirectional READY gate, migration 0012 "
+                "idempotence, RLS fail-closed predicates, armed-stop "
+                "classification and resume guard). Four bounded residuals "
+                "remain; they are recorded here with their smallest "
+                "corrections rather than silently open. Finding 1 — "
+                "verifier-to-service composition gap: ProductEnvironment"
+                "Service.apply_migrations_forward(empty_verified=..., "
+                "previous_verified=...) records caller-asserted booleans; no "
+                "production code composes MigrationVerifier's real "
+                "VerificationResult into it — today both are exercised only "
+                "from tests with literals. The bidirectional MUST is still "
+                "enforced at the real mark_ready mutation site against the "
+                "recorded flags, so this is not a docstring-overclaim "
+                "failure mode — but the flags themselves are trusted input "
+                "until provisioning automation exists. Finding 2 — "
+                "abandoned-event UoW split: teardown_expired commits the "
+                "teardown transaction, then appends ProductEnvironment"
+                "Abandoned in a separate uow=None unit of work. A crash "
+                "between the two destroys the row but loses the monitored-"
+                "metric event; the append should fold into the same unit of "
+                "work as the teardown. Finding 3 — seed version hardcode: "
+                "SeedRegistry.register writes version=1 despite the module "
+                "docstring claiming supersession semantics; a second "
+                "distinct-artifact registration of the same slug violates "
+                "UNIQUE (tenant_id, project_id, slug, version) instead of "
+                "creating v2; next version should be computed from existing "
+                "rows. Related nit: the reproducibility hash covers the "
+                "artifact pointer (artifact_ref), not payload bytes. Finding "
+                "5 — principal trust disclosure: requested_by_origin on "
+                "provision() is an unverified caller string; the worker-"
+                "origin FORBIDDEN refusal is only as strong as principal "
+                "authentication, which is globally deferred (disclosed at "
+                "engine/truth/db.py, DDE-027/DDE-051); the dependency must "
+                "be named in the service docstring so the refusal is never "
+                "mistaken for an authentication control. (The review's "
+                "Finding 4 — a dead _script_head helper left in engine/"
+                "product_env/verification.py after the database-revision fix "
+                "— is a plain cleanup, applied directly without an EDR.)"
+            ),
+            "alternatives": [
+                "Leave the four residuals implicit, discoverable only by "
+                "reading source code.",
+                "Record each residual with its smallest correction and named "
+                "timing so no future mission treats the current shape as a "
+                "settled contract — retained.",
+            ],
+            "decision": (
+                "Accepted as designed, four smallest corrections. (1) "
+                "Composition deferred to first provisioning consumer, filed "
+                "now: when DDE-043/044 build provisioning automation, the "
+                "service must accept (or internally run) MigrationVerifier "
+                "results instead of caller-asserted booleans — or require "
+                "verifiable evidence references in the recorded halves; this "
+                "EDR is the filing that obligation now, so no future mission "
+                "can treat the boolean parameters as a settled contract. "
+                "(2) Event atomicity fix at teardown_expired: same-unit-of-"
+                "work event append, pinned by a test that observes both the "
+                "row state and the outbox in one commit boundary. (3) Seed "
+                "versioning fix: compute next version per (tenant_id, "
+                "project_id, slug) inside the register transaction; "
+                "reproducibility fingerprint unchanged (same identity "
+                "inputs). (4) Docstring disclosure on ProductEnvironment"
+                "Service.provision naming the authentication deferral. What "
+                "stays deferred (named, not silently open): payload-bytes "
+                "hashing for seed fingerprints (pointer-hash remains "
+                "adequate while artifacts are repo-resident); none."
+            ),
+            "rationale": (
+                "Carries the four MINOR residuals that kept the independent "
+                "chapter-gate review of DDE-038 from being a clean PASS — "
+                "none breaks a MUST/shall at a production call site today, "
+                "but recording each with its owner and timing (2–4 "
+                "immediate, 1 at DDE-043/044) keeps them from becoming "
+                "silent divergences from Chapter 11.6's intent while letting "
+                "DDE-038 close clean."
+            ),
+            "consequences": [
+                "If adopted: DDE-038 closes clean; the four residuals have "
+                "owners, timing (2-4 immediate, 1 at DDE-043/044), and "
+                "smallest corrections.",
+                "If rejected: each residual must be re-recorded as an "
+                "accepted divergence from Chapter 11.6's intent or "
+                "explicitly re-scoped, not left implicit.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0014": {
+            "context": (
+                "Chapter 4.3's approval table (docs/blueprint/REV_2_0.md, "
+                '§4.3) requires graph approval "when any node is risk_class '
+                '≥ high or blast_radius ≥ cross_module". DDE-040 encoded '
+                "that threshold verbatim (engine/planning/registry.py "
+                "promote_human_gate_required, {high, critical} / "
+                "{cross_module, systemic}). The gate review proved — "
+                "including with a live counterfactual probe — that the "
+                "threshold function is correct but can never fire on real "
+                "input: DraftNode (schemas/objects/plan_draft.json, engine/"
+                "contracts/plan_draft.py) carries no risk_class/blast_radius "
+                "fields; _materialise hardcodes every materialised Task to "
+                'risk_class="low", blast_radius="local", requires_'
+                "approval=False; and the gate result's only consumer is the "
+                "PlanDraftPromoted event payload — activate_task_graph "
+                "(engine/planning/service.py) performs no planning-mode/risk-"
+                "aware check, and dispatch-side approval enforcement keys off "
+                "task.requires_approval, which is hardcoded false on this "
+                "path. So the model-assisted path has an inert computation "
+                "where Chapter 4.3 requires an enforceable human boundary. It "
+                "is safe-by-erasure today (drafts cannot express risk, and "
+                "no dispatch surface consumes promoted graphs), which is why "
+                "this is PASS-WITH-EDR rather than FAIL — but the moment "
+                "drafts grow risk vocabulary, or promote_draft gains any "
+                "gateway/dispatch exposure, the gate stays silently off "
+                "unless this EDR's decision lands first. MINOR findings "
+                "closed in the remediation commit (recorded here): mission_"
+                "template.json blast_radius enum value system corrected to "
+                "systemic (Chapter 4.2 and the Task contract say systemic; "
+                "the old value validated a template whose instantiation "
+                "later crashed Task construction); mission_template.json "
+                "order 210 → 212 (210 collided with verification_run.json, "
+                "silently coupling canonical table order to a future "
+                "rename); five refusal branches gained direct negative tests "
+                "(duplicate node keys, unknown template edge type, promote-"
+                "time graph-not-APPROVED, null-result replay guard, fresh-"
+                "key validate-on-non-PROPOSED)."
+            ),
+            "alternatives": [
+                "Leave the inert gate as-is and rely on erasure-safety.",
+                "Wire risk vocabulary into DraftNode and enforce the human "
+                "gate where graphs become live — retained.",
+            ],
+            "decision": (
+                "Accepted as designed, two wirings. (1) Risk vocabulary "
+                "reaches the draft: DraftNode gains risk_class and "
+                "blast_radius (with requires_approval derived from the same "
+                "Ch.4.3 threshold); _materialise maps them onto materialised "
+                "Task objects instead of hardcoded defaults, so a model-"
+                "proposed high-risk node produces a high-risk Task. (2) The "
+                "gate is enforced where graphs become live, not merely "
+                "recorded: the APPROVED→ACTIVE boundary (the existing "
+                "TaskGraph lifecycle writer) refuses activation of a graph "
+                "whose promotion was human_gate_required=True until the "
+                "corresponding human approval exists — keyed on durable "
+                "state (planning mode + node risk on the graph/tasks), never "
+                "on event payloads alone. Landing condition (hard "
+                "precondition): items 1–2 MUST be landed before "
+                "promote_draft is exposed through ANY gateway command "
+                "surface, dispatch path, or automation consumer. Today's "
+                "erasure-safety is the only thing that makes the current "
+                "wiring honest."
+            ),
+            "rationale": (
+                "Carries the one MAJOR finding of the independent chapter-"
+                "gate review of DDE-040 (verdict PASS-WITH-EDR): the Ch.4.3 "
+                "human-boundary threshold was true at the threshold function "
+                "only, never on real input. Wiring risk vocabulary into the "
+                "draft and enforcing the gate at the APPROVED→ACTIVE "
+                "mutation site makes the chapter table enforceable end to "
+                "end before any surface can reach the inert computation."
+            ),
+            "consequences": [
+                "If adopted: model-assisted planning gains a genuinely "
+                "enforceable human boundary at activation, and the Ch.4.3 "
+                "table becomes true end to end rather than "
+                "true-at-the-threshold-function-only.",
+                "If rejected: promote_draft must remain unexposed "
+                "indefinitely, or the divergence must be recorded as an "
+                "explicit accepted decision — an inert gate behind an "
+                "exposed surface is not an option.",
             ],
             "affected_requirement_slugs": [],
         },

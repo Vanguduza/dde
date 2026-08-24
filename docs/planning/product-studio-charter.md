@@ -1,7 +1,8 @@
 # Frontend Studio charter — PRD → playbook-aligned generation prompt +
 # Donor Lab feature-mapped donor discovery + Visual Verification & Critique Loop
 
-**Status:** proposed charter v3 (2026-08-24), awaiting owner sign-off.
+**Status:** **SIGNED OFF by owner standing directive 2026-08-24** ("close
+all these to your recommendations", in response to the queued-decision list).
 v3 renames the workstream **Frontend Studio** and adds the
 conformance-by-construction authoring law (§4.1) + GUI spec integration
 (`frontend-studio-gui-spec.md`) per the owner's >95% confidence bar:
@@ -12,7 +13,9 @@ merely produced. Prepared from the six-stream anti-generic-output
 research and verified against the repo state at `34127f4` (`09baee6`
 findings re-checked where cited below). This is a work-planning
 document, not an EDR; no Project Truth rows are created or modified by
-it.
+it. At sign-off: **EDR-0015** and **EDR-0016** filed PROPOSED same day
+(2026-08-24); DDE-065 + DDE-067 GUI shell authorized to start under the
+standing auto-resume order (§7).
 
 ## 0. Naming
 
@@ -400,19 +403,24 @@ chain head as DDE-065/066/067/068; numbering beyond §18.3 documented via
 
 ## 7. Charter sign-off
 
-This charter requires the owner's decision before any of DDE-065..068
-enters execution. On sign-off: (1) record acceptance in this file's
-status line; (2) file **EDR-0015** as PROPOSED at DDE-066 charter time
-and **EDR-0016** as PROPOSED immediately (both mirror EDR-0008's
-accept-first pattern — charters written now, implementations gated on
-acceptance); (3) launch DDE-065 (offline compiler) and the DDE-067 GUI
-shell per `frontend-studio-gui-spec.md` — both may start immediately
-under the standing auto-resume order since they touch no egress and no
-model calls; DDE-065's fail-closed input rule makes the art-direction
-record (§6.5 adopt-now) the pacing item for the FIRST real compile;
-(4) treat DDE-068's chapter gate as covering the whole quality loop:
-per `.cursor/rules/mission-chapter-gate.mdc`, the gate is passed only
-when every §Definition-of-Polished gate names a production call site
-(or a named deferral + EDR), and the bounded-revise/human-escalation
-rules are wired where mutations actually happen — CI green alone closes
-nothing. Until signed off, nothing here authorizes implementation work.
+**SIGNED OFF 2026-08-24 by owner standing directive** — "close all these to
+your recommendations", issued in response to the queued-decision list
+presented that day. Recorded actions: (1) acceptance is recorded in this
+file's status line; (2) **EDR-0015** and **EDR-0016** were filed PROPOSED on
+the same day (both mirror EDR-0008's accept-first pattern — charters written
+now, implementations gated on acceptance); (3) **DDE-065 (offline compiler)
+and the DDE-067 GUI shell are authorized to start immediately** under the
+standing auto-resume order, since they touch no egress and no model calls;
+DDE-065's fail-closed input rule makes the art-direction record (§6.5
+adopt-now) the pacing item for the FIRST real compile; (4) DDE-068's chapter
+gate covers the whole quality loop: per
+`.cursor/rules/mission-chapter-gate.mdc`, the gate is passed only when every
+§Definition-of-Polished gate names a production call site (or a named
+deferral + EDR), and the bounded-revise/human-escalation rules are wired
+where mutations actually happen — CI green alone closes nothing. DDE-066
+waits on EDR-0015 acceptance; DDE-068 implementation waits on EDR-0016
+acceptance.
+
+Pre-sign-off text retained for the record: this charter required the owner's
+decision before any of DDE-065..068 entered execution; until signed off,
+nothing here authorized implementation work.
