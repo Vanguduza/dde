@@ -1190,6 +1190,42 @@ CREATE TABLE workload_class_cost_metrics (
     UNIQUE (tenant_id, project_id, workload_class)
 );
 
+CREATE TABLE donor_artifacts (
+    donor_artifact_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    source_uri text NOT NULL,
+    content_hash text NOT NULL,
+    source_class text NOT NULL,
+    authority_rank integer NOT NULL,
+    media_kind text NOT NULL,
+    status text NOT NULL,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    feature_dna_id uuid,
+    injection_findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (donor_artifact_id),
+    UNIQUE (project_id, content_hash)
+);
+
+CREATE TABLE feature_dna (
+    feature_dna_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    donor_artifact_id uuid NOT NULL,
+    title text NOT NULL,
+    body jsonb NOT NULL DEFAULT '{}'::jsonb,
+    donor_sources jsonb NOT NULL DEFAULT '[]'::jsonb,
+    dna_hash text NOT NULL,
+    status text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (feature_dna_id),
+    UNIQUE (project_id, dna_hash)
+);
+
 CREATE TABLE events (
     event_id uuid NOT NULL,
     event_type text NOT NULL,
@@ -1538,6 +1574,14 @@ ALTER TABLE client_sessions ADD CONSTRAINT client_sessions_principal_id_fkey FOR
 ALTER TABLE workload_class_cost_metrics ADD CONSTRAINT workload_class_cost_metrics_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE workload_class_cost_metrics ADD CONSTRAINT workload_class_cost_metrics_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
+ALTER TABLE donor_artifacts ADD CONSTRAINT donor_artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE donor_artifacts ADD CONSTRAINT donor_artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE donor_artifacts ADD CONSTRAINT donor_artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE feature_dna ADD CONSTRAINT feature_dna_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE feature_dna ADD CONSTRAINT feature_dna_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE feature_dna ADD CONSTRAINT feature_dna_donor_artifact_id_fkey FOREIGN KEY (donor_artifact_id) REFERENCES donor_artifacts (donor_artifact_id);
+
 ALTER TABLE events ADD CONSTRAINT events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE events ADD CONSTRAINT events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1777,6 +1821,14 @@ CREATE POLICY client_sessions_tenant_isolation ON client_sessions USING (tenant_
 ALTER TABLE workload_class_cost_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workload_class_cost_metrics FORCE ROW LEVEL SECURITY;
 CREATE POLICY workload_class_cost_metrics_tenant_isolation ON workload_class_cost_metrics USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE donor_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE donor_artifacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY donor_artifacts_tenant_isolation ON donor_artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE feature_dna ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_dna FORCE ROW LEVEL SECURITY;
+CREATE POLICY feature_dna_tenant_isolation ON feature_dna USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events FORCE ROW LEVEL SECURITY;

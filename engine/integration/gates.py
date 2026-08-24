@@ -482,9 +482,10 @@ def scan_forbidden_paths(changed_paths: list[str]) -> ScanFinding:
 def scan_licence_headers(
     new_paths: list[str], proposed_blobs: dict[str, str | None]
 ) -> ScanFinding:
-    """Chapter 9.7 licence header / file provenance. Donor taint (Ch.13.8)
-    is DDE-046/047 -- this check cannot consult a taint graph that does
-    not exist yet."""
+    """Chapter 9.7 licence header / file provenance. Donor Lab ingest
+    (DDE-046) persists artifacts; provenance taint into tasks/diffs
+    (Ch.13.8) remains DDE-047 — this check cannot consult a taint graph
+    that does not exist yet."""
     missing: list[str] = []
     for path in new_paths:
         if Path(path).suffix.lower() not in SOURCE_SUFFIXES:
@@ -503,7 +504,9 @@ def scan_licence_headers(
             summary="Newly added source files are missing a licence header",
             details={
                 "paths": missing,
-                "deferred_donor_taint": "DDE-046/DDE-047",
+                # Ingest (DDE-046) lands donor_artifacts; licence/taint graph
+                # into tasks/diffs remains DDE-047.
+                "deferred_donor_taint": "DDE-047",
             },
         )
     return ScanFinding(
@@ -513,7 +516,7 @@ def scan_licence_headers(
         blocking=True,
         passed=True,
         summary="New source files carry a licence header, or none were added",
-        details={"deferred_donor_taint": "DDE-046/DDE-047"},
+        details={"deferred_donor_taint": "DDE-047"},
     )
 
 

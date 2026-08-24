@@ -192,6 +192,27 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("verification",),
         network_requirements={"egress": "none"},
     ),
+    # DDE-046 / Chapter 13.8 Donor Lab ingest. Control-plane durable write of
+    # donor_artifacts + feature_dna stubs from human pin-by-URI or fixtures.
+    # WORKSPACE_LOCAL: reads local/fixture content and writes DDE tables; no
+    # remote fetch on this capability (network discovery is DDE-066).
+    SeedCapability(
+        capability_id="capability.donor_ingest",
+        version="1",
+        category="donor",
+        summary=(
+            "Ingest a human- or fixture-supplied donor URI into durable "
+            "DonorArtifact + Feature DNA stub rows (engine.donor). Default "
+            "source_class UNKNOWN; OPEN_REUSE requires a signed reuse "
+            "decision. Remote http(s) fetch is refused here."
+        ),
+        side_effect_class="WORKSPACE_LOCAL",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("engine.donor.service.DonorLabService",),
+        supported_workloads=("planning", "verification"),
+        network_requirements={"egress": "none"},
+    ),
 )
 
 

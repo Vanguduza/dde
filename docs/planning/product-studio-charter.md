@@ -79,6 +79,15 @@ charter names. Inserted workstream of four missions:
    generated screen traces back to its PRD.
  - MUST NOT make a network or model call in the compile path.
 
+### DDE-046 note — manual pin-by-URL (owner requirement, 2026-08-24)
+
+DDE-046's ingest surface MUST accept a human-supplied `source_uri`
+(repo, registry JSON, gallery page, fixture path) as a first-class entry
+path — not discovery-only. Studio Donors view and Chat/MCP both post the
+same Gateway command (`frontend.donors.submit_uri`); chat is a client,
+not a bypass. Default class stays `UNKNOWN` until DDE-047; pinning
+creates `identified` candidates only — adoption remains `donor_reuse`.
+
 ### DDE-066 — Donor Discovery & Feature-Function Taxonomy (extends DDE-046)
 
 - **Scope IN:** search fan-out over donor sources classified per Ch.13.8:
@@ -89,6 +98,8 @@ charter names. Inserted workstream of four missions:
   PRD feature inventory; every result carries licence class + provenance
   taint from day one. Grouped-results schema lands in `schemas/design/`
   (or `schemas/objects/`) under the SSOT/drift discipline (Ch.3.1).
+  Manual pins from DDE-046 appear in the same grouped inventory (they are
+  not a parallel list).
 - **Scope OUT:** executing donor code (never — Ch.13.8); ingesting code
   into the generator (adoption is a separate signed reuse decision);
   licence classification itself stays owned by DDE-047 — this mission

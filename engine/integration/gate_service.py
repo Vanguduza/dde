@@ -34,8 +34,9 @@ actual git diff and proposed-revision blobs:
     a transitive-delta threshold. Live OSV/Grype HTTP lookups are not
     performed.
   - Licence header: SPDX/copyright header required on newly added source
-    files. Donor taint (§13.8) is DDE-046/047 -- this gate cannot consult
-    a taint graph that does not exist yet.
+    files. Donor Lab ingest (DDE-046) persists artifacts; provenance
+    taint into tasks/diffs (§13.8) remains DDE-047 — this gate cannot
+    consult a taint graph that does not exist yet.
   - Forbidden paths: CI config, security policy, migrations, `.git`
     internals -- always blocked (approval is DDE-026; without it the
     fail-closed outcome is REJECTED).
@@ -53,7 +54,7 @@ workspace, and is not read from the worktree.
   - Live OSV.dev HTTP lookups.
   - Full lockfile-transitive SBOM (declared manifests only; lockfile
     diffs contribute a transitive-delta count).
-  - Donor taint propagation (DDE-046/047).
+  - Donor taint propagation (DDE-047; ingest tables land in DDE-046).
   - Approval records for new top-level deps above the autonomy ceiling
     (DDE-026); missing justification itself blocks, which is the
     stricter fail-closed default of Chapter 9.6's AGENTS.md rule.

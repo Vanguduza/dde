@@ -96,7 +96,7 @@ at **six top-level views**:
 |---|---|---|---|
 | 1 | **Home** (`dde.studio.frontend.home`) | Mission/PRD status board: which project, which approved PRD, compile state, active authoring mission | Gateway mission reads (`GET /missions/{id}`, `GET /mission-control/{id}`); list endpoints when they land (§9, D3) |
 | 2 | **Intake** (`dde.studio.frontend.intake`) | PRD intake → compiled generation-prompt display with full provenance (input artifact ids + versions pinned by DDE-065) | Compiled-prompt artifact via Gateway |
-| 3 | **Donors** (`dde.studio.frontend.donors`) | DDE-066 grouped results by feature category, licence-class and taint badges, adoption state | Grouped-results schema (DDE-066), Gateway reads |
+| 3 | **Donors** (`dde.studio.frontend.donors`) | Manual pin-by-URL + DDE-066 grouped results by feature category, licence-class and taint badges, adoption state | DDE-046 ingest (`source_uri`) + grouped-results schema (DDE-066), Gateway reads/commands |
 | 4 | **Canvas** (`dde.studio.frontend.canvas`) | Screens × states editor: three-pane workspace (§3), including the Motion workspace (§4.4) | Workspace `prototypes/` stream + manifest mutations via commands |
 | 5 | **Verify** (`dde.studio.frontend.verify`) | Gate battery results: prototype-manifest findings, DD-lints, silhouette, density scorecard, VLM critique rounds, reduced-motion | VerificationRun/Evidence projections via Gateway (DDE-068 verdicts) |
 | 6 | **Approvals** (`dde.studio.frontend.approvals`) | `donor_reuse` adoptions, budget requests, pixel sign-off queue | Existing approvals surface (`engine/governance/types.py` vocabulary) |
@@ -429,8 +429,21 @@ type):
 | Add/edit flow step | `frontend.flow.upsert_step` | flow |
 | Trigger compile | `frontend.intake.compile_prompt` | PRD/mission |
 | Run donor discovery | `frontend.donors.run_discovery` | mission |
+| Pin donor by URL (paste address) | `frontend.donors.submit_uri` | mission / project |
 | Request donor adoption | `frontend.donors.request_adoption` | donor result |
 | Request pixel sign-off | `frontend.prototype.request_pixel_signoff` | prototypes set |
+
+**Manual pin-by-URL (owner requirement, 2026-08-24):** the Donors view
+exposes an address field ("Add donor URL") that submits
+`frontend.donors.submit_uri` with the typed `source_uri`. Chat / MCP
+clients that accept a pasted address MUST issue the **same** command —
+they are clients of the Gateway, not a second ingest path and not model
+authority over classification. Backend materialization is DDE-046
+ingest → `DonorArtifact` (`adoption_state: identified`, default
+`source_class: UNKNOWN` until DDE-047 classifies). Network fetch of the
+URI is subject to the same egress admission as discovery (EDR-0015);
+offline/fixture ingest may accept a local/fixture URI without egress.
+Pinning never auto-adopts: use still requires `donor_reuse`.
 
 Rules that bind every row of that table:
 

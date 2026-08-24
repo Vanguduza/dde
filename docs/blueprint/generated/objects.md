@@ -458,6 +458,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## DonorArtifact
+
+- table: `donor_artifacts`
+- primary key: donor_artifact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FeatureDNA
+
+- table: `feature_dna`
+- primary key: feature_dna_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## Event
 
 - table: `events`

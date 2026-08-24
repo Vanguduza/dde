@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/donor_artifact.json",
+  "title": "DonorArtifact",
+  "description": "Chapter 13.8 Donor Lab ingested external artifact (DDE-046). Rank-9 evidence: ingested, never auto-promoted. source_class is the six-value reuse taxonomy; until DDE-047's licence classifier lands, ingest persists UNKNOWN (or an explicit caller-supplied class that is not OPEN_REUSE without a signed reuse decision). Provenance and content_hash make donor influence answerable.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "donor_artifacts",
+    "order": 224,
+    "pk": ["donor_artifact_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "content_hash"]],
+    "foreign_keys": [
+      {
+        "name": "donor_artifacts_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "donor_artifacts_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "donor_artifacts_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "required": [
+    "donor_artifact_id",
+    "tenant_id",
+    "project_id",
+    "source_uri",
+    "content_hash",
+    "source_class",
+    "authority_rank",
+    "media_kind",
+    "status",
+    "provenance",
+    "injection_findings",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "donor_artifact_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "source_uri": { "type": "string", "minLength": 1 },
+    "content_hash": { "type": "string", "minLength": 1 },
+    "source_class": {
+      "type": "string",
+      "enum": [
+        "OPEN_REUSE",
+        "CONDITIONAL_REUSE",
+        "SOURCE_REFERENCE_ONLY",
+        "RESTRICTED",
+        "UNKNOWN",
+        "REJECTED"
+      ]
+    },
+    "authority_rank": {
+      "type": "integer",
+      "minimum": 9,
+      "maximum": 9,
+      "description": "Chapter 2.5 rank-9: external evidence / donor material"
+    },
+    "media_kind": {
+      "type": "string",
+      "enum": [
+        "registry_json",
+        "readme",
+        "licence_text",
+        "source_tree",
+        "other"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["INGESTED", "EXTRACTED", "REJECTED"]
+    },
+    "provenance": { "type": "object", "additionalProperties": true },
+    "feature_dna_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "injection_findings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -26,6 +26,7 @@ from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.derived_edge import DerivedEdge
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.domain_invariant import DomainInvariant
+from engine.contracts.donor_artifact import DonorArtifact
 from engine.contracts.edr import Edr
 from engine.contracts.error import Error
 from engine.contracts.eval_case import EvalCase
@@ -35,6 +36,7 @@ from engine.contracts.execution_environment import ExecutionEnvironment
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
+from engine.contracts.feature_dna import FeatureDNA
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
@@ -100,6 +102,7 @@ __all__ = [
     "DerivedEdge",
     "DiffGateReport",
     "DomainInvariant",
+    "DonorArtifact",
     "Edr",
     "Error",
     "EvalCase",
@@ -109,6 +112,7 @@ __all__ = [
     "ExecutionPlan",
     "ExternalEffect",
     "FailureAttribution",
+    "FeatureDNA",
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",
