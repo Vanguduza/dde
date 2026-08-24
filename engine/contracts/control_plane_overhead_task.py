@@ -30,10 +30,16 @@ class ControlPlaneOverheadTask(BaseModel):
     estimated_effort: Literal["xs", "s", "m", "l"]
     context_assembly_tokens: int
     context_critic_tokens: int
+    routing_tokens: int
+    route_critic_tokens: int
+    planning_tokens: int
+    judge_tokens: int
     overhead_tokens: int
     environment_provisioning_ms: int
     queue_wait_seconds: float
     overhead_seconds_before_first_worker_action_seconds: float
     context_critic_invoked: bool
+    route_critic_invoked: bool
+    workload_class: str
     created_at: datetime
     updated_at: datetime

@@ -366,7 +366,9 @@ class WorkerManagerService:
             engine, events=self._events, commands=self._commands, clock=self._clock
         )
         self._overhead = overhead or ControlPlaneOverheadService(
-            approvals=self._approvals, clock=self._clock
+            approvals=self._approvals,
+            clock=self._clock,
+            environments=self._environments,
         )
 
     async def _run(

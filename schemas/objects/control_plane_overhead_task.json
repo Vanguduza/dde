@@ -12,6 +12,7 @@
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
+    "uniques": [["worker_run_id"]],
     "foreign_keys": [
       {
         "name": "control_plane_overhead_tasks_tenant_id_fkey",
@@ -83,11 +84,17 @@
     "estimated_effort",
     "context_assembly_tokens",
     "context_critic_tokens",
+    "routing_tokens",
+    "route_critic_tokens",
+    "planning_tokens",
+    "judge_tokens",
     "overhead_tokens",
     "environment_provisioning_ms",
     "queue_wait_seconds",
     "overhead_seconds_before_first_worker_action_seconds",
     "context_critic_invoked",
+    "route_critic_invoked",
+    "workload_class",
     "created_at",
     "updated_at"
   ],
@@ -105,11 +112,17 @@
     "estimated_effort": { "type": "string", "enum": ["xs", "s", "m", "l"] },
     "context_assembly_tokens": { "type": "integer", "minimum": 0 },
     "context_critic_tokens": { "type": "integer", "minimum": 0 },
+    "routing_tokens": { "type": "integer", "minimum": 0 },
+    "route_critic_tokens": { "type": "integer", "minimum": 0 },
+    "planning_tokens": { "type": "integer", "minimum": 0 },
+    "judge_tokens": { "type": "integer", "minimum": 0 },
     "overhead_tokens": { "type": "integer", "minimum": 0 },
     "environment_provisioning_ms": { "type": "integer", "minimum": 0 },
     "queue_wait_seconds": { "type": "number", "minimum": 0 },
     "overhead_seconds_before_first_worker_action_seconds": { "type": "number", "minimum": 0 },
     "context_critic_invoked": { "type": "boolean" },
+    "route_critic_invoked": { "type": "boolean" },
+    "workload_class": { "type": "string", "minLength": 1 },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

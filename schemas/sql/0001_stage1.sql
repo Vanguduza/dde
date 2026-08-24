@@ -1101,14 +1101,21 @@ CREATE TABLE control_plane_overhead_tasks (
     estimated_effort text NOT NULL,
     context_assembly_tokens integer NOT NULL,
     context_critic_tokens integer NOT NULL,
+    routing_tokens integer NOT NULL,
+    route_critic_tokens integer NOT NULL,
+    planning_tokens integer NOT NULL,
+    judge_tokens integer NOT NULL,
     overhead_tokens integer NOT NULL,
     environment_provisioning_ms integer NOT NULL,
     queue_wait_seconds numeric NOT NULL,
     overhead_seconds_before_first_worker_action_seconds numeric NOT NULL,
     context_critic_invoked boolean NOT NULL,
+    route_critic_invoked boolean NOT NULL,
+    workload_class text NOT NULL,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
-    PRIMARY KEY (overhead_task_id)
+    PRIMARY KEY (overhead_task_id),
+    UNIQUE (worker_run_id)
 );
 
 CREATE TABLE evidence (
@@ -1167,6 +1174,20 @@ CREATE TABLE client_sessions (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (session_id)
+);
+
+CREATE TABLE workload_class_cost_metrics (
+    metric_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    workload_class text NOT NULL,
+    verified_success_count integer NOT NULL,
+    total_overhead_tokens integer NOT NULL,
+    cost_tokens_per_verified_success numeric NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (metric_id),
+    UNIQUE (tenant_id, project_id, workload_class)
 );
 
 CREATE TABLE events (
@@ -1514,6 +1535,9 @@ ALTER TABLE attention_items ADD CONSTRAINT attention_items_mission_id_fkey FOREI
 ALTER TABLE client_sessions ADD CONSTRAINT client_sessions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE client_sessions ADD CONSTRAINT client_sessions_principal_id_fkey FOREIGN KEY (principal_id) REFERENCES principals (principal_id);
 
+ALTER TABLE workload_class_cost_metrics ADD CONSTRAINT workload_class_cost_metrics_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE workload_class_cost_metrics ADD CONSTRAINT workload_class_cost_metrics_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
 ALTER TABLE events ADD CONSTRAINT events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE events ADD CONSTRAINT events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1749,6 +1773,10 @@ CREATE POLICY attention_items_tenant_isolation ON attention_items USING (tenant_
 ALTER TABLE client_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE client_sessions FORCE ROW LEVEL SECURITY;
 CREATE POLICY client_sessions_tenant_isolation ON client_sessions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE workload_class_cost_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workload_class_cost_metrics FORCE ROW LEVEL SECURITY;
+CREATE POLICY workload_class_cost_metrics_tenant_isolation ON workload_class_cost_metrics USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events FORCE ROW LEVEL SECURITY;

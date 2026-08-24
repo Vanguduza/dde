@@ -3,27 +3,36 @@
 Chapter 5.13 lists five gates a new context policy must clear against the
 current certified baseline, "all must hold": critical coverage,
 context-attributed failure rate, contradiction rate, task success on
-corpus, and token cost per verified success (reported, not gating on its
-own).
+corpus, and token cost per verified success.
 
-**What this module actually computes.** Only `critical_coverage` is
-computed here, by running `ContextService.compile()` for the baseline and
-the candidate policy over every frozen corpus case's real source `Task`
-and comparing the Chapter 5.8 coverage contract category-by-category. The
-other four gates need the Chapter 5.11 failure-attribution pipeline and
-real worker-verification runs replayed against each eval case -- a
-distinct mechanism this mission does not build (see EDR-0003). `decision`
-is therefore intentionally never a bare `"PASS"`: it is
-`INSUFFICIENT_CORPUS`, `FAIL`, or `PARTIAL_PASS_IMPLEMENTED_GATES_ONLY`,
-so nothing downstream can mistake a partial result for full Chapter 5.13
-promotion. No production call site flips `ContextService`'s
-`semantic_retrieval_enabled` based on this decision -- that remains a
-manual, code-reviewed change per EDR-0002 until every gate exists.
+**What this module actually computes.** `critical_coverage` is computed by
+running `ContextService.compile()` for the baseline and the candidate
+policy over every frozen corpus case's real source `Task` and comparing
+the Chapter 5.8 coverage contract category-by-category.
+
+`token_cost_per_verified_success` is computed at the same compile site:
+mean `(assembly_tokens + context_critic cost_tokens_estimate)` for
+baseline vs candidate. Chapter 16.4 says a regression of cost per
+verified success blocks policy promotion — a candidate mean strictly
+greater than the baseline mean yields `FAIL`. Empty compile-token
+denominators do not FAIL. Historical per-workload-class cost metrics
+(written at `RoutingTelemetryService.record_decision_outcome` on PASSED)
+are reported alongside. Chapter 5.13's "not a gate on its own" is
+satisfied by never treating cost as a lone PASS: coverage still must
+hold, and `decision` is never bare `"PASS"`.
+
+The remaining gates need the Chapter 5.11 failure-attribution pipeline
+and real worker-verification runs replayed against each eval case
+(EDR-0003). `decision` is therefore `INSUFFICIENT_CORPUS`, `FAIL`, or
+`PARTIAL_PASS_IMPLEMENTED_GATES_ONLY`. No production call site flips
+`ContextService`'s `semantic_retrieval_enabled` based on this decision —
+that remains a manual, code-reviewed change per EDR-0002 until every
+gate exists.
 
 **Corpus adequacy (point 4).** Chapter 5.13's minimum viable corpus is 60
 cases across >= 6 task classes with >= 10 adversarial cases. `evaluate`
 refuses to run any gate below that threshold and records
-`INSUFFICIENT_CORPUS` instead -- a real, enforced precondition, not a
+`INSUFFICIENT_CORPUS` instead — a real, enforced precondition, not a
 placeholder.
 """
 
@@ -34,13 +43,14 @@ from dataclasses import dataclass
 from typing import TypeVar
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from engine.context.eval_repository import (
     EvalCaseRepository,
     PromotionGateRunRepository,
 )
 from engine.context.model import ContextBudgetExceeded
+from engine.context.repository import ContextCriticFindingRepository
 from engine.context.service import REQUIRED_COVERAGE_CATEGORIES, ContextService
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.eval_case import EvalCase
@@ -50,6 +60,8 @@ from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.events.service import EventService
 from engine.missions.service import MissionService
+from engine.overhead.formula import mean, token_cost_regressed
+from engine.overhead.repository import ControlPlaneOverheadRepository
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
 T = TypeVar("T")
@@ -137,6 +149,17 @@ def _critical_coverage_regression(
     return {"eval_case_id": str(case.eval_case_id), "worsened_categories": worsened}
 
 
+async def _compile_overhead_tokens(
+    connection: AsyncConnection,
+    result: ContextPackage | ContextBudgetExceeded,
+    findings: ContextCriticFindingRepository,
+) -> int | None:
+    if isinstance(result, ContextBudgetExceeded):
+        return None
+    critic = await findings.list_for_package(connection, result.package_id)
+    return result.assembly_tokens + sum(f.cost_tokens_estimate for f in critic)
+
+
 class PromotionGateService:
     """Async, PostgreSQL-backed writer for `promotion_gate_runs` (Chapter
     3.8)."""
@@ -147,12 +170,16 @@ class PromotionGateService:
         cases: EvalCaseRepository | None = None,
         runs: PromotionGateRunRepository | None = None,
         missions: MissionService | None = None,
+        critic_findings: ContextCriticFindingRepository | None = None,
+        overhead: ControlPlaneOverheadRepository | None = None,
         clock: Clock | None = None,
     ) -> None:
         self._engine = engine
         self._cases = cases or EvalCaseRepository()
         self._runs = runs or PromotionGateRunRepository()
         self._missions = missions or MissionService(engine, EventService(engine))
+        self._critic_findings = critic_findings or ContextCriticFindingRepository()
+        self._overhead = overhead or ControlPlaneOverheadRepository()
         self._clock = clock or SystemClock()
 
     async def _run(
@@ -222,6 +249,8 @@ class PromotionGateService:
                 return run
 
             regressions: list[dict[str, object]] = []
+            baseline_token_samples: list[int] = []
+            candidate_token_samples: list[int] = []
             for case in cases:
                 task = await self._missions.get_task(
                     tenant_id=tenant_id,
@@ -263,17 +292,55 @@ class PromotionGateService:
                 if regression is not None:
                     regressions.append(regression)
 
-            decision = "FAIL" if regressions else "PARTIAL_PASS_IMPLEMENTED_GATES_ONLY"
+                baseline_tokens = await _compile_overhead_tokens(
+                    active.connection, baseline_result, self._critic_findings
+                )
+                candidate_tokens = await _compile_overhead_tokens(
+                    active.connection, candidate_result, self._critic_findings
+                )
+                if baseline_tokens is not None and candidate_tokens is not None:
+                    baseline_token_samples.append(baseline_tokens)
+                    candidate_token_samples.append(candidate_tokens)
+
+            baseline_mean = mean(baseline_token_samples)
+            candidate_mean = mean(candidate_token_samples)
+            cost_regression = token_cost_regressed(baseline_mean, candidate_mean)
+
+            historical = await self._overhead.list_cost_metrics_for_project(
+                active.connection, tenant_id=tenant_id, project_id=project_id
+            )
+
+            decision = (
+                "FAIL"
+                if regressions or cost_regression
+                else "PARTIAL_PASS_IMPLEMENTED_GATES_ONLY"
+            )
             gate_results = {
                 "critical_coverage": {
                     "cases_evaluated": len(cases),
                     "regressions": regressions,
                 },
+                "token_cost_per_verified_success": {
+                    "baseline_mean_compile_tokens": baseline_mean,
+                    "candidate_mean_compile_tokens": candidate_mean,
+                    "cases_with_tokens": len(baseline_token_samples),
+                    "regressed": cost_regression,
+                    "historical_by_workload_class": [
+                        {
+                            "workload_class": row.workload_class,
+                            "verified_success_count": row.verified_success_count,
+                            "total_overhead_tokens": row.total_overhead_tokens,
+                            "cost_tokens_per_verified_success": float(
+                                row.cost_tokens_per_verified_success
+                            ),
+                        }
+                        for row in historical
+                    ],
+                },
                 "deferred_gates": [
                     "context_attributed_failure_rate",
                     "contradiction_rate",
                     "task_success_on_corpus",
-                    "token_cost_per_verified_success",
                 ],
             }
             run = PromotionGateRun(

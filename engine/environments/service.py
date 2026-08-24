@@ -27,10 +27,10 @@ implement the provisioning-economics rules this module previously deferred:
 - *Economics*: cold-provision latency is measured and recorded on the
   `ExecutionEnvironmentReady` / `ExecutionEnvironmentAcquired` events; a cold
   provision above `cold_provision_threshold_ms` (default 45 s) also emits
-  `ExecutionEnvironmentSlowProvision` — the durable signal a §16.4 overhead
-  budget and an ops pager consume. Aggregation into the per-mission overhead
-  budget and CPU-seconds accounting are DDE-041 (Chapter 16.4) and are
-  *not* implemented here.
+  `ExecutionEnvironmentSlowProvision` — the durable signal Chapter 16.4
+  overhead budgets consume. Aggregation into the per-mission overhead
+  budget, warm-pool response on provisioning p95 breach, and cost-per-
+  verified-success tracking live in `engine.overhead` (DDE-041).
 
 Every backend except `local_process` remains unbuilt
 (`docker`/`microvm`/`vm`/`device`/`ci_runner`/`remote_api` — Chapter 7.2's T2

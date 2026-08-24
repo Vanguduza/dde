@@ -28,6 +28,7 @@ from engine.context.promotion import (
 from engine.context.service import ContextService
 from engine.contracts.eval_case import EvalCase
 from engine.core.ids import uuid7
+from engine.overhead.formula import mean, token_cost_regressed
 from tests.support.db import new_engine
 from tests.support.mission_trace_fixtures import build_traceable_mission
 
@@ -107,6 +108,13 @@ def test_critical_coverage_regression_flags_budget_exceeded() -> None:
     assert regression is not None
     assert regression["reason"] == "context_budget_exceeded"
     assert regression["candidate_compiled"] is False
+
+
+def test_token_cost_regressed_blocks_when_candidate_mean_rises() -> None:
+    """Chapter 16.4: compile-token-cost regression blocks promotion."""
+    assert token_cost_regressed(mean([10, 20]), mean([15, 25])) is True
+    assert token_cost_regressed(mean([10, 20]), mean([10, 20])) is False
+    assert token_cost_regressed(None, 5.0) is False
 
 
 @pytest.mark.asyncio

@@ -16,9 +16,12 @@ RETURNING` pattern `engine.attribution` uses).
 
 **Flagged Stage 1 divergence**, disclosed on every persisted row via
 `disclosed_gaps` (`engine.telemetry.rules`/`engine.telemetry.model` module
-docstrings have the full rationale): actual token/tool cost is not
+docstrings have the full rationale): actual *worker* token/tool cost is not
 recorded -- `WorkerRun.usage_record_id` references a `UsageRecord`
-concept no writer in this codebase produces yet.
+concept no writer in this codebase produces yet. Control-plane overhead
+tokens (Chapter 16.4) are a separate, real measurement written at
+`WorkerRunStarted` and joined here on PASSED to increment
+`workload_class_cost_metrics`.
 
 **Substituted, not invented**: Chapter 6.5 names "context policy version"
 as a telemetry field; no such versioned "context policy" concept exists
@@ -45,7 +48,9 @@ from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.events.service import EventService
 from engine.execution.repository import ExecutionPlanRepository
+from engine.overhead.repository import ControlPlaneOverheadRepository
 from engine.recovery.matrix import RecoveryDecision
+from engine.routing.repository import RouteDecisionRepository
 from engine.telemetry import rules
 from engine.telemetry.repository import RoutingDecisionOutcomeRepository
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
@@ -65,12 +70,16 @@ class RoutingTelemetryService:
         events: EventService | None = None,
         repository: RoutingDecisionOutcomeRepository | None = None,
         execution_plans: ExecutionPlanRepository | None = None,
+        routes: RouteDecisionRepository | None = None,
+        overhead: ControlPlaneOverheadRepository | None = None,
         clock: Clock | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
         self._repository = repository or RoutingDecisionOutcomeRepository()
         self._execution_plans = execution_plans or ExecutionPlanRepository()
+        self._routes = routes or RouteDecisionRepository()
+        self._overhead = overhead or ControlPlaneOverheadRepository()
         self._clock = clock or SystemClock()
 
     async def _run(
@@ -175,6 +184,27 @@ class RoutingTelemetryService:
                     },
                     uow=active,
                 )
+                if record.actual_verified_outcome == "PASSED":
+                    # Chapter 16.4 cost-per-verified-success: join the real
+                    # overhead row written at WorkerRunStarted with the
+                    # RouteDecision's workload_class. Skip when either is
+                    # missing (e.g. a hand-constructed verification fixture
+                    # that never drove RUNNING).
+                    overhead_row = await self._overhead.get_by_worker_run_id(
+                        active.connection, worker_run.run_id
+                    )
+                    decision = await self._routes.get_route_decision(
+                        active.connection, plan.route_decision_id
+                    )
+                    if overhead_row is not None and decision is not None:
+                        await self._overhead.record_verified_success(
+                            active.connection,
+                            tenant_id=task.tenant_id,
+                            project_id=task.project_id,
+                            workload_class=decision.workload_class,
+                            overhead_tokens=overhead_row.overhead_tokens,
+                            now=now,
+                        )
             return record
 
         return await self._run(uow, task.tenant_id, task.project_id, _op)

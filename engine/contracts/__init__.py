@@ -71,6 +71,7 @@ from engine.contracts.validation_report import ValidationReport
 from engine.contracts.verification_run import VerificationRun
 from engine.contracts.worker_event import WorkerEvent
 from engine.contracts.worker_run import WorkerRun
+from engine.contracts.workload_class_cost_metrics import WorkloadClassCostMetrics
 from engine.contracts.workspace import Workspace
 from engine.contracts.write_scope_lease import WriteScopeLease
 
@@ -142,6 +143,7 @@ __all__ = [
     "VerificationRun",
     "WorkerEvent",
     "WorkerRun",
+    "WorkloadClassCostMetrics",
     "Workspace",
     "WriteScopeLease",
 ]

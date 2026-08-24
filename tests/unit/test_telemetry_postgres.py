@@ -18,6 +18,7 @@ import pytest
 from engine.attribution.repository import FailureAttributionRepository
 from engine.context.repo import repo_root
 from engine.core.ids import uuid7
+from engine.overhead.repository import ControlPlaneOverheadRepository
 from engine.telemetry.model import ACTUAL_COST_GAP_DISCLOSED
 from engine.telemetry.repository import RoutingDecisionOutcomeRepository
 from engine.truth.db import open_unit_of_work
@@ -117,6 +118,32 @@ async def test_passed_verification_run_persists_real_telemetry(
         )
         assert telemetry.failure_attribution_id is None
         assert ACTUAL_COST_GAP_DISCLOSED in telemetry.disclosed_gaps
+
+        async with open_unit_of_work(
+            db_engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            overhead = await ControlPlaneOverheadRepository().get_by_worker_run_id(
+                uow.connection, fixture.worker_run.run_id
+            )
+            metrics = (
+                await ControlPlaneOverheadRepository().list_cost_metrics_for_project(
+                    uow.connection,
+                    tenant_id=fixture.tenant.tenant_id,
+                    project_id=fixture.tenant.project_id,
+                )
+            )
+            await uow.commit()
+
+        assert overhead is not None
+        assert len(metrics) == 1
+        assert metrics[0].workload_class == overhead.workload_class
+        assert metrics[0].verified_success_count == 1
+        assert metrics[0].total_overhead_tokens == overhead.overhead_tokens
+        assert metrics[0].cost_tokens_per_verified_success == float(
+            overhead.overhead_tokens
+        )
     finally:
         if workspace is not None:
             await WorkspaceService(db_engine, root=root).cleanup(workspace=workspace)

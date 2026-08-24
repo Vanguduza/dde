@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/workload_class_cost_metrics.json",
+  "title": "WorkloadClassCostMetrics",
+  "description": "Chapter 16.4 cost per verified success tracked per workload class. Incremented at the real RoutingTelemetryService.record_decision_outcome PASSED mutation; regression of compile-time overhead tokens blocks context-policy promotion.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "workload_class_cost_metrics",
+    "order": 223,
+    "pk": ["metric_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "workload_class"]],
+    "foreign_keys": [
+      {
+        "name": "workload_class_cost_metrics_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "workload_class_cost_metrics_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "metric_id",
+    "tenant_id",
+    "project_id",
+    "workload_class",
+    "verified_success_count",
+    "total_overhead_tokens",
+    "cost_tokens_per_verified_success",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "metric_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "workload_class": { "type": "string", "minLength": 1 },
+    "verified_success_count": { "type": "integer", "minimum": 0 },
+    "total_overhead_tokens": { "type": "integer", "minimum": 0 },
+    "cost_tokens_per_verified_success": { "type": "number", "minimum": 0 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
