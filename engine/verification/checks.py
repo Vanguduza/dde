@@ -16,8 +16,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from engine.capabilities.browser import BrowserCapability, BrowserProbeSpec
 from engine.contracts.verification_run import CheckResult
 from engine.contracts.workspace import Workspace
+from engine.core.errors import DdeError
 from engine.truth.db import PostgresUnitOfWork
 from engine.workspaces.service import WorkspaceService
 
@@ -61,11 +63,14 @@ async def run_check(
     *,
     timeout_seconds: float = DEFAULT_CHECK_TIMEOUT_SECONDS,
     uow: PostgresUnitOfWork | None = None,
+    browser: BrowserCapability | None = None,
 ) -> CheckResult:
-    """Execute one real command via `WorkspaceService.execute()` and return
-    its real, captured result -- never raised, per Chapter 19.1's negative
-    fixture ("a check command that itself errors/crashes [is] captured as a
-    typed result not an unhandled exception")."""
+    """Execute one real check. `test`/`invariant` run via
+    `WorkspaceService.execute()`. `api_probe` runs via the injected
+    `BrowserCapability` (Playwright in `adapters/playwright`) — never a
+    second process-execution stack for ordinary commands."""
+    if spec.kind == "api_probe":
+        return await _run_api_probe(spec, browser=browser)
     result = await workspaces.execute(
         workspace=workspace,
         command=spec.command,
@@ -82,5 +87,32 @@ async def run_check(
         stderr=result.stderr,
         duration_ms=result.duration_ms,
         timed_out=result.timed_out,
+        status=status,
+    )
+
+
+async def _run_api_probe(
+    spec: CheckSpec, *, browser: BrowserCapability | None
+) -> CheckResult:
+    if browser is None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "api_probe requires a BrowserCapability (capability.browser); "
+            "none was injected on the verification runner",
+            details={"check_ref": spec.ref},
+        )
+    url = spec.command[0]
+    expect_text = spec.command[1] if len(spec.command) > 1 else None
+    probe = await browser.probe(BrowserProbeSpec(url=url, expect_text=expect_text))
+    status = _check_status(exit_code=probe.exit_code, timed_out=probe.timed_out)
+    return CheckResult(
+        check_ref=spec.ref,
+        kind=spec.kind,
+        command=list(spec.command),
+        exit_code=probe.exit_code,
+        stdout=probe.stdout,
+        stderr=probe.stderr,
+        duration_ms=probe.duration_ms,
+        timed_out=probe.timed_out,
         status=status,
     )

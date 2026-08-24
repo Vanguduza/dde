@@ -44,21 +44,12 @@ class WorkerAction:
 
     command: tuple[str, ...]
     write_files: dict[str, bytes] = field(default_factory=dict)
-    #: `None` defers to `engine.workspaces.service.WorkspaceService.execute`'s
-    #: own default (Chapter 7.5's `execute(command)` names no per-call
-    #: timeout override). Exposed here -- rather than hard-coded in
-    #: `engine.workers.scripted_adapter` -- so a caller can genuinely
-    #: request a short-lived command whose real `subprocess.TimeoutExpired`
-    #: produces DDE-020's real, reachable `SIDE_EFFECT_UNKNOWN` path (see
-    #: `engine.recovery.service`'s module docstring) without editing
-    #: production code to manufacture one.
     timeout_seconds: float | None = None
-    #: Workspace-relative path the command is expected to write. Journaled
-    #: as `ExternalEffect.external_reference` so production
-    #: `reconcile_journaled` can stat it (verified presence = exists,
-    #: verified absence = missing). `None` means the resolver cannot
-    #: determine either answer from the argv alone.
     expected_artifact: str | None = None
+    #: When set, this action is a Chapter 9 `capability.browser` probe
+    #: (Playwright behind `adapters/playwright`), not a local-process argv.
+    browser_url: str | None = None
+    browser_expect_text: str | None = None
 
 
 @dataclass(frozen=True)

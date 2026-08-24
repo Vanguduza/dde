@@ -26,6 +26,9 @@ dependencies = [
 cursor = [
   "cursor-sdk",
 ]
+browser = [
+  "playwright",
+]
 
 [project.scripts]
 # DDE-015's general command surface: `mission {create,status,trace}`,

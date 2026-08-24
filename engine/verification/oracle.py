@@ -7,17 +7,11 @@ appears only in Chapter 3.10's list of immutable definitions); Chapter 3.6's
 repository layout puts "oracle, runners, product envs" under
 `engine.verification`, which is this module's home.
 
-**Stage 1 scope, stated explicitly (mission brief):** only deterministic
-bindings are supported. `judge` (Chapter 11.2: "a certified capability with
-a versioned prompt, a frozen rubric, and its own false-positive/false-
-negative measurements" -- none of that exists yet) and `human` (needs a
-review UI, Chapter 15/16 territory) are rejected by `validate_definition`,
-not silently accepted and left unexecuted. `db_assertion`/`api_probe`/
-`visual_diff` bindings need capabilities (database, HTTP, visual-diff --
-Chapter 9, Stage 5) this codebase does not have; only `test`/`invariant`
-bindings -- both "run this real command, its exit code is the evidence" --
-are accepted, and `command` is mandatory for both since Chapter 11.2's ASCII
-sketch does not specify invocation mechanics.
+**Stage 1+5 scope, stated explicitly:** deterministic bindings plus the
+DDE-043 `api_probe` browser probe. `judge` and `human` are rejected by
+`validate_definition`. `db_assertion` still needs DDE-049. `visual_diff`
+needs DDE-044. `test`/`invariant` remain command-exit evidence;
+`api_probe` is a Playwright navigation whose argv is `[url, expect_text?]`.
 
 Mission-level oracles (`scope = "mission"`, Chapter 11.3) are authored
 through `define_mission()`; `task_id` is null on those rows. `evaluate()`
@@ -45,12 +39,11 @@ from engine.verification.checks import CheckSpec
 from engine.verification.hashing import oracle_version_hash
 from engine.verification.repository import AcceptanceOracleRepository
 
-#: Kinds this Stage 1 runner can genuinely execute (mission brief: "each
-#: check must be a genuinely executed command with a genuinely captured real
-#: result"). `judge`/`human`/`db_assertion`/`api_probe`/`visual_diff` remain
-#: valid `EvidenceBinding.kind` enum members for forward compatibility but
-#: have no executor here.
-EXECUTABLE_KINDS: frozenset[str] = frozenset({"test", "invariant"})
+#: Kinds this runner can genuinely execute. `judge`/`human`/`visual_diff`
+#: remain valid `EvidenceBinding.kind` enum members for forward
+#: compatibility but have no executor here (`visual_diff` is DDE-044).
+#: `api_probe` is DDE-043: a Playwright page probe behind capability.browser.
+EXECUTABLE_KINDS: frozenset[str] = frozenset({"test", "invariant", "api_probe"})
 
 #: Chapter 4.4's granularity policy: "Success criteria: 1-5 observable
 #: criteria" -- `validate` rejects outside this range.

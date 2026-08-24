@@ -186,7 +186,10 @@ from engine.recovery.checkpoint_service import (
 from engine.recovery.dispatch import RecoveryService
 from engine.recovery.replay import MUTATION_ALREADY_DONE, ReplayService
 from engine.recovery.scope import (
+    BROWSER_GOTO_OPERATION,
+    BROWSER_SYSTEM,
     LOCAL_PROCESS_SYSTEM,
+    browser_resource,
     local_process_operation,
     local_process_resource,
 )
@@ -257,13 +260,35 @@ RESUME_REFUSED_EVENT_TYPE = "ResumeRefused"
 CAPABILITY_RUN_LOCAL_PROCESS = "capability.run_local_process"
 CAPABILITY_WORKSPACE_FILESYSTEM = "capability.workspace_filesystem"
 CAPABILITY_GIT_OPERATIONS = "capability.git_operations"
+CAPABILITY_BROWSER = "capability.browser"
+
+
+def _journal_scope(action: WorkerAction, workspace: Workspace) -> tuple[str, str, str]:
+    """Chapter 12.4 mutation identity for this action.
+
+    A browser probe journals under `browser`/`goto`/`url`, never an empty
+    local-process argv. A new WorkerRun or idempotency key does not change
+    this scope.
+    """
+    if action.browser_url:
+        return (
+            BROWSER_SYSTEM,
+            browser_resource(action.browser_url),
+            BROWSER_GOTO_OPERATION,
+        )
+    return (
+        LOCAL_PROCESS_SYSTEM,
+        local_process_resource(workspace),
+        local_process_operation(action.command),
+    )
 
 
 def _required_capability_ids(action: WorkerAction) -> tuple[str, ...]:
     """The exact, concrete `capability_id`s this action's real `start()`
-    call will exercise (see `ScriptedWorkerAdapter.start`): a subprocess
-    execution always, plus a workspace write and its git status snapshot
-    only when the action actually writes files."""
+    call will exercise. A browser probe never implies a local-process
+    spawn; a file-writing subprocess never implies a browser."""
+    if action.browser_url:
+        return (CAPABILITY_BROWSER,)
     if action.write_files:
         return (
             CAPABILITY_WORKSPACE_FILESYSTEM,
@@ -298,6 +323,8 @@ def _invoke_request_hash(
                     path: content.hex()
                     for path, content in sorted(action.write_files.items())
                 },
+                "browser_url": action.browser_url,
+                "browser_expect_text": action.browser_expect_text,
             }
         )
     )
@@ -751,22 +778,25 @@ class WorkerManagerService:
                     uow=active,
                 )
 
+            target_system, target_resource, operation = _journal_scope(
+                action, workspace
+            )
             await self._replay.assert_clear_to_start_attempt(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 task_id=task.task_id,
-                target_system=LOCAL_PROCESS_SYSTEM,
-                target_resource=local_process_resource(workspace),
-                operation=local_process_operation(action.command),
+                target_system=target_system,
+                target_resource=target_resource,
+                operation=operation,
                 uow=active,
             )
             await self._effects.assert_clear_to_mutate(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 mission_id=execution_plan.mission_id,
-                target_system=LOCAL_PROCESS_SYSTEM,
-                target_resource=local_process_resource(workspace),
-                operation=local_process_operation(action.command),
+                target_system=target_system,
+                target_resource=target_resource,
+                operation=operation,
                 uow=active,
             )
             retry_of = await self._recovery.assert_clear_to_retry(
@@ -1053,13 +1083,16 @@ class WorkerManagerService:
                     },
                 )
 
+            target_system, target_resource, operation = _journal_scope(
+                action, workspace
+            )
             await self._replay.assert_clear_to_start_attempt(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 task_id=task.task_id,
-                target_system=LOCAL_PROCESS_SYSTEM,
-                target_resource=local_process_resource(workspace),
-                operation=local_process_operation(action.command),
+                target_system=target_system,
+                target_resource=target_resource,
+                operation=operation,
                 uow=active,
             )
             await self._refuse_completed_worker_result(
@@ -1069,9 +1102,9 @@ class WorkerManagerService:
                 tenant_id=tenant_id,
                 project_id=project_id,
                 mission_id=execution_plan.mission_id,
-                target_system=LOCAL_PROCESS_SYSTEM,
-                target_resource=local_process_resource(workspace),
-                operation=local_process_operation(action.command),
+                target_system=target_system,
+                target_resource=target_resource,
+                operation=operation,
                 uow=active,
             )
 

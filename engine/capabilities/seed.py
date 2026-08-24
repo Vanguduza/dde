@@ -150,6 +150,29 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
             "egress": "external:anthropic (via local claude CLI only)"
         },
     ),
+    # DDE-043 / Chapter 9.8 web-browser class. Playwright is the blueprint's
+    # named implementation (Ch.11 verification tooling, Appendix A). T1:
+    # DDE's own adapter launches the browser, never a third-party harness
+    # tool plane (those stay T2, Chapter 7.2). EXTERNAL_NON_IDEMPOTENT:
+    # a page load/click can mutate a ProductEnvironment with no provider
+    # idempotency key — Chapter 12.4 journal + no blind retry.
+    SeedCapability(
+        capability_id="capability.browser",
+        version="1",
+        category="browser",
+        summary=(
+            "Drive a headed-or-headless browser against an allowlisted URL "
+            "(Playwright behind adapters.playwright). Used for E2E/api_probe "
+            "checks; pixel visual_diff remains DDE-044."
+        ),
+        side_effect_class="EXTERNAL_NON_IDEMPOTENT",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("adapters.playwright.adapter.PlaywrightWorkerAdapter",),
+        dependencies=("playwright",),
+        supported_workloads=("verification", "visual_analysis"),
+        network_requirements={"egress": "allowlist:http,https,file"},
+    ),
 )
 
 

@@ -232,6 +232,13 @@ class ScriptedWorkerAdapter:
                 details={"execution_plan_id": str(worker_run.execution_plan_id)},
             )
         workspace, action = prepared
+        if action.browser_url:
+            raise DdeError(
+                "POLICY_DENIED",
+                "capability.browser probes must use PlaywrightWorkerAdapter, "
+                "not ScriptedWorkerAdapter",
+                details={"browser_url": action.browser_url},
+            )
         changed_files: tuple[str, ...] = ()
         if action.write_files:
             await self._leases.require_active(

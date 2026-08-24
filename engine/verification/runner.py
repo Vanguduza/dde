@@ -101,6 +101,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.attribution.service import FailureAttributionService
+from engine.capabilities.browser import BrowserCapability
 from engine.contracts.acceptance_oracle import AcceptanceOracle, ObservableOutcome
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.evidence import Evidence
@@ -287,6 +288,7 @@ class VerificationRunnerService:
         telemetry: RoutingTelemetryService | None = None,
         flaky_quarantine: FlakyQuarantineService | None = None,
         demotions: VerificationRunDemotionService | None = None,
+        browser: BrowserCapability | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -316,6 +318,9 @@ class VerificationRunnerService:
         self._demotions = demotions or VerificationRunDemotionService(
             engine, events=self._events
         )
+        # DDE-043: Playwright lives in adapters/; inject the capability
+        # here so this module never imports a vendor SDK.
+        self._browser = browser
 
     async def _run_uow(
         self,
@@ -943,7 +948,13 @@ class VerificationRunnerService:
         prototype_check: PrototypeAssessment,
     ) -> tuple[CheckResult, ObservableOutcomeResult, Evidence]:
         spec = _outcome_check_spec(outcome, is_negative_case=is_negative_case)
-        check_result = await run_check(self._workspaces, workspace, spec, uow=active)
+        check_result = await run_check(
+            self._workspaces,
+            workspace,
+            spec,
+            uow=active,
+            browser=self._browser,
+        )
         evaluated_at = self._clock.now()
         outcome_status = _outcome_status(
             check_result, is_negative_case=is_negative_case
