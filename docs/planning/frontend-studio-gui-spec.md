@@ -1,7 +1,7 @@
 # Frontend Studio — GUI/UX specification
 
-**Version:** v1 (2026-08-24). **Status:** proposed spec — awaiting charter
-integration. This is a work-planning/design document, not an EDR; it creates
+**Version:** v1.1 (2026-08-24; §12 professional-platform parity roadmap
+appended). **Status:** proposed spec — awaiting charter integration. This is a work-planning/design document, not an EDR; it creates
 no Project Truth rows and modifies no contract. It specifies the GUI surface
 for the Frontend Studio workstream chartered in
 `docs/planning/product-studio-charter.md` (missions DDE-065..068) and is
@@ -29,6 +29,7 @@ them a Gateway command.
 8. [Non-goals](#8-non-goals)
 9. [Open items needing EDRs/decisions](#9-open-items-needing-edrsdecisions)
 10. [Traceability](#10-traceability)
+11. [Professional-platform parity roadmap (2026-08-24)](#11-professional-platform-parity-roadmap-2026-08-24)
 
 ---
 
@@ -629,3 +630,150 @@ server.cjs);
 `schemas/objects/approval.json`;
 `engine/verification/prototypes.py`; `engine/gateway/api.py`;
 `engine/governance/types.py`; `engine/planning/registry.py`.
+
+---
+
+## 11. Professional-platform parity roadmap (2026-08-24)
+
+Owner question: how else can Frontend Studio be improved to create a
+development environment matching other professional platforms? Method:
+benchmark the spec against named capabilities of the platforms
+professionals actually use, classify each gap into exactly one bucket,
+and respect this spec's laws (token-conformance-by-construction §4.5,
+honesty §6, keyed commands §5, approval boundaries §4.3/§5) everywhere a
+platform feature would collide with them. Precedents were verified
+against current product documentation and 2026 comparisons; where a
+precedent's mechanism is described, it is named so the claim can be
+re-checked.
+
+Buckets: **A** already in spec · **B** cheap v1 addition (fits existing
+contracts, no new EDR — rides a named command/schema surface) · **C**
+v2 feature (needs schema extension or new mission scope) · **D** needs
+EDR/new mission (network, model calls, budget, or governance
+implications).
+
+### 11.1 Summary table
+
+| # | Improvement | Platform precedent | Bucket | Rides on | Why it matters for quality/ease |
+|---|---|---|---|---|---|
+| P1 | Command palette for every view/action/gesture | VS Code/Cursor `Ctrl+Shift+P` pattern; Framer/V0 prompt-first surfaces | **B** | Existing extension commands + new `frontend.*` commands registered in `package.json` `contributes.commands` | Keyboard-first operation of everything without hunting panes; pairs with §7 keyboard law |
+| P2 | Pending-edit before/after toggle (draft edits held as pending until Apply) | V0 Design Mode: panel tweaks "held as pending edits", Before/after preview toggles them off, Apply serializes into a diffable version | **B** | Drafted values already exist in inspector state pre-command (§4.4 step 3 preview overlay); needs only a chrome-level "show original" re-render from the artifact on disk | Let authors judge a change before committing a keyed command; kills the edit-revert churn loop |
+| P3 | In-studio per-edit visual diff (before/after pixels side-by-side or onion-skin) | V0 version diffs; Webflow page-branch visual compare culture; Playwright golden diffs we already run in CI | **B** | Phase-B renderer (`visual/screens.spec.ts` harness) renders old/new screen files to images; Verify view displays both — no new contracts, evidence stays local artifacts | Makes every keyed mutation reviewable as pixels, not just as manifest JSON |
+| P4 | Multi-select batch edit (N elements → one property set) | Figma multi-edit (`Q`), select-all-matching (`Cmd+Opt+A`), bulk auto-layout across frames | **B** | New `frontend.canvas.batch_update_elements` command (array payload of element ids + one property/value); same CommandLedger path, one idempotency key per batch gesture | Ten token pickers instead of one hundred clicks; the single biggest authoring-speed parity item |
+| P5 | DevTools-style computed-styles / box-model inspector | Chrome DevTools Computed + Layout panes; Webflow's box-model Style panel as the design-tool equivalent | **B** | Read-only projection over the selected element's component record + rendered metrics via existing sandboxed iframe messaging (postMessage out only) | Explains *why* an element looks wrong; turns blind tweaking into diagnosis |
+| P6 | Layout-shift visualization (CLS source highlighting) | Chrome DevTools live CWV metrics; CoreWebVitals-visualizer-class overlays attributing LCP/CLS/INP to elements | **B** | Same read-only measurement channel as P5; Verify view gains a CWV section fed by the Phase-B harness render | Generated screens must be polished AND fast; shift sources visible at authoring time, not post-deploy |
+| P7 | Time-travel command history scrubber | Redux DevTools history slider; Figma version history as the design-tool analogue | **B/C** (B for list+jump-to-state view; C if scrubbing re-writes artifacts) | Session undo stack (§4.3) already stores issued commands with keys; a read-only timeline view rides it; jump-to-state = inverse commands, which already exist | Turns undo from a blunt instrument into an auditable editing history — matches DDE's evidence culture |
+| P8 | Comment pins on preview coordinates | Figma comment pins; v0 share links where designers tweak before devs touch code | **C** | Needs a durable annotation object (schema addition: pinned coordinates + text + state refs on screens[]) and a Gateway read/write surface | Review happens ON the artifact instead of screenshots pasted into chat; feeds the pixel sign-off queue |
+| P9 | Prompt-to-edit on selection ("make this more Apple-like") | Lovable refine loop / `/edit`; v0 combines panel tweaks with NL instructions on the same element | **D** | Model call at authoring time → EDR-0016 scope question (critic vs editor model); output would be proposed structured commands, never direct writes (rank-9 discipline) | The highest-leverage AI-builder affordance we lack; must enter through the same governance as critiques |
+| P10 | Multi-variant A/B generation (generate 2–3 candidates, keep one) | Bolt/v0 comparisons note parallel generations; Figma AI runs multiple optimizations simultaneously | **D** | Multiple compile/render cycles burn Ch.16.4 budget per variant → budget accounting + EDR-0016-class admission; discarded variants are rank-9 evidence | Choice beats iteration speed for escaping generic output — directly serves DDE-068's anti-centroid goal |
+| P11 | Intellisense-grade completion over tokens/components in any free-text field | TypeScript-grade tooling expectation; Webflow class autocomplete; Tailwind-aware value surfacing in v0 Design Mode | **B** | Token enums from generated `tokens.ts`; component records; VS Code completion APIs in webview-adjacent inputs | Even our constrained pickers have search/filter/type-ahead needs (§7 listbox type-ahead exists); full parity here |
+| P12 | Branch-like exploration of prototypes (try a direction without clobbering) | Webflow page branching; git-native workflows in all AI builders (Lovable two-way GitHub sync) | **C** | Workspaces are directories — a prototype-set fork = copy dir + manifest version bump + command surface for create/list/discard; schema additive (Ch.3.1 rule 3) | Cheap creative safety; encourages trying bolder directions knowing sign-off gates still apply per branch |
+| P13 | Live bundle/perf budget panel | Lighthouse-in-DevTools scores; CWV thresholds color-coded in Performance panel | **B** | Verify view section; harness measures during render; budgets come from charter/Ch.16.5 (CWV explicitly deferred there — panel shows measured values, thresholds when they land) | Polished-but-slow is a documented failure mode of generated UI; measure what we enforce elsewhere |
+| P14 | Axe violation overlays directly on preview elements | axe DevTools extension highlights offending nodes; guardrail 9 already scans fixtures | **B** | Harness already runs `@axe-core/playwright` tags wcag2a/2aa/22aa; map violations to `data-dde-el` anchors and highlight in Canvas | Accessibility failures become clickable fixes at authoring time rather than CI red after the fact |
+| P15 | State-machine / flow-graph visualizer (nodes = screens, edges = transitions) | React Flow-style graphs common in pro builders; Figma prototype flows as the design-tool precedent | **B** | Pure projection over `flows[]` (`from/on/to` + `AnimationRef`) already parsed by `parseFlowsManifest()` in `shared/ui/previewGallery.ts`; zero schema change | The manifest's flow grammar is graph-shaped; showing it as a graph makes flow bugs obvious |
+| P16 | Inline error surfacing next to the offending control | IDE squint-free error UX; typed errors already displayed verbatim per §5 rule 2 | **A** (§4.3 step 5, §5 rule 2) | Already specified | — |
+| P17 | Breakpoint-scoped style overrides | Webflow cascade (desktop base, overrides cascade down); Framer per-breakpoint variants | **C/D** | Current manifest has no breakpoint dimension on properties; adding one touches `prototype_flow.schema.json` + regeneration semantics + goldens matrix | Responsive polish beyond "looks fine at 1280"; big but genuinely schema-level work |
+| P18 | Component constraints/responsive behaviors declared per component | Figma constraints (pin/scale); auto-layout flexbox parity (2026 default) | **C** | Belongs in the component record (art-direction/component inventory, D9) not the manifest; parent-affinity field (§4.1 step 3) is its seed | Drop zones that adapt correctly at each width; prerequisite for P17 done right |
+| P19 | Design tokens with modes/themes (light/dark product variants) | Tokens Studio modes; Webflow variable modes; guardrail 12 theme triad for OUR chrome | **C** | Product-side token sheet currently has no mode axis; extends `schemas/design/tokens.json` + generator (additive enum of modes) | Products ship dark mode eventually; better to plan the axis than retrofit |
+| P20 | Freehand CSS/source editing inside the studio | Webflow custom-code embeds; every AI builder's code pane | **Rejected** | Conflicts with §4.5 hard law and §8 non-goals; see 11.3 | — |
+
+Bucket counts: **A = 1 · B = 10 · C = 5 · D = 3 · Rejected = 1**
+(P7 counted once, under B, for its read-only form).
+
+### 11.2 Top items, in prose
+
+**P4 — Multi-select batch edit (B).** Figma's multi-edit exists because
+repeating one change N times is the tax professional tools eliminate.
+Our command plane already treats a gesture as one keyed unit, so a batch
+is simply a command whose payload carries many targets — no new
+governance surface, no schema change (element ids are already stable
+anchors). This is the largest authoring-speed gain available inside v1's
+contracts.
+
+**P2 + P3 — pending edits with before/after, then per-edit visual diff
+(B).** Together these reproduce v0 Design Mode's core loop — tweak
+pending, compare, apply as a diffable version — while staying honest:
+the draft lives in inspector state, "before" always means the artifact
+on disk, and applying is the ordinary keyed command. The diff half rides
+the existing Phase-B screenshot capability; nothing about it fabricates
+state. Note this also *resolves* much of open item D8: instead of
+optimistic pixel echo (which risks lying about persistence), the author
+gets deliberate preview control — a stronger affordance than latency
+sugar.
+
+**P5 + P6 + P14 — the inspection triad (B).** Computed styles, layout-
+shift attribution, and axe overlays convert the canvas from a viewer
+into a debugger. All three are read-only projections: measurement
+channels through the existing sandboxed iframe boundary (messages out),
+results rendered in chrome. They reuse the exact harness (Playwright +
+axe tags) DDE-068 already runs in CI — moving verdicts from post-hoc CI
+red into the authoring moment.
+
+**P15 — flow-graph visualizer (B).** The manifest is already a graph;
+`flows[]` steps are edges with trigger labels. Professionals reason
+about navigation structurally; a two-column tree (§3.1a) hides cycles
+and orphaned screens that a node-link view exposes instantly.
+
+**P1 — command palette (B).** The cheapest item with the highest daily
+habit value. Every action named anywhere in this spec becomes a
+registered VS Code command; `Ctrl+Shift+P` then covers add/move/
+motion/sign-off without touching the mouse. It also future-proofs
+discoverability as views grow.
+
+**P9/P10 — the AI-builder gaps (D).** What Lovable/v0 give users that
+we deliberately do not yet have is prompt-to-edit on selection and
+parallel candidate generation. Both involve model calls at authoring
+time and both produce rank-9 material: proposed structured commands and
+alternative artifacts that must inform, never auto-apply. The right
+instruments are EDR-0016 scope extension (or successor) plus explicit
+budget lines — the mechanisms exist (approvals, Ch.16.4), so these are
+admission questions, not architecture questions.
+
+**P17–P19 — the responsive/theming tier (C).** Breakpoint overrides,
+per-component constraints, and token modes are how Webflow/Framer users
+get products that survive contact with real devices and dark-mode
+requirements. All three are schema extensions (manifest property
+dimension, component record fields, token mode axis) — correctly v2,
+correctly additive-first, none urgent before first real compile.
+
+### 11.3 Platform capabilities judged NOT worth adopting
+
+- **Freehand CSS/source editing inside the studio (rejected).** Webflow
+  embeds and builder code panes optimize for flexibility; our §4.5 law
+  optimizes for making DD201–206 violations unrepresentable. A raw CSS
+  input would reintroduce exactly the literal classes the lints ban and
+  force the pipeline back to catch-after-the-mistake. The host IDE
+  remains the escape hatch (§8), where edits face the same CI gates.
+  Professionals solve the underlying need (escape the picker grid)
+  within constraint systems — v0 surfaces "Tailwind-compatible values",
+  i.e. constrained vocabularies, not arbitrary CSS; our equivalent is
+  richer token-bound pickers (P11), not free input.
+- **Multi-user live cursors (already deferred, §8/D5)** — high
+  infrastructure cost, low solo-author value today; revisit when
+  team-based authoring missions exist.
+- **Auto-applying AI suggestions (not adopted as such).** Lovable-class
+  tools write changes straight into source on your behalf. Under DDE's
+  rank discipline, model output is evidence that informs; adoption of
+  the resulting structured commands remains a human gesture (or an
+  autonomy-bounded worker action governed by existing rules). P9/P10
+  adopt the *experience* within that boundary.
+
+### 11.4 Law-conflict flags
+
+- **Optimistic DOM echo (v0 applies tweaks live in-preview):** violates
+  §4.3's honesty tiering if pixels move before the artifact does. Our
+  resolution is P2's pending-edit layer — preview by explicit user act,
+  badged as unsaved — rather than automatic echo (refines D8).
+- **One-click "Apply" that bypasses review:** v0 serializes Apply into
+  a chat version; our analogue must remain the keyed command with its
+  typed-error path (§5) — batch (P4) included: one gesture, one key,
+  one effect, all-or-nothing refusal semantics.
+- **Comment threads as approval substitutes (Figma-style):** pins (P8)
+  are annotations; they can *feed* the sign-off queue but never
+  constitute sign-off (playbook §5.4: governance, not a thumbs-up
+  emoji).
+- **Variant generation discarding losers silently:** even discarded
+  candidates are derived evidence; retention follows whatever
+  EDR-0016-class policy decides, and the GUI shows what happened to
+  them (honesty law applied to process, mirroring §6's gate-status
+  rule).
