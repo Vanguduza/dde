@@ -254,9 +254,13 @@ screen before it can merge, using the blocking-gate grammar of
    blocked (testable by driving the loop counter past the bound).
  - Reduced-motion assertion failure BLOCKS (red run, no waiver flag).
  - VLM rubric below threshold blocks merge UNLESS an explicit human
-   pixel sign-off row exists through the approvals surface
-   (`prototype_pixel_signoff` vocabulary already exists — no new
-   approval types).
+   pixel sign-off row exists through the approvals surface.
+   **Correction (2026-08-24):** `prototype_pixel_signoff` does NOT exist
+   in `APPROVAL_TYPES` (`engine/governance/types.py` — verified; the
+   earlier "vocabulary already exists" claim was wrong). DDE-068 scope
+   IN: add the member through the ordinary contract path (types +
+   `schemas/objects/approval.json` + contract regen + tests) or the
+   owner designates an existing type — GUI-spec open item D2.
  - Silhouette fingerprints and lints are deterministic: identical inputs
    produce identical verdicts (hash-recorded), so the gate itself is
    reproducible evidence, not reviewer mood.

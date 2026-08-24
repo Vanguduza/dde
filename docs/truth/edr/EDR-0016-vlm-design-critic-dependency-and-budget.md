@@ -65,8 +65,11 @@ two items explicitly left to the deciding human before acceptance:
 5. **Bounded revise ≤3 cycles, human escalation.** Each revise cycle consumes
    exactly one stored critique artifact; cycle count >3 blocks
    auto-progression and requires explicit human approval through the
-   approvals surface (`prototype_pixel_signoff` vocabulary already exists).
-   Every critique call and revise step carries an idempotency key and writes
+   approvals surface. Note: `prototype_pixel_signoff` is NOT yet in
+   `APPROVAL_TYPES` (`engine/governance/types.py` verified 2026-08-24);
+   it must be added through the ordinary contract path or an existing
+   type designated before DDE-068's sign-off queue can be typed (GUI-spec
+   open item D2).
    its Ch.12.4 journal row before retry; replaying a duplicated critique
    asserts one effect.
 6. **Rank-9 forever, never auto-applied.** Critiques inform humans and the
