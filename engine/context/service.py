@@ -368,6 +368,7 @@ class ContextService:
                 task_id=task.task_id,
                 version=version,
                 assembly_hash=digest,
+                assembly_tokens=assembled.total_tokens,
                 index_version=index_version,
                 index_lag_commits=index_lag_commits,
                 coverage=coverage_json,

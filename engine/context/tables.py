@@ -38,6 +38,7 @@ context_packages = Table(
     Column("task_id", Uuid(as_uuid=True), nullable=False),
     Column("version", Integer, nullable=False),
     Column("assembly_hash", Text, nullable=False),
+    Column("assembly_tokens", Integer, nullable=False),
     Column("index_version", Text, nullable=False),
     Column("index_lag_commits", Integer, nullable=False),
     Column("coverage", JSONB, nullable=False),

@@ -1404,6 +1404,50 @@ class ApprovalService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def raise_attention_item(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        kind: str,
+        summary: str,
+        approval_id: UUID | None = None,
+        standing_id: UUID | None = None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> AttentionItem:
+        """Public wrapper for Chapter 13 attention item creation.
+
+        Chapter 13's machinery expects control-plane subsystems to raise
+        attention through this service (not by direct table writes).
+        """
+
+        if uow is not None:
+            return await self._raise_attention(
+                uow,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                kind=kind,
+                summary=summary,
+                approval_id=approval_id,
+                standing_id=standing_id,
+            )
+
+        async def _op(active: PostgresUnitOfWork) -> AttentionItem:
+            return await self._raise_attention(
+                active,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                kind=kind,
+                summary=summary,
+                approval_id=approval_id,
+                standing_id=standing_id,
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def get_approval(
         self,
         *,

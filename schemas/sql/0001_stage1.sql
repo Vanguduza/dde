@@ -218,6 +218,7 @@ CREATE TABLE context_packages (
     task_id uuid NOT NULL,
     version integer NOT NULL,
     assembly_hash text NOT NULL,
+    assembly_tokens integer NOT NULL,
     index_version text NOT NULL,
     index_lag_commits integer NOT NULL,
     coverage jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -977,6 +978,14 @@ CREATE TABLE integration_proposals (
     PRIMARY KEY (proposal_id)
 );
 
+CREATE TABLE tenant_overhead_budget_settings (
+    tenant_id uuid NOT NULL,
+    hard_cap_overhead_token_share numeric NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (tenant_id)
+);
+
 CREATE TABLE diff_gate_reports (
     report_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1076,6 +1085,30 @@ CREATE TABLE standing_approvals (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (standing_id)
+);
+
+CREATE TABLE control_plane_overhead_tasks (
+    overhead_task_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    task_attempt_id uuid NOT NULL,
+    worker_run_id uuid NOT NULL,
+    execution_plan_id uuid NOT NULL,
+    context_package_id uuid NOT NULL,
+    environment_id uuid NOT NULL,
+    estimated_effort text NOT NULL,
+    context_assembly_tokens integer NOT NULL,
+    context_critic_tokens integer NOT NULL,
+    overhead_tokens integer NOT NULL,
+    environment_provisioning_ms integer NOT NULL,
+    queue_wait_seconds numeric NOT NULL,
+    overhead_seconds_before_first_worker_action_seconds numeric NOT NULL,
+    context_critic_invoked boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (overhead_task_id)
 );
 
 CREATE TABLE evidence (
@@ -1434,6 +1467,8 @@ ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_task_atte
 ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_scope_lease_id_fkey FOREIGN KEY (scope_lease_id) REFERENCES write_scope_leases (lease_id);
 ALTER TABLE integration_proposals ADD CONSTRAINT integration_proposals_verification_ref_fkey FOREIGN KEY (pre_integration_verification_ref) REFERENCES verification_runs (verification_run_id);
 
+ALTER TABLE tenant_overhead_budget_settings ADD CONSTRAINT tenant_overhead_budget_settings_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+
 ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE diff_gate_reports ADD CONSTRAINT diff_gate_reports_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -1455,6 +1490,16 @@ ALTER TABLE approvals ADD CONSTRAINT approvals_command_id_fkey FOREIGN KEY (comm
 ALTER TABLE standing_approvals ADD CONSTRAINT standing_approvals_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE standing_approvals ADD CONSTRAINT standing_approvals_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE standing_approvals ADD CONSTRAINT standing_approvals_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
+
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_task_attempt_id_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_context_package_id_fkey FOREIGN KEY (context_package_id) REFERENCES context_packages (package_id);
+ALTER TABLE control_plane_overhead_tasks ADD CONSTRAINT control_plane_overhead_tasks_environment_id_fkey FOREIGN KEY (environment_id) REFERENCES execution_environments (environment_id);
 
 ALTER TABLE evidence ADD CONSTRAINT evidence_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE evidence ADD CONSTRAINT evidence_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -1669,6 +1714,10 @@ ALTER TABLE integration_proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE integration_proposals FORCE ROW LEVEL SECURITY;
 CREATE POLICY integration_proposals_tenant_isolation ON integration_proposals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
+ALTER TABLE tenant_overhead_budget_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tenant_overhead_budget_settings FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_overhead_budget_settings_tenant_isolation ON tenant_overhead_budget_settings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
 ALTER TABLE diff_gate_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE diff_gate_reports FORCE ROW LEVEL SECURITY;
 CREATE POLICY diff_gate_reports_tenant_isolation ON diff_gate_reports USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
@@ -1684,6 +1733,10 @@ CREATE POLICY approvals_tenant_isolation ON approvals USING (tenant_id = CAST(cu
 ALTER TABLE standing_approvals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE standing_approvals FORCE ROW LEVEL SECURITY;
 CREATE POLICY standing_approvals_tenant_isolation ON standing_approvals USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE control_plane_overhead_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE control_plane_overhead_tasks FORCE ROW LEVEL SECURITY;
+CREATE POLICY control_plane_overhead_tasks_tenant_isolation ON control_plane_overhead_tasks USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evidence FORCE ROW LEVEL SECURITY;

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/control_plane_overhead_task.json",
+  "title": "ControlPlaneOverheadTask",
+  "description": "Chapter 16.4 control-plane overhead budget instrumentation: durable per-worker-run overhead measurements derived from real production call sites.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "control_plane_overhead_tasks",
+    "order": 220,
+    "pk": ["overhead_task_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "control_plane_overhead_tasks_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_task_id_fkey",
+        "columns": ["task_id"],
+        "ref_table": "tasks",
+        "ref_columns": ["task_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_task_attempt_id_fkey",
+        "columns": ["task_attempt_id"],
+        "ref_table": "task_attempts",
+        "ref_columns": ["attempt_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_worker_run_id_fkey",
+        "columns": ["worker_run_id"],
+        "ref_table": "worker_runs",
+        "ref_columns": ["run_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_execution_plan_id_fkey",
+        "columns": ["execution_plan_id"],
+        "ref_table": "execution_plans",
+        "ref_columns": ["plan_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_context_package_id_fkey",
+        "columns": ["context_package_id"],
+        "ref_table": "context_packages",
+        "ref_columns": ["package_id"]
+      },
+      {
+        "name": "control_plane_overhead_tasks_environment_id_fkey",
+        "columns": ["environment_id"],
+        "ref_table": "execution_environments",
+        "ref_columns": ["environment_id"]
+      }
+    ]
+  },
+  "required": [
+    "overhead_task_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_id",
+    "task_attempt_id",
+    "worker_run_id",
+    "execution_plan_id",
+    "context_package_id",
+    "environment_id",
+    "estimated_effort",
+    "context_assembly_tokens",
+    "context_critic_tokens",
+    "overhead_tokens",
+    "environment_provisioning_ms",
+    "queue_wait_seconds",
+    "overhead_seconds_before_first_worker_action_seconds",
+    "context_critic_invoked",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "overhead_task_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "task_id": { "type": "string", "format": "uuid" },
+    "task_attempt_id": { "type": "string", "format": "uuid" },
+    "worker_run_id": { "type": "string", "format": "uuid" },
+    "execution_plan_id": { "type": "string", "format": "uuid" },
+    "context_package_id": { "type": "string", "format": "uuid" },
+    "environment_id": { "type": "string", "format": "uuid" },
+    "estimated_effort": { "type": "string", "enum": ["xs", "s", "m", "l"] },
+    "context_assembly_tokens": { "type": "integer", "minimum": 0 },
+    "context_critic_tokens": { "type": "integer", "minimum": 0 },
+    "overhead_tokens": { "type": "integer", "minimum": 0 },
+    "environment_provisioning_ms": { "type": "integer", "minimum": 0 },
+    "queue_wait_seconds": { "type": "number", "minimum": 0 },
+    "overhead_seconds_before_first_worker_action_seconds": { "type": "number", "minimum": 0 },
+    "context_critic_invoked": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
+

@@ -178,6 +178,7 @@ from engine.events.service import EventService
 from engine.governance.hashing import approval_scope_hash
 from engine.governance.service import ApprovalService
 from engine.missions.attempts import TaskAttemptService
+from engine.overhead.service import ControlPlaneOverheadService
 from engine.recovery.checkpoint_service import (
     CheckpointService,
     do_not_repeat_from_effects,
@@ -325,6 +326,7 @@ class WorkerManagerService:
         replay: ReplayService | None = None,
         recovery: RecoveryService | None = None,
         approvals: ApprovalService | None = None,
+        overhead: ControlPlaneOverheadService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -362,6 +364,9 @@ class WorkerManagerService:
         )
         self._approvals = approvals or ApprovalService(
             engine, events=self._events, commands=self._commands, clock=self._clock
+        )
+        self._overhead = overhead or ControlPlaneOverheadService(
+            approvals=self._approvals, clock=self._clock
         )
 
     async def _run(
@@ -878,7 +883,7 @@ class WorkerManagerService:
                 execution_plan=execution_plan,
                 workspace=workspace,
                 action=action,
-                task_id=task.task_id,
+                task=task,
             )
             run = await self._checkpoint_terminal_run(
                 active,
@@ -1154,7 +1159,7 @@ class WorkerManagerService:
                 execution_plan=execution_plan,
                 workspace=workspace,
                 action=action,
-                task_id=task.task_id,
+                task=task,
             )
             run = await self._checkpoint_terminal_run(
                 active,
@@ -1372,7 +1377,7 @@ class WorkerManagerService:
         execution_plan: ExecutionPlan,
         workspace: Workspace,
         action: WorkerAction,
-        task_id: UUID,
+        task: Task,
     ) -> WorkerRun:
         if isinstance(adapter, ActionBindableWorkerAdapter):
             adapter.bind_action(execution_plan.plan_id, action)
@@ -1381,7 +1386,7 @@ class WorkerManagerService:
             active,
             run,
             "PREPARING",
-            task_id=task_id,
+            task_id=task.task_id,
             event_type="WorkerRunPreparing",
             payload={},
         )
@@ -1395,7 +1400,7 @@ class WorkerManagerService:
             return await self._fail(
                 active,
                 run,
-                task_id=task_id,
+                task_id=task.task_id,
                 failure_class=WORKER_PREPARE_FAILED,
                 payload={"error_code": exc.error_code, "message": exc.message},
             )
@@ -1404,7 +1409,7 @@ class WorkerManagerService:
             active,
             run,
             "READY",
-            task_id=task_id,
+            task_id=task.task_id,
             event_type="WorkerRunReady",
             payload={"detail": prepared.detail},
         )
@@ -1412,9 +1417,19 @@ class WorkerManagerService:
             active,
             run,
             "RUNNING",
-            task_id=task_id,
+            task_id=task.task_id,
             event_type="WorkerRunStarted",
             payload={},
+        )
+
+        await self._overhead.record_for_worker_run(
+            uow=active,
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            mission_id=run.mission_id,
+            run=run,
+            task=task,
+            execution_plan=execution_plan,
         )
 
         try:
@@ -1437,7 +1452,7 @@ class WorkerManagerService:
                 return await self._fail(
                     active,
                     run,
-                    task_id=task_id,
+                    task_id=task.task_id,
                     failure_class=classification,
                     payload={"error_code": exc.error_code, "message": exc.message},
                 )
@@ -1449,7 +1464,7 @@ class WorkerManagerService:
             return await self._fail(
                 active,
                 run,
-                task_id=task_id,
+                task_id=task.task_id,
                 failure_class=failure_class,
                 payload={"error_code": exc.error_code, "message": exc.message},
             )
@@ -1459,7 +1474,7 @@ class WorkerManagerService:
                 active,
                 run,
                 "COMPLETED",
-                task_id=task_id,
+                task_id=task.task_id,
                 event_type="WorkerRunCompleted",
                 payload={
                     "exit_code": handle.exit_code,
@@ -1477,7 +1492,7 @@ class WorkerManagerService:
         return await self._fail(
             active,
             run,
-            task_id=task_id,
+            task_id=task.task_id,
             failure_class=failure_class,
             payload={
                 "exit_code": handle.exit_code,

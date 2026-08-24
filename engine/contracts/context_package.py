@@ -22,6 +22,7 @@ class ContextPackage(BaseModel):
     task_id: UUID
     version: int
     assembly_hash: str
+    assembly_tokens: int
     index_version: str
     index_lag_commits: int
     coverage: dict[str, object]

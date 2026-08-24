@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/tenant_overhead_budget_settings.json",
+  "title": "TenantOverheadBudgetSettings",
+  "description": "Chapter 16.4 per-tenant hard cap configuration for control-plane overhead token-share budgets.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "tenant_overhead_budget_settings",
+    "order": 215,
+    "pk": ["tenant_id"],
+    "tenant_scoped": true,
+    "project_scoped": false,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "tenant_overhead_budget_settings_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      }
+    ]
+  },
+  "required": [
+    "tenant_id",
+    "hard_cap_overhead_token_share",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "hard_cap_overhead_token_share": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
+

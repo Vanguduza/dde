@@ -378,6 +378,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## TenantOverheadBudgetSettings
+
+- table: `tenant_overhead_budget_settings`
+- primary key: tenant_id
+- tenant scoped: true
+- project scoped: false
+- lock_version: false
+
 ## DiffGateReport
 
 - table: `diff_gate_reports`
@@ -406,6 +414,14 @@ Generated from `schemas/objects`. Do not edit.
 
 - table: `standing_approvals`
 - primary key: standing_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ControlPlaneOverheadTask
+
+- table: `control_plane_overhead_tasks`
+- primary key: overhead_task_id
 - tenant scoped: true
 - project scoped: true
 - lock_version: false

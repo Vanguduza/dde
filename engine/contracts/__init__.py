@@ -19,6 +19,7 @@ from engine.contracts.context_conflict import ContextConflict
 from engine.contracts.context_critic_finding import ContextCriticFinding
 from engine.contracts.context_index import ContextIndex
 from engine.contracts.context_package import ContextPackage
+from engine.contracts.control_plane_overhead_task import ControlPlaneOverheadTask
 from engine.contracts.core_event import CoreEvent
 from engine.contracts.credential_handle import CredentialHandle
 from engine.contracts.dependency_admission import DependencyAdmission
@@ -63,6 +64,9 @@ from engine.contracts.task_attempt import TaskAttempt
 from engine.contracts.task_graph import TaskGraph
 from engine.contracts.task_graph_edge import TaskGraphEdge
 from engine.contracts.tenant import Tenant
+from engine.contracts.tenant_overhead_budget_settings import (
+    TenantOverheadBudgetSettings,
+)
 from engine.contracts.validation_report import ValidationReport
 from engine.contracts.verification_run import VerificationRun
 from engine.contracts.worker_event import WorkerEvent
@@ -88,6 +92,7 @@ __all__ = [
     "ContextCriticFinding",
     "ContextIndex",
     "ContextPackage",
+    "ControlPlaneOverheadTask",
     "CoreEvent",
     "CredentialHandle",
     "DependencyAdmission",
@@ -132,6 +137,7 @@ __all__ = [
     "TaskGraph",
     "TaskGraphEdge",
     "Tenant",
+    "TenantOverheadBudgetSettings",
     "ValidationReport",
     "VerificationRun",
     "WorkerEvent",
