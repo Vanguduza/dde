@@ -318,7 +318,7 @@ class VerificationRunnerService:
         self._demotions = demotions or VerificationRunDemotionService(
             engine, events=self._events
         )
-        # DDE-043: Playwright lives in adapters/; inject the capability
+        # DDE-043/044: Playwright lives in adapters/; inject the capability
         # here so this module never imports a vendor SDK.
         self._browser = browser
 

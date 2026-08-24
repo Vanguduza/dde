@@ -8,10 +8,11 @@ repository layout puts "oracle, runners, product envs" under
 `engine.verification`, which is this module's home.
 
 **Stage 1+5 scope, stated explicitly:** deterministic bindings plus the
-DDE-043 `api_probe` browser probe. `judge` and `human` are rejected by
-`validate_definition`. `db_assertion` still needs DDE-049. `visual_diff`
-needs DDE-044. `test`/`invariant` remain command-exit evidence;
-`api_probe` is a Playwright navigation whose argv is `[url, expect_text?]`.
+DDE-043 `api_probe` browser probe and DDE-044 `visual_diff` pixel check.
+`judge` and `human` are rejected by `validate_definition`. `db_assertion`
+still needs DDE-049. `test`/`invariant` remain command-exit evidence;
+`api_probe` is a Playwright navigation whose argv is `[url, expect_text?]`;
+`visual_diff` argv is `[visual/*.json]` (Chapter 11.2).
 
 Mission-level oracles (`scope = "mission"`, Chapter 11.3) are authored
 through `define_mission()`; `task_id` is null on those rows. `evaluate()`
@@ -39,11 +40,12 @@ from engine.verification.checks import CheckSpec
 from engine.verification.hashing import oracle_version_hash
 from engine.verification.repository import AcceptanceOracleRepository
 
-#: Kinds this runner can genuinely execute. `judge`/`human`/`visual_diff`
-#: remain valid `EvidenceBinding.kind` enum members for forward
-#: compatibility but have no executor here (`visual_diff` is DDE-044).
-#: `api_probe` is DDE-043: a Playwright page probe behind capability.browser.
-EXECUTABLE_KINDS: frozenset[str] = frozenset({"test", "invariant", "api_probe"})
+#: Kinds this runner can genuinely execute. `judge`/`human` remain valid
+#: enum members but have no executor here (DDE-068 for VLM critique).
+#: `api_probe` is DDE-043; `visual_diff` is DDE-044 (pixel goldens).
+EXECUTABLE_KINDS: frozenset[str] = frozenset(
+    {"test", "invariant", "api_probe", "visual_diff"}
+)
 
 #: Chapter 4.4's granularity policy: "Success criteria: 1-5 observable
 #: criteria" -- `validate` rejects outside this range.

@@ -92,23 +92,22 @@ def test_api_probe_is_an_executable_oracle_kind() -> None:
     )
 
 
-def test_visual_diff_still_rejected_until_dde_044() -> None:
-    with pytest.raises(DdeError) as exc:
-        validate_definition(
-            scope="task",
-            observable_outcomes=[
-                CheckSpec(
-                    outcome_id=uuid7(),
-                    statement="pixels match golden",
-                    kind="visual_diff",
-                    ref="visual:home",
-                    command=["golden.png"],
-                )
-            ],
-            negative_cases=[],
-            minimum_confidence=1.0,
-        )
-    assert exc.value.error_code == "ORACLE_UNSATISFIED"
+def test_visual_diff_is_an_executable_oracle_kind() -> None:
+    assert "visual_diff" in EXECUTABLE_KINDS
+    validate_definition(
+        scope="task",
+        observable_outcomes=[
+            CheckSpec(
+                outcome_id=uuid7(),
+                statement="pixels match golden",
+                kind="visual_diff",
+                ref="visual:home",
+                command=["visual/supplier-credit-screen.json"],
+            )
+        ],
+        negative_cases=[],
+        minimum_confidence=1.0,
+    )
 
 
 def test_capability_browser_is_in_seed_portfolio() -> None:

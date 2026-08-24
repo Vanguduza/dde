@@ -30,9 +30,10 @@ it is the classification step that determines which policy row gates 1
 and 3 read from, exactly as its position between gates 1 and 3 implies
 ("WORKER ELIGIBILITY — certified profiles that can satisfy 1+2").
 
-`visual_analysis` is intentionally unreachable from `classify_workload` in
-Stage 1 (see `engine.routing.policy`'s module docstring) but is still a
-real workload class any caller may pass to `evaluate` directly.
+`visual_analysis` is not selected by `classify_workload` from Task fields
+alone (no keyword heuristic); callers with a real modality signal pass
+`workload_class="visual_analysis"` to `evaluate` directly (DDE-044 makes
+`visual_diff` evidence executable; DDE-068 owns VLM critique).
 """
 
 from __future__ import annotations

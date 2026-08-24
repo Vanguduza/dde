@@ -16,7 +16,12 @@ from __future__ import annotations
 import time
 from urllib.parse import urlparse
 
-from engine.capabilities.browser import BrowserProbeResult, BrowserProbeSpec
+from engine.capabilities.browser import (
+    BrowserCaptureResult,
+    BrowserCaptureSpec,
+    BrowserProbeResult,
+    BrowserProbeSpec,
+)
 from engine.core.errors import DdeError
 
 _ALLOWED_SCHEMES = frozenset({"http", "https", "file"})
@@ -34,8 +39,9 @@ def _assert_allowlisted(url: str) -> None:
 
 
 class PlaywrightBrowserProbe:
-    """Real Playwright navigation. Import of `playwright` is deferred so
-    the adapter can fail closed when the optional extra is not installed."""
+    """Real Playwright navigation + screenshot. Import of `playwright` is
+    deferred so the adapter can fail closed when the optional extra is
+    not installed."""
 
     async def probe(self, spec: BrowserProbeSpec) -> BrowserProbeResult:
         _assert_allowlisted(spec.url)
@@ -88,6 +94,72 @@ class PlaywrightBrowserProbe:
         return BrowserProbeResult(
             exit_code=0,
             stdout=body,
+            stderr="",
+            duration_ms=elapsed,
+            timed_out=False,
+        )
+
+    async def screenshot(self, spec: BrowserCaptureSpec) -> BrowserCaptureResult:
+        _assert_allowlisted(spec.url)
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError as exc:
+            raise DdeError(
+                "POLICY_DENIED",
+                "playwright is not installed; install the optional "
+                "'browser' extra (Apache-2.0, Chapter 9.6)",
+                details={"dependency": "playwright"},
+            ) from exc
+
+        started = time.monotonic()
+        try:
+            async with async_playwright() as playwright:
+                browser = await playwright.chromium.launch(headless=True)
+                try:
+                    page = await browser.new_page(
+                        viewport={
+                            "width": spec.viewport_width,
+                            "height": spec.viewport_height,
+                        }
+                    )
+                    await page.goto(
+                        spec.url,
+                        wait_until="domcontentloaded",
+                        timeout=_DEFAULT_TIMEOUT_MS,
+                    )
+                    if spec.expect_text:
+                        body = await page.inner_text("body")
+                        if spec.expect_text not in body:
+                            elapsed = int((time.monotonic() - started) * 1000)
+                            return BrowserCaptureResult(
+                                exit_code=1,
+                                png_bytes=b"",
+                                stderr=(
+                                    f"expected text not found: {spec.expect_text!r}"
+                                ),
+                                duration_ms=elapsed,
+                                timed_out=False,
+                            )
+                    png = await page.screenshot(type="png", full_page=False)
+                finally:
+                    await browser.close()
+        except DdeError:
+            raise
+        except Exception as exc:
+            elapsed = int((time.monotonic() - started) * 1000)
+            timed_out = "timeout" in type(exc).__name__.lower() or "Timeout" in str(exc)
+            return BrowserCaptureResult(
+                exit_code=-1 if timed_out else 1,
+                png_bytes=b"",
+                stderr=str(exc),
+                duration_ms=elapsed,
+                timed_out=timed_out,
+            )
+
+        elapsed = int((time.monotonic() - started) * 1000)
+        return BrowserCaptureResult(
+            exit_code=0,
+            png_bytes=png,
             stderr="",
             duration_ms=elapsed,
             timed_out=False,

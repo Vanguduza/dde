@@ -30,13 +30,12 @@ data source is not built yet.
 
 `visual_analysis` is reproduced from the chapter's table for completeness
 and is still evaluated against every registered profile (Chapter 6.3:
-"`candidates[]` records **every** evaluated profile"), but Stage 1's
-classifier (`engine.routing.rules.classify_workload`) never selects it: no
-real per-task modality/visual signal exists yet (Chapter 5.2 lists the
-Visual retriever as unbuilt until Stage 5+, DDE-044) and inventing a
-keyword heuristic for it would be exactly the fabricated subsystem the
-mission brief prohibits. It remains reachable only if a future caller with
-a real modality signal supplies `workload_class` directly.
+"`candidates[]` records **every** evaluated profile"). DDE-044 makes
+`visual_diff` executable evidence; callers with a real modality signal
+(an oracle binding of kind `visual_diff`, or an explicit
+`workload_class="visual_analysis"`) may select it. Keyword heuristics
+remain forbidden — `classify_workload` still does not invent a visual
+class from free text.
 
 **Cost tiers (`COST_TIERS`, `apply_cost_tier`).** Chapter 6.2's additive
 "cost tiers" subsection: an operator-facing band (`low|medium|high|xhigh|max`)

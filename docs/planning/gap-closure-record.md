@@ -314,4 +314,45 @@ canary/rollback, DDE-059 adaptive context policy) MUST consume that note as desi
 inputs and acceptance criteria at charter time. Until then nothing here authorizes
 any learning code; deterministic Stage-1 posture is unchanged.
 
+### 6.8 OpenSandbox/Graft research integration — trigger: EDR-0011 memo + structural-retriever/EDR-0002/059 missions (2026-08-24)
+
+Completed web research on two agent-infrastructure products was integrated as design
+priors: OpenSandbox (Alibaba's sandbox platform — egress sidecar, credential vault,
+pluggable gVisor/Kata/Firecracker isolation tiers) and Graft (NanoNets' context layer —
+deterministic tree-sitter symbol graph, index-time cached LLM summaries, push-vs-pull
+benchmark methodology). Full note:
+`docs/planning/opensandbox-graft-research-integration.md` (repo cards, mechanics,
+source-quality caveats: vendor-run unreplicated benchmarks for Graft; press-release-heavy
+coverage and no independent audit for OpenSandbox).
+
+Adopted as **design inputs AND acceptance criteria** (patterns only, no dependency):
+
+1. OpenSandbox egress-sidecar design (FQDN allow/deny, DNS-pin + nftables IP
+   enforcement, runtime `PATCH /policy`, NET_ADMIN stripping, secrets injected at the
+   sidecar never in env) → donor design evaluated in the **EDR-0011 decision memo**
+   before DDE specifies its own proxy/resolver.
+2. Isolation-tier-as-config (runc/gVisor/Kata via RuntimeClass) → validates EDR-0011
+   Option A's mechanism table as industry-standard; evaluated in the same memo (the
+   tier choice interacts with egress enforcement — their own docs flag gVisor×nftables
+   incompatibility).
+3. Graft deterministic structural retrieval (receiver-type method binding,
+   in-degree-coupled ranking, monorepo per-scope fusion, ~3ms fingerprint freshness) →
+   candidate improvements to the Ch.5.2 structural retriever, evaluated on the Ch.5.13
+   eval corpus by the next mission touching it or by the DDE-059 charter.
+4. Graft index-time LLM summarization (cached by content hash) → mandatory A/B
+   alternative: any mission proposing semantic-retrieval default-on (EDR-0002/0003
+   path) must first beat this approach on the eval corpus, not merely the lexical+
+   structural baseline.
+5. Push-vs-pull context methodology (push wins speed, pull won correctness; SWE-bench
+   two-arm official-grader protocol) → benchmark methodology adopted for **DDE-059**:
+   same agent, same tools, only the retriever/policy differs, graded against the
+   certified baseline.
+
+**Triggers:** (a) when EDR-0011 acceptance is decided, its decision memo MUST evaluate
+patterns 1–2 against this reference implementation of the hard parts; (b) any mission
+touching the structural retriever or chartering DDE-059 MUST evaluate patterns 3–5 on
+the Ch.5.13 corpus at charter time. Until then nothing here authorizes engine changes;
+T2 containment remains gated exactly as EDR-0011 leaves it (proposed), and semantic
+retrieval remains off by default per EDR-0002.
+
 

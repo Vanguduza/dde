@@ -28,6 +28,7 @@ cursor = [
 ]
 browser = [
   "playwright",
+  "pillow",
 ]
 
 [project.scripts]
