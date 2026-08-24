@@ -100,6 +100,17 @@ class MigrationVerifier:
 
         return _body
 
+    def _downgrade_on_connection(self, revision: str):  # type: ignore[no-untyped-def]
+        """The run_sync body for one alembic downgrade -- the mirror of
+        `_upgrade_on_connection`, same programmatic-connection path."""
+
+        def _body(connection) -> None:  # type: ignore[no-untyped-def]
+            config = self._alembic_config()
+            config.attributes["connection"] = connection
+            alembic.command.downgrade(config, revision)
+
+        return _body
+
     async def _create_database(self, database: str) -> None:
         async with self._admin_engine.connect() as connection:
             autocommit = await connection.execution_options(
@@ -147,6 +158,32 @@ class MigrationVerifier:
             await scratch_engine.dispose()
         if landed != head:
             raise RuntimeError(f"forward-empty landed at {landed}, expected {head}")
+        return VerificationResult(head=head, forward_empty_verified=True)
+
+    async def verify_downgrade_reversible(
+        self, *, head: str, baseline: str
+    ) -> VerificationResult:
+        """Reversibility half (AGENTS.md definition of done: every
+        migration applies cleanly to an empty database AND is
+        reversible). Forward-applies to ``head`` on a throwaway
+        database, downgrades back to ``baseline``, and proves the
+        database actually stands on ``baseline`` afterwards -- the same
+        programmatic connection path as the forward halves."""
+        if baseline == head:
+            raise ValueError("baseline must differ from head")
+        database = f"{self._scratch_prefix}_down"
+        await self._create_database(database)
+
+        scratch_engine = create_async_engine(_make_url(self._database_url, database))
+        try:
+            async with scratch_engine.connect() as connection:
+                await connection.run_sync(self._upgrade_on_connection(head))
+                await connection.run_sync(self._downgrade_on_connection(baseline))
+                landed = await connection.run_sync(self._database_revision_sync)
+        finally:
+            await scratch_engine.dispose()
+        if landed != baseline:
+            raise RuntimeError(f"downgrade landed at {landed}, expected {baseline}")
         return VerificationResult(head=head, forward_empty_verified=True)
 
     async def verify_forward_previous(

@@ -200,3 +200,26 @@ on this deployment (live Claude Code / Cursor / container backends), EDR-
 process backend discloses its residual gaps honestly (`AMBIENT_ENVIRONMENT_GAP`,
 grandchild reach); those disclosures must never be silently widened.
 
+### 6.4 DDE-039 gate residuals — trigger: named per item (2026-08-24)
+
+The independent chapter-gate review of DDE-039 returned PASS (all fourteen
+verification items OK). Three MINOR residuals, recorded with owners:
+
+- **Repair-task workflow not yet consumed** — `repair_task_ref` is stored
+  on every invariant evaluation (`engine/invariants/service.py`) but no
+  downstream surface creates a repair task from a FAILED `financial_state`
+  row. **Trigger:** the mission that charters Chapter 10.5's `invariant`
+  conflict class / recovery surface MUST consume it as an acceptance
+  criterion. Chapter 11.5's own rule (never auto-repaired, human
+  visibility) is already wired at the row level.
+- **Downgrade reversibility test — CLOSED in this pass**: the
+  migration-verification recovery suite gained
+  `test_downgrade_from_head_lands_on_baseline_reversibly`
+  (`verify_downgrade_reversible`, forward to head → downgrade to baseline
+  → database revision asserted).
+- **`ERRORED` evaluation status unreachable** — schema admits it,
+  `judge_rows` never produces it; reserved until execution errors become
+  recordable outcomes. **Trigger:** any mission that makes datastore
+  failures a recorded evaluation outcome must either wire or retire the
+  enum value.
+

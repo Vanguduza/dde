@@ -55,6 +55,27 @@ async def test_forward_previous_applies_only_post_baseline_revisions() -> None:
 
 
 @pytest.mark.asyncio
+async def test_downgrade_from_head_lands_on_baseline_reversibly() -> None:
+    """Reversibility is part of the definition of done: forward to head,
+    downgrade to baseline, and the database must actually stand on the
+    baseline revision -- exercised through the same verifier the READY
+    gate uses, so a non-reversible migration can never back a verified
+    environment."""
+    engine = new_engine()
+    try:
+        verifier = await MigrationVerifier.create(engine)
+        try:
+            result = await verifier.verify_downgrade_reversible(
+                head="0013", baseline="0012"
+            )
+        finally:
+            await verifier.dispose()
+        assert result.forward_empty_verified is True
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_both_halves_run_against_the_same_snapshot_contract() -> None:
     engine = new_engine()
     try:
