@@ -12,9 +12,16 @@ On 2026-08-24 the project owner issued the standing directive "close all
 queued decisions per coordinator recommendations"; that decision accepted
 EDR-0012, EDR-0013 and EDR-0014 alongside the Frontend Studio charter v3
 sign-off, extending the accepted processing below to EDR-0001..EDR-0014.
-EDR-0011 remains proposed (its containment precondition is deferred) and
-EDR-0015/EDR-0016 are filed-proposed pre-images awaiting future human
-decisions; neither is ever accepted here.
+
+Later on 2026-08-24 the project owner issued the standing directive "accept
+and fix all EDRs according to best recommended solutions", which accepted
+EDR-0015 and EDR-0016 (their decided defaults are recorded in their ACCEPTANCE
+sections) and accepted EDR-0011 as its recommended Option B — with the Option B
+containment machinery itself deferred to the first non-DDE-native execution
+substrate per gap-closure-record §6.3, while donor-search egress proceeds now
+under EDR-0015. The accepted processing below covers EDR-0001..EDR-0016;
+PROPOSED_OWNER_EDR_SLUGS is empty.
+
 
 Slug uniqueness is per-project, so re-running after a full run is a no-op
 reconciliation read, and a partial run proposes+accepts only missing slugs.
@@ -44,13 +51,7 @@ OWNER_PRINCIPAL_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d12")
 
 ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
     {
-        *(f"EDR-{number:04d}" for number in range(1, 11)),
-        # Accepted by the owner standing directive 2026-08-24. EDR-0011 is
-        # deliberately absent here: it stays proposed -- see
-        # PROPOSED_OWNER_EDR_SLUGS below.
-        "EDR-0012",
-        "EDR-0013",
-        "EDR-0014",
+        *(f"EDR-{number:04d}" for number in range(1, 17)),
     }
 )
 
@@ -59,16 +60,14 @@ ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
 #: accepted by this script's run loop itself. Acceptance is always a human
 #: act; registration only records that the markdown pre-image exists.
 #:
-#: Owner standing directive 2026-08-24 ("close all queued decisions per
-#: coordinator recommendations") accepted EDR-0012/0013/0014 alongside the
-#: Frontend Studio charter v3 sign-off, moving them into
-#: ACCEPTED_OWNER_EDR_SLUGS above. EDR-0011 stays proposed (its containment
-#: precondition remains deferred; EDR-0015 amends it for the donor-search
-#: egress surface), and EDR-0015/EDR-0016 are newly filed proposals whose
-#: acceptance gates DDE-066/DDE-068 respectively.
-PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
-    {"EDR-0011", "EDR-0015", "EDR-0016"}
-)
+#: Owner standing directives of 2026-08-24 ("close all queued decisions per
+#: coordinator recommendations", then "accept and fix all EDRs according to
+#: best recommended solutions") moved every registered slug into
+#: ACCEPTED_OWNER_EDR_SLUGS above: EDR-0011 (Option B posture, machinery
+#: deferred per §6.3; donor-search egress admitted now via EDR-0015),
+#: EDR-0015 (decided defaults in its ACCEPTANCE section) and EDR-0016
+#: (model/cost/rubric/retention defaults in its ACCEPTANCE section).
+PROPOSED_OWNER_EDR_SLUGS: frozenset[str] = frozenset()
 
 
 def _payload(slug: str) -> dict[str, object]:
@@ -775,6 +774,124 @@ def _payload(slug: str) -> dict[str, object]:
             ],
             "affected_requirement_slugs": [],
         },
+        "EDR-0011": {
+            "context": (
+                "Chapter 7.2's T2 tier promises that for any autonomous run "
+                "the Execution Environment is the enforcement boundary: "
+                "container/microVM isolation, workspace-only bind mount, "
+                "non-privileged user, seccomp profile, resource limits, and "
+                "an egress proxy with per-environment allowlists; revocation "
+                "latency is 'bounded — revocation kills the egress allowlist "
+                "entry and terminates the run'. The repository's one real "
+                "substrate, LocalProcessBackend, is an honest plain-"
+                "subprocess implementation: it filters the environment, "
+                "registers live children for arm-time termination, and "
+                "records everything it cannot enforce on IsolationReport."
+                "gaps (NETWORK_ISOLATION_GAP, RESOURCE_LIMIT_GAP, "
+                "AMBIENT_ENVIRONMENT_GAP) rather than claiming it. Two T2 "
+                "surfaces stay genuinely open: (1) network egress — a "
+                "spawned subprocess shares the host network stack, so a "
+                "worker-controlled command can exfiltrate whatever secret "
+                "material its containment left reachable; Chapter 7.2 rule 2 "
+                "('all egress through the proxy ... direct IP egress is "
+                "dropped') is recorded, not enforced, and the kill flag does "
+                "not consult egress either; (2) container-scoped runs — when "
+                "a run executes inside a container, DDE has no policy object "
+                "declaring what isolation that container must carry, no way "
+                "to enumerate or terminate processes inside it from the "
+                "control plane's process registry, and no per-run network "
+                "namespace; grandchildren and containers are disclosed "
+                "residuals, not enforced boundaries."
+            ),
+            "alternatives": [
+                "Option A — container policies first: declare per-container "
+                "isolation policies (bind mounts, capabilities, network "
+                "mode) checked at admission by a new docker backend, with "
+                "egress gated by the daemon's network config — matches where "
+                "the industry ecosystem already is, but on this codebase it "
+                "makes the daemon the trust root, gives per-run revocation "
+                "latency bounded by Docker's own tooling, and leaves every "
+                "non-container run with no egress story at all.",
+                "Option B — per-run namespace/proxy admission: every "
+                "run-scoped spawn, local or containerized, is admitted "
+                "through one egress boundary — DNS pinned to a DDE-owned "
+                "resolver, HTTP(S) through a local allowlist proxy whose "
+                "entries derive from the ExecutionPlan's capability set "
+                "(Chapter 7.2 rule 2 verbatim); container backends "
+                "additionally run each run in its own namespace so the "
+                "boundary is structural, not advisory.",
+            ],
+            "decision": (
+                "Accepted as Option B (per-run namespace/proxy admission), "
+                "the recommended option, informed by the OpenSandbox donor "
+                "study (docs/planning/opensandbox-graft-research-integration."
+                "md Pattern 1): OpenSandbox independently shipped in "
+                "production almost exactly what Option B sketches — an "
+                "egress sidecar enforcing FQDN/wildcard allow-deny rules, "
+                "DNS-pinned resolution plus nftables enforcement of resolved "
+                "IPs/CIDRs, a runtime policy API (GET/PATCH /policy), "
+                "platform-enforced always-allow/deny overlays, NET_ADMIN "
+                "stripped from the main sandbox container so only the "
+                "sidecar mutates network rules, and a credential vault that "
+                "injects outbound credentials at the sidecar so real secrets "
+                "never enter sandbox env/commands/files/logs — the strongest "
+                "known implementation of Ch.7.2 rules 1-5. Wired now by this "
+                "acceptance: nothing in code — acceptance authorizes the "
+                "posture only; the concrete wired-now mutation surface is "
+                "EDR-0015's broker-admitted control-plane egress (donor "
+                "search), which migrates onto this boundary once it exists. "
+                "Deferred to its trigger (gap-closure-record §6.3: the first "
+                "non-DDE-native execution substrate landing): the egress "
+                "proxy/resolver component itself, env-injection pointing "
+                "LocalProcessBackend children at the proxy, "
+                "IsolationReport.network_policy.enforced flipping true only "
+                "when the proxy is actually in path, namespace-scoped kills, "
+                "and the Ch.7.2 enforcement-mechanism-table amendment. When "
+                "that trigger fires, the implementing mission MUST evaluate "
+                "this reference implementation of the hard parts (nftables "
+                "IP enforcement, NET_ADMIN stripping, runtime policy "
+                "mutation, secrets-injected-at-boundary) before specifying "
+                "DDE's own proxy/resolver, and must treat isolation-tier "
+                "choice and egress mechanism as interacting axes (their own "
+                "docs flag gVisor x nftables incompatibility); any divergence "
+                "from the donor pattern must be justified in that memo, not "
+                "silent. Windows keeps proxy-admission-only enforcement, "
+                "disclosed per-platform on IsolationReport. Until then 'T2' "
+                "remains a descriptor no local substrate may claim, and the "
+                "NETWORK_ISOLATION_GAP disclosure stays truthful."
+            ),
+            "rationale": (
+                "Option B gives one enforcement point for all substrates "
+                "with revocation = drop the run's proxy entries plus the "
+                "already-built process sweep, exactly matching Ch.7.2's "
+                "bounded-revocation promise; Option A remains available as "
+                "machinery for the future container backend rather than the "
+                "trust root. The OpenSandbox study de-risks the two hard "
+                "parts (structural-not-advisory enforcement and zero ambient "
+                "credentials at the boundary) with production evidence, "
+                "while its own documented limitations confirm deferral until "
+                "a real substrate exists — patterns are adopted, packages "
+                "are not (no Kubernetes/container substrate drags FastAPI/"
+                "K8s machinery into adapters/** under Ch.9.6)."
+            ),
+            "consequences": [
+                "If adopted: EDR-0015's broker-admitted control-plane egress "
+                "is the one live egress surface today and migrates onto the "
+                "shared boundary when the containment substrate lands; the "
+                "future decision-memo obligation (evaluate OpenSandbox "
+                "patterns 1-2 before specifying DDE's own component) binds "
+                "whichever mission charters the substrate.",
+                "The blueprint's Chapter 7.2 enforcement-mechanism table "
+                "gains a Project Truth amendment naming the chosen mechanism "
+                "only when the substrate mission lands — proposed there, not "
+                "made here.",
+                "If rejected instead, the phrase 'T2' must be retired from "
+                "any descriptor that cannot meet Chapter 7.2 on this "
+                "platform, and today's honest gap disclosures remain the "
+                "whole story for worker runs.",
+            ],
+            "affected_requirement_slugs": [],
+        },
         "EDR-0012": {
             "context": (
                 "EDR-0010 (accepted 2026-08-23) added INTENTIONALLY_STOPPED "
@@ -1076,6 +1193,227 @@ def _payload(slug: str) -> dict[str, object]:
                 "indefinitely, or the divergence must be recorded as an "
                 "explicit accepted decision — an inert gate behind an "
                 "exposed surface is not an option.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0015": {
+            "context": (
+                "DDE-066 (Donor Discovery & Feature-Function Taxonomy) is "
+                "the first Stage 5 mission that requires routine, recurring "
+                "outbound network egress from the control plane: search "
+                "fan-out over donor sources classified per Chapter 13.8. The "
+                "hosts in scope are narrow and enumerable: GitHub API "
+                "(api.github.com) for repos/tools/libraries search and "
+                "metadata; shadcn-ecosystem registry endpoints for registry "
+                "JSON of OPEN_REUSE components; commercial-template product "
+                "sites' public catalogue/metadata endpoints (CONDITIONAL_"
+                "REUSE, metadata only, never bundles or assets). Marketplace "
+                "bundles are excluded entirely (REJECTED); no executing "
+                "donor code, no ingesting code into the generator, no asset "
+                "downloads on this surface. Today no production path can "
+                "make these calls honestly: Chapter 7.2 rule 2 is recorded, "
+                "not enforced; LocalProcessBackend discloses its egress gap "
+                "(NETWORK_ISOLATION_GAP) rather than claiming enforcement; "
+                "and EDR-0011's general T2 containment was deferred by human "
+                "decision 2026-08-23 (gap-closure-record §6.3). Donor search "
+                "does not fit that deferral: it is a control-plane "
+                "capability with known hosts, human-auditable queries and "
+                "no worker-controlled payload — and DDE-066 needs it before "
+                "the general containment substrate exists."
+            ),
+            "alternatives": [
+                "Wait for EDR-0011's general per-run proxy substrate before "
+                "any egress — rejected: DDE-066 stays unimplementable for a "
+                "bounded, enumerable control-plane surface that needs no "
+                "per-run machinery.",
+                "Ad-hoc direct HTTP calls from mission code with ambient "
+                "environment credentials — rejected: unjournalled egress, "
+                "long-lived secrets reachable by model-influenced code, no "
+                "allowlist widening control.",
+                "Broker-admitted, allowlisted, journal-recorded control-"
+                "plane egress behind a side-effecting capability — accepted.",
+            ],
+            "decision": (
+                "Accepted with decided defaults (amendable by future EDR): "
+                "(1) Endpoint allowlist at host+path granularity, in-repo "
+                "curated: api.github.com (search/repositories, "
+                "search/code under authenticated scopes used only for "
+                "metadata, /repos/* metadata — GitHub is the canonical "
+                "source-of-record for donor repos/tools and per-result "
+                "Ch.13.8 classification), github.com + raw.githubusercontent."
+                "com (README/metadata reads only — licence evidence lives in "
+                "the repo tree), registry.npmjs.org (package metadata for "
+                "npm-class OPEN_REUSE donors), ui.shadcn.com registry "
+                "endpoints plus shadcn-ecosystem blocks registries (OPEN_"
+                "REUSE component JSON per Ch.13.8's amendment), and an "
+                "explicitly enumerated commercial-template metadata list "
+                "(Tailwind Plus / Cruip catalogue endpoints, CONDITIONAL_"
+                "REUSE metadata-only) maintained as reviewed data in-repo. "
+                "Marketplace hosts stay REJECTED and absent. Widening any "
+                "entry is itself an EDR-class change. (2) Broker-issued "
+                "short-lived credentials only: every outbound call "
+                "authenticates with broker-minted short-lived tokens "
+                "(GitHub tokens included); no long-lived secret ever passes "
+                "to anything executing model-generated code and no ambient "
+                "environment credential is reachable by the search path. "
+                "(3) Placement: a control-plane service behind a new "
+                "side-effecting capability with declared side_effect_class "
+                "(Ch.9.3), NOT inside the T2 sandbox — donor search is a "
+                "builder-side capability, not worker-run egress; EDR-0011's "
+                "boundary continues to govern worker runs and this "
+                "capability migrates onto it when it lands. (4) Quota "
+                "ownership: per-mission budget rows in execution_plans' "
+                "existing token_budget/dollar-denominated budget JSONB "
+                "(Ch.16.4 overhead accounting), recorded in the capability "
+                "registration; quota exhaustion is typed observable state, "
+                "never a silent empty result. (5) Ch.12.4 journal per "
+                "outbound query with idempotency key before retry; replaying "
+                "a duplicated query asserts exactly one effect. (6) Fail-"
+                "closed posture: classifier unreachable = empty results plus "
+                "typed refusal; UNKNOWN sources default SOURCE_REFERENCE_ONLY/"
+                "REJECTED and never silently upgrade (Ch.13.8 classify-"
+                "before-use). (7) Injection screening precedes any model-"
+                "visible surface (Ch.14.5 invariant 6). (8) Revocation: "
+                "removing an allowlist entry stops future queries at the "
+                "admission gate; already-journal-recorded effects remain "
+                "queryable audit history. Relationship to EDR-0011: this "
+                "EDR is the admission policy for one named surface; EDR-0011 "
+                "(accepted same day, Option B deferred to the substrate "
+                "trigger) remains the runtime-containment law for worker-run "
+                "egress; each cites the other, nothing here widens the T2 "
+                "boundary."
+            ),
+            "rationale": (
+                "Host+path granularity keeps the allowlist auditable without "
+                "enumerating every CDN edge host; brokered short-lived "
+                "credentials keep AGENTS.md's forbidden-list invariant true "
+                "by construction; builder-side placement matches what the "
+                "surface actually is (control-plane search fan-out, not "
+                "worker containment) and lets DDE-066 start ahead of the "
+                "deferred general substrate; reusing execution_plans budget "
+                "JSONB avoids inventing a second budget ledger (no second "
+                "source of truth for mutable state)."
+            ),
+            "consequences": [
+                "DDE-066 can start implementation after acceptance, with "
+                "every query durable, budgeted, screened and auditable from "
+                "day one; Ch.7.2/13.8 gain an admitted-surface record "
+                "through the normal chapter-amendment path (proposed there, "
+                "not made here).",
+                "The allowlist file becomes reviewed, hash-pinned policy "
+                "data: changes are code review + EDR-class justification, "
+                "not operator edits.",
+                "When EDR-0011 Option B lands, this capability migrates "
+                "onto the shared egress boundary; until then it is the only "
+                "admitted outbound surface in the system.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0016": {
+            "context": (
+                "DDE-068 (Visual Verification & Critique Loop) needs a "
+                "multimodal-model capability no existing repo toolchain "
+                "provides: screenshot -> rubric critique scored against "
+                "playbook §8 scorecards -> bounded revise <=3 cycles -> "
+                "residuals escalate to human. The Phase-B render harness is "
+                "already landed (EDR-0008's Playwright job in dde-studio."
+                "yml), so the missing piece is exactly the critic dependency "
+                "and its budget envelope. AGENTS.md admits a new dependency/"
+                "model call only with licence, maintenance signal, cost "
+                "ownership and why the existing toolchain is insufficient — "
+                "static lints (DD201-DD206) and string fingerprints cannot "
+                "judge composition, hierarchy or distinctiveness of rendered "
+                "pixels. Model credentials must follow the same brokered "
+                "path as every other capability; EDR-0011's general "
+                "containment remains deferred and nothing here widens "
+                "worker-run egress — critique calls are control-plane "
+                "side-effecting steps like donor-search queries under "
+                "EDR-0015."
+            ),
+            "alternatives": [
+                "Frontier closed multimodal API model as primary critic — "
+                "strongest rubric fidelity but highest per-call cost.",
+                "Low-cost high-throughput multimodal tier as primary "
+                "critic, escalating to frontier only when residuals persist "
+                "— accepted: first-pass rubric scoring is mechanical "
+                "judgement, not taste.",
+                "Self-hosted open-weights VLM — no per-call vendor cost but "
+                "a GPU/ops burden DDE cannot carry at this stage; revisit "
+                "behind its own Ch.9.6 admission decision.",
+            ],
+            "decision": (
+                "Accepted with decided defaults (amendable by future EDR): "
+                "(1) Model class: one low-cost, high-throughput multimodal "
+                "model as the primary critic, selected by name at "
+                "implementation time from whatever providers are then "
+                "declared — routed through the EXISTING provider-agnostic "
+                "path (Appendix A 'vision and visual evidence' profile; "
+                "RouterService.model_mode='fixed' already supports pinning "
+                "a declared model id/provider). No new credential plumbing, "
+                "no new provider SDK outside adapters/**; the critic rides "
+                "the same broker/adapter machinery as every other harness. "
+                "(2) Cost ceiling, enforced against Ch.16.4 overhead "
+                "accounting: $0.05 per critique cycle (one screenshot + "
+                "rubric scoring + verdict) and $10 per product per month "
+                "across all critique cycles; crossing either is typed "
+                "BUDGET_EXCEEDED state routed to the existing pause-for-"
+                "human path, never silently absorbed. Numbers are initial "
+                "targets, retunable by policy version with measured data. "
+                "(3) Rubric storage: extend the existing verification row "
+                "structure — rubric text versioned under schemas/design/ "
+                "alongside tokens.json (Ch.3.1 drift-gate discipline), with "
+                "the compiled prompt pinning rubric + playbook versions on "
+                "each VerificationRun/Evidence linkage so verdicts are "
+                "reproducible against named inputs; no new table while the "
+                "verification_runs/evidence structure can carry it, and a "
+                "dedicated durable table only if query needs outgrow it "
+                "(that widening would be its own schema decision). "
+                "(4) Retention: screenshots and critiques are rank-9 "
+                "evidence artifacts following existing law — WORM object-"
+                "lock >= project audit retention (Ch.17.5), evidence-linked "
+                "artifacts never detached while referenced (Ch.3.7), never "
+                "auto-deleted while the screen they judged remains merged; "
+                "raw screenshots may age to cold storage ahead of verdict "
+                "rows per the artifact lifecycle policy, never deleted "
+                "inside the retention window. (5) Bounded revise <=3 cycles: "
+                "each cycle consumes exactly one stored critique artifact; "
+                ">3 cycles blocks auto-progression and escalates residuals "
+                "to explicit human approval through the approvals surface "
+                "(prototype_pixel_signoff must be added through the "
+                "ordinary contract path or an existing type designated — "
+                "GUI-spec open item D2). (6) Silhouette generic-corpus "
+                "sourcing: option (c), self-generated generic layouts "
+                "seeded from playbook §1.1's nevers catalog — fully "
+                "licence-clean with trivially internal provenance; godly/"
+                "land-book-class galleries stay SOURCE_REFERENCE_ONLY with "
+                "no APIs and no scraping (playbook §10.5), usable as human "
+                "curation inspiration only. Rank-9 forever: critiques inform "
+                "humans and the bounded loop, never modify rank <=3 "
+                "artifacts, never auto-approve themselves, never widen "
+                "autonomy."
+            ),
+            "rationale": (
+                "A cheap high-throughput tier fits what the loop actually "
+                "does (mechanical rubric scoring repeated across revise "
+                "cycles) and keeps the $10/product/month envelope honest, "
+                "with frontier escalation available later if measured "
+                "verdict quality demands it; routing through the existing "
+                "provider-agnostic fixed-model path means zero new "
+                "credential surface; extending schemas/design plus the "
+                "verification-row linkage respects the single-source-of-"
+                "truth and generated-contract disciplines instead of adding "
+                "a parallel store."
+            ),
+            "consequences": [
+                "DDE-068 starts from an admitted, budget-bounded critic with "
+                "a reproducible rubric lineage; every critique is durable "
+                "rank-9 evidence bound to its VerificationRun.",
+                "The silhouette gate gets a licence-clean corpus answer "
+                "before the gate exists; gallery-sourcing questions stay "
+                "closed (SOURCE_REFERENCE_ONLY, no APIs).",
+                "If rejected instead, Definition-of-Polished gates that "
+                "depend on VLM critique stay named deferrals and DD201-DD206 "
+                "+ honesty tests remain the merge bar.",
             ],
             "affected_requirement_slugs": [],
         },

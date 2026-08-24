@@ -1,16 +1,27 @@
 # EDR-0016 — VLM design-critic dependency & budget: admitting the
 # multimodal critic behind DDE-068's visual verification loop
 
+> **ACCEPTED 2026-08-24 by explicit human project-owner standing directive
+> ("accept and fix all EDRs according to best recommended solutions").** The
+> authoritative record is the accepted row in the Project Truth `edrs` table
+> (`edr_id=01a0341c-7119-7b38-9ddf-e6e73f2e1a88`, owner project
+> `9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11`, written via
+> `engine.truth.service.TruthService.propose_edr` + `accept_edr`). This file
+> remains as readable documentation; where wording differs, the `edrs` row
+> outranks it. Both items left open below (model choice + cost ceiling, and
+> silhouette corpus sourcing) are answered by decided defaults in the
+> ACCEPTANCE section at the end of this file; defaults are amendable by
+> future EDR. DDE-068 implementation may start.
+
 > **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
 > written only by `engine/truth/`. Following the convention established in
-> `EDR-0001`–`EDR-0014`, this file is a **markdown pre-image** of the eventual
-> `edrs` row, filed as the proposal itself (AGENTS.md forbids editing
-> `docs/truth/**` as a side effect). **This file is not itself an accepted
-> EDR.** `status` is `proposed`; only a human decision via
-> `scripts/accept_owner_edrs.py` can move it to `accepted`.
+> `EDR-0001`–`EDR-0014`, this file was filed as a **markdown pre-image** of
+> the eventual `edrs` row (AGENTS.md forbids editing `docs/truth/**` as a
+> side effect). The durable row now exists (see the acceptance note above);
+> this file stays as the readable pre-image of that row.
 
 - **slug:** `EDR-0016`
-- **status:** `proposed`
+- **status:** `accepted (2026-08-24)`
 - **supersedes:** none
 - **affected_requirement_slugs:** none filed yet
 - **raised during:** Frontend Studio charter v3 sign-off (2026-08-24).
@@ -103,3 +114,71 @@ DDE-068 charter time and share the same acceptance gate.
   Definition-of-Polished gates that depend on it (VLM rubric, silhouette
   distinctness) stay named deferrals, and existing-surface floors (DD201–
   DD206 + honesty tests) remain the merge bar.
+
+## ACCEPTANCE (2026-08-24)
+
+**Accepted with decided defaults** by the project owner's standing directive
+of 2026-08-24 ("accept and fix all EDRs according to best recommended
+solutions"). The authoritative row is
+`edr_id=01a0341c-7119-7b38-9ddf-e6e73f2e1a88`; where this section and the row
+differ in wording, the row outranks this file. Each default is amendable by a
+future EDR.
+
+1. **Model choice — low-cost high-throughput multimodal class, existing
+   routing path only.** The primary critic is one low-cost,
+   high-throughput multimodal model, selected by name at implementation time
+   from whatever providers are then declared. It routes through the EXISTING
+   provider-agnostic selection path — Appendix A's "vision and visual
+   evidence" profile (`modality: image`, "returns structured evidence, not
+   prose") with `RouterService.model_mode="fixed"` pinning the declared
+   model id/provider. No new credential plumbing, no new provider SDK
+   outside `adapters/**`: the critic rides the same broker/adapter machinery
+   as every other harness (brokered short-lived credentials, declared
+   `side_effect_class`). A frontier tier may be evaluated later behind its
+   own decision if measured verdict quality demands escalation; self-hosted
+   open-weights VLMs stay out (GPU/ops burden, own Ch.9.6 admission).
+
+2. **Cost ceiling — $0.05 per critique cycle, $10 per product per month.**
+   One critique cycle = screenshot capture + rubric scoring + verdict for
+   one screen state. Crossing either ceiling is typed `BUDGET_EXCEEDED`
+   state routed to the existing pause-for-human path (Ch.12.3/13.1), never
+   silently absorbed; both numbers count against Ch.16.4 overhead
+   accounting and are initial targets retunable by policy version with
+   measured data.
+
+3. **Rubric storage — extend existing structures, prefer no new table.**
+   Checked first: `schemas/objects/verification_run.json` already links
+   runs to evidence via `evidence_refs` and carries JSONB-class result
+   structures. Rubric text is versioned under `schemas/design/` alongside
+   `tokens.json` under the Ch.3.1 drift-gate discipline; each compiled
+   prompt pins rubric + playbook versions onto the VerificationRun/Evidence
+   linkage so verdicts are reproducible against named inputs. A dedicated
+   durable table is added only if query needs outgrow the linkage (that
+   widening would be its own schema decision through generate_contracts).
+
+4. **Retention — rank-9 evidence law, unchanged.** Screenshots and critiques
+   are rank-9 evidence artifacts: WORM object-lock ≥ the project's audit
+   retention requirement (Ch.17.5); evidence-linked artifacts are never
+   detached while referenced (Ch.3.7); never auto-deleted while the screen
+   they judged remains merged. Raw screenshots may age to cold storage ahead
+   of verdict rows per the artifact lifecycle policy — never deleted inside
+   the retention window.
+
+5. **Bounded revise ≤3 cycles, human escalation** exactly as proposed: each
+   cycle consumes exactly one stored critique artifact; >3 cycles blocks
+   auto-progression and escalates residuals to explicit human approval
+   through the approvals surface. `prototype_pixel_signoff` must still be
+   added through the ordinary contract path or an existing type designated
+   before DDE-068's sign-off queue can be typed (GUI-spec open item D2).
+
+6. **Silhouette generic-corpus sourcing — option (c): self-generated.** The
+   generic-layout corpus is self-generated from playbook §1.1's nevers
+   catalog: fully licence-clean, provenance trivially internal. Godly/
+   land-book-class galleries remain SOURCE_REFERENCE_ONLY with no APIs and
+   no scraping (playbook §10.5) — human curation inspiration only. Options
+   (a) hand-transcribed teardown corpora and (b) licensed datasets stay
+   available to a future amendment if curation capacity demands.
+
+7. **Rank-9 forever, never auto-applied**, verbatim from the proposal:
+   critiques inform humans and the bounded loop but never modify rank ≤3
+   artifacts, never auto-approve themselves, never widen autonomy.

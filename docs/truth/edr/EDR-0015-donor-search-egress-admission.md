@@ -1,16 +1,26 @@
 # EDR-0015 — Donor-search egress admission: brokered, allowlisted outbound
 # access for DDE-066's donor discovery fan-out
 
+> **ACCEPTED 2026-08-24 by explicit human project-owner standing directive
+> ("accept and fix all EDRs according to best recommended solutions").** The
+> authoritative record is the accepted row in the Project Truth `edrs` table
+> (`edr_id=01a0341c-70f8-744b-8fca-caf2d06c2f54`, owner project
+> `9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11`, written via
+> `engine.truth.service.TruthService.propose_edr` + `accept_edr`). This file
+> remains as readable documentation; where wording differs, the `edrs` row
+> outranks it. Every open question below is answered by a decided default in
+> the ACCEPTANCE section at the end of this file; defaults are amendable by
+> future EDR. DDE-066 implementation may start.
+
 > **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
 > written only by `engine/truth/`. Following the convention established in
-> `EDR-0001`–`EDR-0014`, this file is a **markdown pre-image** of the eventual
-> `edrs` row, filed as the proposal itself (AGENTS.md forbids editing
-> `docs/truth/**` as a side effect). **This file is not itself an accepted
-> EDR.** `status` is `proposed`; only a human decision via
-> `scripts/accept_owner_edrs.py` can move it to `accepted`.
+> `EDR-0001`–`EDR-0014`, this file was filed as a **markdown pre-image** of
+> the eventual `edrs` row (AGENTS.md forbids editing `docs/truth/**` as a
+> side effect). The durable row now exists (see the acceptance note above);
+> this file stays as the readable pre-image of that row.
 
 - **slug:** `EDR-0015`
-- **status:** `proposed`
+- **status:** `accepted (2026-08-24)`
 - **supersedes/amends:** none superseded; **amends proposed EDR-0011** for one
   specific surface — see "Relationship to EDR-0011" below.
 - **affected_requirement_slugs:** none filed yet
@@ -110,3 +120,62 @@ surface only.
    (host vs host+path), whether commercial-template metadata endpoints are
    enumerated explicitly or admitted as a curated list maintained in-repo,
    and the default per-project query budget numbers.
+
+## ACCEPTANCE (2026-08-24)
+
+**Accepted with decided defaults** by the project owner's standing directive
+of 2026-08-24 ("accept and fix all EDRs according to best recommended
+solutions"). The authoritative row is
+`edr_id=01a0341c-70f8-744b-8fca-caf2d06c2f54`; where this section and the row
+differ in wording, the row outranks this file. Each default below is
+amendable by a future EDR; none may be widened silently (AGENTS.md).
+
+1. **Allowlist — host + path granularity, in-repo curated, hash-pinned.**
+
+   | Host (+ path scope) | Use | Justification |
+   |---|---|---|
+   | `api.github.com` (`/search/repositories`, `/search/code` under authenticated scopes, `/repos/*` metadata) | repos/tools/libraries search and licence/metadata evidence | GitHub is the canonical source-of-record for donor provenance and the primary input to per-result Ch.13.8 classification |
+   | `github.com`, `raw.githubusercontent.com` (README/licence/metadata files only) | licence-text and README reads for classification | licence evidence lives in the repo tree; file fetches only, never clones or bundles |
+   | `registry.npmjs.org` (package metadata endpoints) | npm-class package metadata for OPEN_REUSE donors | registry JSON is machine-classifiable provenance for the JS ecosystem |
+   | `ui.shadcn.com` registry endpoints + shadcn-ecosystem blocks registries | registry JSON for OPEN_REUSE components | Ch.13.8 amendment names shadcn-ecosystem registries OPEN_REUSE, programmatically ingestable |
+   | Commercial-template metadata list (Tailwind Plus / Cruip catalogue endpoints), explicitly enumerated in-repo | CONDITIONAL_REUSE metadata only, never bundles/assets | keeps the CONDITIONAL_REUSE class auditable without admitting marketplace hosts |
+
+   Marketplace bundles stay REJECTED and absent from the list. The list lives
+   as reviewed policy data in-repo; adding an entry is code review plus
+   EDR-class justification.
+
+2. **Credentials — broker-issued, short-lived, only.** Every outbound call
+   authenticates with broker-minted short-lived tokens (GitHub tokens
+   included). No long-lived key ever reaches anything executing model-
+   generated code, and no ambient environment credential is reachable by the
+   search path (AGENTS.md forbidden list; Ch.14.3 preference order).
+
+3. **Placement — control plane, not T2 sandbox.** Donor search runs inside
+   the control plane behind a side-effecting capability with a declared
+   `side_effect_class` (Ch.9.3). Search is a builder-side capability, not
+   worker-run egress; the EDR-0011 boundary continues to govern worker runs.
+   **Relationship to EDR-0011:** this EDR is the admission *policy* for one
+   named surface; EDR-0011 (accepted the same day as Option B, machinery
+   deferred) remains the runtime-containment *law* for worker-run egress.
+   Each cites the other; when EDR-0011's proxy boundary lands, this
+   capability migrates onto it. Nothing here widens the T2 boundary.
+
+4. **Quota ownership — execution_plans budget rows.** Per-mission budgets
+   live in the existing `token_budget`/cost-denominated budget JSONB on
+   `execution_plans` (Ch.16.4 overhead accounting); no second budget ledger
+   is created. Quota exhaustion is typed observable state routed to the
+   pause-for-human path, never a silent empty result.
+
+5. **Journaling — Ch.12.4 per outbound query.** Idempotency key +
+   ExternalEffect journal row before retry; replay asserts exactly one
+   effect.
+
+6. **Fail-closed posture and screening** exactly as proposed: classifier
+   unreachable → empty results plus typed refusal; UNKNOWN defaults to
+   `SOURCE_REFERENCE_ONLY`/`REJECTED`, never silently upgraded;
+   injection screening precedes any model-visible surface (Ch.14.5
+   invariant 6).
+
+7. **Revocation** exactly as proposed: removing an allowlist entry stops
+   future queries at the admission gate; already-journal-recorded effects
+   remain queryable audit history.
