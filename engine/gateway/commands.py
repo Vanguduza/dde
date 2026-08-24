@@ -28,6 +28,8 @@ from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
+from engine.contracts.task import Task
+from engine.contracts.task_graph import TaskGraph
 from engine.core.errors import DdeError
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
@@ -45,6 +47,7 @@ from engine.governance.service import (
 )
 from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
+from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
 
 
@@ -180,6 +183,28 @@ class CommandDispatcher:
                 details={"mission_id": str(mission_id)},
             )
         return mission
+
+    async def load_task(self, task_id: UUID) -> Task:
+        async with self._engine.connect() as connection:
+            task = await MissionsRepository().get_task(connection, task_id)
+        if task is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "Unknown task",
+                details={"task_id": str(task_id)},
+            )
+        return task
+
+    async def load_task_graph(self, graph_id: UUID) -> TaskGraph:
+        async with self._engine.connect() as connection:
+            graph = await TaskGraphRepository().get_task_graph(connection, graph_id)
+        if graph is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "Unknown task graph",
+                details={"graph_id": str(graph_id)},
+            )
+        return graph
 
     async def dispatch(
         self,
@@ -535,6 +560,46 @@ class GatewayCommandService:
             )
         await self._sessions.authorize_project(session, mission.project_id)
         return mission
+
+    async def read_task(
+        self, *, session_id: UUID, principal_id: UUID, task_id: UUID
+    ) -> Task:
+        """Chapter 15.4 task read — authorized via `mission.read` until a
+        dedicated `task.read` baseline scope lands (DDE-051 tenancy)."""
+        session = await self._sessions.authorize_scope(
+            session_id=session_id,
+            principal_id=principal_id,
+            required_scope="mission.read",
+        )
+        task = await self._dispatcher.load_task(task_id)
+        if task.tenant_id != session.tenant_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "Task belongs to another tenant",
+                details={"task_id": str(task_id)},
+            )
+        await self._sessions.authorize_project(session, task.project_id)
+        return task
+
+    async def read_task_graph(
+        self, *, session_id: UUID, principal_id: UUID, graph_id: UUID
+    ) -> TaskGraph:
+        """Chapter 15.4 task-graph read — authorized via `mission.read` until
+        `plan.read` is in the human baseline scopes."""
+        session = await self._sessions.authorize_scope(
+            session_id=session_id,
+            principal_id=principal_id,
+            required_scope="mission.read",
+        )
+        graph = await self._dispatcher.load_task_graph(graph_id)
+        if graph.tenant_id != session.tenant_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "Task graph belongs to another tenant",
+                details={"graph_id": str(graph_id)},
+            )
+        await self._sessions.authorize_project(session, graph.project_id)
+        return graph
 
     async def read_mission_control(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID

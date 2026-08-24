@@ -20,6 +20,8 @@ from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
+from engine.contracts.task import Task
+from engine.contracts.task_graph import TaskGraph
 from engine.core.errors import DdeError
 from engine.gateway.commands import CommandAcceptance, GatewayCommandService
 from engine.gateway.sessions.service import GatewaySessionService
@@ -132,6 +134,30 @@ async def read_mission(
 ) -> Mission:
     return await _services(request).commands.read_mission(
         session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/tasks/{task_id}", response_model=Task)
+async def read_task(
+    task_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> Task:
+    return await _services(request).commands.read_task(
+        session_id=session_id, principal_id=principal_id, task_id=task_id
+    )
+
+
+@router.get("/task-graphs/{graph_id}", response_model=TaskGraph)
+async def read_task_graph(
+    graph_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> TaskGraph:
+    return await _services(request).commands.read_task_graph(
+        session_id=session_id, principal_id=principal_id, graph_id=graph_id
     )
 
 

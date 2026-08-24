@@ -34,6 +34,7 @@ cursor = [
 # see that module's docstring for why (no Chapter-chartered orchestrator
 # component exists yet at Stage 1).
 dde = "interfaces.cli.__main__:main"
+dde-mcp = "interfaces.mcp.__main__:main"
 
 [dependency-groups]
 dev = [
