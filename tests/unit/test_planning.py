@@ -252,3 +252,108 @@ def test_effort_l_is_decomposition_failure() -> None:
     )
     report = validate_graph([task], [])
     assert "DECOMPOSITION_REQUIRED" in report.error_codes
+
+
+# --- Chapter 4.3 durable template registry instantiation --------------------
+
+
+def _registry_template(harness, *, status: str = "ACTIVE"):
+    from datetime import UTC as _UTC
+
+    from engine.contracts.mission_template import MissionTemplate
+
+    return MissionTemplate(
+        template_id=uuid7(),
+        tenant_id=harness.tenant_id,
+        project_id=harness.project_id,
+        template_key="add_endpoint_v2",
+        template_version="a" * 64,
+        description="Specify -> implement -> verify",
+        nodes=[
+            {
+                "node_key": "spec",
+                "title": "Specify endpoint contract",
+                "intent": "Commit the HTTP contract first",
+                "task_class": "specification",
+                "write_scope": ["schemas/api"],
+                "success_criteria": ["Endpoint schema committed"],
+                "estimated_effort": "s",
+            },
+            {
+                "node_key": "impl",
+                "title": "Implement endpoint",
+                "intent": "Implement the contracted handler",
+                "task_class": "implementation",
+                "write_scope": ["engine/gateway"],
+                "success_criteria": ["Handler returns contracted payload"],
+                "estimated_effort": "s",
+            },
+            {
+                "node_key": "verify",
+                "title": "Verify endpoint",
+                "intent": "Prove the contract holds",
+                "task_class": "verification",
+                "write_scope": ["tests/unit"],
+                "success_criteria": ["Contract test covers the endpoint"],
+                "estimated_effort": "s",
+            },
+        ],
+        edges=[
+            {
+                "from_node_key": "spec",
+                "to_node_key": "impl",
+                "edge_type": "depends_on",
+            },
+            {
+                "from_node_key": "impl",
+                "to_node_key": "verify",
+                "edge_type": "depends_on",
+            },
+            {"from_node_key": "verify", "to_node_key": "impl", "edge_type": "verifies"},
+        ],
+        status=status,
+        planner_policy_version="template-v1",
+        created_by="principal-1",
+        created_at=datetime.now(_UTC),
+        updated_at=datetime.now(_UTC),
+    )
+
+
+def test_plan_from_registry_template_records_provenance() -> None:
+    harness = build_harness()
+    mission = _mission(harness)
+    template = _registry_template(harness)
+    graph = harness.planner.plan_from_template(
+        mission,
+        template,
+        approved_requirement_slugs=_approved(harness),
+        created_by_principal=harness.principal_id,
+    )
+    assert graph.status == "DRAFT"
+    assert graph.planning_mode == "template"
+    # Provenance: the graph names exactly which registry row produced it.
+    assert template.template_key in graph.rationale
+    assert template.template_version[:16] in graph.rationale
+    tasks = harness.mission_store.tasks_for_graph(graph.graph_id)
+    edges = harness.mission_store.edges_for_graph(graph.graph_id)
+    assert len(tasks) == 3
+    assert len(edges) == 3
+    assert graph_hash(tasks, edges) == graph.graph_hash
+    report = harness.planner.validate(
+        graph.graph_id, approved_requirement_slugs=_approved(harness)
+    )
+    assert report.valid
+
+
+def test_plan_from_retired_template_is_refused() -> None:
+    harness = build_harness()
+    mission = _mission(harness)
+    template = _registry_template(harness, status="RETIRED")
+    with pytest.raises(DdeError) as err:
+        harness.planner.plan_from_template(
+            mission,
+            template,
+            approved_requirement_slugs=_approved(harness),
+            created_by_principal=harness.principal_id,
+        )
+    assert err.value.error_code == "POLICY_DENIED"

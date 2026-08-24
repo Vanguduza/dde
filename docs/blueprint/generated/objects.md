@@ -346,10 +346,26 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## MissionTemplate
+
+- table: `mission_templates`
+- primary key: template_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## VerificationRun
 
 - table: `verification_runs`
 - primary key: verification_run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## PlanDraft
+
+- table: `plan_drafts`
+- primary key: draft_id
 - tenant scoped: true
 - project scoped: true
 - lock_version: false

@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/mission_template.json",
+  "title": "MissionTemplate",
+  "description": "Chapter 4.3 mission template: a first-class registry object with its own version and conformance tests, by which planning gets cheaper and more predictable over time. The definition is immutable (Chapter 3.10): a material change registers a new template_version content-hashed over the template fields, never an overwrite. status is the registry lifecycle (ACTIVE -> RETIRED); RETIRED is terminal because un-retiring would silently re-attach old decomposition semantics under a name consumers already stopped trusting -- re-declare a fresh version instead. planner_policy_version records which deterministic planner policy produced graphs instantiated from this template.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "mission_templates",
+    "order": 210,
+    "pk": ["template_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "template_key", "template_version"]],
+    "foreign_keys": [
+      {
+        "name": "mission_templates_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "mission_templates_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "TemplateNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_key",
+        "title",
+        "intent",
+        "task_class",
+        "write_scope",
+        "success_criteria",
+        "estimated_effort"
+      ],
+      "properties": {
+        "node_key": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "intent": { "type": "string" },
+        "task_class": {
+          "type": "string",
+          "enum": [
+            "discovery",
+            "specification",
+            "decision",
+            "enabling",
+            "implementation",
+            "integration",
+            "verification",
+            "repair",
+            "documentation"
+          ]
+        },
+        "parent_node_key": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "write_scope": { "type": "array", "items": { "type": "string" } },
+        "read_scope": { "type": "array", "items": { "type": "string" } },
+        "success_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": { "type": "string" }
+        },
+        "estimated_effort": {
+          "type": "string",
+          "enum": ["xs", "s", "m"]
+        },
+        "blast_radius": {
+          "type": "string",
+          "enum": ["local", "module", "cross_module", "system"]
+        },
+        "risk_class": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        }
+      }
+    },
+    "TemplateEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_node_key", "to_node_key", "edge_type"],
+      "properties": {
+        "from_node_key": { "type": "string", "minLength": 1 },
+        "to_node_key": { "type": "string", "minLength": 1 },
+        "edge_type": {
+          "type": "string",
+          "enum": [
+            "depends_on",
+            "produces_contract_for",
+            "verifies",
+            "repairs",
+            "blocks_on_decision"
+          ]
+        },
+        "contract_ref": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    }
+  },
+  "required": [
+    "template_id",
+    "tenant_id",
+    "project_id",
+    "template_key",
+    "template_version",
+    "description",
+    "nodes",
+    "edges",
+    "status",
+    "planner_policy_version",
+    "created_by",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "template_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "template_key": { "type": "string", "minLength": 1 },
+    "template_version": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "description": { "type": "string" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/TemplateNode" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/TemplateEdge" }
+    },
+    "status": { "type": "string", "enum": ["ACTIVE", "RETIRED"] },
+    "planner_policy_version": { "type": "string" },
+    "created_by": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

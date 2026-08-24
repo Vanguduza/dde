@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/plan_draft.json",
+  "title": "PlanDraft",
+  "description": "Chapter 4.3 model-assisted planning: one model-proposed task-graph draft, recorded as untrusted input. A draft is never an executable graph -- it becomes usable only through the deterministic TaskPlanner/TaskGraphService validation gate (DRAFT -> VALIDATING -> APPROVED|REJECTED), and a model can never emit an executable graph directly. origin records provenance (which planner proposed the nodes); adapter_ref names the capability-contract surface behind which any live model call lives; no vendor SDK is imported by engine code. status records the durable promotion lifecycle: PROPOSED -> VALIDATED | REJECTED at this table, then PROMOTED once a validated draft's nodes land as a real TaskGraph version.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "plan_drafts",
+    "order": 211,
+    "pk": ["draft_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "provenance_key"]],
+    "foreign_keys": [
+      {
+        "name": "plan_drafts_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "plan_drafts_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "plan_drafts_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "DraftNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_key", "title", "intent", "task_class", "write_scope", "success_criteria"],
+      "properties": {
+        "node_key": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "intent": { "type": "string" },
+        "task_class": {
+          "type": "string",
+          "enum": [
+            "discovery",
+            "specification",
+            "decision",
+            "enabling",
+            "implementation",
+            "integration",
+            "verification",
+            "repair",
+            "documentation"
+          ]
+        },
+        "parent_node_key": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "write_scope": { "type": "array", "items": { "type": "string" } },
+        "read_scope": { "type": "array", "items": { "type": "string" } },
+        "success_criteria": { "type": "array", "items": { "type": "string" } },
+        "estimated_effort": {
+          "anyOf": [
+            { "type": "string", "enum": ["xs", "s", "m"] },
+            { "type": "null" }
+          ]
+        },
+        "requirement_refs": { "type": "array", "items": { "type": "string" } },
+        "feature_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "DraftEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_node_key", "to_node_key", "edge_type"],
+      "properties": {
+        "from_node_key": { "type": "string", "minLength": 1 },
+        "to_node_key": { "type": "string", "minLength": 1 },
+        "edge_type": {
+          "type": "string",
+          "enum": [
+            "depends_on",
+            "produces_contract_for",
+            "verifies",
+            "repairs",
+            "blocks_on_decision"
+          ]
+        },
+        "contract_ref": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    },
+    "Refusal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error_code", "message"],
+      "properties": {
+        "error_code": { "type": "string" },
+        "message": { "type": "string" },
+        "node_keys": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "required": [
+    "draft_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "origin",
+    "origin_policy_version",
+    "nodes",
+    "edges",
+    "status",
+    "refusals",
+    "provenance_key",
+    "created_by_principal",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "draft_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": { "type": "string", "format": "uuid" },
+    "origin": {
+      "type": "string",
+      "enum": ["model_assisted", "human_authored"]
+    },
+    "adapter_ref": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "origin_policy_version": { "type": "string" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DraftNode" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DraftEdge" }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PROPOSED", "VALIDATED", "REJECTED", "PROMOTED"]
+    },
+    "refusals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Refusal" }
+    },
+    "promoted_graph_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "provenance_key": { "type": "string", "minLength": 1 },
+    "created_by_principal": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -6,9 +6,11 @@ from uuid import UUID
 
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.mission import Mission
+from engine.contracts.mission_template import MissionTemplate
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.task import Task
 from engine.contracts.task_graph import TaskGraph
+from engine.contracts.task_graph_edge import TaskGraphEdge
 from engine.contracts.validation_report import ValidationReport
 from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
@@ -93,6 +95,137 @@ class TaskPlanner:
         for task in planned.tasks:
             self._store.tasks[task.task_id] = task
         for edge in planned.edges:
+            self._store.edges[edge.edge_id] = edge
+        return graph
+
+    def plan_from_template(
+        self,
+        mission: Mission,
+        template: MissionTemplate,
+        *,
+        approved_requirement_slugs: set[str],
+        created_by_principal: UUID,
+    ) -> TaskGraph:
+        """Instantiate a DURABLE registered template (Chapter 4.3:
+        "first-class registry objects with their own version") into a
+        task graph. Provenance is recorded on the graph itself: the
+        rationale names the template key and content-hashed version that
+        produced it, so every graph remains explainable by the exact
+        registry row it came from. The deterministic planner policy is
+        unchanged -- only decomposition source differs from `plan`."""
+        if template.status != "ACTIVE":
+            raise DdeError(
+                "POLICY_DENIED",
+                "Retired templates never instantiate; re-register a new "
+                "version instead (Chapter 3.10)",
+                details={
+                    "template_key": template.template_key,
+                    "template_version": template.template_version,
+                    "status": template.status,
+                },
+            )
+        missing = [
+            slug
+            for slug in mission.requirement_refs
+            if slug not in approved_requirement_slugs
+        ]
+        if missing:
+            raise DdeError(
+                "GRAPH_INVALID",
+                "Mission requirement refs are not approved Project Truth",
+                details={"missing": missing},
+            )
+
+        graph_id = uuid7()
+        now = self._clock.now()
+        by_key: dict[str, Task] = {}
+        tasks: list[Task] = []
+        for node in template.nodes:
+            task = Task(
+                task_id=uuid7(),
+                tenant_id=mission.tenant_id,
+                project_id=mission.project_id,
+                mission_id=mission.mission_id,
+                graph_id=graph_id,
+                parent_task_id=None,  # resolved below once parents exist
+                title=node.title,
+                intent=node.intent,
+                task_class=node.task_class,
+                requirement_refs=list(mission.requirement_refs),
+                feature_refs=[],
+                success_criteria=list(node.success_criteria),
+                expected_write_scope=list(node.write_scope),
+                expected_read_scope=list(node.read_scope or node.write_scope),
+                blast_radius=node.blast_radius or "local",
+                risk_class=node.risk_class or "low",
+                estimated_effort=node.estimated_effort,
+                autonomy_ceiling=min(mission.autonomy_ceiling, 3),
+                requires_approval=False,
+                verification_profile_ref="unit",
+                status="CREATED",
+                lock_version=1,
+                created_at=now,
+                updated_at=now,
+            )
+            by_key[node.node_key] = task
+            tasks.append(task)
+        for node in template.nodes:
+            parent_key = node.parent_node_key
+            if parent_key is not None:
+                parent = by_key.get(parent_key)
+                if parent is None:
+                    raise DdeError(
+                        "GRAPH_INVALID",
+                        f"Template parent node key {parent_key} unknown",
+                        details={"template_key": template.template_key},
+                    )
+                by_key[node.node_key].parent_task_id = parent.task_id
+
+        graph_edges: list[TaskGraphEdge] = []
+        for template_edge in template.edges:
+            source = by_key[template_edge.from_node_key]
+            dest = by_key[template_edge.to_node_key]
+            graph_edges.append(
+                TaskGraphEdge(
+                    edge_id=uuid7(),
+                    tenant_id=mission.tenant_id,
+                    project_id=mission.project_id,
+                    mission_id=mission.mission_id,
+                    graph_id=graph_id,
+                    from_task_id=source.task_id,
+                    to_task_id=dest.task_id,
+                    edge_type=template_edge.edge_type,
+                    contract_ref=template_edge.contract_ref,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+
+        digest = graph_hash(tasks, graph_edges)
+        graph = TaskGraph(
+            graph_id=graph_id,
+            tenant_id=mission.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission.mission_id,
+            version=1,
+            supersedes_id=None,
+            status="DRAFT",
+            planning_mode="template",
+            planner_policy_version=PLANNER_POLICY_VERSION,
+            rationale=(
+                f"template:{template.template_key}@{template.template_version[:16]}"
+            ),
+            open_questions=[],
+            graph_hash=digest,
+            created_by_principal=created_by_principal,
+            lock_version=1,
+            created_at=now,
+            updated_at=now,
+        )
+        self._store.graphs[graph.graph_id] = graph
+        for task in tasks:
+            self._store.tasks[task.task_id] = task
+        for edge in graph_edges:
             self._store.edges[edge.edge_id] = edge
         return graph
 

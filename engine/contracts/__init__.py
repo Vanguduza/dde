@@ -41,7 +41,9 @@ from engine.contracts.invariant_evaluation import InvariantEvaluation
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
 from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
+from engine.contracts.mission_template import MissionTemplate
 from engine.contracts.outbox import Outbox
+from engine.contracts.plan_draft import PlanDraft
 from engine.contracts.principal import Principal
 from engine.contracts.principal_grant import PrincipalGrant
 from engine.contracts.product_constitution_version import ProductConstitutionVersion
@@ -108,7 +110,9 @@ __all__ = [
     "Mission",
     "MissionControl",
     "MissionOracleEvaluation",
+    "MissionTemplate",
     "Outbox",
+    "PlanDraft",
     "Principal",
     "PrincipalGrant",
     "ProductConstitutionVersion",
