@@ -6,11 +6,10 @@ registry itself.
 Chapter 6.2's policy example names five profile IDs
 (`profile.longcontext_economy`, `profile.general_implementation`,
 `profile.premium_reasoning`, `profile.deterministic_runner`,
-`profile.vision`) without describing their capability/environment
-declarations — that detail belongs to Chapter 8's `WorkerProfile` object,
-which does not exist yet. This module declares only the minimum a Stage 1
+`profile.vision`); DDE-045 adds `profile.security` for the security
+capability. This module declares only the minimum a Stage 1
 router needs to evaluate Chapter 6.1's capability (gate 1) and environment
-(gate 4) hard gates against those same five named profiles: which
+(gate 4) hard gates against those named profiles: which
 capabilities each supports and which environment classes it can run in.
 It is a constant, not a persisted table — Chapter 3.8 does not assign a
 `worker_profiles` table to any Stage 1 mission, and the brief for this
@@ -24,12 +23,14 @@ from dataclasses import dataclass
 from engine.routing.policy import (
     CAPABILITY_BROWSER,
     CAPABILITY_REPOSITORY,
+    CAPABILITY_SECURITY,
     CAPABILITY_TESTING,
     MODALITY_IMAGE,
     PROFILE_DETERMINISTIC_RUNNER,
     PROFILE_GENERAL_IMPLEMENTATION,
     PROFILE_LONGCONTEXT_ECONOMY,
     PROFILE_PREMIUM_REASONING,
+    PROFILE_SECURITY,
     PROFILE_VISION,
 )
 
@@ -299,6 +300,17 @@ PROFILES: dict[str, WorkerProfile] = {
             }
         ),
         environment_classes=frozenset({ENVIRONMENT_STANDARD, ENVIRONMENT_BROWSER}),
+    ),
+    PROFILE_SECURITY: WorkerProfile(
+        profile_id=PROFILE_SECURITY,
+        capabilities=frozenset(
+            {
+                CAPABILITY_REPOSITORY,
+                CAPABILITY_TESTING,
+                CAPABILITY_SECURITY,
+            }
+        ),
+        environment_classes=frozenset({ENVIRONMENT_STANDARD}),
     ),
 }
 

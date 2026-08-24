@@ -14,8 +14,10 @@ name, and they do not perform live OSV.dev HTTP lookups.
 from __future__ import annotations
 
 import json
+import os
 import re
 import tomllib
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -334,7 +336,7 @@ def scan_static(unified_diff: str) -> ScanFinding:
             summary="Static analysis matched a blocking in-process rule",
             details={
                 "hit_classes": sorted(set(hits)),
-                "deferred": "semgrep CLI is not invoked at Stage 2 (DDE-045)",
+                "deferred": "semgrep CLI is not invoked; DDE-045 uses in-process SAST",
             },
         )
     return ScanFinding(
@@ -344,8 +346,113 @@ def scan_static(unified_diff: str) -> ScanFinding:
         blocking=True,
         passed=True,
         summary="No blocking in-process static-analysis match",
-        details={"deferred": "semgrep CLI is not invoked at Stage 2 (DDE-045)"},
+        details={
+            "deferred": "semgrep CLI is not invoked; DDE-045 uses in-process SAST"
+        },
     )
+
+
+_SKIP_DIR_NAMES: frozenset[str] = frozenset(
+    {".git", ".venv", "node_modules", "__pycache__", ".dde", "dist", "build"}
+)
+_SCAN_SUFFIXES: frozenset[str] = frozenset(
+    {
+        ".py",
+        ".ts",
+        ".js",
+        ".tsx",
+        ".jsx",
+        ".env",
+        ".pem",
+        ".txt",
+        ".md",
+        ".yml",
+        ".yaml",
+        ".toml",
+        ".json",
+    }
+)
+_MAX_SCAN_FILE_BYTES = 1_000_000
+
+
+def scan_workspace(root: Path) -> tuple[ScanFinding, ScanFinding]:
+    """DDE-045: the same in-process secret/SAST rules as Chapter 9.7, over
+    a whole workspace tree rather than a git diff. No vendor SAST/DAST
+    binary is invoked."""
+    secret_hits: list[str] = []
+    static_hits: list[str] = []
+    for path in _iter_workspace_files(root):
+        try:
+            if path.stat().st_size > _MAX_SCAN_FILE_BYTES:
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        rel = str(path.relative_to(root)).replace("\\", "/")
+        for line in text.splitlines():
+            if _AWS_KEY.search(line):
+                secret_hits.append(f"{rel}:aws_access_key")
+            if _GITHUB_PAT.search(line):
+                secret_hits.append(f"{rel}:github_pat")
+            if _PRIVATE_KEY.search(line):
+                secret_hits.append(f"{rel}:private_key_pem")
+            stripped = line.strip()
+            if "eval(" in stripped and "compile(" in stripped:
+                static_hits.append(f"{rel}:eval_compile")
+            if "subprocess" in stripped and "shell=True" in stripped:
+                static_hits.append(f"{rel}:subprocess_shell")
+    secret = (
+        ScanFinding(
+            gate="secret_detection",
+            tool="gitleaks",
+            severity="critical",
+            blocking=True,
+            passed=False,
+            summary="Secret material detected in the workspace tree",
+            details={"hits": secret_hits[:50], "tool": "in-process"},
+        )
+        if secret_hits
+        else ScanFinding(
+            gate="secret_detection",
+            tool="gitleaks",
+            severity="info",
+            blocking=True,
+            passed=True,
+            summary="No secret material detected in the workspace tree",
+            details={"tool": "in-process"},
+        )
+    )
+    static = (
+        ScanFinding(
+            gate="static_analysis",
+            tool="semgrep",
+            severity="error",
+            blocking=True,
+            passed=False,
+            summary="SAST matched a blocking in-process rule",
+            details={"hits": static_hits[:50], "tool": "in-process"},
+        )
+        if static_hits
+        else ScanFinding(
+            gate="static_analysis",
+            tool="semgrep",
+            severity="info",
+            blocking=True,
+            passed=True,
+            summary="No blocking in-process SAST match",
+            details={"tool": "in-process"},
+        )
+    )
+    return secret, static
+
+
+def _iter_workspace_files(root: Path) -> Iterator[Path]:
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [name for name in dirnames if name not in _SKIP_DIR_NAMES]
+        for name in filenames:
+            path = Path(dirpath) / name
+            if path.suffix.lower() in _SCAN_SUFFIXES or name.startswith(".env"):
+                yield path
 
 
 def scan_forbidden_paths(changed_paths: list[str]) -> ScanFinding:

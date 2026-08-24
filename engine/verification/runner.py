@@ -102,6 +102,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.attribution.service import FailureAttributionService
 from engine.capabilities.browser import BrowserCapability
+from engine.capabilities.security import SecurityCapability
 from engine.contracts.acceptance_oracle import AcceptanceOracle, ObservableOutcome
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.evidence import Evidence
@@ -289,6 +290,7 @@ class VerificationRunnerService:
         flaky_quarantine: FlakyQuarantineService | None = None,
         demotions: VerificationRunDemotionService | None = None,
         browser: BrowserCapability | None = None,
+        security: SecurityCapability | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -318,9 +320,10 @@ class VerificationRunnerService:
         self._demotions = demotions or VerificationRunDemotionService(
             engine, events=self._events
         )
-        # DDE-043/044: Playwright lives in adapters/; inject the capability
-        # here so this module never imports a vendor SDK.
+        # DDE-043/044/045: vendor scanners live in adapters/; inject
+        # browser + security so this module never imports a vendor SDK.
         self._browser = browser
+        self._security = security
 
     async def _run_uow(
         self,
@@ -954,6 +957,7 @@ class VerificationRunnerService:
             spec,
             uow=active,
             browser=self._browser,
+            security=self._security,
         )
         evaluated_at = self._clock.now()
         outcome_status = _outcome_status(

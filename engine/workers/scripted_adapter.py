@@ -239,6 +239,13 @@ class ScriptedWorkerAdapter:
                 "not ScriptedWorkerAdapter",
                 details={"browser_url": action.browser_url},
             )
+        if action.security_mode:
+            raise DdeError(
+                "POLICY_DENIED",
+                "capability.security scans must use SecurityWorkerAdapter, "
+                "not ScriptedWorkerAdapter",
+                details={"security_mode": action.security_mode},
+            )
         changed_files: tuple[str, ...] = ()
         if action.write_files:
             await self._leases.require_active(

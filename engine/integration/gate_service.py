@@ -26,7 +26,8 @@ actual git diff and proposed-revision blobs:
     class Chapter 18.2's S2 fixture requires (AWS-style keys, private-key
     PEM headers, GitHub PATs). The Gitleaks CLI is not invoked.
   - Static analysis: in-process rules over added lines. The Semgrep CLI
-    is not invoked (DDE-045).
+    is not invoked; DDE-045's `capability.security` reuses the same
+    in-process rules for whole-workspace SAST.
   - Dependency/vulnerability: parse real manifests in the diff; admit
     against an in-process advisory catalog, SPDX allow-list, typosquat
     heuristic, justification requirement for new top-level packages, and

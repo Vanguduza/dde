@@ -50,6 +50,9 @@ class WorkerAction:
     #: (Playwright behind `adapters/playwright`), not a local-process argv.
     browser_url: str | None = None
     browser_expect_text: str | None = None
+    #: DDE-045 `capability.security` scan mode (`sast`, or deferred
+    #: `dast`/`agentic` which fail closed).
+    security_mode: str | None = None
 
 
 @dataclass(frozen=True)

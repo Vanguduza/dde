@@ -173,6 +173,25 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("verification", "visual_analysis"),
         network_requirements={"egress": "allowlist:http,https,file"},
     ),
+    # DDE-045 / Chapter 9.8 security scanning class. SAST is in-process
+    # (same rules as Ch.9.7). PURE_READ: a scan does not mutate the
+    # product. DAST and agentic modes fail closed — no live attack plane.
+    SeedCapability(
+        capability_id="capability.security",
+        version="1",
+        category="security",
+        summary=(
+            "Scan a task workspace for secrets and blocking SAST findings "
+            "(in-process evaluators; Semgrep/Gitleaks CLIs not required). "
+            "DAST and agentic security workers are refused."
+        ),
+        side_effect_class="PURE_READ",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("adapters.security.adapter.SecurityWorkerAdapter",),
+        supported_workloads=("verification",),
+        network_requirements={"egress": "none"},
+    ),
 )
 
 

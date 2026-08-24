@@ -1731,6 +1731,7 @@ ObservableOutcome
       { kind: "db_assertion", ref: "sql/assertions/credit_limit_enforced.sql" }
       { kind: "api_probe",    ref: "probes/post_order_over_limit.yaml" }
       { kind: "visual_diff",  ref: "visual/supplier-credit-screen.json" }
+      { kind: "security_scan", ref: "security/sast-workspace" }
       { kind: "invariant",    ref: "invariants/accounting/posting_balance.py" }
       { kind: "judge",        ref: "judges/ui_copy_review@v3", independence: required }
       { kind: "human",        assertion_id: "..." }

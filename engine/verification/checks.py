@@ -24,6 +24,7 @@ from engine.capabilities.browser import (
     BrowserCaptureSpec,
     BrowserProbeSpec,
 )
+from engine.capabilities.security import SecurityCapability, SecurityScanSpec
 from engine.contracts.verification_run import CheckResult
 from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
@@ -83,14 +84,18 @@ async def run_check(
     timeout_seconds: float = DEFAULT_CHECK_TIMEOUT_SECONDS,
     uow: PostgresUnitOfWork | None = None,
     browser: BrowserCapability | None = None,
+    security: SecurityCapability | None = None,
 ) -> CheckResult:
     """Execute one real check. `test`/`invariant` run via
     `WorkspaceService.execute()`. `api_probe`/`visual_diff` run via the
-    injected `BrowserCapability` (Playwright in `adapters/playwright`)."""
+    injected `BrowserCapability`. `security_scan` runs via the injected
+    `SecurityCapability`."""
     if spec.kind == "api_probe":
         return await _run_api_probe(spec, browser=browser)
     if spec.kind == "visual_diff":
         return await _run_visual_diff(workspace, spec, browser=browser)
+    if spec.kind == "security_scan":
+        return await _run_security_scan(workspace, spec, security=security)
     result = await workspaces.execute(
         workspace=workspace,
         command=spec.command,
@@ -242,4 +247,41 @@ async def _run_visual_diff(
         duration_ms=capture.duration_ms,
         timed_out=False,
         status=_check_status(exit_code=exit_code, timed_out=False),
+    )
+
+
+async def _run_security_scan(
+    workspace: Workspace,
+    spec: CheckSpec,
+    *,
+    security: SecurityCapability | None,
+) -> CheckResult:
+    if security is None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "security_scan requires a SecurityCapability "
+            "(capability.security); none was injected on the "
+            "verification runner",
+            details={"check_ref": spec.ref},
+        )
+    if not workspace.workspace_path:
+        raise DdeError(
+            "POLICY_DENIED",
+            "security_scan requires a workspace with a filesystem path",
+            details={"workspace_id": str(workspace.workspace_id)},
+        )
+    mode = spec.command[0] if spec.command else "sast"
+    result = await security.scan(
+        SecurityScanSpec(root=workspace.workspace_path, mode=mode)
+    )
+    return CheckResult(
+        check_ref=spec.ref,
+        kind=spec.kind,
+        command=list(spec.command) if spec.command else [mode],
+        exit_code=result.exit_code,
+        stdout=result.stdout,
+        stderr=result.stderr,
+        duration_ms=result.duration_ms,
+        timed_out=result.timed_out,
+        status=_check_status(exit_code=result.exit_code, timed_out=result.timed_out),
     )

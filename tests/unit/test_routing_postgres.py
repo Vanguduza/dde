@@ -16,6 +16,7 @@ from engine.routing.policy import (
     PROFILE_LONGCONTEXT_ECONOMY,
     PROFILE_PREMIUM_REASONING,
 )
+from engine.routing.registry import PROFILES
 from engine.routing.repository import RouteDecisionRepository
 from engine.routing.service import RouterService
 from engine.truth.db import open_unit_of_work
@@ -57,7 +58,7 @@ async def test_schema_round_trip_persists_declared_columns(tmp_path: Path) -> No
             await uow.commit()
         assert reloaded == decision
         assert reloaded is not None
-        assert len(reloaded.candidates) == 5
+        assert len(reloaded.candidates) == len(PROFILES)
         for candidate in reloaded.candidates:
             assert set(candidate) == {
                 "profile_id",
