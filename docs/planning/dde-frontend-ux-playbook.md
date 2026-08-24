@@ -412,31 +412,59 @@ adopt-now.
 
 ### 10.5 Template & component sourcing law (extends §2/§3)
 
-Research catalogued where polished output actually comes from:
-shadcn-ecosystem registries and blocks (**OPEN_REUSE**, programmatically
-ingestable), Tailwind Plus / Cruip (**CONDITIONAL_REUSE** — end products
-only, never into DDE's generator), ThemeForest-class marketplaces
-(**REJECTED** for builder use), galleries like godly.site/lapa.ninja/
-mobbin (**SOURCE_REFERENCE_ONLY** — art-direction input via the provenance
-ledger, zero code transfer). These map onto Chapter 13.8's licence
-classes; ingestion becomes real at Donor Lab (DDE-046) behind its EDR.
-Until then: mining protocol §2 applies unchanged.
+- **Template & component sourcing law (extends §2/§3)**: shadcn-ecosystem
+  registries and blocks (**OPEN_REUSE**, programmatically ingestable),
+  Tailwind Plus / Cruip (**CONDITIONAL_REUSE** — end products only, never
+  into DDE's generator), ThemeForest-class marketplaces (**REJECTED** for
+  builder use), galleries like godly.site/lapa.ninja/mobbin
+  (**SOURCE_REFERENCE_ONLY** — art-direction input via the provenance
+  ledger, zero code transfer; none offer content APIs, scraping violates
+  ToS). Motion libraries: Magic UI/react-bits-free/Kibo/Origin =
+  `OPEN_REUSE`; react-bits Pro/Aceternity Pro = `CONDITIONAL_REUSE`;
+  **GSAP free-since-2025 but builder-clause restricted →
+  `CONDITIONAL_REUSE` pending legal read**. These map onto Chapter 13.8's
+  licence classes (amended 2026-08-24); ingestion becomes real at Donor
+  Lab (DDE-046) behind its EDR. Emerging MCP-native design corpora
+  (ReftrixMCP-class originality scoring, design-dna-mcp) are validated
+  prior art but each is an untrusted donor under Ch.13.8 until admitted.
+  Until then: mining protocol §2 applies unchanged.
 
 ### 10.6 Motion identity (extends §5.2 motion law)
 
-Motion is a first-class distinctiveness axis, not decoration: View
-Transitions API, scroll-driven CSS animation, spring-vs-easing identity,
-shared-element morphs (`layoutId`-class), staggered entrances, text
-reveals — each expressible as MOTION TOKENS so the existing reduced-motion
-law keeps holding mechanically. Component libraries (Aceternity/Magic UI
-class) enter only through the licence-aware registry path (10.5).
-Performance floor: compositor-friendly properties only, animation-bundle
-budgets join Chapter 16.5 budgets at DDE-063. **Lands:** token layer with
-10.1; verification gates after EDR-0008 Phase B; budget amendment at S7.
+Motion is a first-class distinctiveness axis, not decoration — the
+2025–2026 practitioner consensus is that static output now itself reads
+as generated (v0/Bolt are rated polished-but-inert; Lovable's consumer
+wins come exactly from its motion pass). Research findings integrated:
 
-Standing rule: no generated UI ships from a DDE mission without passing
-the combination lints + silhouette test once both exist; until then
-DD201–DD206 and the honesty tests are the floor.
+- **Technique posture**: CSS scroll-driven animations and the View
+  Transitions API are cross-browser since 2026 (~89% traffic; Firefox
+  shipped same-document late 2025) and displace 30–50KB of JS animation
+  library per site; JS engines (Motion/GSAP-class) shift from default to
+  exception. DDE's generated products default to compositor-friendly,
+  zero-JS techniques; per-project runtime libraries only within declared
+  budgets.
+- **Motion-identity presets**: named presets in the tokens schema
+  (arrival/state/progress easings + duration ramp + optional spring spec)
+  selectable per product via the art-direction record — no builder ships
+  a true brand-scoped motion identity system today; this is the open gap
+  DDE occupies. Prevents every DDE-built product sharing identical motion
+  timing (itself a sameness signal).
+- **Per-interaction motion specs**: prototype-manifest transitions gain
+  trigger/easing/duration/stagger/reduced-motion-degradation fields —
+  structured motion specs are the documented best practice (mirrors the
+  prompting discipline Lovable users converged on), and they make motion
+  reviewable as contract rather than vibes (§8.3 scorecard dimension).
+- **Guardrails stay mechanical**: reduced-motion variants remain table
+  stakes (asserted as blocking Playwright assertions once EDR-0008 Phase
+  B lands, not documentation); compositor-friendly properties only;
+  `will-change` sparingly.
+- **Licence classes** (Ch.13.8): Magic UI / react-bits free tier /
+  Kibo / Origin = `OPEN_REUSE` via shadcn-registry format; react-bits Pro
+  and Aceternity Pro items `CONDITIONAL_REUSE` (per-seat keys);
+  **GSAP is free since April 2025 but its standard licence restricts use
+  in tools offering visual no-code building — `CONDITIONAL_REUSE`
+  pending legal read before any platform embedding**; Lottie/Rive stay
+  rejected for DDE's own stack absent product demand.
 
 ---
 
@@ -462,6 +490,7 @@ DD201–DD206 and the honesty tests are the floor.
 | Gallery/storybook-first context | [Storybook MCP sneak peek](https://storybook.js.org/blog/storybook-mcp-sneak-peek/) · [manifests docs](https://storybook.js.org/docs/ai/manifests.md) · [Rachel Cantor manifest pitfalls](https://rachel.fyi/posts/storybook-mcp-reads-your-manifest-not-your-docs-tab) + [agent design systems](https://rachel.fyi/posts/your-agent-is-reading-a-different-design-system) · [Ladle intro](https://ladle.dev/blog/introducing-ladle/) · [helpmetest Ladle](https://helpmetest.com/blog/ladle-react-component-development/) · [LogRocket Ladle perf](https://blog.logrocket.com/ladle-storybook-performance-project-sizes/) |
 | §5 prototypes/preview loops | [Spooner /prototype gallery](https://flexingforks.com/posts/one-slash-command-instant-prototype-gallery-no-figma-required) · [static preview pattern](https://previewship-engineering.hashnode.dev/static-preview-pattern-ai-generated-html) · [ShowDeck](https://github.com/GadatheGod/ShowDeck) · [Bun standalone HTML](https://github.com/oven-sh/bun/blob/a0e221e0/docs/bundler/standalone-html.mdx) · [DevReviewer v0/Lovable/Bolt](https://devreviewer.com/bolt-new-vs-v0-vs-lovable-full-stack-prototypes-2/) · [DEV product-studio lessons](https://dev.to/jakub_inithouse/lovable-vs-bolt-vs-v0-vs-cursor-for-shipping-mvps-what-we-learned-running-a-product-studio-625) · [Causo founder guide](https://hub.causo.ai/guides/v0-vs-lovable-vs-bolt-for-founders-2026) |
 | §5.0 Cocodly loop-shape ports | [cocodly.com](https://www.cocodly.com/) · [About Cocodly](https://www.cocodly.com/about) · [Cocodly docs](https://www.cocodly.com/docs) — loop-shape mechanics observed from public product behavior; process/engineering layers ported per §2.1, zero visual-layer transfer |
+| §10 distinctiveness research (2026-08-24) | [Superdesign distributional convergence](https://www.superdesign.dev/blog/why-ai-design-looks-generic) · [Sailop shadcn monoculture](https://sailop.com/blog/shadcn-ui-design-monoculture-2026) · [Spot the Slop](https://world.hey.com/kostac/spot-the-slop-a-ui-designer-s-guide-to-fixing-ai-defaults-4c448c9c) · [VLM critique +17.8% (arXiv 2604.05839)](https://doi.org/10.48550/arxiv.2604.05839) · [shadcn registry format](https://ui.shadcn.com/docs/registry/getting-started) · [21st.dev registry directory](https://21st.dev/blog/shadcn-registry-directory) · [Tailwind Plus licence](https://tailwindcss.com/plus/license) · [ThemeForest Regular terms](https://themeforest.net/licenses/terms/regular) · [GSAP free announcement](https://webflow.com/blog/gsap-becomes-free) + [standard licence](https://gsap.com/community/standard-license/) · [View Transitions support matrix](https://www.css-scroll-driven.com/scroll-driven-view-transition-implementation-patterns/view-transition-browser-support-matrix/) · [scroll-driven 2026 analysis](https://mintec.co/blog/scroll-driven-view-transitions-css-2026/) · [uimotionprompts structured motion](https://uimotionprompts.com/blog/how-to-get-better-animations-in-lovable) · [DEV builder motion comparison](https://dev.to/bean_bean/v0dev-vs-boltnew-vs-lovable-the-complete-generative-ui-comparison-2026-klg) |
 | §5.2 motion law | [MDN prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion) · [two-layer cascade](https://www.css-animation.com/accessible-motion-architecture/prefers-reduced-motion-architecture/) · [Verdigris reduced-motion guide](https://design.verdigris.co/categories/animation/reduced-motion) · [motion tokens override reach](https://www.css-scroll-driven.com/accessibility-inclusive-motion-standards/implementing-prefers-reduced-motion/reduced-motion-in-design-systems-and-tokens/) · [Master CSS motion](https://rc.css.master.co/guide/motion) · [PkgPulse formats 2026](https://www.pkgpulse.com/guides/lottie-vs-rive-vs-css-animations-web-animation-formats-2026) · [shaheermalik Rive/Figma Motion](https://www.shaheermalik.com/compare/rive-vs-figma-motion) · [Beryl comparison](https://www.beryldesign.fr/en/post/figma-motion-vs-rive-jitter-lottie) |
 | §5.3 sandboxing | [Invicti iframe practices](https://www.invicti.com/blog/web-security/iframe-security-best-practices) · [performanceisolation isolation ladder](https://www.performanceisolation.com/third-party-isolation-sandboxing-strategies/building-secure-iframes-for-third-party-widgets/) · [showyourcode sandboxing](https://www.showyourcode.app/blog/sandboxed-html-preview) · [thedevtools sandbox guide](https://www.thedevtools.in/blog/html-renderer-sandbox-guide) · [single-file-app generation skill](https://www.developersdigest.tech/library/skills/single-file-app-generation) |
 | §5.3 manifest contracts | [schema-drift checks](https://medium.com/@duckweave/tool-schema-drift-11-checks-before-agents-guess-6038c1748309) · [contract-drift CI pattern](https://github.com/KingInYellows/yellow-plugins/blob/main/docs/operations/ci-pipeline.md) · [schemadiff](https://github.com/jsleekr/schemadiff) |

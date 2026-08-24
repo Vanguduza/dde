@@ -236,22 +236,26 @@ carries the design-law detail; this section records WHEN each item lands.
 | Item | Lands in | Surface |
 |---|---|---|
 | Art-direction record schema (per-product type pairing, palette identity, layout idiom, motion identity) | S4 tail, alongside DDE-041's telemetry work or a small dedicated mission | `schemas/design/tokens.json` extension + generator |
-| Font-pairing corpus (curated distinctive pairs w/ licence metadata) | same | `schemas/design/` data file, no dependency |
+| Font-pairing corpus (curated distinctive pairs w/ licence metadata; bans Inter-as-display) | same | `schemas/design/` data file, no dependency |
 | Combination lints (DD207+: flag Inter-only + indigo-gradient + centered-hero-3-card fingerprint) | same | `tests/unit/test_studio_design_lints.py` scanner |
 | Silhouette test (layout-shape fingerprint distinctiveness vs generic corpus) | S5 DDE-043/044 once browser capability renders real pages | Playwright suite admitted by EDR-0008 |
 | Copy-specificity gate (reject generic AI-tell copy patterns) | extend existing clientHonesty.test.ts | Studio client suite |
-| Icon-system governance (single stroke set, no emoji icons) | already partially enforced by DD-lints; complete at S5 visual mission | DD-lints |
+| Icon-family governance (one stroke set per product, no emoji icons) | already partially enforced by DD-lints; complete at S5 visual mission | DD-lints |
+| Motion-identity presets in tokens (arrival/state/progress + spring spec, per-product selection) | with the art-direction record | tokens schema motion block |
+| Per-interaction motion specs in prototype manifests (trigger/easing/duration/stagger/reduced-motion degradation) | with the next prototype-manifest surface touched | `schemas/design/prototype_flow.schema.json` + validator |
+| Reduced-motion blocking assertions (end-states preserved, movement removed) | when EDR-0008 Phase B toolchain lands | dde-studio.yml visual job |
 
 **Needs-EDR items — filed when their enabling mission starts:**
 
 | Capability | Enabler / stage | EDR timing |
 |---|---|---|
-| Template-ingestion pipeline (shadcn registries = OPEN_REUSE, programmatically ingestable) | S5 Donor Lab (DDE-046) | EDR with DDE-046 charter |
-| Commercial-template licensing path (Tailwind Plus/Cruip = CONDITIONAL_REUSE end-products only) | S5, owner decision first | EDR before any purchase/use |
-| VLM design-critic loop (screenshot → critique → revise; evidence: +17.8% quality) | S5 DDE-044 multimodal evidence pipeline | EDR with DDE-044 charter |
-| Motion-component ingestion (Aceternity/Magic UI-class libraries via registry) | S5 visual mission | folds into the DDE-046 EDR |
-| Motion polish check class (per-interaction specs verified) | after EDR-0008 Phase B toolchain wired | verification-runner extension EDR |
-| Animation-bundle performance budgets (INP/bundle-cost gates) | S7 load/capacity (DDE-063) | Chapter 16.5 budget amendment |
+| Template-ingestion pipeline (shadcn/jsrepo registry JSON as donor input; env-var-keyed commercial tiers supported natively) | S5 Donor Lab (DDE-046) | EDR with DDE-046 charter |
+| Commercial-template licensing path (Tailwind Plus/Cruip = CONDITIONAL_REUSE end-products only; GSAP CONDITIONAL_REUSE pending legal read of its builder-competing clause) | S5, owner decision first | EDR before any purchase/use |
+| VLM design-critic loop (screenshot → rubric critique → bounded revise ≤3 → residuals to human; evidence: +17.8% WebDev Arena improvement over 3 cycles) | S5 DDE-044 multimodal evidence pipeline — rides the same EDR cycle as EDR-0008 Phase B since it consumes its screenshots | EDR with DDE-044 charter |
+| Reference-board grounding (godly/land-book-class corpus into ContextPackage art-direction pass; entries SOURCE_REFERENCE_ONLY, injection-screened per §14.5) | S5 DDE-046/044 | folds into those charters' EDRs |
+| Embedding-based anti-centroid gate (DINOv2-class similarity scoring vs generic-layout centroids; prior art: ReftrixMCP originality scoring) | after browser capability exists | separate heavier EDR (ML runtime + vector store) |
+| Motion polish check class + animation-library budget rule for generated products (CSS scroll-driven + View Transitions default; Motion within declared KB budget; GSAP only post-legal) | after EDR-0008 Phase B wired | verification-runner extension EDR |
+| Animation-bundle performance budgets / CWV floors for generated outputs (LCP/CLS/INP; compositor-property-only lint) | S7 load/capacity (DDE-063); lint earlier at DDE-043 | Chapter 16.5 budget amendment |
 
 Standing rule: no generated UI ships from a DDE mission without passing
 the combination lints + silhouette test once both exist; until then the
