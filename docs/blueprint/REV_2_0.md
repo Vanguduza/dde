@@ -1263,6 +1263,8 @@ Activation gates (defaults; configuration, not product truth; raise-able per ten
 
 Promotion sequence: `OBSERVE → TRAIN → OFFLINE EVALUATE → SHADOW → HOLDOUT EVALUATE → APPROVAL → LIMITED CANARY → MONITOR → PROMOTE | ROLLBACK`. No learned router promotes directly from training metrics. The previous policy remains deployable throughout the rollback window.
 
+> **Offline warmup before online learning; frozen-first rollout** *(amended 2026-08-24, from the Orca-router research; `docs/planning/orca-routing-research-integration.md`)*. A candidate policy's offline phase MUST be a full-information fit over eligible recorded decisions before any partial-information update path may exist, and the first promotable mode is frozen exploitation — continued online updating requires an explicit configuration switch and its own canary evidence. Promotion additionally asserts the learner beats the best **constant** policy on the identical evaluation window, not merely the incumbent policy table.
+
 ## 6.10 Routing evaluation suite
 
 Simulator fixture validity · cold-start safety · calibration · policy safety (can the learner ever violate a hard gate — must be structurally impossible, not merely unobserved) · shadow agreement · holdout uplift · worker-outage degradation · distribution shift detection · exploration containment (exploration never touches a high-risk task).

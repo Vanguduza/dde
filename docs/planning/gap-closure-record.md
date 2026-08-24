@@ -286,4 +286,32 @@ recommendations" (2026-08-24). Dispositions:
 - Density-floor calibration deferred to DDE-068 implementation (charter §4
   gate 4 unchanged); GSAP unchanged — CONDITIONAL_REUSE pending legal read.
 
+### 6.7 Orca-router research integration — trigger: DDE-057/058/059 charters (2026-08-24)
+
+Completed web research on "Orca router" (disambiguated: OrcaRouter, Continuum AI's
+LLM router — NOT the OSDI'22 GPU serving system) was integrated as design priors for
+the routing-learning missions. Full note:
+`docs/planning/orca-routing-research-integration.md` (sources, mechanics,
+source-quality caveats: vendor-authored non-peer-reviewed paper with self-reported
+results; unresolved whether the LinUCB learner ships in the MIT edition vs hosted
+only; repo ≈4 months old / ≈3 humans / zero releases → patterns-not-packages under
+Ch.9.6).
+
+Adopted as **design inputs AND acceptance criteria** (patterns only, no dependency):
+
+1. Full-information offline warmup before any online update (cold-start bandits
+   measurably lose to constant baselines — their own data).
+2. Frozen-exploitation-first rollout; continued-update behind an explicit switch.
+3. Margin-based tie-breaker benchmarked against pick-flip rate in shadow eval.
+4. Standing assertion: the learned policy must beat the best *constant* policy on
+   the identical evaluation window, not merely the incumbent policy table.
+5. Conceptual: SLO-derived per-class capacity budgets for gate 5 (Sarathi-Serve);
+   observe→shadow→enforce corroboration (guardrail-policy scope only).
+
+**Trigger:** the missions that charter Ch.6.8/6.9 (DDE-057 ExperienceRecord
+eligibility filtering, DDE-058 routing learner + shadow evaluation/calibration/
+canary/rollback, DDE-059 adaptive context policy) MUST consume that note as design
+inputs and acceptance criteria at charter time. Until then nothing here authorizes
+any learning code; deterministic Stage-1 posture is unchanged.
+
 
