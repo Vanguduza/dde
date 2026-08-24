@@ -1,7 +1,7 @@
 # Frontend Studio — GUI/UX specification
 
-**Version:** v1.1 (2026-08-24; §12 professional-platform parity roadmap
-appended). **Status:** proposed spec — awaiting charter integration. This is a work-planning/design document, not an EDR; it creates
+**Version:** v1.2 (2026-08-24; §12 mobile targets added). **Status:**
+proposed spec — awaiting charter integration. This is a work-planning/design document, not an EDR; it creates
 no Project Truth rows and modifies no contract. It specifies the GUI surface
 for the Frontend Studio workstream chartered in
 `docs/planning/product-studio-charter.md` (missions DDE-065..068) and is
@@ -30,6 +30,7 @@ them a Gateway command.
 9. [Open items needing EDRs/decisions](#9-open-items-needing-edrsdecisions)
 10. [Traceability](#10-traceability)
 11. [Professional-platform parity roadmap (2026-08-24)](#11-professional-platform-parity-roadmap-2026-08-24)
+12. [Mobile targets — Expo/React Native, Capacitor, Flutter (assessed), Jetpack Compose (2026-08-24)](#12-mobile-targets--exporeact-native-capacitor-flutter-assessed-jetpack-compose-2026-08-24)
 
 ---
 
@@ -613,6 +614,7 @@ Per-view honesty requirements:
 | §8 Non-goals | DDE-067 Scope OUT | AGENTS.md forbidden list; EDR-0015/0016 admission boundaries |
 | §9 Open items | D1–D3, D8 → DDE-067; D4 → DDE-068; D6/D7 → EDR-0016/0015; D2 → owner decision; D5 → future EDR | Chapter-gate rule: named deferrals, never "implicitly handled" |
 | Verify view gates (in §2/§6) | DDE-068 (silhouette, DD207+, density floor, VLM loop, reduced-motion assertions) | Charter Definition-of-Polished battery (8 gates); `engine/verification/prototypes.py` findings vocabulary |
+| §12 Mobile targets | DDE-069 (provisional) — token-generator extension + renderer adapters + per-target acceptance criteria in its charter | Ch.9.3 side-effect classes per adapter; Ch.13.8 donor classes apply per-platform too (`donor_reuse` unchanged); Ch.3.1 SSOT discipline (one token sheet, many generated themes); charter v3 workstream scope |
 
 Grounding index (verified paths cited above):
 `docs/planning/product-studio-charter.md`;
@@ -777,3 +779,128 @@ correctly additive-first, none urgent before first real compile.
   EDR-0016-class policy decides, and the GUI shows what happened to
   them (honesty law applied to process, mirroring §6's gate-status
   rule).
+
+---
+
+## 12. Mobile targets — Expo/React Native, Capacitor, Flutter (assessed), Jetpack Compose (2026-08-24)
+
+**Status:** web remains DDE-067's v1 scope unchanged — nothing in §§1–11
+is resized by this section. Mobile enters as a provisionally-numbered
+**DDE-069 "Mobile Profiles" mission** whose charter defines (a) the
+token-generator extension below, (b) per-target renderer adapters behind
+the capability contract, and (c) per-target acceptance criteria. Per
+house rules, DDE-069 files an **EDR for multi-platform artifact
+generation** before implementation starts (the EDR-0008/0015/0016
+accept-first pattern: charter written now, implementation gated on
+acceptance). This section specifies intent and seams, not admitted
+dependencies.
+
+### 12.1 Multi-target token SSOT
+
+One sheet, many themes: `schemas/design/tokens.json` stays the single
+source of truth, and `scripts/generate_design_tokens.py` grows from one
+emitter to several. The generator's structure makes this a clean seam:
+`render()` already returns a `dict[Path, str]` of outputs and `--check`
+diffs every registered file, so each new target registers one more
+generated artifact under the same drift gate:
+
+- **Web (exists today):** `interfaces/dde-studio/shared/ui/tokens.ts` —
+  typed constants + `tokenCssRoot()` CSS string.
+- **React Native:** a generated StyleSheet theme module — token leaves
+  become style constants (`spacing` numbers in dp, palette hexes,
+  duration ms); easings translate to RN's `Easing` equivalents where
+  they map, and unmappable values surface as generator refusals rather
+  than silent approximations.
+- **Jetpack Compose:** a generated Material 3 theme package
+  (`Color.kt` / `Type.kt` / `Theme.kt`) — palette entries map to M3
+  color-scheme slots via an explicit alias table in the generator;
+  spacing/type/motion become typed Kotlin constants. The mapping table
+  is reviewed code, not convention.
+- **Flutter (optional):** a `ThemeData` builder module.
+
+Conformance-by-construction survives everywhere: the GUI's pickers are
+per-target and enumerate ONLY values from that target's generated theme
+module — there is no free-form color/font/spacing input on any platform
+(§4.5 is target-independent law). DD-lint law extends per-target with
+one honest gap statement: **per-non-web-target lint implementations do
+not exist today and land with DDE-069**; until then, non-web artifacts
+are governed by the generated-theme-only rule plus review, never by a
+claimed-but-unwired lint.
+
+### 12.2 Manifest target profile
+
+Screens × states × flows stay THE durable artifact model — no second
+truth per platform (AGENTS.md forbidden list). A `target` profile
+dimension routes renderers: the same manifest entry renders as web HTML,
+an RN screen, or a Compose screen according to its profile, behind the
+capability contract — each renderer adapter declares its Ch.9.3
+side-effect class like any capability. The keyed-command grammar of §5
+is unchanged across targets: `frontend.canvas.insert_component`,
+`update_element`, `move_component`, `frontend.motion.set_animation`
+address elements through stable anchors exactly as on web; only the
+artifact the engine-side handler regenerates differs (HTML vs
+Kotlin/TSX). Undo, idempotency keys, typed-error surfacing, and approval
+boundaries all inherit unchanged.
+
+### 12.3 Per-target live-edit channels (the owner's core ask, per platform)
+
+Real-time add/components while watching the app, per target:
+
+- **Web:** existing srcdoc/watcher pipeline (§4.3); the p95 <1 s budget
+  stands.
+- **Expo/React Native:** the canvas embeds Expo's dev client; edits
+  push over Expo's HMR channel so components appear on device/simulator
+  in real time. The command round trip is identical to web (keyed
+  command → artifact regenerated → dev-client reload), with Expo's
+  channel replacing the srcdoc watcher as the re-render leg.
+- **Jetpack Compose:** same command grammar writes the Kotlin artifact
+  (generated theme + composables) → incremental Gradle install to the
+  running emulator over an adb push loop (seconds-class refresh).
+  Additionally, composables are authored `@Preview`-compatible so the
+  canvas can render instant static previews WITHOUT an emulator — the
+  fast feedback tier sits inside DDE's own canvas; emulator refresh is
+  the fidelity tier.
+- **Capacitor:** wrapped-site path inherits the ENTIRE web pipeline
+  unchanged — the web artifact is the app content, making Capacitor the
+  cheapest route from prototype to "app" distribution. No separate live
+  channel exists because none is needed.
+- **Flutter:** assessed, deferred. Dart/token story diverges from the
+  TS-anchored token law today (separate toolchain, separate package
+  ecosystem); revisit only if product demand materializes. Nothing in
+  the schema or generator precludes it later — it would be one more
+  emitter in the dict above.
+
+### 12.4 Governance
+
+- **No new egress class:** local dev loops need no network beyond
+  ordinary dependency resolution (npm/Maven caches) — the same posture
+  as CI today. Emulator/simulator traffic is local. Anything beyond
+  that (remote device farms, cloud builds) is out of scope here and
+  would be an EDR-0015-class admission question.
+- **No new approval types:** donor adoption still rides `donor_reuse`
+  regardless of target platform — Ch.13.8 classification and taint
+  apply per-platform too (an approved web donor is not automatically an
+  approved RN/Compose donor; provenance records which target a result
+  was vetted for).
+- **Quality gates extend per-target, named not invented:** Playwright
+  web gates exist via EDR-0008 Phase B; Detox/Maestro-class native
+  visual+interaction gates are named as DDE-068's future mobile
+  extension — their admission, budgets, and rubric applicability belong
+  to that mission, and until wired they render as "deferred" in Verify
+  (§6 law).
+
+### 12.5 Open items (continuing D-numbering)
+
+| # | Item | Blocks | Proposed instrument |
+|---|---|---|---|
+| D10 | Device-frame fidelity per target — how faithfully the Canvas previews RN/Compose chrome (safe areas, status bars) vs the plain web frame | Cross-target WYSIWYG trust | DDE-069 charter |
+| D11 | Emulator/simulator availability detection — graceful degradation when no device is attached (Compose/RN tiers disable honestly, Compose @Preview path stays live) | Live-edit channels | DDE-069 charter |
+| D12 | Compose preview rendering mechanism — rendering `@Preview`-composable output inside DDE's sandboxed canvas requires an admitted screenshot/render bridge | In-canvas Compose static preview | Part of the multi-platform artifact-generation EDR |
+| D13 | RN style-subset constraints — which CSS-ish properties map cleanly to StyleSheet (and which GUI controls must hide per target); drives per-target picker enumeration | Token/picker correctness on RN | DDE-069 charter + generator mapping tables |
+| D14 | Whether `prototype_flow.schema.json` gains per-platform component-mapping tables or a sibling schema — additive-first decision, single-artifact vs split-manifest trade-off | §12.2 target-profile shape | Schema decision within DDE-069, Ch.3.1 rules |
+
+### 12.6 Traceability
+
+See the §10 table row added for this section: DDE-069 (provisional);
+Ch.9.3 side-effect classes per adapter; Ch.13.8 donor classes applied
+per-platform; Ch.3.1 SSOT discipline; charter v3 workstream scope.
