@@ -364,23 +364,26 @@ boardroom-pattern analysis (can agents deliberate and decide scope?). Full note:
 mappings, boardroom-law verdict; source-quality caveat: launch-coverage-heavy, no
 independent audit — patterns-not-packages under Ch.9.6).
 
-Adopted as **design inputs AND acceptance criteria** (patterns only, no dependency):
+Adopted as **design inputs AND acceptance criteria** (patterns only, no dependency;
+owner narrowing 2026-08-24: adopt only high-value items that fit the already existing
+DDE structure):
 
 1. Watch-and-borrow stance toward Buzz: track its protocol-level human+agent
    collaboration patterns, adopt none of its runtime.
-2. Borrowed patterns named to their DDE surfaces: ACP-class harness abstraction →
-   evaluated as donor before any new `WorkerAdapter` seam; signed agent identities →
-   confirms Ch.14.2/14.4 worker admission shape; hash-chain audit logs → validates
-   Ch.3.7 `audit_events` chaining; mention-batching → confirms Ch.13.1/13.4 batch
-   approval + attention budget.
+2. Buzz patterns that DDE already implements are **confirmations, not adoption work**:
+   signed agent identities (Ch.14.2/14.4), hash-chain audit logs (Ch.3.7),
+   mention-batching / attention budget + batch approval (Ch.13.1/13.4). The ACP-class
+   harness abstraction is likewise a donor reference ONLY if a future worker-adapter
+   mission ever needs a new seam — no such seam is planned.
 3. **Boardroom rejected:** an agent panel that DECIDES scope violates DDE law —
    Ch.2.2 rank discipline (rank-10 output cannot self-promote to rank-7 authority),
    Ch.13 approval ownership (scope decisions are human governance acts), and the
    blueprint's refusal of agent-to-agent conversation for core state transitions.
-4. **Advisory council adopted-in-principle, bounded:** harnesses emit structured rank-9
-   position papers with citations; deterministic aggregation (no model judge);
-   ≤2 rounds budget-capped under Ch.16.4; output feeds ONLY the existing human
-   approve/decide surface; starts as a shadow-mode experiment on replan decisions
+4. **Advisory council adopted-in-principle, bounded — the one forward adoption:**
+   harnesses emit structured rank-9 position papers with citations; deterministic
+   aggregation as a pure function (no model judge, no durable council state); ≤2 rounds
+   budget-capped under Ch.16.4; output feeds ONLY the existing human approve/decide
+   surface; starts as a shadow-mode experiment on replan decisions
    (`RecoveryService.replan` triggers) before any expansion.
 5. Cautionary tale recorded: Buzz-class products show what happens when agent autonomy
    ships ahead of wired approval paths; DDE's bounded standing authority +
@@ -389,10 +392,9 @@ Adopted as **design inputs AND acceptance criteria** (patterns only, no dependen
 **Triggers:** (a) the missions that charter the governance/replan decision surfaces
 (any mission touching `RecoveryService.replan`'s human-decision UX or new
 approval-surface commands) MUST evaluate the advisory-council design at charter time,
-shadow-mode first; (b) ANY new worker adapter mission MUST evaluate the ACP harness
-abstraction as a donor pattern before inventing a new seam. Until then nothing here
-authorizes engine changes: no council code exists, no agent-to-agent channel is
-admitted for core state, and rank-10 material stays non-authoritative per Ch.2.2.
+shadow-mode first. Until then nothing here authorizes engine changes: no council code
+exists, no agent-to-agent channel is admitted for core state, and rank-10 material
+stays non-authoritative per Ch.2.2.
 
 
 

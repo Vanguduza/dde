@@ -32,15 +32,19 @@ that carries human messaging. Key facts as researched:
 
 DDE's stance toward Buzz is **watch-and-borrow**: track its evolution as the most visible
 attempt to standardize human+agent collaboration over an open protocol, adopt its
-transferable patterns, adopt none of its runtime. Borrowed patterns, each mapped to DDE's
-existing surfaces:
+transferable patterns, adopt none of its runtime. Per owner narrowing (2026-08-24:
+"adopt only high value recommendations that fit into the already existing DDE
+structure"), the borrowed-pattern list is split: items DDE already implements are
+**confirmations** (no adoption work), and the only forward adoption is the advisory-
+council posture in §4.
 
-| Buzz pattern | Maps to in DDE |
-|---|---|
-| ACP-class harness abstraction (one uniform client contract for heterogeneous agents) | The existing `WorkerAdapter` normative contract (Ch.8.1) — any future worker-adapter mission evaluates ACP's interface shape as a donor before inventing a new seam |
-| Signed agent identities bound to permissions | Principal model + worker admission (Ch.14.2/14.4): signed worker credentials bound to environment identity are already law; Buzz confirms the shape |
-| Hash-chain audit logs | `audit_events` hash-chaining (`prev_hash`, `entry_hash`, Ch.3.7) — independently validates DDE's tamper-evident ledger design |
-| Mention-batching (batching agent-addressed requests to protect human attention) | Attention budget + batch approval (Ch.13.1/13.4): batching is already how DDE treats approval throughput |
+| Buzz pattern | Relationship to DDE | Action |
+|---|---|---|
+| ACP-class harness abstraction (one uniform client contract for heterogeneous agents) | The existing `WorkerAdapter` normative contract (Ch.8.1) already plays this role | None — confirmation; revisit only if a future worker-adapter mission needs a new seam, then evaluate ACP's shape as donor |
+| Signed agent identities bound to permissions | Principal model + worker admission (Ch.14.2/14.4) already law | None — confirmation |
+| Hash-chain audit logs | `audit_events` hash-chaining (`prev_hash`, `entry_hash`, Ch.3.7) already law | None — confirmation |
+| Mention-batching (batching agent-addressed requests to protect human attention) | Attention budget + batch approval (Ch.13.1/13.4) already law | None — confirmation |
+| Human+agent shared deliberation space (the "boardroom" shape) | No existing DDE surface | Adopted-in-principle ONLY as the bounded advisory council in §4 — no new transport, relay, or session infrastructure |
 
 ## 3. Boardroom analysis verdict — a deciding council violates DDE law
 
