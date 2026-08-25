@@ -11,6 +11,7 @@
 - **consumers:** DDE-065 generation-prompt compiler (fail-closed on unresolved inputs),
   mission chartering (Ch.4), Donor Lab ingestion (DDE-046/047), diff-gate admission (Ch.9.7)
 - **companion example:** [product-document-example-ledgerline.md](product-document-example-ledgerline.md)
+- **companion operating prompt:** [product-document-companion-prompt.md](product-document-companion-prompt.md)
 - **document_scope:** `full_product | feature_slice` — declare which this document is before
   writing anything else. If `feature_slice`, name the Product Constitution it rolls up under
   (even one that doesn't exist yet — "not yet authored; this may become its first slice" is a
