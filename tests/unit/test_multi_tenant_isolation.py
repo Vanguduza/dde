@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from sqlalchemy import text
@@ -39,7 +40,7 @@ from engine.core.ids import uuid7
 from engine.gateway.sessions.repository import PrincipalLookup
 from engine.object_store.scope import (
     ArtifactObjectStore,
-    ScopeViolation,
+    ScopeViolationError,
     storage_key_for_artifact,
 )
 from engine.telemetry.service import RoutingTelemetryService
@@ -136,9 +137,7 @@ async def test_cross_tenant_read_fails_before_resource_access() -> None:
 
         lookup = PrincipalLookup()
         async with engine.connect() as connection:
-            resolved = await lookup.tenant_for_principal(
-                connection, owner.principal_id
-            )
+            resolved = await lookup.tenant_for_principal(connection, owner.principal_id)
         assert resolved == owner.tenant_id
     finally:
         await engine.dispose()
@@ -207,7 +206,7 @@ async def test_object_storage_prefix_rejects_cross_scope_references() -> None:
         assert own_key.startswith(f"artifacts/{owner.tenant_id}/{owner.project_id}/")
 
         forged_key = f"artifacts/{stranger.tenant_id}/{stranger.project_id}/{digest}"
-        with pytest.raises(ScopeViolation):
+        with pytest.raises(ScopeViolationError):
             store.verify_key(
                 tenant_id=owner.tenant_id,
                 project_id=owner.project_id,
@@ -316,7 +315,9 @@ async def test_telemetry_correlation_derives_from_verified_chain(
         )
         workspace_obj = fixture.workspace
         workspaces = WorkspaceService(engine, root=root)
-        workspaces.write(workspace_obj, "verification_check.py", b"def x():\n    pass\n")
+        workspaces.write(
+            workspace_obj, "verification_check.py", b"def x():\n    pass\n"
+        )
 
         lint_outcome = CheckSpec(
             outcome_id=uuid7(),

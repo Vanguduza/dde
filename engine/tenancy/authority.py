@@ -52,10 +52,7 @@ class TenancyAuthorityService:
         async with self._engine.connect() as connection:
             row = (
                 await connection.execute(
-                    text(
-                        "SELECT tenant_id FROM principals "
-                        "WHERE principal_id = :pid"
-                    ),
+                    text("SELECT tenant_id FROM principals WHERE principal_id = :pid"),
                     {"pid": principal_id},
                 )
             ).first()
@@ -216,7 +213,9 @@ class TenancyAuthorityService:
             ),
             {
                 "gid": grant_id,
-                "proj": project_id if grant_scope_type is GrantScopeType.PROJECT else None,
+                "proj": project_id
+                if grant_scope_type is GrantScopeType.PROJECT
+                else None,
                 "pid": principal_id,
                 "stype": grant_scope_type.value,
                 "gscope": (

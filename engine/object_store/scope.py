@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 
-class ScopeViolation(Exception):
+class ScopeViolationError(Exception):
     """A storage key references a scope the caller is not authorized for."""
 
 
@@ -33,14 +33,12 @@ class ArtifactObjectStore:
     root: str = "artifacts"
 
     def verify_key(self, *, tenant_id: UUID, project_id: UUID, key: str) -> None:
-        """Raise `ScopeViolation` unless `key` is exactly the canonical key
-        for `(tenant_id, project_id)` -- any other tenant's or project's
+        """Raise `ScopeViolationError` unless `key` is exactly the canonical
+        key for `(tenant_id, project_id)` -- any other tenant's or project's
         prefix fails closed."""
-        expected = (
-            f"{self.root}/{tenant_id}/{project_id}/"
-        )
+        expected = f"{self.root}/{tenant_id}/{project_id}/"
         if not key.startswith(expected):
-            raise ScopeViolation(
+            raise ScopeViolationError(
                 "storage key is outside the authorized scope",
                 {"key": key, "expected_prefix": expected},
             )

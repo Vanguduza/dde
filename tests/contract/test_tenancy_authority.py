@@ -51,8 +51,7 @@ def test_organization_object_exists_above_tenant() -> None:
     storage = schema["x-dde-storage"]
     assert storage["table"] == "organizations"
     assert storage.get("rls_predicate") == (
-        "organization_id = CAST("
-        "current_setting('dde.organization_id', true) AS uuid)"
+        "organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)"
     )
     assert storage.get("tenant_scoped") is False
     required = set(schema.get("required") or [])
@@ -64,8 +63,7 @@ def test_tenant_gains_required_organization_id() -> None:
     required = set(schema.get("required") or [])
     assert "organization_id" in required, "Ch.13.9: Organization above Tenant"
     fk = {
-        item["name"]: item
-        for item in schema["x-dde-storage"].get("foreign_keys") or []
+        item["name"]: item for item in schema["x-dde-storage"].get("foreign_keys") or []
     }
     org_fk = fk["tenants_organization_id_fkey"]
     assert org_fk["columns"] == ["organization_id"]
@@ -85,8 +83,7 @@ def test_principal_grant_admits_organization_scope() -> None:
 def test_artifact_mission_fk_is_composite_scope_binding() -> None:
     schema = _load("artifact.json")
     names = {
-        item["name"]: item
-        for item in schema["x-dde-storage"].get("foreign_keys") or []
+        item["name"]: item for item in schema["x-dde-storage"].get("foreign_keys") or []
     }
     fk = names["artifacts_mission_scope_fkey"]
     assert fk["columns"] == ["mission_id", "project_id", "tenant_id"]
@@ -102,12 +99,10 @@ def test_worker_run_attempt_fk_is_composite_scope_binding() -> None:
     worker = _load("worker_run.json")
     task = _load("task_attempt.json")
     wk = {
-        item["name"]: item
-        for item in worker["x-dde-storage"].get("foreign_keys") or []
+        item["name"]: item for item in worker["x-dde-storage"].get("foreign_keys") or []
     }
     tk = {
-        item["name"]: item
-        for item in task["x-dde-storage"].get("foreign_keys") or []
+        item["name"]: item for item in task["x-dde-storage"].get("foreign_keys") or []
     }
     run_fk = wk["worker_runs_task_attempt_scope_fkey"]
     assert run_fk["ref_table"] == "task_attempts"

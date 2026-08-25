@@ -281,10 +281,7 @@ def upgrade() -> None:
     # RLS on tenants binds tenant_id to dde.tenant_id; the dev superuser and
     # migrations run as owner/superuser so this link update is not blocked.
     conn.execute(  # type: ignore[attr-defined]
-        text(
-            "UPDATE tenants SET organization_id = :org "
-            "WHERE organization_id IS NULL"
-        ),
+        text("UPDATE tenants SET organization_id = :org WHERE organization_id IS NULL"),
         {"org": placeholder},
     )
     conn.execute(  # type: ignore[attr-defined]
@@ -301,9 +298,7 @@ def upgrade() -> None:
 
     for index, table, columns in _PARENT_INDEXES:
         conn.execute(  # type: ignore[attr-defined]
-            text(
-                f"CREATE UNIQUE INDEX IF NOT EXISTS {index} ON {table} ({columns})"
-            )
+            text(f"CREATE UNIQUE INDEX IF NOT EXISTS {index} ON {table} ({columns})")
         )
 
     for statement in _GRANTS_SQL:
@@ -332,7 +327,10 @@ def downgrade() -> None:
             )
         if not _constraint_exists(conn, old_name, table):
             conn.execute(  # type: ignore[attr-defined]
-                text(f"ALTER TABLE {table} ADD CONSTRAINT {old_name} FOREIGN KEY {definition}")
+                text(
+                    f"ALTER TABLE {table} ADD CONSTRAINT {old_name} "
+                    f"FOREIGN KEY {definition}"
+                )
             )
     for index, _table, _columns in _PARENT_INDEXES:
         conn.execute(text(f"DROP INDEX IF EXISTS {index}"))  # type: ignore[arg-type]
@@ -356,8 +354,7 @@ def downgrade() -> None:
     )
     conn.execute(  # type: ignore[attr-defined]
         text(
-            "ALTER TABLE tenants DROP CONSTRAINT IF EXISTS "
-            "tenants_organization_id_fkey"
+            "ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_organization_id_fkey"
         )
     )
     conn.execute(  # type: ignore[attr-defined]
