@@ -20,9 +20,9 @@ async def _seed_grant(engine, *, tenant_id, principal_id, project_id) -> None:
         await connection.execute(
             text(
                 "INSERT INTO principal_grants "
-                "(grant_id, tenant_id, project_id, principal_id, "
-                "created_at, updated_at) "
-                "VALUES (:grant_id, :tenant_id, :project_id, :principal_id, :now, :now)"
+                "(grant_id, tenant_id, project_id, principal_id, scope_type, "
+                "grant_scope, created_at, updated_at) "
+                "VALUES (:grant_id, :tenant_id, :project_id, :principal_id, 'PROJECT', 'PROJECT', :now, :now)"
             ),
             {
                 "grant_id": uuid7(),

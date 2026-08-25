@@ -14,22 +14,10 @@
     "lock_version": false,
     "foreign_keys": [
       {
-        "name": "artifacts_tenant_id_fkey",
-        "columns": ["tenant_id"],
-        "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
-      },
-      {
-        "name": "artifacts_project_id_fkey",
-        "columns": ["project_id"],
-        "ref_table": "projects",
-        "ref_columns": ["project_id"]
-      },
-      {
-        "name": "artifacts_mission_id_fkey",
-        "columns": ["mission_id"],
+        "name": "artifacts_mission_scope_fkey",
+        "columns": ["mission_id", "project_id", "tenant_id"],
         "ref_table": "missions",
-        "ref_columns": ["mission_id"]
+        "ref_columns": ["mission_id", "project_id", "tenant_id"]
       }
     ]
   },

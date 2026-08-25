@@ -12,6 +12,7 @@
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": true,
+    "uniques": [["task_id", "project_id", "tenant_id"]],
     "foreign_keys": [
       {
         "name": "tasks_tenant_id_fkey",

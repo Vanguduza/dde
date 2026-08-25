@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/organization.json",
+  "title": "Organization",
+  "description": "Top of the Chapter 13.9 scope chain: Principal -> Organization/Tenant -> Project -> Mission -> Task -> runtime bindings. An Organization groups one or more Tenants; authorization may be granted at either level (Chapter 14.2 ABAC context).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "organizations",
+    "order": 5,
+    "pk": ["organization_id"],
+    "tenant_scoped": true,
+    "project_scoped": false,
+    "lock_version": false,
+    "rls_predicate": "organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)",
+    "uniques": [["slug"]]
+  },
+  "required": ["organization_id", "slug", "created_at", "updated_at"],
+  "properties": {
+    "organization_id": { "type": "string", "format": "uuid" },
+    "slug": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

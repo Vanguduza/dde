@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/principal_grant.json",
   "title": "PrincipalGrant",
-  "description": "Authorization grant for a principal.",
+  "description": "Authorization grant for a principal (Chapter 13.9/14.2). grant_scope selects the authorization level: ORGANIZATION covers every tenant under the principal's organization, TENANT covers one tenant's projects, PROJECT covers exactly one project. scope_type is the ABAC constraint class the grant is evaluated under.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -12,6 +12,16 @@
     "tenant_scoped": true,
     "project_scoped": false,
     "lock_version": false,
+    "checks": [
+      {
+        "name": "principal_grants_scope_type_allowed",
+        "expression": "scope_type IN ('ORGANIZATION', 'PROJECT')"
+      },
+      {
+        "name": "principal_grants_grant_scope_allowed",
+        "expression": "grant_scope IN ('ORGANIZATION', 'TENANT', 'PROJECT')"
+      }
+    ],
     "foreign_keys": [
       {
         "name": "principal_grants_tenant_id_fkey",
@@ -33,7 +43,15 @@
       }
     ]
   },
-  "required": ["grant_id", "tenant_id", "principal_id", "created_at", "updated_at"],
+  "required": [
+    "grant_id",
+    "tenant_id",
+    "principal_id",
+    "scope_type",
+    "grant_scope",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
     "grant_id": { "type": "string", "format": "uuid" },
     "tenant_id": { "type": "string", "format": "uuid" },
@@ -41,6 +59,16 @@
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
     "principal_id": { "type": "string", "format": "uuid" },
+    "scope_type": {
+      "type": "string",
+      "enum": ["ORGANIZATION", "PROJECT"],
+      "default": "PROJECT"
+    },
+    "grant_scope": {
+      "type": "string",
+      "enum": ["ORGANIZATION", "TENANT", "PROJECT"],
+      "default": "PROJECT"
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

@@ -295,6 +295,11 @@ def _render_column(name: str, schema: dict[str, Any], required: set[str]) -> str
             default = " DEFAULT '[]'::jsonb"
         elif schema.get("type") == "object":
             default = " DEFAULT '{}'::jsonb"
+    elif "default" in schema and not isinstance(schema.get("default"), (dict, list)):
+        rendered = json.dumps(schema["default"])
+        if sql_type == "text":
+            rendered = f"'{schema['default']}'"
+        default = f" DEFAULT {rendered}"
     if name == "lock_version" and name in required:
         default = " DEFAULT 1"
     return f"    {ident} {sql_type}{null_sql}{default}"
@@ -313,6 +318,8 @@ def _create_table_sql(schema: dict[str, Any]) -> str:
     for unique in storage.get("uniques") or []:
         unique_cols = ", ".join(_sql_ident(col) for col in unique)
         columns.append(f"    UNIQUE ({unique_cols})")
+    for check in storage.get("checks") or []:
+        columns.append(f"    CHECK ({check['expression']})")
     body = ",\n".join(columns)
     partition = storage.get("partition_range")
     if partition:

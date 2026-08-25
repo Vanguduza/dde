@@ -48,6 +48,8 @@ from engine.truth.service import TruthService
 OWNER_TENANT_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d10")
 OWNER_PROJECT_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d11")
 OWNER_PRINCIPAL_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d12")
+# Chapter 13.9 scope chain: every tenant sits under exactly one organization.
+OWNER_ORGANIZATION_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d13")
 
 ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
     {
@@ -1422,18 +1424,37 @@ def _payload(slug: str) -> dict[str, object]:
 
 
 async def ensure_scaffold(engine: AsyncEngine) -> None:
-    """Insert the owner tenant/project/principal rows if absent."""
+    """Insert the owner organization/tenant/project/principal rows if absent."""
     now = datetime.now(UTC)
+    async with engine.connect() as connection:
+        await connection.execute(
+            text(
+                "INSERT INTO organizations (organization_id, slug, created_at, "
+                "updated_at) VALUES (:organization_id, 'owner', :now, :now) "
+                "ON CONFLICT (organization_id) DO NOTHING"
+            ),
+            {"organization_id": OWNER_ORGANIZATION_ID, "now": now},
+        )
+        await connection.commit()
     async with open_unit_of_work(
         engine, tenant_id=OWNER_TENANT_ID, project_id=OWNER_PROJECT_ID
     ) as uow:
         await uow.connection.execute(
+            text("SELECT set_config('dde.organization_id', :value, true)"),
+            {"value": str(OWNER_ORGANIZATION_ID)},
+        )
+        await uow.connection.execute(
             text(
-                "INSERT INTO tenants (tenant_id, slug, created_at, updated_at) "
-                "VALUES (:tenant_id, :slug, :now, :now) ON CONFLICT (tenant_id) "
-                "DO NOTHING"
+                "INSERT INTO tenants (tenant_id, organization_id, slug, "
+                "created_at, updated_at) VALUES (:tenant_id, :organization_id, "
+                ":slug, :now, :now) ON CONFLICT (tenant_id) DO NOTHING"
             ),
-            {"tenant_id": OWNER_TENANT_ID, "slug": "owner", "now": now},
+            {
+                "tenant_id": OWNER_TENANT_ID,
+                "organization_id": OWNER_ORGANIZATION_ID,
+                "slug": "owner",
+                "now": now,
+            },
         )
         await uow.connection.execute(
             text(

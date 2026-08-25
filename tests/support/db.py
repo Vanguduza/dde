@@ -32,6 +32,7 @@ class TenantFixture:
     tenant_id: UUID
     project_id: UUID
     principal_id: UUID
+    organization_id: UUID
 
 
 def new_engine() -> AsyncEngine:
@@ -77,6 +78,35 @@ async def ensure_rls_probe_role(engine: AsyncEngine) -> str:
     return probe_url.render_as_string(hide_password=False)
 
 
+async def ensure_organization(engine: AsyncEngine) -> UUID:
+    """Idempotently create one shared test organization and return its id.
+
+    Tests that need multiple organizations insert their own rows directly;
+    the shared org keeps the default single-org fixtures lightweight.
+    """
+    organization_id = uuid7()
+    now = datetime.now(UTC)
+    async with engine.connect() as connection:
+        await connection.execute(
+            text("SELECT set_config('dde.organization_id', :value, true)"),
+            {"value": str(organization_id)},
+        )
+        await connection.execute(
+            text(
+                "INSERT INTO organizations "
+                "(organization_id, slug, created_at, updated_at) "
+                "VALUES (:id, :slug, :now, :now)"
+            ),
+            {
+                "id": organization_id,
+                "slug": f"org-{organization_id.hex}",
+                "now": now,
+            },
+        )
+        await connection.commit()
+    return organization_id
+
+
 async def truncate_outbox(engine: AsyncEngine) -> None:
     """Clear the `outbox` table before a test that asserts on the
     dispatcher's global drain behaviour.
@@ -94,20 +124,37 @@ async def truncate_outbox(engine: AsyncEngine) -> None:
 
 
 async def seed_tenant(engine: AsyncEngine) -> TenantFixture:
-    """Insert a fresh tenant/project/principal scoped to their own GUC."""
+    """Insert a fresh organization/tenant/project/principal scoped to their
+    own GUCs (Chapter 13.9 scope chain: every tenant sits under exactly one
+    organization)."""
     tenant_id = uuid7()
     project_id = uuid7()
     principal_id = uuid7()
+    organization_id = await ensure_organization(engine)
     now = datetime.now(UTC)
     async with open_unit_of_work(
-        engine, tenant_id=tenant_id, project_id=project_id
+        engine,
+        tenant_id=tenant_id,
+        project_id=project_id,
     ) as uow:
+        # The organizations GUC is set for this transaction only so the
+        # tenants row passes its FK and any future org-scoped policy.
+        await uow.connection.execute(
+            text("SELECT set_config('dde.organization_id', :value, true)"),
+            {"value": str(organization_id)},
+        )
         await uow.connection.execute(
             text(
-                "INSERT INTO tenants (tenant_id, slug, created_at, updated_at) "
-                "VALUES (:tenant_id, :slug, :now, :now)"
+                "INSERT INTO tenants (tenant_id, organization_id, slug, "
+                "created_at, updated_at) VALUES (:tenant_id, :organization_id, "
+                ":slug, :now, :now)"
             ),
-            {"tenant_id": tenant_id, "slug": f"tenant-{tenant_id.hex}", "now": now},
+            {
+                "tenant_id": tenant_id,
+                "organization_id": organization_id,
+                "slug": f"tenant-{tenant_id.hex}",
+                "now": now,
+            },
         )
         await uow.connection.execute(
             text(
@@ -137,7 +184,10 @@ async def seed_tenant(engine: AsyncEngine) -> TenantFixture:
         )
         await uow.commit()
     return TenantFixture(
-        tenant_id=tenant_id, project_id=project_id, principal_id=principal_id
+        tenant_id=tenant_id,
+        project_id=project_id,
+        principal_id=principal_id,
+        organization_id=organization_id,
     )
 
 

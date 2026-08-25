@@ -11,11 +11,26 @@
     "pk": ["tenant_id"],
     "tenant_scoped": true,
     "project_scoped": false,
-    "lock_version": false
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "tenants_organization_id_fkey",
+        "columns": ["organization_id"],
+        "ref_table": "organizations",
+        "ref_columns": ["organization_id"]
+      }
+    ]
   },
-  "required": ["tenant_id", "slug", "created_at", "updated_at"],
+  "required": [
+    "tenant_id",
+    "organization_id",
+    "slug",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
     "tenant_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string", "format": "uuid" },
     "slug": { "type": "string", "minLength": 1 },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }

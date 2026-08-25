@@ -15,28 +15,16 @@
     "uniques": [["task_id", "sequence"]],
     "foreign_keys": [
       {
-        "name": "task_attempts_tenant_id_fkey",
-        "columns": ["tenant_id"],
-        "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
-      },
-      {
-        "name": "task_attempts_project_id_fkey",
-        "columns": ["project_id"],
-        "ref_table": "projects",
-        "ref_columns": ["project_id"]
-      },
-      {
-        "name": "task_attempts_mission_id_fkey",
-        "columns": ["mission_id"],
+        "name": "task_attempts_mission_scope_fkey",
+        "columns": ["mission_id", "project_id", "tenant_id"],
         "ref_table": "missions",
-        "ref_columns": ["mission_id"]
+        "ref_columns": ["mission_id", "project_id", "tenant_id"]
       },
       {
-        "name": "task_attempts_task_id_fkey",
-        "columns": ["task_id"],
+        "name": "task_attempts_task_scope_fkey",
+        "columns": ["task_id", "project_id", "tenant_id"],
         "ref_table": "tasks",
-        "ref_columns": ["task_id"]
+        "ref_columns": ["task_id", "project_id", "tenant_id"]
       },
       {
         "name": "task_attempts_execution_plan_id_fkey",

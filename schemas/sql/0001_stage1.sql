@@ -1,7 +1,17 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+CREATE TABLE organizations (
+    organization_id uuid NOT NULL,
+    slug text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (organization_id),
+    UNIQUE (slug)
+);
+
 CREATE TABLE tenants (
     tenant_id uuid NOT NULL,
+    organization_id uuid NOT NULL,
     slug text NOT NULL,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
@@ -33,9 +43,13 @@ CREATE TABLE principal_grants (
     tenant_id uuid NOT NULL,
     project_id uuid,
     principal_id uuid NOT NULL,
+    scope_type text NOT NULL DEFAULT 'PROJECT',
+    grant_scope text NOT NULL DEFAULT 'PROJECT',
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
-    PRIMARY KEY (grant_id)
+    PRIMARY KEY (grant_id),
+    CHECK (scope_type IN ('ORGANIZATION', 'PROJECT')),
+    CHECK (grant_scope IN ('ORGANIZATION', 'TENANT', 'PROJECT'))
 );
 
 CREATE TABLE capabilities (
@@ -1329,6 +1343,8 @@ CREATE TABLE audit_events (
     PRIMARY KEY (audit_event_id)
 );
 
+ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
+
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 
 ALTER TABLE principals ADD CONSTRAINT principals_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -1455,17 +1471,13 @@ ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_context_package_id_fk
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_execution_environment_id_fkey FOREIGN KEY (execution_environment_id) REFERENCES execution_environments (environment_id);
 ALTER TABLE execution_plans ADD CONSTRAINT execution_plans_write_scope_lease_id_fkey FOREIGN KEY (write_scope_lease_id) REFERENCES write_scope_leases (lease_id);
 
-ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
-ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_mission_scope_fkey FOREIGN KEY (mission_id, project_id, tenant_id) REFERENCES missions (mission_id, project_id, tenant_id);
+ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_task_scope_fkey FOREIGN KEY (task_id, project_id, tenant_id) REFERENCES tasks (task_id, project_id, tenant_id);
 ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
 ALTER TABLE task_attempts ADD CONSTRAINT task_attempts_retry_of_fkey FOREIGN KEY (retry_of) REFERENCES task_attempts (attempt_id);
 
-ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
-ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_task_attempt_id_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
+ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_task_attempt_scope_fkey FOREIGN KEY (task_attempt_id, project_id, tenant_id) REFERENCES task_attempts (attempt_id, project_id, tenant_id);
+ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_mission_scope_fkey FOREIGN KEY (mission_id, project_id, tenant_id) REFERENCES missions (mission_id, project_id, tenant_id);
 ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
 ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_environment_id_fkey FOREIGN KEY (environment_id) REFERENCES execution_environments (environment_id);
 ALTER TABLE worker_runs ADD CONSTRAINT worker_runs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
@@ -1505,9 +1517,7 @@ ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_context_package_id_fkey FOREI
 ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_execution_plan_id_fkey FOREIGN KEY (execution_plan_id) REFERENCES execution_plans (plan_id);
 ALTER TABLE checkpoints ADD CONSTRAINT checkpoints_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
 
-ALTER TABLE artifacts ADD CONSTRAINT artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE artifacts ADD CONSTRAINT artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE artifacts ADD CONSTRAINT artifacts_mission_scope_fkey FOREIGN KEY (mission_id, project_id, tenant_id) REFERENCES missions (mission_id, project_id, tenant_id);
 
 ALTER TABLE seed_datasets ADD CONSTRAINT seed_datasets_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE seed_datasets ADD CONSTRAINT seed_datasets_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -1539,12 +1549,10 @@ ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_mission_i
 ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_invariant_id_fkey FOREIGN KEY (invariant_id) REFERENCES domain_invariants (invariant_id);
 ALTER TABLE invariant_evaluations ADD CONSTRAINT invariant_evaluations_product_env_id_fkey FOREIGN KEY (product_env_id) REFERENCES product_environments (product_env_id);
 
-ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
-ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
-ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_task_attempt_id_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
-ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_mission_scope_fkey FOREIGN KEY (mission_id, project_id, tenant_id) REFERENCES missions (mission_id, project_id, tenant_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_task_scope_fkey FOREIGN KEY (task_id, project_id, tenant_id) REFERENCES tasks (task_id, project_id, tenant_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_attempt_scope_fkey FOREIGN KEY (task_attempt_id, project_id, tenant_id) REFERENCES task_attempts (attempt_id, project_id, tenant_id);
+ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_worker_run_scope_fkey FOREIGN KEY (worker_run_id, project_id, tenant_id) REFERENCES worker_runs (run_id, project_id, tenant_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
 ALTER TABLE verification_runs ADD CONSTRAINT verification_runs_oracle_id_fkey FOREIGN KEY (oracle_id) REFERENCES acceptance_oracles (oracle_id);
 
@@ -1641,6 +1649,10 @@ ALTER TABLE command_idempotency ADD CONSTRAINT command_idempotency_project_id_fk
 
 ALTER TABLE audit_events ADD CONSTRAINT audit_events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE audit_events ADD CONSTRAINT audit_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
+CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants FORCE ROW LEVEL SECURITY;

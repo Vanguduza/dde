@@ -47,6 +47,7 @@ from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
 from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
 from engine.contracts.mission_template import MissionTemplate
+from engine.contracts.organization import Organization
 from engine.contracts.outbox import Outbox
 from engine.contracts.plan_draft import PlanDraft
 from engine.contracts.principal import Principal
@@ -125,6 +126,7 @@ __all__ = [
     "MissionControl",
     "MissionOracleEvaluation",
     "MissionTemplate",
+    "Organization",
     "Outbox",
     "PlanDraft",
     "Principal",

@@ -12,7 +12,10 @@
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": true,
-    "uniques": [["project_id", "slug"]],
+    "uniques": [
+      ["project_id", "slug"],
+      ["mission_id", "project_id", "tenant_id"]
+    ],
     "foreign_keys": [
       {
         "name": "missions_tenant_id_fkey",

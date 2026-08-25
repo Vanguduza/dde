@@ -15,28 +15,16 @@
     "uniques": [["task_attempt_id", "sequence"]],
     "foreign_keys": [
       {
-        "name": "worker_runs_tenant_id_fkey",
-        "columns": ["tenant_id"],
-        "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
-      },
-      {
-        "name": "worker_runs_project_id_fkey",
-        "columns": ["project_id"],
-        "ref_table": "projects",
-        "ref_columns": ["project_id"]
-      },
-      {
-        "name": "worker_runs_mission_id_fkey",
-        "columns": ["mission_id"],
-        "ref_table": "missions",
-        "ref_columns": ["mission_id"]
-      },
-      {
-        "name": "worker_runs_task_attempt_id_fkey",
-        "columns": ["task_attempt_id"],
+        "name": "worker_runs_task_attempt_scope_fkey",
+        "columns": ["task_attempt_id", "project_id", "tenant_id"],
         "ref_table": "task_attempts",
-        "ref_columns": ["attempt_id"]
+        "ref_columns": ["attempt_id", "project_id", "tenant_id"]
+      },
+      {
+        "name": "worker_runs_mission_scope_fkey",
+        "columns": ["mission_id", "project_id", "tenant_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id", "project_id", "tenant_id"]
       },
       {
         "name": "worker_runs_execution_plan_id_fkey",
