@@ -25,6 +25,10 @@ from engine.capabilities.browser import (
     BrowserCaptureSpec,
     BrowserProbeSpec,
 )
+from engine.capabilities.database import (
+    DatabaseAssertionSpec,
+    DatabaseCapability,
+)
 from engine.capabilities.security import SecurityCapability, SecurityScanSpec
 from engine.contracts.verification_run import CheckResult
 from engine.contracts.workspace import Workspace
@@ -87,12 +91,14 @@ async def run_check(
     browser: BrowserCapability | None = None,
     security: SecurityCapability | None = None,
     android: AndroidCapability | None = None,
+    database: DatabaseCapability | None = None,
 ) -> CheckResult:
     """Execute one real check. `test`/`invariant` run via
     `WorkspaceService.execute()`. `api_probe`/`visual_diff` run via the
     injected `BrowserCapability`. `security_scan` runs via the injected
     `SecurityCapability`; `android_scan` via the injected
-    `AndroidCapability`."""
+    `AndroidCapability`; `db_assertion` via the injected
+    `DatabaseCapability`."""
     if spec.kind == "api_probe":
         return await _run_api_probe(spec, browser=browser)
     if spec.kind == "visual_diff":
@@ -101,6 +107,8 @@ async def run_check(
         return await _run_security_scan(workspace, spec, security=security)
     if spec.kind == "android_scan":
         return await _run_android_scan(workspace, spec, android=android)
+    if spec.kind == "db_assertion":
+        return await _run_db_assertion(spec, database=database)
     result = await workspaces.execute(
         workspace=workspace,
         command=spec.command,
@@ -320,6 +328,43 @@ async def _run_android_scan(
         check_ref=spec.ref,
         kind=spec.kind,
         command=list(spec.command) if spec.command else [mode],
+        exit_code=result.exit_code,
+        stdout=result.stdout,
+        stderr=result.stderr,
+        duration_ms=result.duration_ms,
+        timed_out=result.timed_out,
+        status=_check_status(exit_code=result.exit_code, timed_out=result.timed_out),
+    )
+
+
+async def _run_db_assertion(
+    spec: CheckSpec,
+    *,
+    database: DatabaseCapability | None,
+) -> CheckResult:
+    if database is None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "db_assertion requires a DatabaseCapability "
+            "(capability.database); none was injected on the "
+            "verification runner",
+            details={"check_ref": spec.ref},
+        )
+    if not spec.command:
+        raise DdeError(
+            "VALIDATION_FAILED",
+            "db_assertion binding requires [datastore_url, assertion_sql...]",
+            details={"check_ref": spec.ref},
+        )
+    datastore_url = spec.command[0]
+    statements = tuple(spec.command[1:])
+    result = await database.assert_(
+        DatabaseAssertionSpec(datastore_url=datastore_url, statements=statements)
+    )
+    return CheckResult(
+        check_ref=spec.ref,
+        kind=spec.kind,
+        command=list(spec.command),
         exit_code=result.exit_code,
         stdout=result.stdout,
         stderr=result.stderr,

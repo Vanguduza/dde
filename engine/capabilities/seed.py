@@ -234,6 +234,28 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("verification",),
         network_requirements={"egress": "none"},
     ),
+    # DDE-049 / Chapter 9.8 backend/database class + Chapter 11.2's
+    # db_assertion binding. In-process read-only SQL assertions over a
+    # product datastore (engine.capabilities.database). PURE_READ by
+    # construction: non-SELECT statements are refused before execution.
+    SeedCapability(
+        capability_id="capability.database",
+        version="1",
+        category="database",
+        summary=(
+            "Run read-only db_assertion SELECTs against a product "
+            "datastore URL and require a boolean result per statement. "
+            "DDL/DML refused; no schema or data mutation authority."
+        ),
+        side_effect_class="PURE_READ",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=(
+            "engine.capabilities.database.assertions.InProcessDatabaseAsserter",
+        ),
+        supported_workloads=("verification",),
+        network_requirements={"egress": "datastore_ref only"},
+    ),
 )
 
 

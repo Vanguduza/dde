@@ -103,6 +103,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from engine.attribution.service import FailureAttributionService
 from engine.capabilities.android import AndroidCapability
 from engine.capabilities.browser import BrowserCapability
+from engine.capabilities.database import DatabaseCapability
 from engine.capabilities.security import SecurityCapability
 from engine.contracts.acceptance_oracle import AcceptanceOracle, ObservableOutcome
 from engine.contracts.command_idempotency import CommandIdempotency
@@ -294,6 +295,7 @@ class VerificationRunnerService:
         browser: BrowserCapability | None = None,
         security: SecurityCapability | None = None,
         android: AndroidCapability | None = None,
+        database: DatabaseCapability | None = None,
         donor_taints: DonorTaintService | None = None,
     ) -> None:
         self._engine = engine
@@ -330,6 +332,7 @@ class VerificationRunnerService:
         self._browser = browser
         self._security = security
         self._android = android
+        self._database = database
         self._donor_taints = donor_taints or DonorTaintService(engine)
 
     async def _run_uow(
@@ -966,6 +969,7 @@ class VerificationRunnerService:
             browser=self._browser,
             security=self._security,
             android=self._android,
+            database=self._database,
         )
         evaluated_at = self._clock.now()
         outcome_status = _outcome_status(
