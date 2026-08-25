@@ -11,11 +11,12 @@ from pydantic import BaseModel, ConfigDict
 
 class DonorArtifact(BaseModel):
     """
-    Chapter 13.8 Donor Lab ingested external artifact (DDE-046). Rank-9 evidence:
-    ingested, never auto-promoted. source_class is the six-value reuse taxonomy; until
-    DDE-047's licence classifier lands, ingest persists UNKNOWN (or an explicit caller-
-    supplied class that is not OPEN_REUSE without a signed reuse decision). Provenance
-    and content_hash make donor influence answerable.
+    Chapter 13.8 Donor Lab ingested external artifact (DDE-046/047). Rank-9 evidence:
+    ingested, never auto-promoted. source_class is the six-value reuse taxonomy assigned
+    by the licence/reuse classifier before implementation use; UNKNOWN/conflicting
+    defaults to SOURCE_REFERENCE_ONLY or REJECTED per policy and never silently becomes
+    OPEN_REUSE. Provenance, content_hash, and donor_taints make donor influence
+    answerable.
     """
 
     model_config = ConfigDict(extra="forbid")

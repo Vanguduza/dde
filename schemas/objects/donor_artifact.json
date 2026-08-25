@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/donor_artifact.json",
   "title": "DonorArtifact",
-  "description": "Chapter 13.8 Donor Lab ingested external artifact (DDE-046). Rank-9 evidence: ingested, never auto-promoted. source_class is the six-value reuse taxonomy; until DDE-047's licence classifier lands, ingest persists UNKNOWN (or an explicit caller-supplied class that is not OPEN_REUSE without a signed reuse decision). Provenance and content_hash make donor influence answerable.",
+  "description": "Chapter 13.8 Donor Lab ingested external artifact (DDE-046/047). Rank-9 evidence: ingested, never auto-promoted. source_class is the six-value reuse taxonomy assigned by the licence/reuse classifier before implementation use; UNKNOWN/conflicting defaults to SOURCE_REFERENCE_ONLY or REJECTED per policy and never silently becomes OPEN_REUSE. Provenance, content_hash, and donor_taints make donor influence answerable.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {

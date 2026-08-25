@@ -59,6 +59,7 @@ def _valid_feature_dna_payload(**overrides: object) -> dict[str, object]:
         "body": {"kind": "feature_dna_stub", "extraction": "stub"},
         "donor_sources": ["file:///fixtures/donor/readme.md"],
         "dna_hash": "dna-abc",
+        "taint_tags": ["donor:x", "class:UNKNOWN"],
         "status": "STUB",
         "created_at": now,
         "updated_at": now,

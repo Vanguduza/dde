@@ -238,12 +238,18 @@ def evaluate_diff(
     base_manifest_blobs: dict[str, str | None],
     proposed_manifest_blobs: dict[str, str | None],
     new_paths: list[str],
+    donor_taints: list[dict[str, object]] | None = None,
+    donor_reuse_approved: bool = False,
 ) -> GateEvaluation:
     """Run every Chapter 9.7 gate over one real worker-produced diff."""
     secret = scan_secrets(unified_diff)
     static = scan_static(unified_diff)
     forbidden = scan_forbidden_paths(changed_paths)
     headers = scan_licence_headers(new_paths, proposed_blobs)
+    taint = scan_donor_taint(
+        donor_taints=donor_taints or [],
+        donor_reuse_approved=donor_reuse_approved,
+    )
     dep_finding, admissions = admit_dependencies(
         changed_paths=changed_paths,
         unified_diff=unified_diff,
@@ -253,7 +259,7 @@ def evaluate_diff(
     )
     sbom_document, sbom_content_hash = generate_sbom(proposed_manifest_blobs)
     sbom_blocked = _sbom_contains_rejected(sbom_document, admissions)
-    findings = (secret, static, forbidden, headers, dep_finding)
+    findings = (secret, static, forbidden, headers, taint, dep_finding)
     if sbom_blocked:
         dep_finding = ScanFinding(
             gate=dep_finding.gate,
@@ -267,7 +273,7 @@ def evaluate_diff(
             ),
             details={**dep_finding.details, "sbom_gated": True},
         )
-        findings = (secret, static, forbidden, headers, dep_finding)
+        findings = (secret, static, forbidden, headers, taint, dep_finding)
     blocking_failures = [item for item in findings if item.blocking and not item.passed]
     quarantined = (not secret.passed) and secret.blocking
     return GateEvaluation(
@@ -482,10 +488,8 @@ def scan_forbidden_paths(changed_paths: list[str]) -> ScanFinding:
 def scan_licence_headers(
     new_paths: list[str], proposed_blobs: dict[str, str | None]
 ) -> ScanFinding:
-    """Chapter 9.7 licence header / file provenance. Donor Lab ingest
-    (DDE-046) persists artifacts; provenance taint into tasks/diffs
-    (Ch.13.8) remains DDE-047 — this check cannot consult a taint graph
-    that does not exist yet."""
+    """Chapter 9.7 licence header / file provenance (SPDX/copyright on new
+    source). Donor provenance taint is a separate gate (`scan_donor_taint`)."""
     missing: list[str] = []
     for path in new_paths:
         if Path(path).suffix.lower() not in SOURCE_SUFFIXES:
@@ -502,12 +506,7 @@ def scan_licence_headers(
             blocking=True,
             passed=False,
             summary="Newly added source files are missing a licence header",
-            details={
-                "paths": missing,
-                # Ingest (DDE-046) lands donor_artifacts; licence/taint graph
-                # into tasks/diffs remains DDE-047.
-                "deferred_donor_taint": "DDE-047",
-            },
+            details={"paths": missing},
         )
     return ScanFinding(
         gate="licence_header",
@@ -516,7 +515,101 @@ def scan_licence_headers(
         blocking=True,
         passed=True,
         summary="New source files carry a licence header, or none were added",
-        details={"deferred_donor_taint": "DDE-047"},
+        details={},
+    )
+
+
+#: Source classes that may enter implementation diffs only with donor_reuse.
+_IMPLEMENTATION_TAINT_CLASSES = frozenset(
+    {"OPEN_REUSE", "CONDITIONAL_REUSE", "RESTRICTED"}
+)
+_FORBIDDEN_IMPLEMENTATION_CLASSES = frozenset(
+    {"REJECTED", "SOURCE_REFERENCE_ONLY", "UNKNOWN"}
+)
+
+
+def scan_donor_taint(
+    *,
+    donor_taints: list[dict[str, object]],
+    donor_reuse_approved: bool,
+) -> ScanFinding:
+    """Chapter 13.8 / 9.7 donor provenance taint at the merge gate.
+
+    Production mutation site: DiffGateService.evaluate → evaluate_diff →
+    this function. Blocks when the task carries donor taint whose class
+    forbids implementation, or when reusable classes lack a signed
+    donor_reuse approval.
+    """
+    if not donor_taints:
+        return ScanFinding(
+            gate="donor_taint",
+            tool="donor-lab",
+            severity="info",
+            blocking=True,
+            passed=True,
+            summary="No donor taint on this merge candidate",
+            details={"taint_count": 0},
+        )
+    forbidden = [
+        t
+        for t in donor_taints
+        if str(t.get("source_class", "")) in _FORBIDDEN_IMPLEMENTATION_CLASSES
+    ]
+    if forbidden:
+        classes = sorted({str(t.get("source_class")) for t in forbidden})
+        return ScanFinding(
+            gate="donor_taint",
+            tool="donor-lab",
+            severity="error",
+            blocking=True,
+            passed=False,
+            summary=(
+                "Donor taint class forbids merge of donor-derived "
+                f"implementation ({', '.join(classes)})"
+            ),
+            details={
+                "taint_count": len(donor_taints),
+                "forbidden_classes": classes,
+                "donor_artifact_ids": [
+                    str(t.get("donor_artifact_id")) for t in forbidden
+                ],
+            },
+        )
+    needs_reuse = [
+        t
+        for t in donor_taints
+        if str(t.get("source_class", "")) in _IMPLEMENTATION_TAINT_CLASSES
+    ]
+    if needs_reuse and not donor_reuse_approved:
+        return ScanFinding(
+            gate="donor_taint",
+            tool="donor-lab",
+            severity="error",
+            blocking=True,
+            passed=False,
+            summary=(
+                "Donor-derived implementation requires an APPROVED "
+                "donor_reuse decision before merge (Chapter 13.8)"
+            ),
+            details={
+                "taint_count": len(donor_taints),
+                "donor_artifact_ids": [
+                    str(t.get("donor_artifact_id")) for t in needs_reuse
+                ],
+                "donor_reuse_approved": False,
+            },
+        )
+    return ScanFinding(
+        gate="donor_taint",
+        tool="donor-lab",
+        severity="info",
+        blocking=True,
+        passed=True,
+        summary="Donor taint permits merge under recorded reuse policy",
+        details={
+            "taint_count": len(donor_taints),
+            "donor_reuse_approved": donor_reuse_approved,
+        },
     )
 
 

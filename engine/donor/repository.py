@@ -8,8 +8,9 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from engine.contracts.donor_artifact import DonorArtifact
+from engine.contracts.donor_taint import DonorTaint
 from engine.contracts.feature_dna import FeatureDNA
-from engine.donor.tables import donor_artifacts, feature_dna
+from engine.donor.tables import donor_artifacts, donor_taints, feature_dna
 
 
 def _json_safe(value: object) -> object:
@@ -81,12 +82,23 @@ class DonorRepository:
             return None
         return DonorArtifact.model_validate(dict(row))
 
+    async def list_artifacts_for_project(
+        self, connection: AsyncConnection, *, project_id: UUID
+    ) -> list[DonorArtifact]:
+        result = await connection.execute(
+            select(donor_artifacts).where(donor_artifacts.c.project_id == project_id)
+        )
+        return [
+            DonorArtifact.model_validate(dict(row)) for row in result.mappings().all()
+        ]
+
     async def insert_feature_dna(
         self, connection: AsyncConnection, record: FeatureDNA
     ) -> None:
         payload = record.model_dump(mode="python")
         payload["body"] = _json_safe(payload["body"])
         payload["donor_sources"] = list(payload["donor_sources"])
+        payload["taint_tags"] = list(payload["taint_tags"])
         await connection.execute(feature_dna.insert().values(**payload))
 
     async def get_feature_dna(
@@ -117,3 +129,49 @@ class DonorRepository:
         if row is None:
             return None
         return FeatureDNA.model_validate(dict(row))
+
+    async def insert_taint(
+        self, connection: AsyncConnection, record: DonorTaint
+    ) -> None:
+        payload = record.model_dump(mode="python")
+        payload["taint_tags"] = list(payload["taint_tags"])
+        await connection.execute(donor_taints.insert().values(**payload))
+
+    async def find_taint(
+        self,
+        connection: AsyncConnection,
+        *,
+        project_id: UUID,
+        subject_kind: str,
+        subject_id: UUID,
+        donor_artifact_id: UUID,
+    ) -> DonorTaint | None:
+        result = await connection.execute(
+            select(donor_taints).where(
+                donor_taints.c.project_id == project_id,
+                donor_taints.c.subject_kind == subject_kind,
+                donor_taints.c.subject_id == subject_id,
+                donor_taints.c.donor_artifact_id == donor_artifact_id,
+            )
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return DonorTaint.model_validate(dict(row))
+
+    async def list_taints_for_subject(
+        self,
+        connection: AsyncConnection,
+        *,
+        project_id: UUID,
+        subject_kind: str,
+        subject_id: UUID,
+    ) -> list[DonorTaint]:
+        result = await connection.execute(
+            select(donor_taints).where(
+                donor_taints.c.project_id == project_id,
+                donor_taints.c.subject_kind == subject_kind,
+                donor_taints.c.subject_id == subject_id,
+            )
+        )
+        return [DonorTaint.model_validate(dict(row)) for row in result.mappings().all()]

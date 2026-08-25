@@ -1,4 +1,4 @@
-"""Donor Lab ingest service — production mutation sites for DDE-046.
+"""Donor Lab ingest service — production mutation sites for DDE-046/047.
 
 Chapter 13.8 / owner pin-by-URL:
 - `submit_uri` is the durable ingest call site for human-supplied
@@ -7,10 +7,10 @@ Chapter 13.8 / owner pin-by-URL:
 - Offline/fixture vertical slice: content bytes or a local file path.
   Remote http(s) fetch without attached content is refused (discovery
   egress is DDE-066 / EDR-0015, not silent fetch here).
-- Default `source_class` is UNKNOWN; OPEN_REUSE without a signed reuse
-  decision id is refused at `resolve_source_class`.
-- Feature DNA stub is written in the same unit of work; taint into
-  tasks/diffs stays deferred_donor_taint → DDE-047.
+- Licence/reuse classifier runs BEFORE persistence; UNKNOWN/conflicting
+  defaults to SOURCE_REFERENCE_ONLY (or REJECTED per policy).
+- Feature DNA stub + donor_taints (feature_dna subject) written in the
+  same unit of work so "which donor influenced this" is answerable.
 """
 
 from __future__ import annotations
@@ -29,10 +29,11 @@ from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
 from engine.core.hashing import sha256_hex
 from engine.core.ids import uuid7
-from engine.donor.classify import resolve_source_class
+from engine.donor.classify import classify_donor
 from engine.donor.extract import build_feature_dna_stub
 from engine.donor.injection import screen_donor_text
 from engine.donor.repository import DonorRepository
+from engine.donor.taint import DonorTaintService
 from engine.events.idempotency import CommandLedger
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
@@ -54,18 +55,20 @@ class IngestResult:
 
 
 class DonorLabService:
-    """Owns donor_artifacts + feature_dna inserts (Chapter 3.8)."""
+    """Owns donor_artifacts + feature_dna + initial taint inserts (Ch.3.8)."""
 
     def __init__(
         self,
         engine: AsyncEngine,
         repository: DonorRepository | None = None,
         commands: CommandLedger | None = None,
+        taints: DonorTaintService | None = None,
         clock: Clock | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or DonorRepository()
         self._commands = commands or CommandLedger(engine)
+        self._taints = taints or DonorTaintService(engine, repository=self._repository)
         self._clock = clock or SystemClock()
 
     async def _run(
@@ -129,7 +132,7 @@ class DonorLabService:
         mission_id: UUID | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> IngestResult:
-        """Pin a donor by address — the DDE-046 ingest mutation site."""
+        """Pin a donor by address — classify then persist (DDE-046/047)."""
         uri = source_uri.strip()
         if not uri:
             raise DdeError(
@@ -148,10 +151,14 @@ class DonorLabService:
             source_uri=uri, content=content, content_path=content_path
         )
         content_hash = sha256_hex(payload)
-        resolved_class = resolve_source_class(
-            source_class, signed_reuse_decision_id=signed_reuse_decision_id
-        )
         text = payload.decode("utf-8", errors="replace")
+        classification = classify_donor(
+            text,
+            requested_source_class=source_class,
+            signed_reuse_decision_id=signed_reuse_decision_id,
+            source_uri=uri,
+        )
+        resolved_class = classification.source_class
         findings = screen_donor_text(text)
         request_hash = sha256_hex(
             f"{COMMAND_TYPE}|{uri}|{content_hash}|{resolved_class}|{media_kind}".encode()
@@ -197,12 +204,23 @@ class DonorLabService:
             now = self._clock.now()
             artifact_id = uuid7()
             dna_id = uuid7()
+            # Re-classify with concrete artifact id so taint tags are final.
+            classification_final = classify_donor(
+                text,
+                requested_source_class=source_class,
+                signed_reuse_decision_id=signed_reuse_decision_id,
+                donor_artifact_id=artifact_id,
+                source_uri=uri,
+            )
+            tags = list(classification_final.taint_tags)
             title, body, dna_hash = build_feature_dna_stub(
                 source_uri=uri,
                 content_hash=content_hash,
                 media_kind=media_kind,
-                source_class=resolved_class,
+                source_class=classification_final.source_class,
                 injection_findings=findings,
+                licence_class=classification_final.licence_class,
+                classification_evidence=[classification_final.rationale],
             )
             prior_dna = await self._repository.find_feature_dna_by_hash(
                 active.connection, project_id=project_id, dna_hash=dna_hash
@@ -217,7 +235,7 @@ class DonorLabService:
                 mission_id=mission_id,
                 source_uri=uri,
                 content_hash=content_hash,
-                source_class=resolved_class,
+                source_class=classification_final.source_class,
                 authority_rank=AUTHORITY_RANK_EXTERNAL,
                 media_kind=media_kind,
                 status="INGESTED",
@@ -230,6 +248,8 @@ class DonorLabService:
                         if signed_reuse_decision_id is not None
                         else None
                     ),
+                    "licence_class": classification_final.licence_class,
+                    "classification_rationale": classification_final.rationale,
                     "content_bytes": len(payload),
                 },
                 feature_dna_id=None,
@@ -249,6 +269,7 @@ class DonorLabService:
                     body=body,
                     donor_sources=[uri],
                     dna_hash=dna_hash,
+                    taint_tags=tags,
                     status="STUB",
                     created_at=now,
                     updated_at=now,
@@ -270,6 +291,19 @@ class DonorLabService:
                     "status": "EXTRACTED",
                     "updated_at": now,
                 }
+            )
+            await self._taints.link(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                donor_artifact_id=artifact_id,
+                subject_kind="feature_dna",
+                subject_id=dna.feature_dna_id,
+                source_class=classification_final.source_class,
+                licence_class=classification_final.licence_class,
+                source_uri=uri,
+                signed_reuse_decision_id=signed_reuse_decision_id,
+                taint_tags=tags,
+                uow=active,
             )
             result = IngestResult(artifact=artifact, feature_dna=dna, replayed=False)
             await self._commands.complete(
@@ -319,7 +353,6 @@ class DonorLabService:
                 },
             )
         if lowered.startswith("file:"):
-            # file:///C:/... or file://localhost/...
             raw = source_uri[5:]
             if raw.startswith("///"):
                 path = Path(raw[3:])

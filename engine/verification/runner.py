@@ -119,6 +119,7 @@ from engine.core.errors import DdeError
 from engine.core.hashing import canonical_json, sha256_hex
 from engine.core.ids import uuid7
 from engine.core.state_machine import transition
+from engine.donor.taint import DonorTaintService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
 from engine.missions.attempts import TaskAttemptService
@@ -291,6 +292,7 @@ class VerificationRunnerService:
         demotions: VerificationRunDemotionService | None = None,
         browser: BrowserCapability | None = None,
         security: SecurityCapability | None = None,
+        donor_taints: DonorTaintService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -324,6 +326,7 @@ class VerificationRunnerService:
         # browser + security so this module never imports a vendor SDK.
         self._browser = browser
         self._security = security
+        self._donor_taints = donor_taints or DonorTaintService(engine)
 
     async def _run_uow(
         self,
@@ -1008,6 +1011,14 @@ class VerificationRunnerService:
             updated_at=evaluated_at,
         )
         await self._evidence_repository.insert_evidence(active.connection, evidence)
+        await self._donor_taints.propagate_from_task(
+            tenant_id=task.tenant_id,
+            project_id=task.project_id,
+            task_id=task.task_id,
+            subject_kind="evidence",
+            subject_id=evidence.evidence_id,
+            uow=active,
+        )
 
         outcome_result = ObservableOutcomeResult(
             outcome_id=outcome.outcome_id,

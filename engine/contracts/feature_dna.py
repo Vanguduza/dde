@@ -12,9 +12,9 @@ from pydantic import BaseModel, ConfigDict
 class FeatureDNA(BaseModel):
     """
     Chapter 2.4 / 13.8 Feature DNA - canonical cross-cutting representation of a feature
-    extracted from donor material (DDE-046). Stage-5 vertical slice persists a
-    deterministic stub body content-hashed as dna_hash; full extraction depth and taint
-    propagation into tasks/diffs are DDE-047.
+    extracted from donor material (DDE-046/047). dna_hash content-addresses the body;
+    taint_tags answer which donor evidence influenced this DNA (propagated further via
+    donor_taints).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -27,6 +27,7 @@ class FeatureDNA(BaseModel):
     body: dict[str, object]
     donor_sources: list[str]
     dna_hash: str
+    taint_tags: list[str]
     status: Literal["STUB", "COMPLETE"]
     created_at: datetime
     updated_at: datetime

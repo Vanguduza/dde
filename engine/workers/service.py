@@ -172,6 +172,7 @@ from engine.core.errors import BudgetExhaustedError, DdeError
 from engine.core.hashing import canonical_json, sha256_hex
 from engine.core.ids import uuid7
 from engine.core.state_machine import transition
+from engine.donor.taint import DonorTaintService
 from engine.environments.service import ExecutionEnvironmentService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
@@ -358,6 +359,7 @@ class WorkerManagerService:
         recovery: RecoveryService | None = None,
         approvals: ApprovalService | None = None,
         overhead: ControlPlaneOverheadService | None = None,
+        donor_taints: DonorTaintService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -400,6 +402,9 @@ class WorkerManagerService:
             approvals=self._approvals,
             clock=self._clock,
             environments=self._environments,
+        )
+        self._donor_taints = donor_taints or DonorTaintService(
+            engine, approvals=self._approvals, clock=self._clock
         )
 
     async def _run(
@@ -782,6 +787,15 @@ class WorkerManagerService:
                     uow=active,
                 )
 
+            await self._donor_taints.assert_reuse_approved_for_production_task(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=execution_plan.mission_id,
+                task_id=task.task_id,
+                task_class=task.task_class,
+                uow=active,
+            )
+
             target_system, target_resource, operation = _journal_scope(
                 action, workspace
             )
@@ -1024,6 +1038,15 @@ class WorkerManagerService:
                     approval_type="architecture_change",
                     uow=active,
                 )
+
+            await self._donor_taints.assert_reuse_approved_for_production_task(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=execution_plan.mission_id,
+                task_id=task.task_id,
+                task_class=task.task_class,
+                uow=active,
+            )
 
             attempt = await self._attempts.get_attempt(
                 tenant_id=tenant_id,

@@ -28,6 +28,7 @@ from engine.contracts.derived_edge import DerivedEdge
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.domain_invariant import DomainInvariant
 from engine.contracts.donor_artifact import DonorArtifact
+from engine.contracts.donor_taint import DonorTaint
 from engine.contracts.edr import Edr
 from engine.contracts.error import Error
 from engine.contracts.eval_case import EvalCase
@@ -105,6 +106,7 @@ __all__ = [
     "DiffGateReport",
     "DomainInvariant",
     "DonorArtifact",
+    "DonorTaint",
     "Edr",
     "Error",
     "EvalCase",

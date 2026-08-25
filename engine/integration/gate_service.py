@@ -34,9 +34,12 @@ actual git diff and proposed-revision blobs:
     a transitive-delta threshold. Live OSV/Grype HTTP lookups are not
     performed.
   - Licence header: SPDX/copyright header required on newly added source
-    files. Donor Lab ingest (DDE-046) persists artifacts; provenance
-    taint into tasks/diffs (§13.8) remains DDE-047 — this gate cannot
-    consult a taint graph that does not exist yet.
+    files.
+  - Donor taint (Chapter 13.8 / DDE-047): DiffGateService loads
+    donor_taints for the proposal's task, merges content-hash matches
+    from DonorTaintService.influences_for_blobs on proposed blobs, and
+    evaluate_diff → scan_donor_taint blocks forbidden classes or
+    missing donor_reuse.
   - Forbidden paths: CI config, security policy, migrations, `.git`
     internals -- always blocked (approval is DDE-026; without it the
     fail-closed outcome is REJECTED).
@@ -54,7 +57,6 @@ workspace, and is not read from the worktree.
   - Live OSV.dev HTTP lookups.
   - Full lockfile-transitive SBOM (declared manifests only; lockfile
     diffs contribute a transitive-delta count).
-  - Donor taint propagation (DDE-047; ingest tables land in DDE-046).
   - Approval records for new top-level deps above the autonomy ceiling
     (DDE-026); missing justification itself blocks, which is the
     stricter fail-closed default of Chapter 9.6's AGENTS.md rule.
@@ -78,14 +80,18 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.diff_gate_report import DiffGateFinding, DiffGateReport
+from engine.contracts.donor_taint import DonorTaint
 from engine.contracts.integration_proposal import IntegrationProposal
 from engine.core.clock import Clock, SystemClock
 from engine.core.errors import DdeError
 from engine.core.hashing import canonical_json, sha256_hex
 from engine.core.ids import uuid7
 from engine.core.state_machine import transition
+from engine.donor.taint import DonorInfluence, DonorTaintService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.governance.hashing import approval_scope_hash
+from engine.governance.service import ApprovalService
 from engine.integration import git
 from engine.integration.gates import (
     GateEvaluation,
@@ -120,6 +126,8 @@ class DiffGateService:
         commands: CommandLedger | None = None,
         reports: DiffGateReportRepository | None = None,
         admissions: DependencyAdmissionRepository | None = None,
+        taints: DonorTaintService | None = None,
+        approvals: ApprovalService | None = None,
         clock: Clock | None = None,
     ) -> None:
         self._engine = engine
@@ -127,6 +135,8 @@ class DiffGateService:
         self._commands = commands or CommandLedger(engine)
         self._reports = reports or DiffGateReportRepository()
         self._admissions = admissions or DependencyAdmissionRepository()
+        self._taints = taints or DonorTaintService(engine)
+        self._approvals = approvals or ApprovalService(engine)
         self._clock = clock or SystemClock()
 
     async def _run(
@@ -217,12 +227,85 @@ class DiffGateService:
                 uow=active,
             )
 
+            task_taints = await self._taints.list_for_subject(
+                tenant_id=proposal.tenant_id,
+                project_id=proposal.project_id,
+                subject_kind="task",
+                subject_id=proposal.task_id,
+                uow=active,
+            )
+            proposed_blobs = {
+                path: git.show_blob(repo_root, proposed_revision, path)
+                for path in changed_paths
+            }
+            blob_influences = await self._taints.influences_for_blobs(
+                tenant_id=proposal.tenant_id,
+                project_id=proposal.project_id,
+                proposed_blobs=proposed_blobs,
+                uow=active,
+            )
+            known_ids = {t.donor_artifact_id for t in task_taints}
+            gate_taints: list[dict[str, object]] = [
+                {
+                    "donor_artifact_id": str(t.donor_artifact_id),
+                    "source_class": t.source_class,
+                    "licence_class": t.licence_class,
+                    "source_uri": t.source_uri,
+                }
+                for t in task_taints
+            ]
+            for influence in blob_influences:
+                if influence.donor_artifact_id in known_ids:
+                    continue
+                gate_taints.append(
+                    {
+                        "donor_artifact_id": str(influence.donor_artifact_id),
+                        "source_class": influence.source_class,
+                        "licence_class": influence.licence_class,
+                        "source_uri": influence.source_uri,
+                    }
+                )
+                await self._taints.link(
+                    tenant_id=proposal.tenant_id,
+                    project_id=proposal.project_id,
+                    donor_artifact_id=influence.donor_artifact_id,
+                    subject_kind="diff_gate_report",
+                    subject_id=report.report_id,
+                    source_class=influence.source_class,
+                    licence_class=influence.licence_class,
+                    source_uri=influence.source_uri,
+                    signed_reuse_decision_id=influence.signed_reuse_decision_id,
+                    taint_tags=list(influence.taint_tags),
+                    uow=active,
+                )
+                known_ids.add(influence.donor_artifact_id)
+            reuse_ok = await self._donor_reuse_approved(
+                tenant_id=proposal.tenant_id,
+                project_id=proposal.project_id,
+                mission_id=proposal.mission_id,
+                task_id=proposal.task_id,
+                taints=task_taints,
+                extra_influences=blob_influences,
+                uow=active,
+            )
             outcome = self._scan(
                 repo_root=repo_root,
                 base_revision=base_revision,
                 proposed_revision=proposed_revision,
                 changed_paths=changed_paths,
+                donor_taints=gate_taints,
+                donor_reuse_approved=reuse_ok,
+                proposed_blobs=proposed_blobs,
             )
+            if task_taints:
+                await self._taints.propagate_from_task(
+                    tenant_id=proposal.tenant_id,
+                    project_id=proposal.project_id,
+                    task_id=proposal.task_id,
+                    subject_kind="diff_gate_report",
+                    subject_id=report.report_id,
+                    uow=active,
+                )
             target_status = "PASSED" if outcome.passed else "FAILED"
             findings = [_to_finding(item) for item in outcome.findings]
             for decision in outcome.admissions:
@@ -322,15 +405,19 @@ class DiffGateService:
         base_revision: str,
         proposed_revision: str,
         changed_paths: list[str],
+        donor_taints: list[dict[str, object]] | None = None,
+        donor_reuse_approved: bool = False,
+        proposed_blobs: dict[str, str | None] | None = None,
     ) -> GateEvaluation:
         unified = git.diff_unified(repo_root, base_revision, proposed_revision)
         new_paths = git.diff_name_only_filter(
             repo_root, base_revision, proposed_revision, "A"
         )
-        proposed_blobs = {
-            path: git.show_blob(repo_root, proposed_revision, path)
-            for path in changed_paths
-        }
+        if proposed_blobs is None:
+            proposed_blobs = {
+                path: git.show_blob(repo_root, proposed_revision, path)
+                for path in changed_paths
+            }
         manifest_paths = [
             path
             for path in git.ls_tree_names(repo_root, proposed_revision)
@@ -365,7 +452,59 @@ class DiffGateService:
                 **proposed_changed_manifests,
             },
             new_paths=new_paths,
+            donor_taints=donor_taints,
+            donor_reuse_approved=donor_reuse_approved,
         )
+
+    async def _donor_reuse_approved(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        task_id: UUID,
+        taints: list[DonorTaint],
+        uow: PostgresUnitOfWork,
+        extra_influences: list[DonorInfluence] | None = None,
+    ) -> bool:
+        """True when every reusable taint has an APPROVED donor_reuse."""
+        candidates: list[tuple[UUID, str]] = [
+            (t.donor_artifact_id, t.source_class) for t in taints
+        ]
+        for influence in extra_influences or []:
+            candidates.append((influence.donor_artifact_id, influence.source_class))
+        if not candidates:
+            return True
+        seen: set[UUID] = set()
+        for donor_artifact_id, source_class in candidates:
+            if donor_artifact_id in seen:
+                continue
+            seen.add(donor_artifact_id)
+            if source_class not in {
+                "OPEN_REUSE",
+                "CONDITIONAL_REUSE",
+                "RESTRICTED",
+            }:
+                continue
+            scope = approval_scope_hash(
+                approval_type="donor_reuse",
+                mission_id=mission_id,
+                task_id=task_id,
+                payload={
+                    "donor_artifact_id": str(donor_artifact_id),
+                    "source_class": str(source_class),
+                },
+            )
+            ok = await self._approvals.has_approved(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                scope_hash=scope,
+                approval_type="donor_reuse",
+                uow=uow,
+            )
+            if not ok:
+                return False
+        return True
 
     async def _finish(
         self,

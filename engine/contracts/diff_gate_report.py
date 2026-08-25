@@ -20,6 +20,7 @@ class DiffGateFinding(BaseModel):
         "dependency_vulnerability",
         "licence_header",
         "forbidden_path",
+        "donor_taint",
     ]
     tool: str
     severity: Literal["info", "warn", "error", "critical"]

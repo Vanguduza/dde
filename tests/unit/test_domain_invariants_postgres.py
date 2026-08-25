@@ -31,7 +31,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from engine.core.errors import DdeError
 from engine.invariants.service import DomainInvariantService
 from engine.product_env.service import HUMAN_ORIGIN, ProductEnvironmentService
-from tests.recovery.support_helpers import plant_duplicate_requirements
+from tests.recovery.support_helpers import (
+    plant_duplicate_requirements,
+    purge_planted_requirements,
+)
 from tests.support.db import new_engine, seed_tenant
 
 
@@ -166,6 +169,9 @@ async def test_retire_is_the_only_lifecycle_mutation_and_is_typed() -> None:
 async def test_evaluate_records_pass_over_clean_real_rows() -> None:
     engine = new_engine()
     try:
+        # Shared-dev-DB hygiene: planted dup rows from an interrupted
+        # earlier suite must not leak into a "clean" evaluation.
+        await purge_planted_requirements(engine)
         tenant = await seed_tenant(engine)
         service = DomainInvariantService(engine)
         record = await service.define(**_unique_invariant_kwargs(tenant))

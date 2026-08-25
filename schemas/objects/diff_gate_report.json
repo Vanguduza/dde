@@ -71,7 +71,8 @@
             "static_analysis",
             "dependency_vulnerability",
             "licence_header",
-            "forbidden_path"
+            "forbidden_path",
+            "donor_taint"
           ]
         },
         "tool": { "type": "string" },

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/feature_dna.json",
   "title": "FeatureDNA",
-  "description": "Chapter 2.4 / 13.8 Feature DNA - canonical cross-cutting representation of a feature extracted from donor material (DDE-046). Stage-5 vertical slice persists a deterministic stub body content-hashed as dna_hash; full extraction depth and taint propagation into tasks/diffs are DDE-047.",
+  "description": "Chapter 2.4 / 13.8 Feature DNA - canonical cross-cutting representation of a feature extracted from donor material (DDE-046/047). dna_hash content-addresses the body; taint_tags answer which donor evidence influenced this DNA (propagated further via donor_taints).",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -43,6 +43,7 @@
     "body",
     "donor_sources",
     "dna_hash",
+    "taint_tags",
     "status",
     "created_at",
     "updated_at"
@@ -59,6 +60,11 @@
       "items": { "type": "string" }
     },
     "dna_hash": { "type": "string", "minLength": 1 },
+    "taint_tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Chapter 13.8 provenance tags; mirrored onto donor_taints for tasks/diffs/evidence"
+    },
     "status": {
       "type": "string",
       "enum": ["STUB", "COMPLETE"]

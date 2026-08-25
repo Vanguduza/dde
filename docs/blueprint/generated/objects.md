@@ -482,6 +482,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## DonorTaint
+
+- table: `donor_taints`
+- primary key: donor_taint_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## Event
 
 - table: `events`

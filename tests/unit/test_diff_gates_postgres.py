@@ -152,6 +152,7 @@ async def test_state_transition_evaluating_passed_via_clean_diff(
             "dependency_vulnerability",
             "licence_header",
             "forbidden_path",
+            "donor_taint",
         }
         again = await gates.evaluate(
             proposal=proposal,

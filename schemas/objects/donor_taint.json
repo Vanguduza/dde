@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/donor_taint.json",
+  "title": "DonorTaint",
+  "description": "Chapter 13.8 provenance taint link (DDE-047). Answers which donor evidence influenced a Feature DNA row, task, diff-gate report, or evidence artifact. Written only by DonorTaintService mutation sites; never inventable by workers.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "donor_taints",
+    "order": 226,
+    "pk": ["donor_taint_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["project_id", "subject_kind", "subject_id", "donor_artifact_id"]],
+    "foreign_keys": [
+      {
+        "name": "donor_taints_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "donor_taints_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "donor_taints_donor_artifact_id_fkey",
+        "columns": ["donor_artifact_id"],
+        "ref_table": "donor_artifacts",
+        "ref_columns": ["donor_artifact_id"]
+      }
+    ]
+  },
+  "required": [
+    "donor_taint_id",
+    "tenant_id",
+    "project_id",
+    "donor_artifact_id",
+    "subject_kind",
+    "subject_id",
+    "source_class",
+    "licence_class",
+    "taint_tags",
+    "source_uri",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "donor_taint_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "donor_artifact_id": { "type": "string", "format": "uuid" },
+    "subject_kind": {
+      "type": "string",
+      "enum": ["feature_dna", "task", "diff_gate_report", "evidence"]
+    },
+    "subject_id": { "type": "string", "format": "uuid" },
+    "source_class": {
+      "type": "string",
+      "enum": [
+        "OPEN_REUSE",
+        "CONDITIONAL_REUSE",
+        "SOURCE_REFERENCE_ONLY",
+        "RESTRICTED",
+        "UNKNOWN",
+        "REJECTED"
+      ]
+    },
+    "licence_class": {
+      "type": "string",
+      "description": "Detected SPDX id, CONFLICTING, or UNKNOWN"
+    },
+    "taint_tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "source_uri": { "type": "string", "minLength": 1 },
+    "signed_reuse_decision_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
