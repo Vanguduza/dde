@@ -22,6 +22,11 @@ GENERATED_SQL = ROOT / "schemas" / "sql" / "0001_stage1.sql"
 GLOBAL_REGISTRIES = frozenset({"capabilities"})
 DEFERRED_GLOBAL_REGISTRIES = frozenset({"worker_profiles", "policies"})
 
+# Chapter 13.9 scope anchors sit ABOVE tenants, so they carry no tenant_id
+# and are keyed on their own GUC (dde.organization_id) instead of
+# dde.tenant_id. They are still RLS-forced fail-closed.
+SCOPE_ANCHORS = frozenset({"organizations"})
+
 # Tenant-wide hash chain (Chapter 3.7): project_id is correlation metadata,
 # not an RLS axis. See schemas/objects/audit_event.json.
 TENANT_ONLY_WITH_OPTIONAL_PROJECT = frozenset({"audit_events"})
@@ -62,6 +67,12 @@ def test_every_stored_table_except_global_registries_requires_tenant_id() -> Non
             assert "tenant_id" not in schema["properties"]
             assert "owner_tenant_id" in schema["properties"]
             assert "visibility" in required
+            continue
+        if table in SCOPE_ANCHORS:
+            assert storage.get("tenant_scoped") is False, table
+            assert "tenant_id" not in required and (
+                "tenant_id" not in schema["properties"]
+            ), table
             continue
         assert storage.get("tenant_scoped") is True, table
         assert "tenant_id" in required, table
@@ -127,7 +138,7 @@ def test_generated_create_table_marks_tenant_id_not_null() -> None:
     sql = GENERATED_SQL.read_text(encoding="utf-8")
     for schema in _stored_objects():
         table = schema["x-dde-storage"]["table"]
-        if table in GLOBAL_REGISTRIES:
+        if table in GLOBAL_REGISTRIES or table in SCOPE_ANCHORS:
             continue
         header = f"CREATE TABLE {table} ("
         start = sql.index(header)

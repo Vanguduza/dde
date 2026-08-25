@@ -12,7 +12,10 @@
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
-    "uniques": [["worker_run_id", "sequence"]],
+    "uniques": [
+      ["worker_run_id", "sequence"],
+      ["verification_run_id", "project_id", "tenant_id"]
+    ],
     "foreign_keys": [
       {
         "name": "verification_runs_mission_scope_fkey",

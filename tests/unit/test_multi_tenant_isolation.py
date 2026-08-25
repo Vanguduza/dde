@@ -362,7 +362,7 @@ async def test_telemetry_correlation_derives_from_verified_chain(
         assert outcome.verification_run_id == run.verification_run_id
     finally:
         if workspace_obj is not None:
-            await WorkspaceService(engine).scrub(workspace_obj)
+            await WorkspaceService(engine).cleanup(workspace=workspace_obj)
         await engine.dispose()
 
 

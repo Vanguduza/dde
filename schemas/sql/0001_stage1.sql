@@ -157,7 +157,8 @@ CREATE TABLE missions (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (mission_id),
-    UNIQUE (project_id, slug)
+    UNIQUE (project_id, slug),
+    UNIQUE (mission_id, project_id, tenant_id)
 );
 
 CREATE TABLE task_graphs (
@@ -206,7 +207,8 @@ CREATE TABLE tasks (
     lock_version integer NOT NULL DEFAULT 1,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
-    PRIMARY KEY (task_id)
+    PRIMARY KEY (task_id),
+    UNIQUE (task_id, project_id, tenant_id)
 );
 
 CREATE TABLE task_graph_edges (
@@ -605,7 +607,8 @@ CREATE TABLE task_attempts (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (attempt_id),
-    UNIQUE (task_id, sequence)
+    UNIQUE (task_id, sequence),
+    UNIQUE (attempt_id, project_id, tenant_id)
 );
 
 CREATE TABLE worker_runs (
@@ -634,7 +637,8 @@ CREATE TABLE worker_runs (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (run_id),
-    UNIQUE (task_attempt_id, sequence)
+    UNIQUE (task_attempt_id, sequence),
+    UNIQUE (run_id, project_id, tenant_id)
 );
 
 CREATE TABLE worker_events (
@@ -778,7 +782,8 @@ CREATE TABLE artifacts (
     storage_key text NOT NULL,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
-    PRIMARY KEY (artifact_id)
+    PRIMARY KEY (artifact_id),
+    UNIQUE (artifact_id, project_id, tenant_id)
 );
 
 CREATE TABLE seed_datasets (
@@ -928,7 +933,8 @@ CREATE TABLE verification_runs (
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (verification_run_id),
-    UNIQUE (worker_run_id, sequence)
+    UNIQUE (worker_run_id, sequence),
+    UNIQUE (verification_run_id, project_id, tenant_id)
 );
 
 CREATE TABLE plan_drafts (

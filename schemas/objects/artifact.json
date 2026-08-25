@@ -9,6 +9,7 @@
     "table": "artifacts",
     "order": 200,
     "pk": ["artifact_id"],
+    "uniques": [["artifact_id", "project_id", "tenant_id"]],
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,

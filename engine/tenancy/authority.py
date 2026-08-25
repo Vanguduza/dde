@@ -98,17 +98,24 @@ class TenancyAuthorityService:
                 "Unknown principal",
                 details={"principal_id": str(principal_id)},
             )
-        if UUID(str(principal_row[0])) != tenant_id:
-            # The principal's own tenant is part of their identity; asking
-            # for another tenant's project fails before grants are read.
-            raise DdeError(
-                "TENANT_SCOPE_VIOLATION",
-                "Principal belongs to another tenant",
-                details={
-                    "principal_tenant_id": str(principal_row[0]),
-                    "requested_tenant_id": str(tenant_id),
-                },
+        principal_home_tenant = UUID(str(principal_row[0]))
+        if principal_home_tenant != tenant_id:
+            # Same-organization sibling tenants are still reachable, but only
+            # through an ORGANIZATION grant (checked below); a principal whose
+            # home tenant IS the requested tenant passes straight to grant
+            # checks. Anything else fails before grants are read.
+            same_organization = await self._shares_organization(
+                home_tenant_id=principal_home_tenant, target_tenant_id=tenant_id
             )
+            if not same_organization:
+                raise DdeError(
+                    "TENANT_SCOPE_VIOLATION",
+                    "Principal belongs to another organization",
+                    details={
+                        "principal_tenant_id": str(principal_row[0]),
+                        "requested_tenant_id": str(tenant_id),
+                    },
+                )
 
         async with self._engine.connect() as connection:
             covered = (
@@ -139,6 +146,26 @@ class TenancyAuthorityService:
                     "Principal is not authorized for the target project",
                     details={"project_id": str(project_id)},
                 )
+
+    async def _shares_organization(
+        self, *, home_tenant_id: UUID, target_tenant_id: UUID
+    ) -> bool:
+        """True when two tenants belong to the same organization (Ch.13.9
+        scope chain). Cross-organization access is refused outright."""
+        async with self._engine.connect() as connection:
+            row = (
+                await connection.execute(
+                    text(
+                        "SELECT 1 FROM tenants home, tenants target "
+                        "WHERE home.tenant_id = :home "
+                        "AND target.tenant_id = :target "
+                        "AND home.organization_id = target.organization_id "
+                        "LIMIT 1"
+                    ),
+                    {"home": home_tenant_id, "target": target_tenant_id},
+                )
+            ).first()
+        return row is not None
 
     async def _organization_grant_covers(
         self, *, tenant_id: UUID, principal_id: UUID

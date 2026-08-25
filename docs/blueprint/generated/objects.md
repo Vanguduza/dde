@@ -6,7 +6,7 @@ Generated from `schemas/objects`. Do not edit.
 
 - table: `organizations`
 - primary key: organization_id
-- tenant scoped: true
+- tenant scoped: false
 - project scoped: false
 - lock_version: false
 
