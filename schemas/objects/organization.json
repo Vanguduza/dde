@@ -9,7 +9,7 @@
     "table": "organizations",
     "order": 5,
     "pk": ["organization_id"],
-    "tenant_scoped": true,
+    "tenant_scoped": false,
     "project_scoped": false,
     "lock_version": false,
     "rls_predicate": "organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)",

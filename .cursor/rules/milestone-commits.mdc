@@ -1,0 +1,62 @@
+---
+description: Milestone commits while work is in progress — checkpoint every completed milestone so stopped sessions never strand work; one agent per repo tree
+alwaysApply: true
+---
+
+# Milestone commits (work-in-progress checkpoints)
+
+**Standing order (user, 2026-08-25): commit at milestones in the background
+while work continues. This applies to all future work.**
+
+## The problem this prevents
+
+Long missions previously committed only once, at landing ("CI green + chapter
+gate"). A session stopped mid-flight left hours of real work as raw
+working-tree modifications: invisible in `git log`, easy to mistake for lost,
+and easy for a *concurrently running* session to clobber (this caused the
+DDE-046 and DDE-051 wipe-outs).
+
+## Rule 1 — Commit at every milestone, not just at landing
+
+While a mission or task is in progress, create a WIP commit as soon as a
+coherent milestone completes. Milestones include (non-exhaustive):
+
+- audit/investigation findings written to a file (e.g. an audit table doc)
+- schema + generated contracts updated and `generate_contracts` green
+- a migration written and applied cleanly
+- a test suite newly passing that failed before the implementation existed
+- a capability/service module implemented with its unit tests green
+- any user-visible intermediate deliverable
+
+Commit message convention: prefix `WIP(DDE-0xx): <milestone>` so history
+stays scannable and landing can squash if desired:
+
+```
+WIP(DDE-051): tenancy audit table + organization schema/contracts
+```
+
+WIP commits do NOT replace the landing discipline: the final landing commit
+still requires the full gate (`just check`) and the independent chapter-gate
+review per `.cursor/rules/mission-chapter-gate.mdc`. A green WIP commit is
+still not chapter sign-off.
+
+## Rule 2 — One agent per repo tree
+
+Never run two sessions/agents concurrently against the same working tree.
+Before starting work on a mission, check `git status` and recent branch state;
+if uncommitted work exists from another session, adopt it (do not overwrite).
+If parallelism is needed, use separate git worktrees with separate branches,
+never the same checkout.
+
+## Rule 3 — Checkpoint before risky operations
+
+Before rebasing, switching branches, regenerating contracts, or running
+anything that rewrites files at scale: if there are uncommitted changes,
+commit them first (`git add -A; git commit -m "WIP(...): checkpoint before
+<operation>"`). Never let an operation destroy uncommitted work.
+
+## Failure mode this rule makes impossible
+
+A closed/stopped session now costs, at most, the minutes since the last
+milestone commit — never the whole mission. Any future session can see
+exactly where the previous one stopped from `git log` alone.

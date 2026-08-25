@@ -33,7 +33,7 @@ down_revision = "0019"
 branch_labels = None
 depends_on = None
 
-_ORG_SQL = """
+_ORG_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS organizations (
     organization_id uuid NOT NULL,
     slug text NOT NULL,
@@ -42,17 +42,24 @@ CREATE TABLE IF NOT EXISTS organizations (
     PRIMARY KEY (organization_id),
     UNIQUE (slug)
 );
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS organizations_tenant_isolation ON organizations;
+"""
+
+# asyncpg cannot run multi-command strings as one prepared statement, so
+# each DDL statement below is executed separately.
+_ORG_RLS_SQL = [
+    "ALTER TABLE organizations ENABLE ROW LEVEL SECURITY",
+    "ALTER TABLE organizations FORCE ROW LEVEL SECURITY",
+    "DROP POLICY IF EXISTS organizations_tenant_isolation ON organizations",
+    """
 CREATE POLICY organizations_tenant_isolation ON organizations
     USING (
         organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)
     )
     WITH CHECK (
         organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)
-    );
-"""
+    )
+""",
+]
 
 # Parent-side UNIQUE indexes backing the composite FKs below. The missions /
 # tasks / task_attempts / worker_runs tables carry these column sets already
@@ -65,19 +72,32 @@ _PARENT_INDEXES = [
     ("uq_worker_runs_scope", "worker_runs", "run_id, project_id, tenant_id"),
 ]
 
-_GRANTS_SQL = """
+_GRANTS_SQL = [
+    """
 ALTER TABLE principal_grants
-    ADD COLUMN IF NOT EXISTS scope_type text NOT NULL DEFAULT 'PROJECT',
-    ADD COLUMN IF NOT EXISTS grant_scope text NOT NULL DEFAULT 'PROJECT';
+    ADD COLUMN IF NOT EXISTS scope_type text NOT NULL DEFAULT 'PROJECT'
+""",
+    """
+ALTER TABLE principal_grants
+    ADD COLUMN IF NOT EXISTS grant_scope text NOT NULL DEFAULT 'PROJECT'
+""",
+    """
 ALTER TABLE principal_grants DROP CONSTRAINT IF EXISTS
-    principal_grants_scope_type_allowed;
+    principal_grants_scope_type_allowed
+""",
+    """
 ALTER TABLE principal_grants ADD CONSTRAINT principal_grants_scope_type_allowed
-    CHECK (scope_type IN ('ORGANIZATION', 'PROJECT'));
+    CHECK (scope_type IN ('ORGANIZATION', 'PROJECT'))
+""",
+    """
 ALTER TABLE principal_grants DROP CONSTRAINT IF EXISTS
-    principal_grants_grant_scope_allowed;
+    principal_grants_grant_scope_allowed
+""",
+    """
 ALTER TABLE principal_grants ADD CONSTRAINT principal_grants_grant_scope_allowed
-    CHECK (grant_scope IN ('ORGANIZATION', 'TENANT', 'PROJECT'));
-"""
+    CHECK (grant_scope IN ('ORGANIZATION', 'TENANT', 'PROJECT'))
+""",
+]
 
 # (table, old single-column FK, new composite FK, child columns,
 #  parent table, parent columns)
@@ -230,7 +250,9 @@ def _constraint_exists(conn: object, name: str, table: str) -> bool:
 
 def upgrade() -> None:
     conn = op.get_bind()
-    conn.execute(text(_ORG_SQL))
+    conn.execute(text(_ORG_TABLE_SQL))
+    for statement in _ORG_RLS_SQL:
+        conn.execute(text(statement))
 
     # A placeholder org absorbs pre-existing tenant rows so the NOT NULL
     # link lands cleanly on an existing database; fresh databases get their
@@ -248,6 +270,13 @@ def upgrade() -> None:
     conn.execute(  # type: ignore[attr-defined]
         text("SELECT set_config('dde.organization_id', :value, true)"),
         {"value": str(placeholder)},
+    )
+    # Existing databases may predate the organization link entirely.
+    conn.execute(  # type: ignore[attr-defined]
+        text(
+            "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "
+            "organization_id uuid REFERENCES organizations (organization_id)"
+        )
     )
     # RLS on tenants binds tenant_id to dde.tenant_id; the dev superuser and
     # migrations run as owner/superuser so this link update is not blocked.
@@ -277,7 +306,8 @@ def upgrade() -> None:
             )
         )
 
-    conn.execute(text(_GRANTS_SQL))  # type: ignore[arg-type]
+    for statement in _GRANTS_SQL:
+        conn.execute(text(statement))
 
     for table, old_name, new_name, cols, ref_table, ref_cols in _SCOPE_FKS:
         if _constraint_exists(conn, old_name, table):
