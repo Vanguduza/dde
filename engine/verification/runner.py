@@ -101,6 +101,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.attribution.service import FailureAttributionService
+from engine.capabilities.android import AndroidCapability
 from engine.capabilities.browser import BrowserCapability
 from engine.capabilities.security import SecurityCapability
 from engine.contracts.acceptance_oracle import AcceptanceOracle, ObservableOutcome
@@ -292,6 +293,7 @@ class VerificationRunnerService:
         demotions: VerificationRunDemotionService | None = None,
         browser: BrowserCapability | None = None,
         security: SecurityCapability | None = None,
+        android: AndroidCapability | None = None,
         donor_taints: DonorTaintService | None = None,
     ) -> None:
         self._engine = engine
@@ -322,10 +324,12 @@ class VerificationRunnerService:
         self._demotions = demotions or VerificationRunDemotionService(
             engine, events=self._events
         )
-        # DDE-043/044/045: vendor scanners live in adapters/; inject
-        # browser + security so this module never imports a vendor SDK.
+        # DDE-043/044/045/048: vendor scanners live in adapters/; inject
+        # browser + security + android so this module never imports a
+        # vendor SDK.
         self._browser = browser
         self._security = security
+        self._android = android
         self._donor_taints = donor_taints or DonorTaintService(engine)
 
     async def _run_uow(
@@ -961,6 +965,7 @@ class VerificationRunnerService:
             uow=active,
             browser=self._browser,
             security=self._security,
+            android=self._android,
         )
         evaluated_at = self._clock.now()
         outcome_status = _outcome_status(

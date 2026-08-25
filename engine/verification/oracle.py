@@ -13,7 +13,8 @@ DDE-043 `api_probe` browser probe and DDE-044 `visual_diff` pixel check.
 still needs DDE-049. `test`/`invariant` remain command-exit evidence;
 `api_probe` is a Playwright navigation whose argv is `[url, expect_text?]`;
 `visual_diff` argv is `[visual/*.json]` (Chapter 11.2);
-`security_scan` argv is `[sast]` (DDE-045 in-process SAST).
+`security_scan` argv is `[sast]` (DDE-045 in-process SAST);
+`android_scan` argv is `[static]` (DDE-048 in-process APK analysis).
 
 Mission-level oracles (`scope = "mission"`, Chapter 11.3) are authored
 through `define_mission()`; `task_id` is null on those rows. `evaluate()`
@@ -43,9 +44,10 @@ from engine.verification.repository import AcceptanceOracleRepository
 
 #: Kinds this runner can genuinely execute. `judge`/`human` remain valid
 #: enum members but have no executor here (DDE-068 for VLM critique).
-#: `api_probe` is DDE-043; `visual_diff` is DDE-044 (pixel goldens).
+#: `api_probe` is DDE-043; `visual_diff` is DDE-044 (pixel goldens);
+#: `android_scan` is DDE-048.
 EXECUTABLE_KINDS: frozenset[str] = frozenset(
-    {"test", "invariant", "api_probe", "visual_diff", "security_scan"}
+    {"test", "invariant", "api_probe", "visual_diff", "security_scan", "android_scan"}
 )
 
 #: Chapter 4.4's granularity policy: "Success criteria: 1-5 observable

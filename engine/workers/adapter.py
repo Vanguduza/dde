@@ -53,6 +53,9 @@ class WorkerAction:
     #: DDE-045 `capability.security` scan mode (`sast`, or deferred
     #: `dast`/`agentic` which fail closed).
     security_mode: str | None = None
+    #: DDE-048 `capability.android_analysis` scan mode (`static`, or
+    #: deferred `dynamic`/`adb`/`instrumentation` which fail closed).
+    android_mode: str | None = None
 
 
 @dataclass(frozen=True)

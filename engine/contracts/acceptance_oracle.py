@@ -20,6 +20,7 @@ class EvidenceBinding(BaseModel):
         "api_probe",
         "visual_diff",
         "security_scan",
+        "android_scan",
         "invariant",
         "judge",
         "human",

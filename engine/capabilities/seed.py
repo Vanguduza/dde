@@ -213,6 +213,27 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("planning", "verification"),
         network_requirements={"egress": "none"},
     ),
+    # DDE-048 / Chapter 9.8 mobile/Android class. Static APK analysis is
+    # in-process (stdlib zipfile; no JADX/Apktool/MobSF/ADB binary).
+    # PURE_READ: analysis never mutates the product or a device. Dynamic
+    # modes fail closed — no device attack surface until EDR-0017.
+    SeedCapability(
+        capability_id="capability.android_analysis",
+        version="1",
+        category="android",
+        summary=(
+            "Static analysis of an .apk in the task workspace: manifest "
+            "permissions, native ABIs, signing presence, secret scan of "
+            "assets (adapters.android, stdlib-only). Dynamic/ADB modes "
+            "are refused."
+        ),
+        side_effect_class="PURE_READ",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("adapters.android.adapter.AndroidWorkerAdapter",),
+        supported_workloads=("verification",),
+        network_requirements={"egress": "none"},
+    ),
 )
 
 

@@ -263,6 +263,7 @@ CAPABILITY_WORKSPACE_FILESYSTEM = "capability.workspace_filesystem"
 CAPABILITY_GIT_OPERATIONS = "capability.git_operations"
 CAPABILITY_BROWSER = "capability.browser"
 CAPABILITY_SECURITY = "capability.security"
+CAPABILITY_ANDROID = "capability.android_analysis"
 
 
 def _journal_scope(action: WorkerAction, workspace: Workspace) -> tuple[str, str, str]:
@@ -293,6 +294,8 @@ def _required_capability_ids(action: WorkerAction) -> tuple[str, ...]:
         return (CAPABILITY_BROWSER,)
     if action.security_mode:
         return (CAPABILITY_SECURITY,)
+    if action.android_mode:
+        return (CAPABILITY_ANDROID,)
     if action.write_files:
         return (
             CAPABILITY_WORKSPACE_FILESYSTEM,
@@ -330,6 +333,7 @@ def _invoke_request_hash(
                 "browser_url": action.browser_url,
                 "browser_expect_text": action.browser_expect_text,
                 "security_mode": action.security_mode,
+                "android_mode": action.android_mode,
             }
         )
     )
@@ -808,7 +812,7 @@ class WorkerManagerService:
                 operation=operation,
                 uow=active,
             )
-            if not action.security_mode:
+            if not action.security_mode and not action.android_mode:
                 await self._effects.assert_clear_to_mutate(
                     tenant_id=tenant_id,
                     project_id=project_id,
@@ -1126,7 +1130,7 @@ class WorkerManagerService:
             await self._refuse_completed_worker_result(
                 active, tenant_id=tenant_id, project_id=project_id, task_id=task.task_id
             )
-            if not action.security_mode:
+            if not action.security_mode and not action.android_mode:
                 await self._effects.assert_clear_to_mutate(
                     tenant_id=tenant_id,
                     project_id=project_id,

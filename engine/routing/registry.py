@@ -21,11 +21,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from engine.routing.policy import (
+    CAPABILITY_ANDROID,
     CAPABILITY_BROWSER,
     CAPABILITY_REPOSITORY,
     CAPABILITY_SECURITY,
     CAPABILITY_TESTING,
     MODALITY_IMAGE,
+    PROFILE_ANDROID,
     PROFILE_DETERMINISTIC_RUNNER,
     PROFILE_GENERAL_IMPLEMENTATION,
     PROFILE_LONGCONTEXT_ECONOMY,
@@ -308,6 +310,17 @@ PROFILES: dict[str, WorkerProfile] = {
                 CAPABILITY_REPOSITORY,
                 CAPABILITY_TESTING,
                 CAPABILITY_SECURITY,
+            }
+        ),
+        environment_classes=frozenset({ENVIRONMENT_STANDARD}),
+    ),
+    PROFILE_ANDROID: WorkerProfile(
+        profile_id=PROFILE_ANDROID,
+        capabilities=frozenset(
+            {
+                CAPABILITY_REPOSITORY,
+                CAPABILITY_TESTING,
+                CAPABILITY_ANDROID,
             }
         ),
         environment_classes=frozenset({ENVIRONMENT_STANDARD}),
