@@ -40,9 +40,11 @@ computed from real signals versus explicitly parameterised because no
 real data source exists yet (Chapter 5.11 failure attribution).
 
 Deliberately out of scope, per the mission brief: dependency/graph/
-temporal/documentation/visual retrievers, just-in-time expansion (needs
-worker runs, Chapter 5.12/DDE-011+), and the knowledge-graph derived/
-asserted split (Chapter 5.10/DDE-033). Chapter 5.6's "raise an EDR/
+temporal/visual retrievers and just-in-time expansion (needs worker
+runs, Chapter 5.12/DDE-011+); the documentation retriever itself landed
+in DDE-050 as rank-9 external evidence that never counts toward
+current-state coverage. The knowledge-graph derived/asserted split
+(Chapter 5.10/DDE-033). Chapter 5.6's "raise an EDR/
 decision task (`blocks_on_decision` edge in the graph)" resolution path
 is not wired here: `engine.missions.kernel` only recognises `depends_on`/
 `produces_contract_for` edges today (no `blocks_on_decision` edge type
@@ -60,6 +62,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.docs import DocsProvider
 from engine.context.assembly import DEFAULT_CONTEXT_BUDGET_TOKENS, assemble
 from engine.context.conflict import detect_conflicts
 from engine.context.coverage import compute_coverage
@@ -91,7 +94,14 @@ from engine.context.repository import (
     ContextCriticFindingRepository,
     ContextRepository,
 )
-from engine.context.retrievers import authority, explicit, lexical, semantic, structural
+from engine.context.retrievers import (
+    authority,
+    documentation,
+    explicit,
+    lexical,
+    semantic,
+    structural,
+)
 from engine.contracts.context_conflict import ContextConflict
 from engine.contracts.context_critic_finding import ContextCriticFinding
 from engine.contracts.context_package import ContextPackage
@@ -136,6 +146,7 @@ class ContextService:
         conflict_repository: ContextConflictRepository | None = None,
         critic_finding_repository: ContextCriticFindingRepository | None = None,
         critic_confidence_threshold: float = DEFAULT_CRITIC_CONFIDENCE_THRESHOLD,
+        docs_provider: DocsProvider | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -143,6 +154,7 @@ class ContextService:
         self._clock = clock or SystemClock()
         self._root = root or repo_root()
         self._context_budget_tokens = context_budget_tokens
+        self._docs_provider = docs_provider
         self._index_service = index_service or ContextIndexService(
             engine, root=self._root
         )
@@ -231,6 +243,12 @@ class ContextService:
                 root=self._root,
                 expected_write_scope=expected_write_scope,
             )
+            documentation_items = await documentation.retrieve(
+                task,
+                root=self._root,
+                expected_write_scope=expected_write_scope,
+                provider=self._docs_provider,
+            )
             index_state = (
                 await self._index_service.load_state(
                     tenant_id=tenant_id, project_id=project_id, uow=active
@@ -254,6 +272,8 @@ class ContextService:
                 "lexical": lexical_items,
                 "structural": structural_items,
             }
+            if documentation_items:
+                retriever_results["documentation"] = documentation_items
             if index_state is not None:
                 retriever_results["semantic"] = semantic_items
             fused = fuse(retriever_results)
@@ -357,6 +377,8 @@ class ContextService:
             )
             now = self._clock.now()
             retrievers_used = list(RETRIEVERS_USED)
+            if documentation_items:
+                retrievers_used.append("documentation")
             if index_state is not None:
                 retrievers_used.append("semantic")
             package_id = uuid7()

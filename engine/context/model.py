@@ -21,6 +21,10 @@ AUTHORITY_RANK_CODE = 8  # "Verified implementation and evidence" — nearest
 # retriever table lists code retrievers as free/cheap cost, not a
 # precedence rank, so this is a Stage 1 mapping decision, not a blueprint
 # value.
+AUTHORITY_RANK_EXTERNAL_EVIDENCE = 9  # Ch.2.2 "External evidence and donor
+# material" — DDE-050 documentation retriever output. Ingested, never
+# promoted automatically (Ch.5.5: version-pinned external docs are never
+# current-state).
 
 CoverageStatus = str  # "satisfied" | "partial" | "missing"
 

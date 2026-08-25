@@ -51,6 +51,7 @@ from uuid import UUID
 
 from engine.capabilities.service import CapabilityRegistryService
 from engine.contracts.capability_descriptor import CapabilityDescriptor
+from engine.routing.policy import CAPABILITY_DOCS
 from engine.truth.db import PostgresUnitOfWork
 
 SEEDED_BY = "system:capability_registry_seed_v1"
@@ -255,6 +256,31 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         ),
         supported_workloads=("verification",),
         network_requirements={"egress": "datastore_ref only"},
+    ),
+    # DDE-050 / Chapter 9.8 documentation/context-provider class + Ch.5.2's
+    # Documentation retriever. Serves version-pinned external documentation
+    # materialised on disk; no network fetch exists on this capability
+    # (remote sync is EDR-0020's gated surface). PURE_READ: reads never
+    # mutate a source or the product. Content stays rank-9 external
+    # evidence (Ch.5.5: never current-state), and injection screening runs
+    # at read time so injected instructions remain hypotheses (Ch.14.5).
+    SeedCapability(
+        capability_id=CAPABILITY_DOCS,
+        version="1",
+        category="docs",
+        summary=(
+            "Serve version-pinned external documentation read-only through "
+            "the Chapter 5.2 documentation retriever (engine.capabilities."
+            "docs). No network egress: sources are operator-materialised "
+            "on disk, and content stays rank-9 external evidence that "
+            "never satisfies a current-state coverage requirement."
+        ),
+        side_effect_class="PURE_READ",
+        risk_class="low",
+        enforcement_tier="T1",
+        implementations=("engine.capabilities.docs.provider.InProcessDocsProvider",),
+        supported_workloads=("planning", "verification"),
+        network_requirements={"egress": "none"},
     ),
 )
 

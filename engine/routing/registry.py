@@ -24,6 +24,7 @@ from engine.routing.policy import (
     CAPABILITY_ANDROID,
     CAPABILITY_BROWSER,
     CAPABILITY_DATABASE,
+    CAPABILITY_DOCS,
     CAPABILITY_REPOSITORY,
     CAPABILITY_SECURITY,
     CAPABILITY_TESTING,
@@ -31,6 +32,7 @@ from engine.routing.policy import (
     PROFILE_ANDROID,
     PROFILE_DATABASE,
     PROFILE_DETERMINISTIC_RUNNER,
+    PROFILE_DOCS,
     PROFILE_GENERAL_IMPLEMENTATION,
     PROFILE_LONGCONTEXT_ECONOMY,
     PROFILE_PREMIUM_REASONING,
@@ -334,6 +336,17 @@ PROFILES: dict[str, WorkerProfile] = {
                 CAPABILITY_REPOSITORY,
                 CAPABILITY_TESTING,
                 CAPABILITY_DATABASE,
+            }
+        ),
+        environment_classes=frozenset({ENVIRONMENT_STANDARD}),
+    ),
+    PROFILE_DOCS: WorkerProfile(
+        profile_id=PROFILE_DOCS,
+        capabilities=frozenset(
+            {
+                CAPABILITY_REPOSITORY,
+                CAPABILITY_TESTING,
+                CAPABILITY_DOCS,
             }
         ),
         environment_classes=frozenset({ENVIRONMENT_STANDARD}),
