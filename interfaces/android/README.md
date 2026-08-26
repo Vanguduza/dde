@@ -9,9 +9,12 @@ Ch.15.1 reconnect behaviour that Core actually supports today.
 | In | Out |
 |---|---|
 | `interfaces/android/` Kotlin/Compose app | Termux / offline queue (DDE-054) |
-| Same `/v1` allowlist as `interfaces/dashboard/static/gateway.js` | Golden CLI/web/Android parity (DDE-056) |
+| Same `/v1` allowlist as `interfaces/dashboard/static/gateway.js` | Full sequence/WS/SSE replay (EDR-0027) |
 | `client_type=human` + mission scopes | `client_type=device` (no mission scopes) |
-| Resume session → re-GET mission/control by id | Full sequence/WS/SSE replay (EDR-0027) |
+| Resume session → re-GET mission/control by id | Invented list/stream endpoints |
+
+Golden CLI/web/Android parity: DDE-056
+(`tests/unit/test_client_parity_fixture.py`).
 
 ## Reconnect contract (honest)
 

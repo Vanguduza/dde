@@ -193,6 +193,10 @@
         setStatus("err", "Load a mission first.");
         return;
       }
+      if (!mission || mission.lock_version == null) {
+        setStatus("err", "Load a mission first so lock_version is known.");
+        return;
+      }
       const principalId = els.principalId.value.trim();
       const acceptance = await client.acceptCommand({
         commandId: newIdempotencyKey("cmd"),
@@ -202,7 +206,7 @@
         targetType: "mission",
         targetId: missionId,
         commandType,
-        parameters: {},
+        parameters: { lock_version: mission.lock_version },
       });
       setStatus(
         "warn",

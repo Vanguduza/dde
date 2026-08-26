@@ -21,6 +21,7 @@ data class OperatorUiState(
     val missionId: String = "",
     val sessionId: String? = null,
     val lastEventAt: String? = null,
+    val missionLockVersion: Int? = null,
     val status: String = "No session.",
     val missionSummary: String = "",
     val controlSummary: String = "",
@@ -83,6 +84,9 @@ class OperatorViewModel(
                 val t = requireTransport()
                 val s = requireSession()
                 val missionId = _state.value.missionId.trim()
+                val lockVersion =
+                    _state.value.missionLockVersion
+                        ?: error("Load a mission first so lock_version is known")
                 val acceptance =
                     t.acceptCommand(
                         sessionId = s,
@@ -92,7 +96,7 @@ class OperatorViewModel(
                         targetType = "mission",
                         targetId = missionId,
                         commandType = commandType,
-                        parameters = emptyMap(),
+                        parameters = mapOf("lock_version" to lockVersion),
                     )
                 _state.update {
                     it.copy(
@@ -137,13 +141,21 @@ class OperatorViewModel(
         mission: Map<String, Any?>,
         control: Map<String, Any?>,
     ) {
+        val lock =
+            when (val raw = mission["lock_version"]) {
+                is Number -> raw.toInt()
+                is String -> raw.toIntOrNull()
+                else -> null
+            }
         _state.update {
             it.copy(
+                missionLockVersion = lock,
                 missionSummary =
                     listOf(
                         "slug=${mission["slug"]}",
                         "status=${mission["status"]}",
                         "mission_id=${mission["mission_id"]}",
+                        "lock_version=${mission["lock_version"]}",
                         "updated_at=${mission["updated_at"]}",
                     ).joinToString("\n"),
                 controlSummary =

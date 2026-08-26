@@ -19,8 +19,10 @@ fabricates mission/fleet rows.
 
 - Not Frontend Studio (DDE-065..068)
 - Not the Electron EXE or VS Code extension (`interfaces/dde-studio/**`)
-- Not CLI/web/Android parity (DDE-056) or Android reconnect (DDE-053)
 - Not a mission/run list UI — Core has no list endpoints yet (honesty-empty)
+
+Golden CLI/web/Android parity is covered by DDE-056
+(`tests/unit/test_client_parity_fixture.py`).
 
 ## Run
 

@@ -58,5 +58,6 @@ def test_app_js_does_not_fabricate_fleet_or_mission_lists() -> None:
     assert "fabricat" not in lowered
     assert "fake mission" not in lowered
     assert "sample mission" not in lowered
-    # Control commands must use real idempotency helpers.
+    # Control commands must use real idempotency helpers + optimistic lock.
     assert "idempotencyKey" in source or "idempotency_key" in source
+    assert "lock_version" in source

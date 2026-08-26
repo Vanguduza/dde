@@ -16,20 +16,11 @@ orchestration in this mission would mean inventing a component the
 blueprint has not chartered yet. See `interfaces/cli/mission_create.py`'s
 docstring for the full reasoning.
 
-**Flagged boundary divergence (AGENTS.md / `interfaces/__init__.py`'s own
-docstring: "Client-facing surfaces that consume the gateway, never core
-tables").** Every module here reads/writes `engine.*` services and
-repositories directly instead of going through Chapter 15's Gateway/API.
-This is deliberate, not an oversight: Chapter 15.4's endpoint table lists
-`GET /v1/evidence/{id}`, `GET /v1/mission-control/{id}`,
-`GET /v1/missions/{id}/events`, `POST /v1/missions` etc., but none of them
-are implemented yet -- `engine/gateway/app.py` only serves
-`/healthz`/`/readyz` today, and building the whole read/write surface those
-endpoints imply is far outside this mission's scope (DDE-027, Chapter 15,
-is a later mission). Composing a full HTTP client against endpoints that do
-not exist would not make these commands more correct, only more elaborate.
-Once a later mission stands up the Gateway's mission/task/evidence
-endpoints, these modules should be re-homed to call them instead of
-`engine.*` directly, and this docstring's divergence notice should be
-removed at that point.
+**Two surfaces.** The Stage-1 ``dde mission create|status|trace`` and
+``task list`` commands still call ``engine.*`` services directly (they
+predate the Gateway and remain the Day-1 walkthrough path). DDE-056 adds
+``gateway_client.py`` — the allowlisted ``/v1`` client twin of the web
+dashboard and Android thin client — so the golden CLI/web/Android parity
+fixture can prove identical authoritative outcomes on one Gateway path
+without inventing list/stream endpoints.
 """
