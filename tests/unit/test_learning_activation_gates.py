@@ -174,3 +174,25 @@ def test_canary_advance_requires_beats_constant() -> None:
     )
     assert verdict.allowed is False
     assert "beats_best_constant_policy_unmet" in verdict.refused_reasons
+
+
+def test_canary_refused_when_learned_routing_has_safety_regressions() -> None:
+    records = [_record() for _ in range(1200)]
+    classes = ["bulk_implementation"] * 1200
+    verdict = evaluate_activation_gates(
+        records=records,
+        workload_classes=classes,
+        current_mode="shadow_learning",
+        requested_mode="canary",
+        brier=0.1,
+        ece=0.05,
+        holdout_regression=False,
+        safety_regressions=1,
+        fallback_robustness_demonstrated=True,
+        drift_within_bounds=True,
+        offline_fit_exists=True,
+        frozen_exploitation=True,
+        beats_constant_policy=True,
+    )
+    assert verdict.allowed is False
+    assert "safety_regression_nonzero" in verdict.refused_reasons

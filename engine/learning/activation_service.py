@@ -248,6 +248,14 @@ class LearningActivationService:
             policy = await self._policies.get_latest(
                 active.connection, tenant_id=tenant_id, project_id=project_id
             )
+            safety_regressions = sum(
+                1
+                for row in records
+                if row.routing_policy_version.startswith("frozen:")
+                and row.failure_attribution == "route_attributable"
+                and row.observed_outcome_vector.get("actual_verified_outcome")
+                == "FAILED"
+            )
             verdict = evaluate_activation_gates(
                 records=records,
                 workload_classes=workload_classes,
@@ -259,6 +267,7 @@ class LearningActivationService:
                 holdout_regression=(
                     None if policy is None else policy.holdout_regression
                 ),
+                safety_regressions=safety_regressions,
                 fallback_robustness_demonstrated=(
                     False if policy is None else policy.fallback_robustness_demonstrated
                 ),
