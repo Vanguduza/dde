@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self' http://127.0.0.1:* http://localhost:*; img-src data:;"
+    />
+    <title>DDE</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="brand">
+      <span class="name">DDE</span>
+      <span class="tag">Web dashboard · Gateway client</span>
+    </header>
+    <main>
+      <section class="panel" aria-labelledby="session-heading">
+        <h2 id="session-heading">Session</h2>
+        <label for="gateway-url">Gateway base URL</label>
+        <input
+          id="gateway-url"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          value=""
+        />
+        <label for="principal-id">Principal UUID</label>
+        <input
+          id="principal-id"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        />
+        <label for="mission-id">Mission UUID</label>
+        <input
+          id="mission-id"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        />
+        <div class="actions">
+          <button type="button" class="primary" id="btn-connect">
+            Open session
+          </button>
+          <button type="button" id="btn-load" disabled>Load mission</button>
+          <button type="button" id="btn-pause" disabled>Pause</button>
+          <button type="button" id="btn-resume" disabled>Resume</button>
+          <button type="button" id="btn-cancel" disabled>Cancel</button>
+          <button type="button" id="btn-close" disabled>Close session</button>
+        </div>
+        <div id="session-status" class="status warn" role="status">
+          No session. Enter a principal UUID with a project grant.
+        </div>
+        <p class="note">
+          No mission list endpoint exists yet — paste a known mission id.
+          Acceptance (202) is not completion; reload after control commands.
+        </p>
+      </section>
+      <section class="panel" aria-labelledby="mission-heading">
+        <h2 id="mission-heading">Mission</h2>
+        <div id="mission-body" class="empty">Nothing loaded.</div>
+        <h2 style="margin-top: 20px">Mission control</h2>
+        <div id="control-body" class="empty">Nothing loaded.</div>
+      </section>
+    </main>
+    <script src="./gateway.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

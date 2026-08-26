@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal
 
 import redis.asyncio as redis
@@ -10,6 +11,7 @@ from alembic.config import Config
 from alembic.script import ScriptDirectory
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
@@ -25,6 +27,11 @@ from engine.gateway.settings import Settings, get_settings
 from engine.governance.config import RuntimeFlags, validate_configuration
 
 log = structlog.get_logger("dde.gateway")
+
+# Ch.3.6 / DDE-052: browser operator assets live under interfaces/dashboard.
+_DASHBOARD_STATIC = (
+    Path(__file__).resolve().parents[2] / "interfaces" / "dashboard" / "static"
+)
 
 
 def _configure_tracer() -> None:
@@ -84,6 +91,14 @@ def create_app() -> FastAPI:
     FastAPIInstrumentor.instrument_app(application)
     application.include_router(router)
     application.add_exception_handler(DdeError, dde_error_handler)
+    if _DASHBOARD_STATIC.is_dir():
+        # Static operator UI only — no mission state. Same-origin /v1 calls
+        # from /dashboard/ keep Ch.13.9 authz on the Gateway path.
+        application.mount(
+            "/dashboard",
+            StaticFiles(directory=str(_DASHBOARD_STATIC), html=True),
+            name="dashboard",
+        )
 
     @application.get("/healthz")
     async def healthz() -> Healthz:
