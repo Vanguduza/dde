@@ -43,8 +43,7 @@ class MessagingBridge:
         assert_messaging_scopes(MESSAGING_SCOPES)
         if client_type not in {"human", "service"}:
             raise PermissionError(
-                "messaging client_type must be human or service "
-                f"(got {client_type!r})"
+                f"messaging client_type must be human or service (got {client_type!r})"
             )
         self._channel = channel
         self._gateway = gateway
