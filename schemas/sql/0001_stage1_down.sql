@@ -40,6 +40,7 @@ DROP TABLE IF EXISTS execution_plans CASCADE;
 DROP TABLE IF EXISTS write_scope_leases CASCADE;
 DROP TABLE IF EXISTS workspaces CASCADE;
 DROP TABLE IF EXISTS execution_environments CASCADE;
+DROP TABLE IF EXISTS experience_records CASCADE;
 DROP TABLE IF EXISTS routing_simulation_runs CASCADE;
 DROP TABLE IF EXISTS routing_decision_outcomes CASCADE;
 DROP TABLE IF EXISTS route_decisions CASCADE;

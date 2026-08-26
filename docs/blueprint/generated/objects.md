@@ -210,6 +210,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## ExperienceRecord
+
+- table: `experience_records`
+- primary key: experience_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## ExecutionEnvironment
 
 - table: `execution_environments`

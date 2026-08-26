@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.edr import Edr
 from engine.contracts.event import Event
+from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.mission import Mission
 from engine.contracts.outbox import Outbox
@@ -236,6 +237,52 @@ def test_route_decision_rejects_unknown_fields() -> None:
     payload["extra"] = True
     with pytest.raises(ValidationError):
         RouteDecision.model_validate(payload)
+
+
+def _valid_experience_record_payload() -> dict[str, object]:
+    return {
+        "experience_id": uuid7(),
+        "tenant_id": uuid7(),
+        "project_id": uuid7(),
+        "experience_origin": "real",
+        "routing_policy_version": "deterministic-v1",
+        "candidate_set_hash": "abc123",
+        "selection_propensity": 1.0,
+        "prediction_vector": {},
+        "observed_outcome_vector": {"actual_verified_outcome": "PASSED"},
+        "verification_confidence": 1.0,
+        "failure_attribution": "none",
+        "attribution_confidence": 1.0,
+        "holdout_partition": "train",
+        "promotion_evidence_refs": [],
+        "eligible_for_routing_training": True,
+        "eligibility_reasons": ["eligible"],
+        "down_weighted": False,
+        "promotion_state": "unpromoted",
+        "created_at": _now(),
+        "updated_at": _now(),
+        "verification_run_id": uuid7(),
+    }
+
+
+def test_experience_record_is_valid_with_required_fields() -> None:
+    record = ExperienceRecord.model_validate(_valid_experience_record_payload())
+    assert record.experience_origin == "real"
+    assert record.promotion_state == "unpromoted"
+
+
+def test_experience_record_rejects_unknown_fields() -> None:
+    payload = _valid_experience_record_payload()
+    payload["extra"] = True
+    with pytest.raises(ValidationError):
+        ExperienceRecord.model_validate(payload)
+
+
+def test_experience_record_rejects_unknown_origin() -> None:
+    payload = _valid_experience_record_payload()
+    payload["experience_origin"] = "synthetic"
+    with pytest.raises(ValidationError):
+        ExperienceRecord.model_validate(payload)
 
 
 def test_graph_amendment_rejects_unknown_type() -> None:

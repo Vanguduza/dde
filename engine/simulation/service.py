@@ -56,6 +56,7 @@ from engine.core.hashing import canonical_json, sha256_hex
 from engine.core.ids import uuid7
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.learning.service import ExperienceRecordService
 from engine.routing.policy import POLICY_VERSION
 from engine.simulation.repository import RoutingSimulationRunRepository
 from engine.simulation.scenarios import (
@@ -158,6 +159,7 @@ class RoutingSimulationService:
         events: EventService | None = None,
         commands: CommandLedger | None = None,
         repository: RoutingSimulationRunRepository | None = None,
+        learning: ExperienceRecordService | None = None,
         clock: Clock | None = None,
     ) -> None:
         self._engine = engine
@@ -165,6 +167,9 @@ class RoutingSimulationService:
         self._commands = commands or CommandLedger(engine)
         self._repository = repository or RoutingSimulationRunRepository()
         self._clock = clock or SystemClock()
+        self._learning = learning or ExperienceRecordService(
+            engine, events=self._events, clock=self._clock
+        )
 
     async def _run(
         self,
@@ -262,6 +267,7 @@ class RoutingSimulationService:
                 updated_at=now,
             )
             await self._repository.insert_run(active.connection, run)
+            await self._learning.record_from_simulation(run=run, uow=active)
             await self._events.append(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -450,6 +456,7 @@ class RoutingSimulationService:
                 updated_at=now,
             )
             await self._repository.insert_run(active.connection, run)
+            await self._learning.record_from_simulation(run=run, uow=active)
             await self._events.append(
                 tenant_id=tenant_id,
                 project_id=project_id,

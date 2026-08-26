@@ -36,6 +36,7 @@ from engine.contracts.event import Event
 from engine.contracts.evidence import Evidence
 from engine.contracts.execution_environment import ExecutionEnvironment
 from engine.contracts.execution_plan import ExecutionPlan
+from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
@@ -115,6 +116,7 @@ __all__ = [
     "Evidence",
     "ExecutionEnvironment",
     "ExecutionPlan",
+    "ExperienceRecord",
     "ExternalEffect",
     "FailureAttribution",
     "FeatureDNA",

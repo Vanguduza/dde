@@ -27,13 +27,12 @@ rationale), not silently dropped:
    `engine.context.critic`/`engine.context.conflict` hold to. An
    inconclusive rule outcome is persisted honestly as `inconclusive`.
 
-**Not yet wired** (a real, working, independently-tested method a future
-mission should call, not a silently-dropped requirement): Chapter 6.8's
-"exclusion filter for routing learning" needs `ExperienceRecord`
-eligibility filtering (`DDE-057`, Stage 7), which does not exist yet.
-`FailureAttribution.excluded_from_routing_learning` is computed and
-persisted for real today so that future consumer can filter on it without
-this table needing a schema change.
+**Chapter 6.8 consumer.** The routing-learning exclusion filter is
+consumed by `engine.learning.service.ExperienceRecordService.
+record_from_verification()`, called from
+`VerificationRunnerService.run()`'s terminal branches. Simulation-origin
+rows are written by `RoutingSimulationService.run_regression()` and
+remain ineligible by construction.
 """
 
 from __future__ import annotations

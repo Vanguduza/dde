@@ -70,7 +70,8 @@ Still disclosed: the PARTIAL `VerificationRun` gets no
 `routing_decision_outcomes` telemetry row (Chapter 6.5's
 `actual_verified_outcome` enum admits only PASSED/FAILED, and
 `RoutingTelemetryService.record_decision_outcome` gates on terminal
-PASSED/FAILED status); per EDR-0009 (accepted 2026-08-23) that gap is
+PASSED/FAILED status, and Chapter 6.8 `ExperienceRecord` follows the
+same gate); per EDR-0009 (accepted 2026-08-23) that gap is
 closed on its own surface -- every demotion is durably recorded in
 `verification_run_demotions` (same transaction) with its source,
 failure class and confidence, so consumers join on `verification_run_id`
@@ -124,6 +125,7 @@ from engine.core.state_machine import transition
 from engine.donor.taint import DonorTaintService
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.learning.service import ExperienceRecordService
 from engine.missions.attempts import TaskAttemptService
 from engine.recovery.checkpoint_service import (
     CheckpointService,
@@ -290,6 +292,7 @@ class VerificationRunnerService:
         worker_events: WorkerEventRepository | None = None,
         attribution: FailureAttributionService | None = None,
         telemetry: RoutingTelemetryService | None = None,
+        learning: ExperienceRecordService | None = None,
         flaky_quarantine: FlakyQuarantineService | None = None,
         demotions: VerificationRunDemotionService | None = None,
         browser: BrowserCapability | None = None,
@@ -315,6 +318,12 @@ class VerificationRunnerService:
         )
         self._telemetry = telemetry or RoutingTelemetryService(
             engine, events=self._events
+        )
+        # Chapter 6.8: ExperienceRecord is written at the same terminal
+        # mutation sites as Chapter 6.5 telemetry, after flaky refresh
+        # so quarantine state is current.
+        self._learning = learning or ExperienceRecordService(
+            engine, events=self._events, clock=self._clock
         )
         # Adoption #7 wiring: the runner owns flaky detection (Chapter
         # 3.6: verification owns the surface a flaky check pollutes).
@@ -598,6 +607,13 @@ class VerificationRunnerService:
                     runs=prior,
                     uow=active,
                 )
+                await self._learning.record_from_verification(
+                    task=task,
+                    worker_run=worker_run,
+                    verification_run=finished,
+                    failed_check_refs=self._failed_check_refs(finished),
+                    uow=active,
+                )
             elif next_status == "PARTIAL" and (
                 guardrail.violations or prototype_check.violations
             ):
@@ -722,6 +738,13 @@ class VerificationRunnerService:
                 )
                 await self._flaky_quarantine.refresh_quarantines(
                     task=task, runs=prior, uow=active
+                )
+                await self._learning.record_from_verification(
+                    task=task,
+                    worker_run=worker_run,
+                    verification_run=finished,
+                    failed_check_refs=self._failed_check_refs(finished),
+                    uow=active,
                 )
                 if deferred_refs:
                     await self._events.append(
