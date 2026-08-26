@@ -113,9 +113,7 @@ def _control_slice(control: dict) -> dict:
 def test_allowlists_identical_across_cli_web_android() -> None:
     """Reuse the dashboard/android/termux six-path surface — no new lists."""
     expected = list(ALLOWED_PATHS)
-    js_paths = _extract_js_allowed_paths(
-        DASHBOARD_GATEWAY.read_text(encoding="utf-8")
-    )
+    js_paths = _extract_js_allowed_paths(DASHBOARD_GATEWAY.read_text(encoding="utf-8"))
     kt_paths = _extract_kotlin_allowed_paths(
         ANDROID_ALLOWLIST.read_text(encoding="utf-8")
     )
@@ -124,7 +122,7 @@ def test_allowlists_identical_across_cli_web_android() -> None:
     # Honesty: no invented collection endpoints.
     joined = "\n".join(expected)
     assert "/v1/missions/{id}" in joined
-    assert "GET /v1/missions\"" not in joined
+    assert 'GET /v1/missions"' not in joined
     assert "events" not in joined.lower()
 
 
@@ -340,9 +338,7 @@ async def test_reconnect_does_not_duplicate_commands() -> None:
 
             # Android ReconnectCoordinator pattern: resume then by-id re-sync.
             cursor = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
-            resumed = await client.resume_session(
-                session_id, last_event_at=cursor
-            )
+            resumed = await client.resume_session(session_id, last_event_at=cursor)
             assert "session" in resumed
             assert "fresh_snapshot" in resumed
             mission = await client.read_mission(
