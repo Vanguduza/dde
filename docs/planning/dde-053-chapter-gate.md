@@ -56,3 +56,5 @@ Termux/offline queue (DDE-054) or multi-client golden parity (DDE-056).
 behaviour for the Ch.15.1 subset Core supports; full stream/sequence
 reconnect and multi-client parity deferred. Auto-proceed to DDE-054
 authorized under the standing order.
+
+**Landed:** 2026-08-26 on `dde-053-android-thin-client` (FF to `main`).
