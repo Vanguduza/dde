@@ -178,8 +178,15 @@ def diff_name_only_filter(
 
 
 def diff_unified(repo_root: Path, base_revision: str, target_revision: str) -> str:
-    """Unified diff of the real commits Chapter 10.4 step 3 evaluates."""
-    return _run(["diff", base_revision, target_revision], cwd=repo_root).stdout
+    """Unified diff of the real commits Chapter 10.4 step 3 evaluates.
+
+    `--text` forces a line-oriented diff so secret/SAST scanners never miss
+    an added payload because git classified the blob as binary (empty
+    ``Binary files differ`` hunk with no ``+`` lines).
+    """
+    return _run(
+        ["diff", "--text", base_revision, target_revision], cwd=repo_root
+    ).stdout
 
 
 def show_blob(repo_root: Path, revision: str, path: str) -> str | None:

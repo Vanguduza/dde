@@ -47,6 +47,28 @@ def test_secret_detection_passes_a_clean_diff() -> None:
     assert scan_secrets(diff).passed is True
 
 
+def test_secret_detection_blob_backstop_when_diff_has_no_plus_lines() -> None:
+    """Regression: git 'Binary files differ' hunks carry no '+' lines;
+    proposed blob contents must still fail closed."""
+    binary_style_diff = (
+        "diff --git a/engine/routing/dde021-secret.txt "
+        "b/engine/routing/dde021-secret.txt\n"
+        "new file mode 100644\n"
+        "index 0000000..abc1234\n"
+        "Binary files /dev/null and b/engine/routing/dde021-secret.txt differ\n"
+    )
+    assert scan_secrets(binary_style_diff).passed is True
+    finding = scan_secrets(
+        binary_style_diff,
+        proposed_blobs={
+            "engine/routing/dde021-secret.txt": f"{PLANTED_SECRET}\n",
+        },
+    )
+    assert finding.passed is False
+    assert finding.blocking is True
+    assert "private_key_pem" in str(finding.details.get("hit_classes"))
+
+
 def test_forbidden_path_blocks_github_workflows() -> None:
     finding = scan_forbidden_paths([".github/workflows/evil.yml"])
     assert finding.passed is False

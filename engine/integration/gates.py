@@ -242,7 +242,7 @@ def evaluate_diff(
     donor_reuse_approved: bool = False,
 ) -> GateEvaluation:
     """Run every Chapter 9.7 gate over one real worker-produced diff."""
-    secret = scan_secrets(unified_diff)
+    secret = scan_secrets(unified_diff, proposed_blobs=proposed_blobs)
     static = scan_static(unified_diff)
     forbidden = scan_forbidden_paths(changed_paths)
     headers = scan_licence_headers(new_paths, proposed_blobs)
@@ -286,17 +286,27 @@ def evaluate_diff(
     )
 
 
-def scan_secrets(unified_diff: str) -> ScanFinding:
-    """Chapter 9.7 secret detection. In-process stand-in for Gitleaks."""
-    added = _added_lines(unified_diff)
+def scan_secrets(
+    unified_diff: str,
+    *,
+    proposed_blobs: dict[str, str | None] | None = None,
+) -> ScanFinding:
+    """Chapter 9.7 secret detection. In-process stand-in for Gitleaks.
+
+    Scans unified-diff added lines and, when provided, proposed blob
+    contents. Blob scanning is the fail-closed backstop when a diff hunk
+    carries no ``+`` lines (historical binary-classification miss).
+    """
     hits: list[str] = []
-    for line in added:
-        if _AWS_KEY.search(line):
-            hits.append("aws_access_key")
-        if _GITHUB_PAT.search(line):
-            hits.append("github_pat")
-        if _PRIVATE_KEY.search(line):
-            hits.append("private_key_pem")
+    for line in _added_lines(unified_diff):
+        hits.extend(_secret_hit_classes(line))
+    if proposed_blobs:
+        for path, blob in proposed_blobs.items():
+            if blob is None:
+                continue
+            for line in blob.splitlines():
+                for hit in _secret_hit_classes(line):
+                    hits.append(f"{path}:{hit}")
     if hits:
         return ScanFinding(
             gate="secret_detection",
@@ -319,6 +329,17 @@ def scan_secrets(unified_diff: str) -> ScanFinding:
         summary="No secret material detected in added lines",
         details={"deferred": "gitleaks CLI is not invoked at Stage 2"},
     )
+
+
+def _secret_hit_classes(line: str) -> list[str]:
+    hits: list[str] = []
+    if _AWS_KEY.search(line):
+        hits.append("aws_access_key")
+    if _GITHUB_PAT.search(line):
+        hits.append("github_pat")
+    if _PRIVATE_KEY.search(line):
+        hits.append("private_key_pem")
+    return hits
 
 
 def scan_static(unified_diff: str) -> ScanFinding:

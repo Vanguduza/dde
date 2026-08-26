@@ -193,7 +193,10 @@ async def test_planted_secret_rejects_and_quarantines(tmp_path: Path) -> None:
         workspace = advanced.workspace
         task_branch = f"task/{advanced.task.task_id}-a"
         mission_branch = f"mission/{advanced.task.mission_id}"
-        assert rejected.status == "REJECTED"
+        assert rejected.status == "REJECTED", (
+            f"expected REJECTED gate_failed, got status={rejected.status!r} "
+            f"conflict_class={rejected.conflict_class!r} detail={rejected.detail!r}"
+        )
         assert rejected.conflict_class == "gate_failed"
         reports = await gates.list_for_proposal(
             tenant_id=advanced.task.tenant_id,
@@ -238,7 +241,10 @@ async def test_planted_vulnerable_dependency_is_rejected(tmp_path: Path) -> None
         workspace = advanced.workspace
         task_branch = f"task/{advanced.task.task_id}-a"
         mission_branch = f"mission/{advanced.task.mission_id}"
-        assert rejected.status == "REJECTED"
+        assert rejected.status == "REJECTED", (
+            f"expected REJECTED gate_failed, got status={rejected.status!r} "
+            f"conflict_class={rejected.conflict_class!r} detail={rejected.detail!r}"
+        )
         assert rejected.conflict_class == "gate_failed"
         reports = await gates.list_for_proposal(
             tenant_id=advanced.task.tenant_id,
