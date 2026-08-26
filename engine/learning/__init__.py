@@ -1,1 +1,1 @@
-"""Experience records and governed policy promotion."""
+"""Experience records, frozen routing policies, and learning activation."""

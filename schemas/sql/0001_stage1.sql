@@ -523,6 +523,56 @@ CREATE TABLE experience_records (
     CHECK (((experience_origin = 'real' AND verification_run_id IS NOT NULL) OR (experience_origin = 'simulation' AND routing_simulation_run_id IS NOT NULL)))
 );
 
+CREATE TABLE learned_routing_policies (
+    policy_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    learning_run_id uuid NOT NULL,
+    fit_kind text NOT NULL,
+    policy_hash text NOT NULL,
+    mapping jsonb NOT NULL DEFAULT '{}'::jsonb,
+    constant_policy_profile_id text NOT NULL,
+    train_count integer NOT NULL,
+    holdout_count integer NOT NULL,
+    brier numeric,
+    ece numeric,
+    holdout_learner_expected numeric,
+    holdout_constant_expected numeric,
+    holdout_incumbent_success numeric,
+    beats_constant_policy boolean NOT NULL,
+    holdout_regression boolean,
+    drift_within_bounds boolean,
+    continued_update boolean NOT NULL,
+    status text NOT NULL,
+    training_experience_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    fallback_robustness_demonstrated boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (policy_id),
+    UNIQUE (learning_run_id),
+    UNIQUE (tenant_id, project_id, policy_hash),
+    CHECK (continued_update = false)
+);
+
+CREATE TABLE routing_activation_state (
+    activation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    routing_mode text NOT NULL,
+    active_policy_id uuid,
+    last_certified_policy_id uuid,
+    last_certified_mode text NOT NULL,
+    canary_fraction numeric NOT NULL DEFAULT 0.05,
+    continued_update_enabled boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (activation_id),
+    UNIQUE (tenant_id, project_id),
+    CHECK (routing_mode IN ('deterministic', 'shadow_learning', 'canary', 'promoted_historical')),
+    CHECK (last_certified_mode IN ('deterministic', 'shadow_learning', 'canary', 'promoted_historical')),
+    CHECK (canary_fraction >= 0 AND canary_fraction <= 1)
+);
+
 CREATE TABLE execution_environments (
     environment_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1498,6 +1548,14 @@ ALTER TABLE experience_records ADD CONSTRAINT experience_records_verification_ru
 ALTER TABLE experience_records ADD CONSTRAINT experience_records_routing_simulation_run_id_fkey FOREIGN KEY (routing_simulation_run_id) REFERENCES routing_simulation_runs (run_id);
 ALTER TABLE experience_records ADD CONSTRAINT experience_records_outcome_id_fkey FOREIGN KEY (outcome_id) REFERENCES routing_decision_outcomes (outcome_id);
 
+ALTER TABLE learned_routing_policies ADD CONSTRAINT learned_routing_policies_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE learned_routing_policies ADD CONSTRAINT learned_routing_policies_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_active_policy_id_fkey FOREIGN KEY (active_policy_id) REFERENCES learned_routing_policies (policy_id);
+ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_last_certified_policy_id_fkey FOREIGN KEY (last_certified_policy_id) REFERENCES learned_routing_policies (policy_id);
+
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1807,6 +1865,14 @@ CREATE POLICY routing_simulation_runs_tenant_isolation ON routing_simulation_run
 ALTER TABLE experience_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE experience_records FORCE ROW LEVEL SECURITY;
 CREATE POLICY experience_records_tenant_isolation ON experience_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE learned_routing_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE learned_routing_policies FORCE ROW LEVEL SECURITY;
+CREATE POLICY learned_routing_policies_tenant_isolation ON learned_routing_policies USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE routing_activation_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE routing_activation_state FORCE ROW LEVEL SECURITY;
+CREATE POLICY routing_activation_state_tenant_isolation ON routing_activation_state USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE execution_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_environments FORCE ROW LEVEL SECURITY;

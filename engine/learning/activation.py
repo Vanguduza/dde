@@ -55,6 +55,7 @@ DEFAULT_ELIGIBLE_GLOBAL = 1_200
 DEFAULT_VERIFICATION_COVERAGE = 0.90
 DEFAULT_BRIER_CEILING = 0.25
 DEFAULT_ECE_CEILING = 0.10
+DEFAULT_CANARY_FRACTION = 0.05
 
 
 @dataclass(frozen=True)
@@ -212,11 +213,13 @@ def evaluate_activation_gates(
             "calibration_ece", ece, thresholds.ece_ceiling, below=True
         )
     )
+    promotion = requested_mode in ("canary", "promoted_historical")
     gates.append(
         _bool_gate(
             "holdout_no_material_regression",
             holdout_regression is False,
             insufficient=holdout_regression is None,
+            mandatory=promotion,
         )
     )
     gates.append(
@@ -234,6 +237,7 @@ def evaluate_activation_gates(
             "fallback_robustness_under_worker_outage",
             fallback_robustness_demonstrated,
             insufficient=False,
+            mandatory=promotion,
         )
     )
     gates.append(
@@ -241,6 +245,7 @@ def evaluate_activation_gates(
             "distribution_drift_within_bounds",
             drift_within_bounds is True,
             insufficient=drift_within_bounds is None,
+            mandatory=promotion,
         )
     )
     if claiming_uplift:
@@ -270,6 +275,7 @@ def evaluate_activation_gates(
             "beats_best_constant_policy",
             beats_constant_policy is True,
             insufficient=beats_constant_policy is None,
+            mandatory=promotion,
         )
     )
 
@@ -325,12 +331,18 @@ def _optional_metric_gate(
     )
 
 
-def _bool_gate(name: str, passed: bool, *, insufficient: bool) -> GateResult:
+def _bool_gate(
+    name: str,
+    passed: bool,
+    *,
+    insufficient: bool,
+    mandatory: bool = True,
+) -> GateResult:
     if insufficient:
         return GateResult(
             name=name,
             passed=False,
-            mandatory=True,
+            mandatory=mandatory,
             observed=None,
             required=None,
             reason=f"{name}_insufficient_evidence",
@@ -338,7 +350,7 @@ def _bool_gate(name: str, passed: bool, *, insufficient: bool) -> GateResult:
     return GateResult(
         name=name,
         passed=passed,
-        mandatory=True,
+        mandatory=mandatory,
         observed=1 if passed else 0,
         required=1,
         reason="ok" if passed else f"{name}_unmet",

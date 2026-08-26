@@ -90,6 +90,34 @@ def test_evaluate_selects_first_preferred_profile_for_bulk_implementation() -> N
     )
 
 
+def test_evaluate_learned_mapping_reorders_survivors_only() -> None:
+    """Chapter 6.9 frozen exploitation: a mapped survivor wins; declared
+    preference ranks are not rewritten (audit trail keeps policy order)."""
+    result = evaluate(
+        _task(task_class="implementation", risk_class="low"),
+        learned_mapping={"bulk_implementation": PROFILE_GENERAL_IMPLEMENTATION},
+    )
+    assert result.selected_profile_id == PROFILE_GENERAL_IMPLEMENTATION
+    assert "LEARNED_FROZEN" in result.reason_codes
+    assert "FROZEN_EXPLOITATION" in result.reason_codes
+    ranks = {
+        candidate.profile_id: candidate.preference_rank
+        for candidate in result.candidates
+        if candidate.preference_rank is not None
+    }
+    assert ranks[PROFILE_LONGCONTEXT_ECONOMY] == 0
+    assert ranks[PROFILE_GENERAL_IMPLEMENTATION] == 1
+
+
+def test_evaluate_learned_mapping_never_resurrects_hard_gate_elimination() -> None:
+    result = evaluate(
+        _task(task_class="implementation", risk_class="low"),
+        learned_mapping={"bulk_implementation": PROFILE_PREMIUM_REASONING},
+    )
+    assert result.selected_profile_id == PROFILE_LONGCONTEXT_ECONOMY
+    assert "LEARNED_PROFILE_ELIMINATED" in result.reason_codes
+
+
 def test_evaluate_two_genuinely_different_inputs_produce_two_different_outcomes() -> (
     None
 ):

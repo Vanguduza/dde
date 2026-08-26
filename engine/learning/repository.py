@@ -164,6 +164,33 @@ class ExperienceRecordRepository:
             for row in result.mappings().all()
         ]
 
+    async def list_real_eligible_population(
+        self,
+        connection: AsyncConnection,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+    ) -> list[ExperienceRecord]:
+        """Volume-gate population: every real eligible row, including
+        consumed (already fitted). Superseded and blocked stay out."""
+        result = await connection.execute(
+            select(experience_records)
+            .where(
+                experience_records.c.tenant_id == tenant_id,
+                experience_records.c.project_id == project_id,
+                experience_records.c.experience_origin == "real",
+                experience_records.c.eligible_for_routing_training.is_(True),
+                experience_records.c.promotion_state.in_(
+                    ("unpromoted", "queued_for_learning", "consumed")
+                ),
+            )
+            .order_by(experience_records.c.created_at.asc())
+        )
+        return [
+            ExperienceRecord.model_validate(dict(row))
+            for row in result.mappings().all()
+        ]
+
     async def list_for_task(
         self, connection: AsyncConnection, task_id: UUID
     ) -> list[ExperienceRecord]:

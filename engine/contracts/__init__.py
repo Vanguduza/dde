@@ -44,6 +44,7 @@ from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
 from engine.contracts.invariant_evaluation import InvariantEvaluation
+from engine.contracts.learned_routing_policy import LearnedRoutingPolicy
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
 from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
@@ -61,6 +62,7 @@ from engine.contracts.readyz import Readyz
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
 from engine.contracts.route_decision import RouteDecision
+from engine.contracts.routing_activation_state import RoutingActivationState
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
 from engine.contracts.routing_simulation_run import RoutingSimulationRun
 from engine.contracts.seed_dataset import SeedDataset
@@ -124,6 +126,7 @@ __all__ = [
     "Healthz",
     "IntegrationProposal",
     "InvariantEvaluation",
+    "LearnedRoutingPolicy",
     "Mission",
     "MissionControl",
     "MissionOracleEvaluation",
@@ -141,6 +144,7 @@ __all__ = [
     "ReplanDecision",
     "Requirement",
     "RouteDecision",
+    "RoutingActivationState",
     "RoutingDecisionOutcome",
     "RoutingSimulationRun",
     "SeedDataset",

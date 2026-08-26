@@ -299,3 +299,58 @@ def test_graph_amendment_rejects_unknown_type() -> None:
                 "requested_write_scope": [],
             }
         )
+
+
+def _valid_learned_routing_policy_payload() -> dict[str, object]:
+    return {
+        "policy_id": uuid7(),
+        "tenant_id": uuid7(),
+        "project_id": uuid7(),
+        "learning_run_id": uuid7(),
+        "fit_kind": "frozen_full_information",
+        "policy_hash": "abc",
+        "mapping": {"bulk_implementation": "profile.general_implementation"},
+        "constant_policy_profile_id": "profile.general_implementation",
+        "train_count": 10,
+        "holdout_count": 2,
+        "beats_constant_policy": True,
+        "continued_update": False,
+        "status": "fitted",
+        "training_experience_ids": [],
+        "fallback_robustness_demonstrated": True,
+        "created_at": _now(),
+        "updated_at": _now(),
+    }
+
+
+def test_learned_routing_policy_is_valid_and_rejects_unknown_fields() -> None:
+    from engine.contracts.learned_routing_policy import LearnedRoutingPolicy
+
+    policy = LearnedRoutingPolicy.model_validate(
+        _valid_learned_routing_policy_payload()
+    )
+    assert policy.continued_update is False
+    assert policy.fit_kind == "frozen_full_information"
+    payload = _valid_learned_routing_policy_payload()
+    payload["extra"] = True
+    with pytest.raises(ValidationError):
+        LearnedRoutingPolicy.model_validate(payload)
+
+
+def test_routing_activation_state_rejects_unknown_mode() -> None:
+    from engine.contracts.routing_activation_state import RoutingActivationState
+
+    with pytest.raises(ValidationError):
+        RoutingActivationState.model_validate(
+            {
+                "activation_id": uuid7(),
+                "tenant_id": uuid7(),
+                "project_id": uuid7(),
+                "routing_mode": "bandit",
+                "last_certified_mode": "deterministic",
+                "canary_fraction": 0.05,
+                "continued_update_enabled": False,
+                "created_at": _now(),
+                "updated_at": _now(),
+            }
+        )

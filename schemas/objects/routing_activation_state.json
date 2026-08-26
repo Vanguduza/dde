@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/routing_activation_state.json",
+  "title": "RoutingActivationState",
+  "description": "Chapter 6.9 durable routing.mode per tenant/project. Owned by engine.learning; the sole writers are LearningActivationService.attempt_advance (forward one step after gates) and LearningActivationService.rollback (return to last certified policy, never an untested fallback). RouterService.route() is the production reader that applies frozen exploitation on the canary slice or promoted_historical traffic. One row per (tenant_id, project_id).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "routing_activation_state",
+    "order": 135,
+    "pk": ["activation_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id"]],
+    "checks": [
+      {
+        "name": "routing_activation_state_mode",
+        "expression": "routing_mode IN ('deterministic', 'shadow_learning', 'canary', 'promoted_historical')"
+      },
+      {
+        "name": "routing_activation_state_certified_mode",
+        "expression": "last_certified_mode IN ('deterministic', 'shadow_learning', 'canary', 'promoted_historical')"
+      },
+      {
+        "name": "routing_activation_state_canary_fraction",
+        "expression": "canary_fraction >= 0 AND canary_fraction <= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "routing_activation_state_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "routing_activation_state_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "routing_activation_state_active_policy_id_fkey",
+        "columns": ["active_policy_id"],
+        "ref_table": "learned_routing_policies",
+        "ref_columns": ["policy_id"]
+      },
+      {
+        "name": "routing_activation_state_last_certified_policy_id_fkey",
+        "columns": ["last_certified_policy_id"],
+        "ref_table": "learned_routing_policies",
+        "ref_columns": ["policy_id"]
+      }
+    ]
+  },
+  "required": [
+    "activation_id",
+    "tenant_id",
+    "project_id",
+    "routing_mode",
+    "last_certified_mode",
+    "canary_fraction",
+    "continued_update_enabled",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "activation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "routing_mode": {
+      "type": "string",
+      "enum": [
+        "deterministic",
+        "shadow_learning",
+        "canary",
+        "promoted_historical"
+      ]
+    },
+    "active_policy_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "last_certified_policy_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "last_certified_mode": {
+      "type": "string",
+      "enum": [
+        "deterministic",
+        "shadow_learning",
+        "canary",
+        "promoted_historical"
+      ]
+    },
+    "canary_fraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.05
+    },
+    "continued_update_enabled": { "type": "boolean", "default": false },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

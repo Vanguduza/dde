@@ -333,6 +333,7 @@ def evaluate(
     capacity_blocked_profiles: frozenset[str] | None = None,
     health_evicted_profiles: frozenset[str] | None = None,
     model_selection: ModelSelectionDirective | None = None,
+    learned_mapping: Mapping[str, str] | None = None,
 ) -> RoutingResult:
     """Run every registered profile through Chapter 6.1's gates 0-5 for
     `task`, then rank survivors by Chapter 6.2's declared `prefer[]` order
@@ -373,6 +374,11 @@ def evaluate(
       metadata — no live provider call is made and gate outcomes are never
       changed (adapters stay fail-closed pending broker credentials,
       EDR-0001 Path B).
+    - `learned_mapping` (Chapter 6.9 frozen exploitation): if the mapped
+      profile for this workload class is a hard-gate survivor, it is
+      selected in place of declared `prefer[]` order. An eliminated
+      learned profile is never resurrected (`LEARNED_PROFILE_ELIMINATED`).
+      Recorded preference ranks stay the declared order.
     """
     resolved_workload_class = workload_class or classify_workload(task)
     policy = WORKLOAD_CLASSES[resolved_workload_class]
@@ -442,6 +448,23 @@ def evaluate(
     if preferred_first:
         selected_profile_id = preferred_first[0]
         reason_codes.append("POLICY_PREFERRED")
+        learned_profile_id = (
+            None
+            if learned_mapping is None
+            else learned_mapping.get(resolved_workload_class)
+        )
+        if learned_profile_id:
+            if learned_profile_id in preferred_first:
+                preferred_first = [learned_profile_id] + [
+                    profile_id
+                    for profile_id in preferred_first
+                    if profile_id != learned_profile_id
+                ]
+                selected_profile_id = learned_profile_id
+                reason_codes.append("LEARNED_FROZEN")
+                reason_codes.append("FROZEN_EXPLOITATION")
+            else:
+                reason_codes.append("LEARNED_PROFILE_ELIMINATED")
         if (
             enable_mission_affinity
             and last_selected_profile_id is not None

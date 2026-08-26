@@ -694,6 +694,8 @@ One authoritative owner per mutable state. One creation authority. No exceptions
 | Evidence | `verification` | Verification | Append-only | Evidence |
 | ExternalEffect | `recovery` | Capability adapter | Status only | Effect |
 | ExperienceRecord | `learning` | Outcome processor | Promotion state only | Learning |
+| LearnedRoutingPolicy | `learning` | Frozen fit (`LearningActivationService.fit_frozen_policy`) | Status only (`fitted` to `certified`/`superseded`); mapping immutable | Learning |
+| RoutingActivationState | `learning` | `LearningActivationService.attempt_advance` / `rollback` | `routing.mode`, active policy, last certified | Learning |
 | Approval | `governance` | Authorized principal | Decision immutable; lifecycle mutable | Approval |
 | Event | `events` | Owning aggregate transaction | Never | Outbox |
 
@@ -1264,6 +1266,8 @@ Activation gates (defaults; configuration, not product truth; raise-able per ten
 Promotion sequence: `OBSERVE → TRAIN → OFFLINE EVALUATE → SHADOW → HOLDOUT EVALUATE → APPROVAL → LIMITED CANARY → MONITOR → PROMOTE | ROLLBACK`. No learned router promotes directly from training metrics. The previous policy remains deployable throughout the rollback window.
 
 > **Offline warmup before online learning; frozen-first rollout** *(amended 2026-08-24, from the Orca-router research; `docs/planning/orca-routing-research-integration.md`)*. A candidate policy's offline phase MUST be a full-information fit over eligible recorded decisions before any partial-information update path may exist, and the first promotable mode is frozen exploitation — continued online updating requires an explicit configuration switch and its own canary evidence. Promotion additionally asserts the learner beats the best **constant** policy on the identical evaluation window, not merely the incumbent policy table.
+
+> **Production call sites (DDE-058, 2026-08-27).** `LearningActivationService.fit_frozen_policy` is the TRAIN / OFFLINE EVALUATE mutation (`learned_routing_policies`, `continued_update=false`). `attempt_advance` is the sole forward `routing.mode` writer and refuses unmet Chapter 6.9 gates (durable current mode; a caller cannot skip). `rollback` returns to the last certified policy and leaves the frozen artifact deployable. `attempt_online_update` is structurally refused. `RouterService.route()` is the production reader: canary slice and `promoted_historical` apply the frozen mapping among hard-gate survivors only; shadow mode still selects deterministically and records `SHADOW_LEARNED`. Calibration Brier/ECE on activation are the frozen fit's holdout scores. `RouteDecision.predicted_success` remains null (EDR-0005).
 
 ## 6.10 Routing evaluation suite
 

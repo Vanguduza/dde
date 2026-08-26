@@ -218,6 +218,22 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## LearnedRoutingPolicy
+
+- table: `learned_routing_policies`
+- primary key: policy_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## RoutingActivationState
+
+- table: `routing_activation_state`
+- primary key: activation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## ExecutionEnvironment
 
 - table: `execution_environments`

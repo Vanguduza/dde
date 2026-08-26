@@ -131,3 +131,46 @@ def test_forward_one_step_is_legal() -> None:
     assert can_transition(current="shadow_learning", target="canary")
     assert can_transition(current="canary", target="promoted_historical")
     assert not can_transition(current="deterministic", target="promoted_historical")
+
+
+def test_shadow_advance_does_not_require_beats_constant() -> None:
+    """Beats-constant is a promotion assertion (canary/promoted), not a
+    shadow-evaluation blocker."""
+    records = [_record() for _ in range(1200)]
+    classes = ["bulk_implementation"] * 1200
+    verdict = evaluate_activation_gates(
+        records=records,
+        workload_classes=classes,
+        current_mode="deterministic",
+        requested_mode="shadow_learning",
+        brier=0.1,
+        ece=0.05,
+        holdout_regression=None,
+        fallback_robustness_demonstrated=False,
+        drift_within_bounds=None,
+        offline_fit_exists=True,
+        frozen_exploitation=True,
+        beats_constant_policy=False,
+    )
+    assert verdict.allowed is True
+
+
+def test_canary_advance_requires_beats_constant() -> None:
+    records = [_record() for _ in range(1200)]
+    classes = ["bulk_implementation"] * 1200
+    verdict = evaluate_activation_gates(
+        records=records,
+        workload_classes=classes,
+        current_mode="shadow_learning",
+        requested_mode="canary",
+        brier=0.1,
+        ece=0.05,
+        holdout_regression=False,
+        fallback_robustness_demonstrated=True,
+        drift_within_bounds=True,
+        offline_fit_exists=True,
+        frozen_exploitation=True,
+        beats_constant_policy=False,
+    )
+    assert verdict.allowed is False
+    assert "beats_best_constant_policy_unmet" in verdict.refused_reasons

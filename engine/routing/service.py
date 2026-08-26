@@ -12,6 +12,12 @@ ContextPackage/TaskGraph are — `schemas/objects/route_decision.json` has
 no `version` column, so each `route()` call inserts one independent,
 append-only row).
 
+Chapter 6.9: when `routing_activation_state` is `canary` or
+`promoted_historical`, this method is the production reader that applies
+the frozen mapping among hard-gate survivors only. Shadow mode still
+selects deterministically and records `SHADOW_LEARNED`. The declared
+policy table is never rewritten.
+
 Deliberately out of Stage 1 scope, per the mission brief: Chapter 8's
 certified-profile registry (DDE-011 — `engine.routing.registry` is an
 explicitly flagged, minimal stand-in, never that registry), and real
@@ -32,8 +38,8 @@ fixed mode). It annotates which declared model a surviving harness profile
 would call and never alters gate outcomes; nothing makes a live provider
 call — adapters remain fail-closed until the broker wires credentials
 (EDR-0001 Path B).
-Learning/promotion (Chapter 6.8-6.9, DDE-057/058) is separately out of
-scope.
+Learning/promotion writers live in `engine.learning` (DDE-057/058);
+this module only *reads* activation state at decision time.
 """
 
 from __future__ import annotations
@@ -49,6 +55,8 @@ from engine.contracts.task import Task
 from engine.core.clock import Clock, SystemClock
 from engine.core.ids import uuid7
 from engine.events.service import EventService
+from engine.learning.learner import in_canary_slice
+from engine.learning.policy_repository import LearningPolicyRepository
 from engine.routing.hashing import decision_hash
 from engine.routing.health import (
     compute_model_health,
@@ -67,8 +75,16 @@ from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 
 T = TypeVar("T")
 
+SelectionSource = Literal[
+    "deterministic",
+    "shadow",
+    "canary",
+    "promoted_historical",
+    "exploration",
+]
 SELECTION_SOURCE: Literal["deterministic"] = "deterministic"
 DETERMINISTIC_SELECTION_PROPENSITY = 1.0
+FROZEN_POLICY_PREFIX = "frozen:"
 
 
 class RouterService:
@@ -85,6 +101,7 @@ class RouterService:
         clock: Clock | None = None,
         outcomes: RoutingDecisionOutcomeRepository | None = None,
         health_policy_overrides: Mapping[str, object] | None = None,
+        policies: LearningPolicyRepository | None = None,
     ) -> None:
         self._engine = engine
         self._events = events or EventService(engine)
@@ -94,6 +111,7 @@ class RouterService:
         self._health_thresholds = thresholds_from_policy_overrides(
             health_policy_overrides
         )
+        self._policies = policies or LearningPolicyRepository()
 
     async def _run(
         self,
@@ -172,6 +190,36 @@ class RouterService:
                 thresholds=self._health_thresholds,
             )
             health_evicted_profiles = health_report.unhealthy_profiles()
+            state = await self._policies.get_activation(
+                active.connection, tenant_id=tenant_id, project_id=project_id
+            )
+            learned_mapping: Mapping[str, str] | None = None
+            shadow_mapping: Mapping[str, str] | None = None
+            selection_source: SelectionSource = SELECTION_SOURCE
+            selection_propensity = DETERMINISTIC_SELECTION_PROPENSITY
+            policy_version = POLICY_VERSION
+            if state is not None and state.active_policy_id is not None:
+                policy = await self._policies.get(
+                    active.connection, state.active_policy_id
+                )
+                if policy is not None:
+                    fraction = float(state.canary_fraction)
+                    if state.routing_mode == "shadow_learning":
+                        shadow_mapping = policy.mapping
+                    elif state.routing_mode == "promoted_historical":
+                        learned_mapping = policy.mapping
+                        selection_source = "promoted_historical"
+                        policy_version = FROZEN_POLICY_PREFIX + policy.policy_hash[:16]
+                    elif state.routing_mode == "canary":
+                        if in_canary_slice(task.task_id, fraction):
+                            learned_mapping = policy.mapping
+                            selection_source = "canary"
+                            selection_propensity = fraction
+                            policy_version = (
+                                FROZEN_POLICY_PREFIX + policy.policy_hash[:16]
+                            )
+                        else:
+                            selection_propensity = max(0.0, 1.0 - fraction)
             result = evaluate(
                 task,
                 workload_class=workload_class,
@@ -181,10 +229,20 @@ class RouterService:
                 approval_satisfied=approval_satisfied,
                 model_selection=selection_directive,
                 health_evicted_profiles=health_evicted_profiles,
+                learned_mapping=learned_mapping,
             )
             candidates_json = [candidate.to_json() for candidate in result.candidates]
             required_capabilities = list(result.required_capabilities)
             reason_codes = list(result.reason_codes)
+            if shadow_mapping:
+                shadow_pick = shadow_mapping.get(result.workload_class)
+                if shadow_pick:
+                    reason_codes.append(f"SHADOW_LEARNED:{shadow_pick}")
+            if state is not None and state.routing_mode == "canary":
+                if selection_source == "canary":
+                    reason_codes.append("CANARY_ASSIGNED")
+                else:
+                    reason_codes.append("CANARY_CONTROL")
             if health_evicted_profiles:
                 reason_codes.append(
                     f"{HEALTH_EVICTED_REASON_CODE}:"
@@ -203,11 +261,11 @@ class RouterService:
                 required_capabilities=required_capabilities,
                 required_environment_class=result.required_environment_class,
                 reason_codes=reason_codes,
-                selection_source=SELECTION_SOURCE,
-                selection_propensity=DETERMINISTIC_SELECTION_PROPENSITY,
+                selection_source=selection_source,
+                selection_propensity=selection_propensity,
                 fallback_plan=fallback_plan,
                 escalation_plan=escalation_plan,
-                policy_version=POLICY_VERSION,
+                policy_version=policy_version,
             )
             now = self._clock.now()
             decision = RouteDecision(
@@ -226,11 +284,11 @@ class RouterService:
                 predicted_cost=None,
                 predicted_latency=None,
                 confidence=None,
-                selection_source=SELECTION_SOURCE,
-                selection_propensity=DETERMINISTIC_SELECTION_PROPENSITY,
+                selection_source=selection_source,
+                selection_propensity=selection_propensity,
                 fallback_plan=fallback_plan,
                 escalation_plan=escalation_plan,
-                policy_version=POLICY_VERSION,
+                policy_version=policy_version,
                 decision_hash=digest,
                 created_at=now,
                 updated_at=now,

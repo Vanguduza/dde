@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/learned_routing_policy.json",
+  "title": "LearnedRoutingPolicy",
+  "description": "Chapter 6.9 frozen full-information routing-policy artifact. Owned by engine.learning. The offline phase MUST be a full-information fit over eligible recorded decisions before any partial-information update path may exist; continued_update is therefore false on every row this mission writes. Mapping is immutable after insert; status may move fitted to certified or superseded (Chapter 3.10: definition immutable, lifecycle mutable). Never a training source from simulation (Chapter 6.4).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "learned_routing_policies",
+    "order": 134,
+    "pk": ["policy_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["learning_run_id"], ["tenant_id", "project_id", "policy_hash"]],
+    "checks": [
+      {
+        "name": "learned_routing_policies_frozen_first",
+        "expression": "continued_update = false"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "learned_routing_policies_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "learned_routing_policies_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "policy_id",
+    "tenant_id",
+    "project_id",
+    "learning_run_id",
+    "fit_kind",
+    "policy_hash",
+    "mapping",
+    "constant_policy_profile_id",
+    "train_count",
+    "holdout_count",
+    "beats_constant_policy",
+    "continued_update",
+    "status",
+    "training_experience_ids",
+    "fallback_robustness_demonstrated",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "policy_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "learning_run_id": { "type": "string", "format": "uuid" },
+    "fit_kind": {
+      "type": "string",
+      "enum": ["frozen_full_information"]
+    },
+    "policy_hash": { "type": "string" },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "constant_policy_profile_id": { "type": "string" },
+    "train_count": { "type": "integer", "minimum": 0 },
+    "holdout_count": { "type": "integer", "minimum": 0 },
+    "brier": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "ece": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "holdout_learner_expected": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "holdout_constant_expected": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "holdout_incumbent_success": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }]
+    },
+    "beats_constant_policy": { "type": "boolean" },
+    "holdout_regression": {
+      "anyOf": [{ "type": "boolean" }, { "type": "null" }]
+    },
+    "drift_within_bounds": {
+      "anyOf": [{ "type": "boolean" }, { "type": "null" }]
+    },
+    "continued_update": { "type": "boolean" },
+    "status": {
+      "type": "string",
+      "enum": ["fitted", "certified", "superseded"]
+    },
+    "training_experience_ids": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" }
+    },
+    "fallback_robustness_demonstrated": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
