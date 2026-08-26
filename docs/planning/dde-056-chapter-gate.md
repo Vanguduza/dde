@@ -67,3 +67,4 @@ EDR-0028 closed; full WS/SSE sequence replay remains EDR-0027. Stop
 after land (S6 client exit closed).
 
 **Landed:** 2026-08-26 on `dde-056-client-parity` (FF to `main`).
+S6 client exit closed; do not auto-start S7.
