@@ -28,12 +28,16 @@ claim full Ch.15.1.
 
 ## Build
 
-Requires JDK 17+ and Android SDK. From this directory:
+Requires JDK 17+ and Android SDK (local checkout used Temurin 17 +
+platform 35 under gitignored `.tooling/`). Set `JAVA_HOME` /
+`ANDROID_HOME`, write `local.properties` `sdk.dir=…`, then from this
+directory:
 
 ```text
-./gradlew :app:assembleDebug
-./gradlew :app:test
+./gradlew.bat :gateway:test :app:assembleDebug
 ```
+
+Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
 CI without the SDK still runs the Python Gateway reconnect proofs under
 `tests/unit/test_android_gateway_reconnect.py`.

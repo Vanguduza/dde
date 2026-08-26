@@ -29,6 +29,12 @@ dump.rdb
 node_modules/
 *.vsix
 
+# Local JDK / Android SDK / Gradle caches (DDE-053 tooling)
+.tooling/
+interfaces/android/local.properties
+interfaces/android/.gradle/
+interfaces/android/**/build/
+
 # .NET build artifacts (DdeSetupWizard)
 [Bb]in/
 [Oo]bj/

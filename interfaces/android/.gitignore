@@ -1,0 +1,7 @@
+# Project-local tooling (JDK, Android SDK). Never commit binaries.
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/
+.DS_Store

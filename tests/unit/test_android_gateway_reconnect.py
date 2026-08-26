@@ -19,9 +19,7 @@ from tests.support.db import new_engine, seed_tenant
 
 ROOT = Path(__file__).resolve().parents[2]
 ANDROID = ROOT / "interfaces" / "android"
-DASHBOARD_GATEWAY = (
-    ROOT / "interfaces" / "dashboard" / "static" / "gateway.js"
-)
+DASHBOARD_GATEWAY = ROOT / "interfaces" / "dashboard" / "static" / "gateway.js"
 
 
 async def _seed_grant(engine, *, tenant_id, principal_id, project_id) -> None:
@@ -81,9 +79,11 @@ def test_android_never_imports_engine() -> None:
 
 def test_android_package_scaffolded() -> None:
     assert (ANDROID / "README.md").is_file()
-    assert (ANDROID / "app" / "src" / "main" / "kotlin").is_dir() or (
-        ANDROID / "app" / "src" / "main" / "java"
-    ).is_dir() or (ANDROID / "gateway").is_dir()
+    assert (
+        (ANDROID / "app" / "src" / "main" / "kotlin").is_dir()
+        or (ANDROID / "app" / "src" / "main" / "java").is_dir()
+        or (ANDROID / "gateway").is_dir()
+    )
 
 
 def test_android_allowlist_matches_dashboard_gateway_js() -> None:
