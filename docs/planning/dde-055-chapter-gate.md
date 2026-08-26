@@ -7,34 +7,38 @@ Ch.14.2 messaging never requests `approval.decide`; Ch.3.6 additive
 (DDE-054), multi-client golden parity (DDE-056), or a new Core authority
 plane.
 
-**Status:** OPEN (kicked off after DDE-054 PASS-WITH-EDR @ `39ac5a2`).
+**CI / local proofs (pending `just check` close):**
 
-## In charter
+- `tests/unit/test_messaging_transport.py`: **5 passed**
+- `tests/unit/test_messaging_gateway.py`: **3 passed** (service
+  allowlist open; decide rejected; mission.cancel via messaging scopes;
+  `approval.batch_decide` forbidden)
 
-| In | Out |
+## What landed (scaffold)
+
+- `interfaces/messaging/`: `MESSAGING_SCOPES` allowlist, `InMemoryChannel`,
+  `MessagingBridge` (status / pause / resume / cancel dialect; refuses
+  approve/decide/capture-secret verbs).
+- Never imports `engine.*`.
+
+## Rule disposition
+
+| Rule | Production call site |
 |---|---|
-| Channel transports (stub + contract) under `interfaces/messaging/` | Standing `approval.decide` via chat |
-| Map inbound text ↔ Gateway envelopes with idempotency keys | Writing Project Truth / Core tables |
-| Allowlisted scopes: `mission.read` / `mission.control` (service or human) | Inventing mission mutations without Gateway |
-| Explicit refusal of `approval.decide` / credential capture on this surface | Full Slack/Telegram production SDKs (vendor adapters may follow behind the same contract) |
-
-## Rule disposition (target)
-
-| Rule | Production call site (to name at land) |
-|---|---|
-| Ch.15.1 transport only | Messaging bridge posts only through Gateway transport Protocol — never imports `engine.*` |
-| Ch.14.2 no decide authority | Allowlist excludes `approval.decide`; session open refuses decide scopes |
-| Ch.15.2 idempotency on mutations | Control commands carry durable `command_id` + `idempotency_key` |
-| Vendor SDK containment | Live Slack/Telegram SDKs deferred behind transport Protocol (EDR if product picks a vendor) |
+| Ch.15.1 transport only | `interfaces/messaging/**` — no engine imports (unit proof) |
+| Ch.14.2 no decide authority | `assert_messaging_scopes` + `MessagingBridge.connect` scopes; Gateway session rejects `approval.decide` for service; `approval.batch_decide` FORBIDDEN without scope |
+| Ch.15.2 idempotency on mutations | Bridge control envelopes use `msg-{verb}-{message_id}` keys |
+| Vendor Slack/Telegram SDKs | Deferred **EDR-0031** |
+| Multi-client golden parity | Deferred **EDR-0028** (DDE-056) |
 
 ## Deferred (proposed EDRs)
 
 | ID | Item |
 |---|---|
-| **EDR-0031** | Production Slack/Telegram/webhook vendor adapters (SDK + credentials via broker) |
+| **EDR-0031** | Production Slack/Telegram/webhook vendor adapters (SDK + brokered credentials) |
 | **EDR-0028** | CLI/web/Android/messaging golden parity (DDE-056) |
 
 ## Verdict
 
-**OPEN** — do not declare PASS until call sites above are named and
-proofs are green. Auto-proceed to DDE-056 only after this gate closes.
+**OPEN** — awaiting green `just check` before PASS-WITH-EDR land.
+Auto-proceed to DDE-056 only after this gate closes.

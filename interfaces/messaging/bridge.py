@@ -70,7 +70,8 @@ class MessagingBridge:
         return await self._dispatch(inbound.text, message_id=inbound.message_id)
 
     async def _dispatch(self, text: str, *, message_id: str) -> dict[str, Any]:
-        assert self.session_id is not None
+        if self.session_id is None:
+            raise RuntimeError("MessagingBridge.connect() required first")
         parts = text.strip().split()
         if not parts:
             return await self._reply("empty command", key=f"msg-empty-{message_id}")
