@@ -1,9 +1,9 @@
 """Durable offline command queue for the Termux device edge (DDE-054).
 
-Armed only when ``android.offline_queue.enabled`` (env
-``DDE_ANDROID_OFFLINE_QUEUE_ENABLED``) is true. Enqueued envelopes keep
-their ``command_id`` / ``idempotency_key`` so reconnect flush cannot
-mint a second mutation.
+Armed only when ``android.offline_queue.enabled`` (RuntimeFlags
+``android_offline_queue_enabled`` / env ``DDE_ANDROID_OFFLINE_QUEUE_ENABLED``)
+is true. Enqueued envelopes keep their ``command_id`` / ``idempotency_key``
+so reconnect flush cannot mint a second mutation.
 """
 
 from __future__ import annotations

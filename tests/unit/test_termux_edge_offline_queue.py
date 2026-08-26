@@ -98,13 +98,16 @@ async def test_heartbeat_enqueues_when_offline(
     monkeypatch.setenv("DDE_ANDROID_OFFLINE_QUEUE_ENABLED", "true")
     transport = _FakeTransport()
     queue = OfflineQueue(tmp_path / "queue.jsonl")
-    client = DeviceClient(transport, queue, principal_id="p1", device_id="d1")
+    client = DeviceClient(
+        transport, queue, principal_id="p1", device_id="d1", project_id="proj-1"
+    )
     await client.connect()
     result = await client.heartbeat(online=False)
     assert result is None
     pending = queue.pending()
     assert len(pending) == 1
     assert pending[0].command_type == "device.heartbeat"
+    assert pending[0].parameters == {"project_id": "proj-1"}
 
 
 @pytest.mark.asyncio
@@ -114,11 +117,14 @@ async def test_flush_preserves_keys_and_drains(
     monkeypatch.setenv("DDE_ANDROID_OFFLINE_QUEUE_ENABLED", "true")
     transport = _FakeTransport()
     queue = OfflineQueue(tmp_path / "queue.jsonl")
-    client = DeviceClient(transport, queue, principal_id="p1", device_id="d1")
+    client = DeviceClient(
+        transport, queue, principal_id="p1", device_id="d1", project_id="proj-1"
+    )
     await client.connect()
     await client.heartbeat(online=False)
     key = queue.pending()[0].idempotency_key
     results = await client.flush_offline()
     assert len(results) == 1
     assert transport.posted[0]["idempotency_key"] == key
+    assert transport.posted[0]["parameters"]["project_id"] == "proj-1"
     assert queue.pending() == []

@@ -42,6 +42,12 @@ class RuntimeFlags:
     model_mode: str = "off"
     model_fixed_id: str | None = None
     model_fixed_provider: str | None = None
+    #: Chapter 13.7 `android.offline_queue.enabled`. Default false — edge
+    #: clients (Termux/Android) arm their durable offline queue only when
+    #: this flag (or the DDE_ANDROID_OFFLINE_QUEUE_ENABLED env twin) is true.
+    #: Not a dangerous startup combination; named here so the flag is a
+    #: first-class configuration surface rather than an ad-hoc env string.
+    android_offline_queue_enabled: bool = False
 
 
 MODEL_MODES = ("off", "auto", "fixed")

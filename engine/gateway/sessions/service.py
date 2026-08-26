@@ -90,6 +90,14 @@ class GatewaySessionService:
                 "Scope not granted for client_type",
                 details={"client_type": client_type, "scopes": scopes},
             )
+        # Ch.14.2 device principal is device-bound: a device session without
+        # device_id cannot be authorized for device.command / device.read.
+        if client_type == "device" and device_id is None:
+            raise DdeError(
+                "FORBIDDEN",
+                "device_id is required for client_type=device",
+                details={"client_type": client_type},
+            )
         async with self._identity() as connection:
             tenant_id = await self._principals.tenant_for_principal(
                 connection, principal_id

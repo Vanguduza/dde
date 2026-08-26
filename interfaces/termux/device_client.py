@@ -48,11 +48,13 @@ class DeviceClient:
         *,
         principal_id: str,
         device_id: str,
+        project_id: str,
     ) -> None:
         self._transport = transport
         self._queue = queue
         self._principal_id = principal_id
         self._device_id = device_id
+        self._project_id = project_id
         self.session_id: str | None = None
 
     async def connect(self) -> str:
@@ -65,21 +67,34 @@ class DeviceClient:
         self.session_id = session_id
         return session_id
 
-    async def heartbeat(self, *, online: bool) -> dict[str, Any] | None:
+    async def resume(self, *, last_event_at: str | None = None) -> dict[str, Any]:
+        """Ch.15.1 reconnect — caller must treat fresh_snapshot as authority
+        and discard any unconfirmed local projection before flush."""
+        if self.session_id is None:
+            raise RuntimeError("DeviceClient.connect() required first")
+        return await self._transport.resume_session(
+            session_id=self.session_id,
+            last_event_at=last_event_at,
+        )
+
+    def _heartbeat_envelope(self) -> QueuedCommand:
         if self.session_id is None:
             raise RuntimeError("DeviceClient.connect() required first")
         command_id = str(uuid4())
         idempotency_key = f"device-heartbeat-{command_id}"
-        envelope = QueuedCommand(
+        return QueuedCommand(
             command_id=command_id,
             idempotency_key=idempotency_key,
             command_type="device.heartbeat",
             target_type="device",
             target_id=self._device_id,
-            parameters={},
+            parameters={"project_id": self._project_id},
             principal_id=self._principal_id,
             client_session_id=self.session_id,
         )
+
+    async def heartbeat(self, *, online: bool) -> dict[str, Any] | None:
+        envelope = self._heartbeat_envelope()
         if not online:
             if not offline_queue_enabled():
                 raise RuntimeError("offline and queue disabled")
@@ -88,7 +103,11 @@ class DeviceClient:
         return await self._transport.post_command(envelope.to_envelope())
 
     async def flush_offline(self) -> list[dict[str, Any]]:
-        """Resume is caller's responsibility; this only drains the queue."""
+        """Drain queue oldest-first; preserves command_id / idempotency_key.
+
+        Resume is the caller's responsibility (see :meth:`resume`) before
+        flush so Ch.15.1 fresh-snapshot re-sync happens first.
+        """
         pending = self._queue.pending()
         results: list[dict[str, Any]] = []
         for index, command in enumerate(pending):
@@ -101,3 +120,10 @@ class DeviceClient:
                 return results
         self._queue.replace_all([])
         return results
+
+    async def reconnect_and_flush(
+        self, *, last_event_at: str | None = None
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Resume then flush — never invents new idempotency keys."""
+        snapshot = await self.resume(last_event_at=last_event_at)
+        return snapshot, await self.flush_offline()

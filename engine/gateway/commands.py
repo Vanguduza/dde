@@ -253,6 +253,8 @@ class CommandDispatcher:
             return await self._capture_opensandbox(command, tenant_id, project_id)
         if command_type == "credential.inspect_opensandbox":
             return await self._inspect_opensandbox(command, tenant_id, project_id)
+        if command_type == "device.heartbeat":
+            return await self._device_heartbeat(command, tenant_id, project_id)
         raise DdeError(
             "FORBIDDEN",
             "Unsupported command_type",
@@ -469,6 +471,28 @@ class CommandDispatcher:
             target_type="project",
             target_id=project_id,
             payload=payload,
+        )
+
+    async def _device_heartbeat(
+        self, command: Command, tenant_id: UUID, project_id: UUID
+    ) -> CommandAcceptance:
+        """Minimal device liveness command (DDE-054 / Ch.14.2).
+
+        Acceptance only — no Project Truth or mission mutation. The outer
+        CommandLedger still records the idempotency key so offline flush
+        cannot mint a second mutation (Ch.15.2 / Ch.12.5).
+        """
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="device",
+            target_id=command.target_id,
+            payload={
+                "ok": True,
+                "device_id": str(command.target_id),
+                "project_id": str(project_id),
+                "tenant_id": str(tenant_id),
+            },
         )
 
 
@@ -722,6 +746,26 @@ class GatewayCommandService:
                 f"{command.command_type} requires target_type '{expected}'",
                 details={"target_type": command.target_type},
             )
+        if command.target_type == "device":
+            # Device commands address the bound device; the ledger still
+            # needs a project scope (Ch.13.9). Caller supplies project_id
+            # in parameters; target_id must match the session's device_id.
+            if session.device_id is None or command.target_id != session.device_id:
+                raise DdeError(
+                    "FORBIDDEN",
+                    "device target_id must match the session device_id",
+                    details={
+                        "target_id": str(command.target_id),
+                        "device_id": (
+                            None
+                            if session.device_id is None
+                            else str(session.device_id)
+                        ),
+                    },
+                )
+            project_id = _required_uuid_param(command.parameters, "project_id")
+            await self._sessions.authorize_project(session, project_id)
+            return project_id
         if command.target_type == "project":
             project_id = command.target_id
         else:

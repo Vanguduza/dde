@@ -74,6 +74,9 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "approval.request_budget_increase": "approval.request",
     "credential.capture_opensandbox": "credential.capture",
     "credential.inspect_opensandbox": "credential.capture",
+    # DDE-054 / Ch.14.2: minimal device command under device.command.
+    # Richer device surface is EDR-0030 if product needs it.
+    "device.heartbeat": "device.command",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -91,6 +94,7 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "approval.decide_budget_increase": "project",
     "credential.capture_opensandbox": "project",
     "credential.inspect_opensandbox": "project",
+    "device.heartbeat": "device",
 }
 
 #: Mission control command -> target mission status (Chapter 4.8).
