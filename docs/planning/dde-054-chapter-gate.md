@@ -7,35 +7,51 @@ idempotent command flush; Ch.3.6 `interfaces/termux` (additive to the
 listed layout). **Not** human Mission Control (DDE-053), messaging
 adapters (DDE-055), or multi-client golden parity (DDE-056).
 
-**Status:** IN PROGRESS (kicked off after DDE-053 PASS-WITH-EDR).
+**CI / local proofs (2026-08-26):**
 
-## In charter
+- `just check` green — ruff / mypy (352 files) / **1066 passed, 2
+  skipped** (unit+contract+recovery) / `generate_contracts --check` /
+  design-lints baseline / dde-studio `tsc --noEmit`
+- `tests/unit/test_termux_edge_offline_queue.py`: **6 passed**
+- `tests/unit/test_termux_device_gateway.py`: **6 passed** (live ASGI
+  device session + heartbeat + idempotency + mission-scope refusal)
 
-| In | Out |
+## What landed
+
+- `interfaces/termux/`: `DeviceClient` + durable `OfflineQueue` (JSONL),
+  `reconnect_and_flush` (resume then flush; never invents keys).
+- Gateway: `device.heartbeat` in `COMMAND_SCOPES` → `device.command`,
+  `COMMAND_TARGET_TYPE` → `device`; dispatcher acceptance-only (no
+  Project Truth / mission mutation); `_resolve_project` binds
+  `parameters.project_id` + session `device_id` match.
+- Session open: `client_type=device` **requires** `device_id`; mission
+  scopes rejected by baseline subset (Ch.14.2).
+- Ch.13.7 flag: `RuntimeFlags.android_offline_queue_enabled` (default
+  false) + client env twin `DDE_ANDROID_OFFLINE_QUEUE_ENABLED`.
+
+## Rule disposition
+
+| Rule | Production call site |
 |---|---|
-| `interfaces/termux/` POSIX/Termux Python edge client | Compose human operator (DDE-053) |
-| `client_type=device` + required `device_id` | `mission.*` scopes on a device session |
-| Durable offline command queue when flag enabled | Full WS/SSE sequence replay (EDR-0027) |
-| Flush on reconnect preserving `idempotency_key` | Standing device credentials that bypass Gateway |
-| Minimal `device.heartbeat` (or equivalent) under `device.command` | New authority plane / Core mission mutations via device |
-
-## Rule disposition (target)
-
-| Rule | Production call site (to name at land) |
-|---|---|
-| Ch.14.2 device baseline only | Gateway session open rejects mission scopes for `client_type=device` |
-| Ch.13.7 offline queue flag | Queue armed only when `android.offline_queue.enabled` (or DDE env twin) is true |
-| Ch.15.2 acceptance ≠ completion + idempotency | Offline flush replays same `command_id`/`idempotency_key`; never invents a second mutation |
-| Ch.15.1 no stale local authority | After resume, discard unconfirmed local projection; re-sync by Gateway reads the device is allowed |
+| Ch.14.2 device baseline only | `GatewaySessionService.open_session` — `BASELINE_SCOPES["device"]`; rejects mission scopes + missing `device_id` |
+| Ch.13.7 offline queue flag | `OfflineQueue.enqueue` / `offline_queue_enabled()` gated on env twin; flag named on `RuntimeFlags.android_offline_queue_enabled` |
+| Ch.15.2 acceptance ≠ completion + idempotency | `GatewayCommandService.accept` + `CommandLedger` for `device.heartbeat`; Termux `flush_offline` replays same `command_id`/`idempotency_key` |
+| Ch.15.1 no stale local authority | `DeviceClient.resume` / `reconnect_and_flush` — resume before flush; fresh snapshot is caller's re-sync signal |
+| Ch.15.1 sequence/WS/SSE full replay | Deferred **EDR-0027** (Core gap) |
+| Rich device command surface | Deferred **EDR-0030** |
 
 ## Deferred (proposed EDRs)
 
 | ID | Item |
 |---|---|
-| **EDR-0027** | Sequence/WS/SSE gap replay (Core) |
-| **EDR-0030** | Rich device command surface beyond heartbeat/status (if product needs it) |
+| **EDR-0027** | Sequence/WS/SSE gap replay (Core) — shared with DDE-053 |
+| **EDR-0030** | Rich device command surface beyond heartbeat/status |
 
 ## Verdict
 
-**OPEN** — do not declare PASS until call sites above are named and
-proofs are green. Auto-proceed to DDE-055 only after this gate closes.
+**PASS-WITH-EDR** — Termux device edge client + offline queue + live
+Gateway `device.heartbeat` under `device.command`; full stream/sequence
+replay and richer device commands deferred. Auto-proceed to DDE-055
+authorized under the standing order.
+
+**Landed:** 2026-08-26 on `dde-054-termux-edge-node-wt` (FF to `main`).
