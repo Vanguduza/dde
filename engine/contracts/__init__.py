@@ -15,6 +15,7 @@ from engine.contracts.checkpoint import Checkpoint
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.command_idempotency import CommandIdempotency
+from engine.contracts.context_activation_state import ContextActivationState
 from engine.contracts.context_chunk import ContextChunk
 from engine.contracts.context_conflict import ContextConflict
 from engine.contracts.context_critic_finding import ContextCriticFinding
@@ -97,6 +98,7 @@ __all__ = [
     "ClientSession",
     "Command",
     "CommandIdempotency",
+    "ContextActivationState",
     "ContextChunk",
     "ContextConflict",
     "ContextCriticFinding",

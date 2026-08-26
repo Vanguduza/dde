@@ -234,6 +234,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## ContextActivationState
+
+- table: `context_activation_state`
+- primary key: activation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## ExecutionEnvironment
 
 - table: `execution_environments`

@@ -354,3 +354,23 @@ def test_routing_activation_state_rejects_unknown_mode() -> None:
                 "updated_at": _now(),
             }
         )
+
+
+def test_context_activation_state_rejects_unknown_mode() -> None:
+    from engine.contracts.context_activation_state import ContextActivationState
+
+    with pytest.raises(ValidationError):
+        ContextActivationState.model_validate(
+            {
+                "activation_id": uuid7(),
+                "tenant_id": uuid7(),
+                "project_id": uuid7(),
+                "context_mode": "bandit",
+                "candidate_arm": "pull",
+                "last_certified_mode": "certified_baseline",
+                "last_certified_arm": "pull",
+                "canary_fraction": 0.05,
+                "created_at": _now(),
+                "updated_at": _now(),
+            }
+        )

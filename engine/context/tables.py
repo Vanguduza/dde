@@ -126,3 +126,19 @@ context_chunks = Table(
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
+
+context_activation_state = Table(
+    "context_activation_state",
+    metadata,
+    Column("activation_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("context_mode", Text, nullable=False),
+    Column("candidate_arm", Text, nullable=False),
+    Column("last_certified_mode", Text, nullable=False),
+    Column("last_certified_arm", Text, nullable=False),
+    Column("last_promotion_run_id", Uuid(as_uuid=True), nullable=True),
+    Column("canary_fraction", Numeric, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)

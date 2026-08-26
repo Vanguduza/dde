@@ -678,6 +678,7 @@ One authoritative owner per mutable state. One creation authority. No exceptions
 | **TaskGraph** | `planning` | Task Planner | Versioned; prior versions immutable | Graph |
 | Task | `missions` | Task Planner | Lifecycle only | Task transition |
 | ContextPackage | `context` | DCE | Versioned; prior versions immutable | Context |
+| ContextActivationState | `context` | `ContextActivationService.attempt_advance` / `rollback` | `context.mode`, candidate arm, last certified | Context |
 | RouteDecision | `routing` | Router | Immutable | Routing |
 | ExecutionPlan | `execution` | Execution Planner | Definition immutable; status mutable | Plan |
 | TaskAttempt | `missions` | Attempt creator | Append-only | Attempt commit |
@@ -1105,6 +1106,8 @@ A request is evaluated against task scope, policy and budget. A worker can never
 | Token cost per verified success | Not a gate on its own; reported alongside success |
 
 A policy that reduces tokens while increasing repair loops fails promotion. That is the entire point of measuring cost per *verified* outcome.
+
+> **Production call sites (DDE-059, 2026-08-27).** `ContextActivationService.evaluate_candidate` is the Chapter 5.13 A/B harness for first-class arms (`pull` / `push` / `semantic`) against the certified Stage 1 baseline (`respect_activation=False` so an in-flight canary cannot contaminate the comparison). `attempt_advance` is the sole forward `context.mode` writer and refuses canary/promoted unless every Chapter 5.13 gate is computed and holds; `PARTIAL_PASS_IMPLEMENTED_GATES_ONLY` never flips production. `rollback` returns to the last certified policy (Stage 1 pull when none is certified). `ContextService.compile()` is the production reader: certified_baseline and shadow serve pull with semantic off; canary applies the candidate arm on a hash-stable slice; promoted applies it to every compile. Constructor `semantic_retrieval_enabled=False` remains the EDR-0002 default. Gates 2 and 4 (`context_attributed_failure_rate`, `task_success_on_corpus`) still need worker-verification replay (EDR-0003); contradiction rate is computed at compile time.
 
 ---
 ---

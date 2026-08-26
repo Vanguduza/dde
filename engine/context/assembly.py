@@ -73,14 +73,21 @@ def assemble(
     fused_items: list[FusedItem],
     *,
     budget_tokens: int,
+    policy_arm: str = "pull",
 ) -> AssembledContext | ContextBudgetExceeded:
+    """`pull` is Stage 1 eviction. `push` injects architecture/security
+    evidence as unevictable (Graft-class push bundle) so the cost is
+    paid up front or the compile overflows."""
     tiered: dict[int, list[FusedItem]] = defaultdict(list)
     tiered[TIER_UNEVICTABLE_AUTHORITY].append(_success_criteria_item(task))
     for fused in fused_items:
         tiered[_tier(fused.item)].append(fused)
 
+    protected = set(UNEVICTABLE_TIERS)
+    if policy_arm == "push":
+        protected.add(TIER_ARCHITECTURE_AND_SECURITY)
     unevictable = [
-        fused for tier in sorted(UNEVICTABLE_TIERS) for fused in tiered.get(tier, [])
+        fused for tier in sorted(protected) for fused in tiered.get(tier, [])
     ]
     unevictable_tokens = sum(fused.item.token_estimate for fused in unevictable)
     if unevictable_tokens > budget_tokens:
@@ -95,7 +102,7 @@ def assemble(
     evicted: list[FusedItem] = []
     total = unevictable_tokens
     evictable_tiers = sorted(
-        (tier for tier in tiered if tier not in UNEVICTABLE_TIERS), reverse=True
+        (tier for tier in tiered if tier not in protected), reverse=True
     )
     for tier in evictable_tiers:
         for fused in sorted(tiered[tier], key=lambda entry: -entry.fused_score):

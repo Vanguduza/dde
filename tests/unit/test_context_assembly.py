@@ -118,3 +118,22 @@ def test_assemble_returns_budget_exceeded_when_unevictable_alone_overflows() -> 
     assert result.task_id == task.task_id
     assert result.budget_tokens == 10
     assert result.required_tokens > 10
+
+
+def test_push_arm_makes_architecture_evidence_unevictable() -> None:
+    """Pull evicts architecture under a tight budget; push injects it
+    up front and overflows rather than silently dropping it."""
+    task = _task()
+    architecture = _fused(
+        "file:arch.md",
+        content="a" * 4000,
+        categories=("architecture_constraints",),
+        score=0.1,
+    )
+    pull = assemble(task, [architecture], budget_tokens=80)
+    push = assemble(task, [architecture], budget_tokens=80, policy_arm="push")
+
+    assert not isinstance(pull, ContextBudgetExceeded)
+    evicted_keys = {fused.item.key for fused in pull.evicted}
+    assert "file:arch.md" in evicted_keys
+    assert isinstance(push, ContextBudgetExceeded)

@@ -573,6 +573,27 @@ CREATE TABLE routing_activation_state (
     CHECK (canary_fraction >= 0 AND canary_fraction <= 1)
 );
 
+CREATE TABLE context_activation_state (
+    activation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    context_mode text NOT NULL,
+    candidate_arm text NOT NULL,
+    last_certified_mode text NOT NULL,
+    last_certified_arm text NOT NULL,
+    last_promotion_run_id uuid,
+    canary_fraction numeric NOT NULL DEFAULT 0.05,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (activation_id),
+    UNIQUE (tenant_id, project_id),
+    CHECK (context_mode IN ('certified_baseline', 'shadow', 'canary', 'promoted')),
+    CHECK (last_certified_mode IN ('certified_baseline', 'shadow', 'canary', 'promoted')),
+    CHECK (candidate_arm IN ('pull', 'push', 'semantic')),
+    CHECK (last_certified_arm IN ('pull', 'push', 'semantic')),
+    CHECK (canary_fraction >= 0 AND canary_fraction <= 1)
+);
+
 CREATE TABLE execution_environments (
     environment_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1556,6 +1577,10 @@ ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_pro
 ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_active_policy_id_fkey FOREIGN KEY (active_policy_id) REFERENCES learned_routing_policies (policy_id);
 ALTER TABLE routing_activation_state ADD CONSTRAINT routing_activation_state_last_certified_policy_id_fkey FOREIGN KEY (last_certified_policy_id) REFERENCES learned_routing_policies (policy_id);
 
+ALTER TABLE context_activation_state ADD CONSTRAINT context_activation_state_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE context_activation_state ADD CONSTRAINT context_activation_state_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE context_activation_state ADD CONSTRAINT context_activation_state_last_promotion_run_id_fkey FOREIGN KEY (last_promotion_run_id) REFERENCES promotion_gate_runs (run_id);
+
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE execution_environments ADD CONSTRAINT execution_environments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
@@ -1873,6 +1898,10 @@ CREATE POLICY learned_routing_policies_tenant_isolation ON learned_routing_polic
 ALTER TABLE routing_activation_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routing_activation_state FORCE ROW LEVEL SECURITY;
 CREATE POLICY routing_activation_state_tenant_isolation ON routing_activation_state USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE context_activation_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_activation_state FORCE ROW LEVEL SECURITY;
+CREATE POLICY context_activation_state_tenant_isolation ON context_activation_state USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE execution_environments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE execution_environments FORCE ROW LEVEL SECURITY;

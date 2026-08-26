@@ -21,13 +21,19 @@ are reported alongside. Chapter 5.13's "not a gate on its own" is
 satisfied by never treating cost as a lone PASS: coverage still must
 hold, and `decision` is never bare `"PASS"`.
 
-The remaining gates need the Chapter 5.11 failure-attribution pipeline
-and real worker-verification runs replayed against each eval case
-(EDR-0003). `decision` is therefore `INSUFFICIENT_CORPUS`, `FAIL`, or
-`PARTIAL_PASS_IMPLEMENTED_GATES_ONLY`. No production call site flips
-`ContextService`'s `semantic_retrieval_enabled` based on this decision —
-that remains a manual, code-reviewed change per EDR-0002 until every
-gate exists.
+The remaining gates (`context_attributed_failure_rate`,
+`task_success_on_corpus`) need the Chapter 5.11 failure-attribution
+pipeline and real worker-verification runs replayed against each eval
+case (EDR-0003). `decision` is therefore `INSUFFICIENT_CORPUS`, `FAIL`,
+or `PARTIAL_PASS_IMPLEMENTED_GATES_ONLY`. `ContextActivationService.
+attempt_advance` refuses canary/promoted on PARTIAL_PASS;
+`ContextService.compile()` never flips semantic/push from that
+decision -- EDR-0002 constructor default remains False.
+
+**Contradiction rate (DDE-059).** Computed at the same compile site:
+share of frozen cases whose compiled package is `CONFLICTED`. A
+candidate rate strictly greater than the baseline is a FAIL. This is
+compile-time Chapter 5.6 detection, not worker replay.
 
 **Corpus adequacy (point 4).** Chapter 5.13's minimum viable corpus is 60
 cases across >= 6 task classes with >= 10 adversarial cases. `evaluate`
@@ -124,6 +130,19 @@ def _extract_coverage(
     return {
         category: str(coverage[category]) for category in REQUIRED_COVERAGE_CATEGORIES
     }
+
+
+def contradiction_rate_regressed(
+    baseline_rate: float | None, candidate_rate: float | None
+) -> bool:
+    """Chapter 5.13: no regression on contradiction rate."""
+    if baseline_rate is None or candidate_rate is None:
+        return False
+    return candidate_rate > baseline_rate
+
+
+def _package_conflicted(result: ContextPackage | ContextBudgetExceeded) -> bool:
+    return isinstance(result, ContextPackage) and result.status == "CONFLICTED"
 
 
 def _critical_coverage_regression(
@@ -251,6 +270,9 @@ class PromotionGateService:
             regressions: list[dict[str, object]] = []
             baseline_token_samples: list[int] = []
             candidate_token_samples: list[int] = []
+            baseline_conflicts = 0
+            candidate_conflicts = 0
+            compared_cases = 0
             for case in cases:
                 task = await self._missions.get_task(
                     tenant_id=tenant_id,
@@ -260,7 +282,7 @@ class PromotionGateService:
                 )
                 try:
                     baseline_result = await baseline_service.compile(
-                        task=task, uow=active
+                        task=task, uow=active, respect_activation=False
                     )
                 except DdeError as exc:
                     regressions.append(
@@ -273,7 +295,7 @@ class PromotionGateService:
                     continue
                 try:
                     candidate_result = await candidate_service.compile(
-                        task=task, uow=active
+                        task=task, uow=active, respect_activation=False
                     )
                 except DdeError as exc:
                     regressions.append(
@@ -292,6 +314,12 @@ class PromotionGateService:
                 if regression is not None:
                     regressions.append(regression)
 
+                compared_cases += 1
+                if _package_conflicted(baseline_result):
+                    baseline_conflicts += 1
+                if _package_conflicted(candidate_result):
+                    candidate_conflicts += 1
+
                 baseline_tokens = await _compile_overhead_tokens(
                     active.connection, baseline_result, self._critic_findings
                 )
@@ -305,6 +333,15 @@ class PromotionGateService:
             baseline_mean = mean(baseline_token_samples)
             candidate_mean = mean(candidate_token_samples)
             cost_regression = token_cost_regressed(baseline_mean, candidate_mean)
+            baseline_contradiction = (
+                baseline_conflicts / compared_cases if compared_cases else None
+            )
+            candidate_contradiction = (
+                candidate_conflicts / compared_cases if compared_cases else None
+            )
+            contradiction_regression = contradiction_rate_regressed(
+                baseline_contradiction, candidate_contradiction
+            )
 
             historical = await self._overhead.list_cost_metrics_for_project(
                 active.connection, tenant_id=tenant_id, project_id=project_id
@@ -312,13 +349,21 @@ class PromotionGateService:
 
             decision = (
                 "FAIL"
-                if regressions or cost_regression
+                if regressions or cost_regression or contradiction_regression
                 else "PARTIAL_PASS_IMPLEMENTED_GATES_ONLY"
             )
             gate_results = {
                 "critical_coverage": {
                     "cases_evaluated": len(cases),
                     "regressions": regressions,
+                },
+                "contradiction_rate": {
+                    "baseline_rate": baseline_contradiction,
+                    "candidate_rate": candidate_contradiction,
+                    "baseline_conflicted": baseline_conflicts,
+                    "candidate_conflicted": candidate_conflicts,
+                    "cases_compared": compared_cases,
+                    "regressed": contradiction_regression,
                 },
                 "token_cost_per_verified_success": {
                     "baseline_mean_compile_tokens": baseline_mean,
@@ -339,7 +384,6 @@ class PromotionGateService:
                 },
                 "deferred_gates": [
                     "context_attributed_failure_rate",
-                    "contradiction_rate",
                     "task_success_on_corpus",
                 ],
             }

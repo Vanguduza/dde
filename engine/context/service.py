@@ -9,17 +9,18 @@ Chapter 5.7's eviction priority order -> the Chapter 5.8 coverage
 contract -> a versioned, hashed `ContextPackage` row (Chapter 3.10).
 
 The semantic retriever and its Chapter 5.4 index lifecycle are wired
-here, but gated behind `semantic_retrieval_enabled` (default `False`):
-Chapter 5.2 requires semantic retrieval to "demonstrate uplift on the
-eval corpus against a lexical+structural baseline before it is enabled
-by default" (Stage 3, Chapter 5.13). No eval corpus/promotion gate
-exists yet (EDR-0002, `docs/truth/edr/EDR-0002-semantic-retriever-
-default-gating.md`), so `compile()` never consults the index or the
-semantic retriever unless a caller explicitly opts in. When opted in,
-`compile()` consults the active semantic index, runs the semantic
-retriever when one exists, and applies the Chapter 5.4 staleness gate
-(`block` past `DEFAULT_INDEX_LAG_BLOCK_COMMITS`, `warn` past
-`DEFAULT_INDEX_LAG_WARN_COMMITS`). See `engine.context.index_service`
+here, but gated behind `semantic_retrieval_enabled` (default `False`)
+and, in production, behind `context_activation_state` (DDE-059 /
+Chapter 5.13). Constructor True remains an explicit test/opt-in
+(EDR-0002). `compile()` reads activation when the constructor is at
+defaults: certified_baseline and shadow serve Stage 1 pull; canary
+applies the candidate arm on a hash-stable slice; promoted applies it
+to every compile. `PARTIAL_PASS_IMPLEMENTED_GATES_ONLY` cannot write
+canary/promoted (`ContextActivationService.attempt_advance`). When
+opted in, `compile()` consults the active semantic index, runs the
+semantic retriever when one exists, and applies the Chapter 5.4
+staleness gate (`block` past `DEFAULT_INDEX_LAG_BLOCK_COMMITS`, `warn`
+past `DEFAULT_INDEX_LAG_WARN_COMMITS`). See `engine.context.index_service`
 and `engine.context.retrievers.semantic`.
 
 Conflict adjudication (Chapter 5.6, `engine.context.conflict`) and the
@@ -63,6 +64,11 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.docs import DocsProvider
+from engine.context.activation import (
+    ContextArm,
+    compile_policy_from_activation,
+)
+from engine.context.activation_repository import ContextActivationRepository
 from engine.context.assembly import DEFAULT_CONTEXT_BUDGET_TOKENS, assemble
 from engine.context.conflict import detect_conflicts
 from engine.context.coverage import compute_coverage
@@ -143,6 +149,8 @@ class ContextService:
         index_lag_warn_commits: int = DEFAULT_INDEX_LAG_WARN_COMMITS,
         index_lag_block_commits: int = DEFAULT_INDEX_LAG_BLOCK_COMMITS,
         semantic_retrieval_enabled: bool = False,
+        policy_arm: ContextArm = "pull",
+        activation_repository: ContextActivationRepository | None = None,
         conflict_repository: ContextConflictRepository | None = None,
         critic_finding_repository: ContextCriticFindingRepository | None = None,
         critic_confidence_threshold: float = DEFAULT_CRITIC_CONFIDENCE_THRESHOLD,
@@ -161,6 +169,8 @@ class ContextService:
         self._index_lag_warn_commits = index_lag_warn_commits
         self._index_lag_block_commits = index_lag_block_commits
         self._semantic_retrieval_enabled = semantic_retrieval_enabled
+        self._policy_arm: ContextArm = policy_arm
+        self._activation = activation_repository or ContextActivationRepository()
         self._conflict_repository = conflict_repository or ContextConflictRepository()
         self._critic_finding_repository = (
             critic_finding_repository or ContextCriticFindingRepository()
@@ -189,6 +199,7 @@ class ContextService:
         task: Task,
         context_budget_tokens: int | None = None,
         previously_context_attributed_failure: bool = False,
+        respect_activation: bool = True,
         uow: PostgresUnitOfWork | None = None,
     ) -> ContextPackage | ContextBudgetExceeded:
         """Compile and persist a new `ContextPackage` version for `task`.
@@ -210,7 +221,11 @@ class ContextService:
         `Task`'s prior `FailureAttribution` history yet, so this
         parameter defaults to `False`. A caller that does not hold
         genuine Chapter 5.11 attribution data must never pass `True` here
-        (see `engine.context.critic` for the full explanation)."""
+        (see `engine.context.critic` for the full explanation).
+
+        `respect_activation=False` is required for Chapter 5.13 A/B
+        evaluation so an in-flight canary cannot contaminate baseline
+        or candidate compiles. Production callers leave the default."""
         tenant_id = task.tenant_id
         project_id = task.project_id
         mission_id = task.mission_id
@@ -223,6 +238,34 @@ class ContextService:
         async def _op(
             active: PostgresUnitOfWork,
         ) -> ContextPackage | ContextBudgetExceeded:
+            semantic_enabled = self._semantic_retrieval_enabled
+            assembly_arm: ContextArm = self._policy_arm
+            activation_source = "constructor_opt_in"
+            constructor_override = (
+                self._semantic_retrieval_enabled or self._policy_arm != "pull"
+            )
+            if respect_activation and not constructor_override:
+                state = await self._activation.get(
+                    active.connection,
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                )
+                policy = compile_policy_from_activation(
+                    mode=None if state is None else state.context_mode,
+                    candidate_arm=("pull" if state is None else state.candidate_arm),
+                    canary_fraction=(
+                        0.0 if state is None else float(state.canary_fraction)
+                    ),
+                    task_id=task.task_id,
+                )
+                semantic_enabled = policy.semantic_enabled
+                assembly_arm = policy.assembly_arm
+                activation_source = policy.source
+            elif not respect_activation:
+                activation_source = "evaluation"
+                semantic_enabled = self._semantic_retrieval_enabled
+                assembly_arm = self._policy_arm
+
             expected_write_scope = tuple(task.expected_write_scope)
             discovery = discover(task, root=self._root)
 
@@ -253,7 +296,7 @@ class ContextService:
                 await self._index_service.load_state(
                     tenant_id=tenant_id, project_id=project_id, uow=active
                 )
-                if self._semantic_retrieval_enabled
+                if semantic_enabled
                 else None
             )
             semantic_items: list[ContextItem] = []
@@ -278,7 +321,9 @@ class ContextService:
                 retriever_results["semantic"] = semantic_items
             fused = fuse(retriever_results)
 
-            assembled = assemble(task, fused, budget_tokens=budget)
+            assembled = assemble(
+                task, fused, budget_tokens=budget, policy_arm=assembly_arm
+            )
             if isinstance(assembled, ContextBudgetExceeded):
                 return assembled
 
@@ -412,6 +457,9 @@ class ContextService:
                     "version": version,
                     "status": status,
                     "assembly_hash": digest,
+                    "activation_source": activation_source,
+                    "context_arm": assembly_arm,
+                    "semantic_enabled": semantic_enabled,
                 },
                 uow=active,
             )

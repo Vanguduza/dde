@@ -23,6 +23,7 @@ from engine.context.promotion import (
     MIN_TASK_CLASSES,
     PromotionGateService,
     _critical_coverage_regression,
+    contradiction_rate_regressed,
     corpus_adequacy,
 )
 from engine.context.service import ContextService
@@ -115,6 +116,13 @@ def test_token_cost_regressed_blocks_when_candidate_mean_rises() -> None:
     assert token_cost_regressed(mean([10, 20]), mean([15, 25])) is True
     assert token_cost_regressed(mean([10, 20]), mean([10, 20])) is False
     assert token_cost_regressed(None, 5.0) is False
+
+
+def test_contradiction_rate_regressed_is_strictly_greater() -> None:
+    assert contradiction_rate_regressed(0.1, 0.2) is True
+    assert contradiction_rate_regressed(0.2, 0.2) is False
+    assert contradiction_rate_regressed(0.2, 0.1) is False
+    assert contradiction_rate_regressed(None, 0.1) is False
 
 
 @pytest.mark.asyncio

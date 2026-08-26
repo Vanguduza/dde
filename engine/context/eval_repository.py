@@ -109,6 +109,17 @@ class PromotionGateRunRepository:
             return None
         return PromotionGateRun.model_validate(dict(row))
 
+    async def get(
+        self, connection: AsyncConnection, run_id: UUID
+    ) -> PromotionGateRun | None:
+        result = await connection.execute(
+            select(promotion_gate_runs).where(promotion_gate_runs.c.run_id == run_id)
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return PromotionGateRun.model_validate(dict(row))
+
     async def update_run(
         self,
         connection: AsyncConnection,
