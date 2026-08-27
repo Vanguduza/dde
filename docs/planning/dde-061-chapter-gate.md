@@ -8,8 +8,18 @@ worker is replaced without mission loss" as a Flight Lab / chaos
 attempt, not a new recovery matrix. **Not** DDE-062 DR/WORM, DDE-063
 load, DDE-064 readiness, or Frontend Studio.
 
-**Status:** IMPLEMENTATION on `dde-061-chaos-worker-replacement`.
-Chapter-gate review in progress.
+**Status:** CLOSED on `dde-061-chaos-worker-replacement`.
+
+**CI / local proofs (2026-08-27):**
+
+- `just check` green -- ruff / mypy (**368** files) / **1151 passed, 3
+  skipped** (unit+contract+recovery) / `generate_contracts --check` /
+  contract pytest / design-lints baseline / dde-studio `tsc --noEmit`
+- `tests/unit/test_chaos_inventory.py`: four chaos scenarios named;
+  named files exist; `evals/chaos/catalog.md` present
+- `tests/unit/test_chaos_suite.py`: drain/failed `invoke_run` refused;
+  `replace` + `resume_run` mid-attempt; killed worker replaced on the
+  same attempt; new engine after kill still `resume_run`s
 
 ## Prior landings this chain
 
@@ -17,16 +27,30 @@ Chapter-gate review in progress.
 |---|---|---|
 | DDE-060 | `0aadb47` | PASS-WITH-EDR (EDR-0002, 0003, 0005, 0027) |
 
-## Ch.19 / Ch.7 MUST/shall at production call sites
+## What this mission wires
 
-| Rule | Production mutation / gate |
+- `ExecutionEnvironmentService.replace`: production mutation
+  `any → FAILED → REPLACEMENT` plus `acquire()` of a substitute.
+- `WorkerManagerService.resume_run` binds the new WorkerRun to the
+  workspace environment; a different environment than the hashed plan
+  is legal only when the original is already `REPLACEMENT`.
+- Recoverable `WORKER_FAILURE` / `ENVIRONMENT_FAILURE` leave the
+  TaskAttempt `IN_PROGRESS` (`stamp_checkpoint`); `invoke_run` refuses
+  while that attempt is open.
+- Chaos catalog `evals/chaos/catalog.md` plus executable
+  `tests/unit/test_chaos_suite.py` (inside `just check` and `just chaos`).
+
+## Rule disposition
+
+| Rule | Production call site |
 |---|---|
-| No run scheduled into DRAINING, FAILED, or REPLACEMENT | `ExecutionEnvironmentService.assert_schedulable` called from `WorkerManagerService.invoke_run`, `resume_run` (`_bound_environment_for_resume`), `_drive_lifecycle` after RUNNING, and `ExecutionPlanService.plan`. Chaos **attempts** `invoke_run` into DRAINING and FAILED (`test_chaos_invoke_run_refuses_draining_and_failed_environments`). |
-| FAILED → REPLACEMENT (actual replace) | `ExecutionEnvironmentService.replace` — `any → FAILED → REPLACEMENT` plus `acquire()` of a substitute. Retired row is not schedulable. |
-| Replacement mid-run (Ch.19.1 Environment) | `replace()` then `ExecutionPlanService.provision_workspace(execution_environment_id=…)` then `WorkerManagerService.resume_run` on the **same** TaskAttempt. New `WorkerRun.environment_id` is the substitute. Chaos: `test_chaos_replacement_mid_run_same_attempt_new_environment`. |
-| Killed worker replaced without mission loss | Recoverable `WORKER_FAILURE` leaves the attempt `IN_PROGRESS` (`attempt_survives_run_failure` + `TaskAttemptService.stamp_checkpoint`). `invoke_run` refuses while that attempt is open. `resume_run` mints sequence N+1. Chaos: `test_chaos_killed_worker_replaced_without_mission_loss`. |
-| Chaos suite green (S7 exit) | `evals/chaos/catalog.md` + `tests/unit/test_chaos_suite.py` / `test_chaos_inventory.py`. Runs in `just check` (`tests/unit`) and `just chaos`. |
-| Core crash / worker crash / environment crash (Ch.19.1 Recovery) | Worker crash + environment crash are chaos scenarios at the call sites above. Core **OS process-crash** remains EDR-0027; this mission injects a new engine after a killed worker (`test_chaos_core_restart_then_resume_replaces_killed_worker`), not a second copy of `tests/recovery`. |
+| No run scheduled into DRAINING, FAILED, or REPLACEMENT | `ExecutionEnvironmentService.assert_schedulable` at `WorkerManagerService.invoke_run`, `resume_run` (`_bound_environment_for_resume`), `_drive_lifecycle` after RUNNING, and `ExecutionPlanService.plan`. Chaos **attempts** `invoke_run` into DRAINING and FAILED. The RUNNING re-check is named; chaos does not claim a concurrent fail-during-`start()` race (scripted adapter is synchronous). |
+| FAILED → REPLACEMENT (actual replace, not enum-only) | `ExecutionEnvironmentService.replace` |
+| Replacement mid-run (Ch.19.1 Environment) | `replace` then `ExecutionPlanService.provision_workspace(execution_environment_id=…)` then `WorkerManagerService.resume_run` on the same TaskAttempt |
+| Killed worker replaced without mission loss | Surviving attempt + `resume_run` sequence N+1. `invoke_run` cannot mint a second attempt while IN_PROGRESS. |
+| Chaos suite green (S7 exit) | `evals/chaos/catalog.md` + `tests/unit/test_chaos_suite.py` |
+| Core / worker / environment crash as chaos | Worker and environment crash at the call sites above. Core **OS process-crash** remains EDR-0027; this mission injects a new engine after a killed worker, not a second copy of `tests/recovery`. |
+| Ch.3.2 tenant_id/project_id + RLS | No new tables this mission |
 
 ## Adversarial self-check
 
@@ -43,16 +67,19 @@ Chapter-gate review in progress.
   `provision_workspace`, `stamp_checkpoint`) or the live schedulable
   gate on `invoke_run`.
 
-## Deferred unless this mission closes them
+## Deferred (proposed / still-open EDRs)
 
 | ID | Item |
 |---|---|
-| **EDR-0002 / 0003 / 0005 / 0027** | Unchanged; chaos does not treat them as closed. Full Core OS process-crash stays EDR-0027. |
+| **EDR-0002 / 0003 / 0005 / 0027** | Unchanged. Full Core OS process-crash stays EDR-0027. |
+| **EDR-0011** | Container/network kill at stop -- unchanged |
 | DDE-062+ | DR/WORM, load, readiness -- frozen |
-| EDR-0011 | Container/network kill at stop -- unchanged |
 
-**No new EDR-0033.**
+**No new EDR-0033.** Auto-proceed to DDE-062 authorized under the
+standing order.
 
 ## Verdict
 
-**OPEN** pending `just check` and independent re-read of named call sites.
+**PASS-WITH-EDR.** EDR-0002, EDR-0003, EDR-0005, EDR-0027 remain open.
+
+**Landed:** 2026-08-27 on `dde-061-chaos-worker-replacement` (FF to `main`).
