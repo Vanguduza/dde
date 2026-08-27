@@ -4,7 +4,18 @@
 S7 exit "all Chapter 16.5 SLOs met". **Not** DDE-064 readiness or
 Frontend Studio.
 
-**Status:** OPEN pending `just check`. Named call sites below.
+**Status:** CLOSED on `dde-063-load-capacity`.
+
+**CI / local proofs (2026-08-27):**
+
+- `just check` green -- ruff / mypy (**375** files) / **1160 passed, 3
+  skipped** (unit+contract+recovery) / `generate_contracts --check` /
+  contract pytest **185 passed** / design-lints baseline / dde-studio
+  tests **67 passed** / desktop `tsc --noEmit`
+- `tests/unit/test_load_slo.py`: fixture inventory present; sequential
+  `GET /v1/missions/{id}` p95 < 500 ms; `POST /v1/commands`
+  (`mission.create`) p95 < 1 s; `POST /v1/sessions/{id}/resume` p95 and
+  max < 10 s; concurrent mission-read burst hang-bound only
 
 ## Prior landings this chain
 
@@ -64,6 +75,9 @@ Frontend Studio.
   `MEASURED_ROUTES` require `GET /v1/missions/{id}`.
 - Reconnect timing is HTTP resume, not WS/SSE replay. Claiming stream
   reconnect would be an overclaim (EDR-0027).
+- Concurrent burst p95 is not the API-read SLO. Sequential
+  `measure_mission_read` is. Asserting 500 ms on the burst would
+  overclaim a coverage-loaded Windows pool.
 - Claimed latency call sites are the live FastAPI routes. The probe is
   the load caller, not a second source of mission truth.
 
@@ -72,13 +86,18 @@ Frontend Studio.
 | ID | Item |
 |---|---|
 | **EDR-0002 / 0003 / 0005 / 0027 / 0033** | Unchanged. EDR-0027 still covers WS/SSE list/stream reconnect. |
-| Frontend Studio CWV / generated-output LCP/CLS/INP | Out of charter. Gap-closure named DDE-063 as a possible owner; Ch.16.5 has no CWV row. Frozen with DDE-064+. |
-| DDE-064 | Production readiness / removal-test -- frozen until this gate closes |
+| Frontend Studio CWV / generated-output LCP/CLS/INP | Out of charter. Gap-closure named DDE-063 as a possible owner; Ch.16.5 has no CWV row. Frozen with Studio missions. |
+| DDE-064 | Production readiness / removal-test -- next |
 
-**No new EDR-0034.** Auto-proceed to DDE-064 is authorized only after
-`just check` green and this verdict is PASS or PASS-WITH-EDR.
+**No new EDR-0034.** Auto-proceed to DDE-064 authorized under the
+standing order.
 
 ## Verdict
 
-**OPEN** -- call sites named; `just check` not yet recorded on this
-revision (`9e9afce`).
+**PASS-WITH-EDR.** EDR-0002, EDR-0003, EDR-0005, EDR-0027, EDR-0033
+remain open. All nine Chapter 16.5 rows are named at a production call
+site or certified fixture suite. Sequential Gateway p95 probes are the
+latency gates; concurrent burst is hang-bound only; `/healthz` is not
+the API-read SLO.
+
+**Landed:** 2026-08-27 on `dde-063-load-capacity` (FF to `main`).
