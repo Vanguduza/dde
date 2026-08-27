@@ -211,14 +211,14 @@ def main(argv: list[str] | None = None) -> int:
             actual = counts.get(rule, 0)
             if actual > allowed:
                 print(
-                    f"{RULE_IDS[rule]} {rule}: {actual} > budget {allowed}",
+                    f"{rule}: {actual} > budget {allowed}",
                     file=sys.stderr,
                 )
                 failed = True
         for rule, actual in sorted(counts.items()):
             if rule not in budget:
                 print(
-                    f"{RULE_IDS[rule]} {rule}: {actual} > budget 0 (new rule)",
+                    f"{rule}: {actual} > budget 0 (new rule)",
                     file=sys.stderr,
                 )
                 failed = True

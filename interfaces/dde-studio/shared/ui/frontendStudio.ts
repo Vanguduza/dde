@@ -49,10 +49,11 @@ export function frontendStudioHtml(view: FrontendStudioView, status = ""): strin
     : "";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:12px}
+    <style>:root{--space-1:${SpacingScalePx.space1}px;--space-2:${SpacingScalePx.space2}px;--space-3:${SpacingScalePx.space3}px}
+    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:12px}
     nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}button,input,select,textarea{font:inherit}
-    label{display:grid;gap:5px;margin:10px 0}input,select,textarea{padding:7px;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border)}
-    .empty{padding:14px;border:1px dashed var(--vscode-panel-border)}.status{min-height:1.5em}</style></head>
+    label{display:grid;gap:var(--space-1);margin:var(--space-2) 0}input,select,textarea{padding:var(--space-2);background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border)}
+    .empty{padding:var(--space-3);border:1px dashed var(--vscode-panel-border)}.status{min-height:1.5em}</style></head>
     <body data-frontend-studio-view="${view}"><h1>${copy.title}</h1>
     <nav aria-label="Frontend Studio"><span>Home</span><span>Intake</span><span>Donors</span><span>Canvas</span><span>Verify</span><span>Approvals</span></nav>
     <section class="empty" data-bind="live-results">${copy.empty}</section>${action}
