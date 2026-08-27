@@ -50,6 +50,7 @@ from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
 from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
+from engine.studio.frontend import FrontendStudioService
 
 
 @dataclass(frozen=True)
@@ -255,6 +256,8 @@ class CommandDispatcher:
             return await self._inspect_opensandbox(command, tenant_id, project_id)
         if command_type == "device.heartbeat":
             return await self._device_heartbeat(command, tenant_id, project_id)
+        if command_type.startswith("frontend."):
+            return await self._frontend(command, tenant_id, project_id, command_type)
         raise DdeError(
             "FORBIDDEN",
             "Unsupported command_type",
@@ -493,6 +496,102 @@ class CommandDispatcher:
                 "project_id": str(project_id),
                 "tenant_id": str(tenant_id),
             },
+        )
+
+    def _studio(self) -> FrontendStudioService:
+        return FrontendStudioService(self._engine)
+
+    async def _frontend(
+        self,
+        command: Command,
+        tenant_id: UUID,
+        project_id: UUID,
+        command_type: str,
+    ) -> CommandAcceptance:
+        """DDE-067 Frontend Studio commands. Domain mutation is
+        FrontendStudioService; this method only maps parameters."""
+        studio = self._studio()
+        params = command.parameters
+        mission_id = command.target_id
+        key = command.idempotency_key
+        if command_type == "frontend.intake.compile_prompt":
+            payload = await studio.compile_prompt(parameters=params)
+        elif command_type == "frontend.donors.run_discovery":
+            payload = await studio.run_discovery(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                idempotency_key=key,
+                parameters=params,
+            )
+        elif command_type == "frontend.donors.submit_uri":
+            payload = await studio.submit_uri(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                idempotency_key=key,
+                parameters=params,
+            )
+        elif command_type == "frontend.donors.request_adoption":
+            payload = await studio.request_adoption(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                principal_id=command.principal_id,
+                idempotency_key=key,
+                parameters=params,
+            )
+        elif command_type == "frontend.prototype.request_pixel_signoff":
+            payload = await studio.request_pixel_signoff()
+        elif command_type == "frontend.canvas.insert_component":
+            payload = await studio.insert_component(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.canvas.update_element":
+            payload = await studio.update_element(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.canvas.move_component":
+            payload = await studio.move_component(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.canvas.remove_element":
+            payload = await studio.remove_element(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.motion.set_animation":
+            payload = await studio.set_animation(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.flow.upsert_step":
+            payload = await studio.upsert_step(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        else:
+            raise DdeError(
+                "FORBIDDEN",
+                "Unsupported command_type",
+                details={"command_type": command_type},
+            )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="mission",
+            target_id=mission_id,
+            payload=payload,
         )
 
 

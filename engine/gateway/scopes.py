@@ -77,6 +77,19 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     # DDE-054 / Ch.14.2: minimal device command under device.command.
     # Richer device surface is EDR-0030 if product needs it.
     "device.heartbeat": "device.command",
+    # DDE-067 Frontend Studio — human authoring/compile/discovery ride
+    # existing baselines (no new scope, no autonomy widening).
+    "frontend.intake.compile_prompt": "mission.control",
+    "frontend.donors.run_discovery": "mission.control",
+    "frontend.donors.submit_uri": "mission.control",
+    "frontend.donors.request_adoption": "approval.request",
+    "frontend.prototype.request_pixel_signoff": "approval.request",
+    "frontend.canvas.insert_component": "mission.control",
+    "frontend.canvas.move_component": "mission.control",
+    "frontend.canvas.update_element": "mission.control",
+    "frontend.canvas.remove_element": "mission.control",
+    "frontend.motion.set_animation": "mission.control",
+    "frontend.flow.upsert_step": "mission.control",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -95,6 +108,17 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "credential.capture_opensandbox": "project",
     "credential.inspect_opensandbox": "project",
     "device.heartbeat": "device",
+    "frontend.intake.compile_prompt": "mission",
+    "frontend.donors.run_discovery": "mission",
+    "frontend.donors.submit_uri": "mission",
+    "frontend.donors.request_adoption": "mission",
+    "frontend.prototype.request_pixel_signoff": "mission",
+    "frontend.canvas.insert_component": "mission",
+    "frontend.canvas.move_component": "mission",
+    "frontend.canvas.update_element": "mission",
+    "frontend.canvas.remove_element": "mission",
+    "frontend.motion.set_animation": "mission",
+    "frontend.flow.upsert_step": "mission",
 }
 
 #: Mission control command -> target mission status (Chapter 4.8).

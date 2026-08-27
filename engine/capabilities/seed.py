@@ -307,6 +307,23 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("planning", "verification"),
         network_requirements={"egress": "none"},
     ),
+    SeedCapability(
+        capability_id="capability.frontend_canvas",
+        version="1",
+        category="studio",
+        summary=(
+            "Human-authored prototype HTML and flows.json mutations from "
+            "Frontend Studio (insert/move/update/remove/motion). Writes are "
+            "jailed to the task workspace; values are token-sheet aliases "
+            "only. Donor inserts require an APPROVED donor_reuse approval."
+        ),
+        side_effect_class="WORKSPACE_LOCAL",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("engine.studio.frontend.FrontendStudioService",),
+        supported_workloads=("planning",),
+        network_requirements={"egress": "none"},
+    ),
 )
 
 
