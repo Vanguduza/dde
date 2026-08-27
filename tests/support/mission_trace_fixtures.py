@@ -19,6 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.context.repo import repo_root
 from engine.contracts.integration_proposal import IntegrationProposal
+from engine.contracts.mission import Mission
+from engine.contracts.route_decision import RouteDecision
 from engine.integration.service import IntegrationQueueService
 from tests.support.db import TenantFixture
 from tests.support.execution_fixtures import build_execution_fixture
@@ -28,9 +30,11 @@ from tests.support.integration_fixtures import AdvancedTask, advance_task_to_ver
 @dataclass
 class TraceableMission:
     tenant: TenantFixture
+    mission: Mission
     mission_id: UUID
     advanced: AdvancedTask
     proposal: IntegrationProposal
+    route_decision: RouteDecision
     task_branch: str
     mission_branch: str
 
@@ -41,6 +45,10 @@ async def build_traceable_mission(
     *,
     mission_slug: str,
     write_path: str = "engine/routing/dde014-mission-trace.txt",
+    mission_title: str = "Routing fixture mission",
+    mission_intent: str = "Exercise the deterministic router end to end",
+    requirement_slug: str | None = None,
+    requirement_statement: str | None = None,
 ) -> TraceableMission:
     """A single `verification`-class task, advanced all the way through a
     real `PASSED` `VerificationRun` and a real `MERGED` `IntegrationProposal`
@@ -48,7 +56,14 @@ async def build_traceable_mission(
     real services exactly as `tests/support/integration_fixtures.py`'s own
     happy-path test does."""
     fixture = await build_execution_fixture(
-        engine, root, mission_slug=mission_slug, task_class="verification"
+        engine,
+        root,
+        mission_slug=mission_slug,
+        task_class="verification",
+        mission_title=mission_title,
+        mission_intent=mission_intent,
+        requirement_slug=requirement_slug,
+        requirement_statement=requirement_statement,
     )
     advanced = await advance_task_to_verified(
         engine,
@@ -77,9 +92,11 @@ async def build_traceable_mission(
 
     return TraceableMission(
         tenant=fixture.tenant,
+        mission=fixture.mission,
         mission_id=fixture.mission.mission_id,
         advanced=advanced,
         proposal=merged,
+        route_decision=fixture.route_decision,
         task_branch=f"task/{advanced.task.task_id}-a",
         mission_branch=f"mission/{advanced.task.mission_id}",
     )

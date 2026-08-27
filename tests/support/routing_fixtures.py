@@ -59,6 +59,12 @@ async def build_routing_fixture(
     risk_class: str = "low",
     blast_radius: str = "local",
     requires_approval: bool = False,
+    mission_title: str = "Routing fixture mission",
+    mission_intent: str = "Exercise the deterministic router end to end",
+    requirement_slug: str = REQUIREMENT_SLUG,
+    requirement_statement: str = (
+        "Routing fixture tasks route to a real worker profile"
+    ),
 ) -> RoutingFixture:
     build_fake_repo(root)
     tenant = await seed_tenant(engine)
@@ -66,8 +72,8 @@ async def build_routing_fixture(
     requirement = await truth.draft_requirement(
         tenant_id=tenant.tenant_id,
         project_id=tenant.project_id,
-        slug=REQUIREMENT_SLUG,
-        statement="Routing fixture tasks route to a real worker profile",
+        slug=requirement_slug,
+        statement=requirement_statement,
         constraints=[],
         acceptance_conditions=["A RouteDecision persists with real gate outcomes"],
     )
@@ -82,11 +88,11 @@ async def build_routing_fixture(
         tenant_id=tenant.tenant_id,
         project_id=tenant.project_id,
         slug=mission_slug,
-        title="Routing fixture mission",
-        intent="Exercise the deterministic router end to end",
+        title=mission_title,
+        intent=mission_intent,
         success_definition="A RouteDecision persists with real gate outcomes",
         scope=["engine", "tests"],
-        requirement_refs=[REQUIREMENT_SLUG],
+        requirement_refs=[requirement_slug],
         autonomy_ceiling=3,
     )
 
@@ -103,7 +109,7 @@ async def build_routing_fixture(
         title="Task under test",
         intent="Implement the routing fixture behaviour",
         task_class=task_class,
-        requirement_refs=[REQUIREMENT_SLUG],
+        requirement_refs=[requirement_slug],
         feature_refs=[],
         success_criteria=["Behaviour is implemented"],
         expected_write_scope=["engine/routing"],
@@ -128,7 +134,7 @@ async def build_routing_fixture(
         title="Verify task under test",
         intent="Verify the routing fixture behaviour",
         task_class="verification",
-        requirement_refs=[REQUIREMENT_SLUG],
+        requirement_refs=[requirement_slug],
         feature_refs=[],
         success_criteria=["Behaviour is verified"],
         expected_write_scope=["tests/unit"],
@@ -166,7 +172,7 @@ async def build_routing_fixture(
         planner_policy_version=PLANNER_POLICY_VERSION,
         rationale="DDE-009 routing fixture",
         created_by_principal=tenant.principal_id,
-        approved_requirement_slugs={REQUIREMENT_SLUG},
+        approved_requirement_slugs={requirement_slug},
     )
     assert graph.status == "APPROVED", graph
     persisted_tasks = await mission_service.list_tasks_for_graph(

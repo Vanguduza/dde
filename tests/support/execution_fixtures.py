@@ -41,13 +41,26 @@ async def build_execution_fixture(
     task_class: str = "implementation",
     risk_class: str = "low",
     estimated_effort_override: str | None = None,
+    mission_title: str = "Routing fixture mission",
+    mission_intent: str = "Exercise the deterministic router end to end",
+    requirement_slug: str | None = None,
+    requirement_statement: str | None = None,
 ) -> ExecutionFixture:
+    routing_kwargs: dict[str, str] = {
+        "mission_title": mission_title,
+        "mission_intent": mission_intent,
+    }
+    if requirement_slug is not None:
+        routing_kwargs["requirement_slug"] = requirement_slug
+    if requirement_statement is not None:
+        routing_kwargs["requirement_statement"] = requirement_statement
     routing_fixture = await build_routing_fixture(
         engine,
         root,
         mission_slug=mission_slug,
         task_class=task_class,
         risk_class=risk_class,
+        **routing_kwargs,
     )
     task = routing_fixture.task
     if estimated_effort_override is not None:

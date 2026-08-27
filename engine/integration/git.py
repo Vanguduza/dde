@@ -35,6 +35,39 @@ class GitCommandError(RuntimeError):
         self.stderr = stderr
 
 
+#: Chapter 10.7: `main` and mission branches are never force-pushed.
+PROTECTED_REF_NAMES: frozenset[str] = frozenset({"main"})
+PROTECTED_REF_PREFIXES: tuple[str, ...] = ("mission/",)
+
+
+class ForcePushRefusedError(GitCommandError):
+    """Non-fast-forward update of `main` or `mission/*` (Ch.10.7 / 10.9)."""
+
+    def __init__(self, ref_name: str, revision: str) -> None:
+        super().__init__(
+            ["update-ref", f"refs/heads/{ref_name}", revision],
+            1,
+            f"force-push of protected ref {ref_name!r} refused (Ch.10.7)",
+        )
+        self.ref_name = ref_name
+
+
+def is_protected_ref(ref_name: str) -> bool:
+    if ref_name in PROTECTED_REF_NAMES:
+        return True
+    return any(ref_name.startswith(prefix) for prefix in PROTECTED_REF_PREFIXES)
+
+
+def is_ancestor(repo_root: Path, ancestor: str, descendant: str) -> bool:
+    """True iff `ancestor` is an ancestor of `descendant` (fast-forward)."""
+    result = _run(
+        ["merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=repo_root,
+        check=False,
+    )
+    return result.returncode == 0
+
+
 @dataclass(frozen=True)
 class RebaseResult:
     """Chapter 10.4 step 2's real outcome: either a clean rebase onto the
@@ -94,9 +127,19 @@ def create_branch(repo_root: Path, branch: str, revision: str) -> None:
 
 
 def update_ref(repo_root: Path, ref_name: str, revision: str) -> None:
-    """Move `refs/heads/<ref_name>` to `revision` without a checkout --
+    """Move `refs/heads/<ref_name>` to `revision` without a checkout.
+
     Chapter 10.4 step 6's fast-forward, and the same mechanism used to
-    stand up the ephemeral integration candidate ref in step 4."""
+    stand up the ephemeral integration candidate ref in step 4.
+
+    Chapter 10.7: `main` and `mission/*` refuse a non-fast-forward
+    (force-push). Task and candidate refs may still rewind after rebase.
+    """
+    if is_protected_ref(ref_name) and branch_exists(repo_root, ref_name):
+        current = rev_parse(repo_root, ref_name)
+        new = rev_parse(repo_root, revision)
+        if current != new and not is_ancestor(repo_root, current, new):
+            raise ForcePushRefusedError(ref_name, revision)
     _run(["update-ref", f"refs/heads/{ref_name}", revision], cwd=repo_root)
 
 
