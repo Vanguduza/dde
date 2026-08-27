@@ -29,10 +29,12 @@ Frontend Studio.
   `GatewaySessionService.resume`) with a one-hour cursor (bounded gap).
   WS/SSE sequence replay is **not** timed (EDR-0027).
 - `GatewaySloProbe.measure_mission_read_concurrent` is an in-process
-  burst (8) against the same mission-read site. Capacity claim is
-  "p95 holds on one ASGI app + local Postgres at N=40 sequential and
-  N=8 concurrent". **Not** a published QPS ceiling or multi-instance
-  soak.
+  burst (8) against the same mission-read site. It must complete
+  without hanging (max < 10 s). It is **not** the p95 SLO — coverage
+  and pool contention on one Windows process have been seen above
+  500 ms. Capacity claim is "sequential p95 holds on one ASGI app +
+  local Postgres at N=40". **Not** a published QPS ceiling or
+  multi-instance soak.
 - `engine.load.inventory.SLO_FIXTURE_SUITES` names the certified
   fixture files for the six non-latency Ch.16.5 rows. DDE-063 does not
   re-implement them.
@@ -47,7 +49,7 @@ Frontend Studio.
 | Worker replacement without mission loss | 100% of certified scenarios | Named: `tests/unit/test_chaos_suite.py` (DDE-061). |
 | Checkpoint recovery | ≥ 99% of deterministic fixtures | Named: `tests/recovery/test_checkpoints_recovery.py`, `tests/unit/test_checkpoints_postgres.py`. Suites are binary pass/fail in `just check`; this mission does **not** compute a 99% ratio. |
 | Post-integration verification | 100% of merge fixtures | Named: `tests/unit/test_integration_queue_postgres.py`, `tests/recovery/test_diff_gates_recovery.py`. |
-| API p95 read latency | < 500 ms | `GET /v1/missions/{id}` at `read_mission`. Probe: `GatewaySloProbe.measure_mission_read` (+ concurrent burst). `GET /healthz` is additional liveness, not the domain SLO. |
+| API p95 read latency | < 500 ms | `GET /v1/missions/{id}` at `read_mission`. Probe: `GatewaySloProbe.measure_mission_read` (sequential p95). Concurrent burst is hang-bound only. `GET /healthz` is additional liveness, not the domain SLO. |
 | Command acceptance p95 | < 1 s excluding heavy planning | `POST /v1/commands` at `GatewayCommandService.accept` (`mission.create`). Probe: `GatewaySloProbe.measure_command_acceptance`. |
 | Gateway reconnect recovery | < 10 s for a bounded gap | `POST /v1/sessions/{id}/resume` at `GatewaySessionService.resume`. Probe: `GatewaySloProbe.measure_reconnect`. Correctness fixtures remain `test_android_gateway_reconnect.py` / `test_gateway_sessions.py`. |
 

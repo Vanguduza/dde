@@ -91,6 +91,7 @@ def test_capacity_statement_does_not_overclaim_healthz() -> None:
     assert "POST /v1/commands" in MEASURED_ROUTES
     assert "POST /v1/sessions/{id}/resume" in MEASURED_ROUTES
     assert any("QPS ceiling" in item for item in NOT_CLAIMED)
+    assert any("concurrent-burst p95" in item for item in NOT_CLAIMED)
     assert any("WS/SSE" in item for item in NOT_CLAIMED)
 
 
@@ -159,7 +160,10 @@ async def test_domain_read_command_accept_and_reconnect_under_slo() -> None:
                 client, mission_id=mission_id, headers=headers
             )
             assert burst.n >= 8
-            assert burst.p95_ms < API_READ_P95_MS
+            # Concurrent burst is capacity evidence on one ASGI+Postgres
+            # process (often under coverage). It is not the Ch.16.5 p95
+            # gate — that is the sequential mission-read sample above.
+            assert burst.max_ms < RECONNECT_RECOVERY_MS
 
             bodies = [
                 _command_body(

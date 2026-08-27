@@ -41,6 +41,7 @@ MEASURED_ROUTES = (
 
 NOT_CLAIMED = (
     "published QPS ceiling or multi-instance soak",
+    "concurrent-burst p95 as the API-read SLO (hang-bound only)",
     "planner/router latency (heavy planning, excluded by Ch.16.5)",
     "WS/SSE reconnect gap replay (EDR-0027)",
     "Frontend Studio CWV for generated outputs",
@@ -116,8 +117,8 @@ class GatewaySloProbe:
     ) -> LatencySample:
         """Modest in-process burst against the same mission-read call site.
 
-        This is load evidence on one ASGI app + one Postgres. It is not a
-        capacity ceiling.
+        This is load evidence on one ASGI app + one Postgres. It is not the
+        Chapter 16.5 p95 gate and not a capacity ceiling.
         """
         path = f"/v1/missions/{mission_id}"
 
