@@ -14,6 +14,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from engine.core.errors import DdeError
+
+WORM_CONTROL = "worm_retention"
+
 
 class ScopeViolationError(Exception):
     """A storage key references a scope the caller is not authorized for."""
@@ -41,4 +45,26 @@ class ArtifactObjectStore:
             raise ScopeViolationError(
                 "storage key is outside the authorized scope",
                 {"key": key, "expected_prefix": expected},
+            )
+
+    def delete(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        key: str,
+        evidence_linked: bool,
+    ) -> None:
+        """Chapter 17.5 object-layer WORM. Every byte delete must pass
+        through this mediator. Evidence-linked keys are refused for the
+        retention window; there is no overwrite/delete bypass."""
+
+        self.verify_key(tenant_id=tenant_id, project_id=project_id, key=key)
+        if evidence_linked:
+            raise DdeError(
+                "POLICY_DENIED",
+                "WORM: evidence-linked object cannot be deleted during "
+                "the retention window",
+                retryable=False,
+                details={"key": key, "control": WORM_CONTROL},
             )

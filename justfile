@@ -40,6 +40,9 @@ check: lint typecheck test contract-test design-lints studio-check
 chaos:
     uv run pytest tests/unit/test_chaos_suite.py tests/unit/test_chaos_inventory.py
 
+drill:
+    uv run pytest tests/unit/test_dr_drill_postgres.py tests/unit/test_object_store_worm.py
+
 design-lints:
     uv run python -m scripts.design_lints --baseline
 

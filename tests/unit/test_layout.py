@@ -31,6 +31,7 @@ ENGINE_PACKAGES = [
     "engine.verification",
     "engine.workers",
     "engine.workspaces",
+    "engine.dr",
 ]
 
 
