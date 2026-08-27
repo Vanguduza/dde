@@ -46,6 +46,9 @@ drill:
 load:
     uv run pytest tests/unit/test_load_slo.py
 
+readiness:
+    uv run pytest tests/unit/test_readiness_removal.py tests/unit/test_readiness_review_postgres.py
+
 design-lints:
     uv run python -m scripts.design_lints --baseline
 
