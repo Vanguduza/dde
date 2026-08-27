@@ -8,8 +8,19 @@ push vs pull vs semantic as first-class arms (Graft Pattern 5);
 are not flipped by a constructor default or a PARTIAL_PASS run.
 **Not** DDE-060 Flight Lab / Ch.6.10, DDE-061+, or Frontend Studio.
 
-**CI / local proofs:** pending `just check` (this file is updated at
-landing).
+**CI / local proofs (2026-08-27):**
+
+- `just check` green -- ruff / mypy (**368** files) / **1137 passed, 2
+  skipped** (unit+contract+recovery) / `generate_contracts --check` /
+  contract pytest / design-lints baseline / dde-studio `tsc --noEmit`
+- `tests/unit/test_context_activation.py`: gates refuse canary on
+  PARTIAL_PASS, skip, and insufficient corpus; shadow allowed;
+  compile_policy shadow stays pull
+- `tests/unit/test_context_activation_postgres.py`: skip-to-canary
+  refused; shadow compile stays pull; seeded-canary `compile()` uses
+  semantic; `rollback` restores certified pull
+- `tests/unit/test_context_assembly.py`: push arm overflows rather than
+  silently evicting architecture evidence
 
 ## What this mission wires
 
@@ -78,6 +89,10 @@ landing).
 
 ## Verdict
 
-**OPEN** -- waiting on `just check` and the named call-site review
-above. Expected: **PASS-WITH-EDR** (EDR-0003 still; EDR-0002 still;
-EDR-0027 still open; no new EDR-0033).
+**PASS-WITH-EDR.** EDR-0003 remains open (gates 2 and 4 still need
+worker-verification replay). EDR-0002 remains (semantic still default-off;
+hashing-trick embedding unchanged). EDR-0027 unchanged. **No new
+EDR-0033.** Canary/promoted are unreachable through `attempt_advance`
+until those replay gates are computed; `compile()` still honors a canary
+row if one exists, which is the production reader a future PASS would
+drive. Shadow observation and rollback are live.
