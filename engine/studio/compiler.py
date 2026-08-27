@@ -61,7 +61,7 @@ def compile_generation_prompt(request: CompileRequest) -> GenerationPrompt:
     if not approved:
         raise CompileRefusedError(
             "PRD has no approved Requirements",
-            missing_artifact="requirements",
+            missing_artifact="approved_requirements",
         )
     features = tuple(sorted(request.features, key=lambda row: row.feature_id))
     _validate_features(features)

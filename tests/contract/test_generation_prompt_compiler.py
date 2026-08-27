@@ -182,7 +182,7 @@ def test_refuses_when_no_approved_requirements() -> None:
     err = captured.value
     assert err.error_code == "CONTEXT_INCOMPLETE"
     assert err.details is not None
-    assert err.details["missing_artifact"] == "requirements"
+    assert err.details["missing_artifact"] == "approved_requirements"
 
 
 def test_refuses_missing_dials() -> None:
