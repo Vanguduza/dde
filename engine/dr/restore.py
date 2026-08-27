@@ -200,6 +200,9 @@ class IsolatedRestoreService:
                         row,
                     )
             repository = AuditRepository()
-            for row in audit_rows:
-                await repository.insert(dest, AuditEvent.model_validate(dict(row)))
+            for mapping in audit_rows:
+                payload: dict[str, object] = {
+                    str(key): value for key, value in mapping.items()
+                }
+                await repository.insert(dest, AuditEvent.model_validate(payload))
         return len(audit_rows)
