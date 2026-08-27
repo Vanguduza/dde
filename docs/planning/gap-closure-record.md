@@ -414,5 +414,20 @@ work for an optional Impeccable DD207+ supplement) MUST consume that note as des
 inputs and acceptance-criteria seeds. Until then nothing here authorizes new
 dependencies or skill installs as merge-blocking gates.
 
+### 6.11 DDE-066 donor discovery — EDR-0015 accepted (2026-08-27)
+
+EDR-0015 is **accepted** (Project Truth row + markdown pre-image
+`docs/truth/edr/EDR-0015-donor-search-egress-admission.md`). DDE-066
+implements control-plane search fan-out at
+`engine.donor.discovery_service.DonorDiscoveryService.search`: in-repo
+host+path allowlist, broker-issued short-lived credentials, query quota
+on `execution_plans.token_budget.donor_search_max_queries`, Ch.12.4
+journal (`prepare`/`mark_sent` before GET), classify-before-use grouping
+with unmatched bucket, DDE-046 pins in the same inventory, taint persist
+via DonorLab ingest. HTTP transport is `adapters/donor/http.py` (httpx
+does not enter `engine/core` or `engine/donor`). Studio GUI and Gateway
+command `frontend.donors.run_discovery` stay DDE-067. DDE-068 still waits
+on EDR-0016.
+
 
 

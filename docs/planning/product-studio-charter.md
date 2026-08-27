@@ -25,6 +25,11 @@ in gap-closure-record §6.10). Disposition: encode harvested concepts
 into first-party schemas and scanners — do **not** install third-party
 design skills as merge-blocking oracles.
 
+**EDR-0015 (2026-08-24 accepted):** donor-search egress is admitted.
+DDE-066 implementation is the control-plane `DonorDiscoveryService.search`
+fan-out (allowlist + broker credential + ExternalEffect journal before
+GET). Gateway `frontend.donors.run_discovery` remains DDE-067.
+
 ## 0. Naming
 
 `dde-studio` (`interfaces/dde-studio/package.json`, displayName "DDE

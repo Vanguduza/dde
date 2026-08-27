@@ -63,7 +63,8 @@ with named owners. Check it before implementing any of those; do not duplicate
 closed items and do not silently close owner-named ones. Design-tooling
 disposition (encode concepts into DDE-065/067/068; do not install third-party
 design skills as oracles): `docs/planning/design-tooling-integration.md`
-(§6.10).
+(§6.10). DDE-066 donor-search egress is admitted by EDR-0015; implementation
+is `DonorDiscoveryService.search` (not the DDE-067 GUI).
 
 ## Mechanical commit helpers
 `scripts/commit_if_green.ps1` (Windows) and `scripts/commit_if_green.sh` (Linux/
