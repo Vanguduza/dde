@@ -10,6 +10,19 @@ DDE-062 DR/WORM, DDE-063 load, DDE-064 readiness, or Frontend Studio.
 
 **Status:** CLOSED on `dde-060-flight-lab`.
 
+**CI / local proofs (2026-08-27):**
+
+- `just check` green -- ruff / mypy (**368** files) / **1145 passed, 3
+  skipped** (unit+contract+recovery) / `generate_contracts --check` /
+  contract pytest / design-lints baseline / dde-studio `tsc --noEmit`
+- `tests/unit/test_flight_lab_inventory.py`: every Ch.19.1 suite named;
+  named files exist
+- `tests/unit/test_flight_lab_force_push.py`: force-push of `main` and
+  `mission/*` refused; task refs may still rewind; FF still allowed
+- `tests/unit/test_flight_lab_golden_mission.py`: ERP identity spine;
+  `RouterService.route` worker outage; `LearningActivationService.rollback`
+  then certified `route()`
+
 ## Prior landings this chain
 
 | Mission | SHA | Verdict |
@@ -78,3 +91,5 @@ DDE-062 DR/WORM, DDE-063 load, DDE-064 readiness, or Frontend Studio.
 **PASS-WITH-EDR.** EDR-0002, EDR-0003, EDR-0005, EDR-0027 remain open.
 **No new EDR-0033.** Auto-proceed to DDE-061 authorized under the
 standing order.
+
+**Landed:** 2026-08-27 on `dde-060-flight-lab` (FF to `main`).
