@@ -15,6 +15,7 @@ from scripts.design_lints import (
     _allowed_scales,
     collect_sources,
     lint_file,
+    main,
 )
 
 PX_SCALE, REM_SCALE = _allowed_scales()
@@ -127,6 +128,18 @@ def test_ratchet_budget_blocks_growth(tmp_path: Path) -> None:
     baseline.write_text(json.dumps(budget), encoding="utf-8")
     counts = {"DD206": 2}
     assert counts["DD206"] > budget["DD206"]
+
+
+def test_ratchet_reports_rule_ids_without_reverse_lookup(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = tmp_path / "surface.ts"
+    source.write_text("const css = `.x { padding: 10px; }`;", encoding="utf-8")
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text(json.dumps({"DD206": 0}), encoding="utf-8")
+
+    assert main(["--paths", str(source), "--baseline", str(baseline)]) == 1
+    assert "DD206: 1 > budget 0" in capsys.readouterr().err
 
 
 def test_new_rule_not_in_budget_fails(tmp_path: Path) -> None:

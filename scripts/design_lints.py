@@ -152,6 +152,13 @@ def _counts(findings: list[tuple[Path, int, str, str]]) -> dict[str, int]:
     return counts
 
 
+def _display_path(path: Path) -> Path:
+    try:
+        return path.relative_to(ROOT)
+    except ValueError:
+        return path
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--paths", nargs="*", help="restrict scan to these files")
@@ -176,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
             findings.append((path, lineno, rule_id, rule))
 
     for path, lineno, rule_id, rule in findings:
-        print(f"{path.relative_to(ROOT)}:{lineno}: {rule_id} {rule}", file=sys.stderr)
+        print(f"{_display_path(path)}:{lineno}: {rule_id} {rule}", file=sys.stderr)
 
     counts = _counts(findings)
     print(f"design-lints: {len(findings)} violation(s) across {len(files)} file(s)")

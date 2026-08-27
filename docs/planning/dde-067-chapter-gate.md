@@ -7,10 +7,12 @@ DDE-068 visual-verification executors or a direct Project Truth writer.
 **Status:** CLOSED on `dde-067-frontend-studio-surface`.
 
 **CI / local proofs (2026-08-27):** lint and format clean; mypy **395
-source files**; focused DDE-067 backend/contract suite **9 passed**;
-dde-studio client suite **69 passed**. Full repository suite rerun is
-recorded at landing (the first run found one Truth-boundary source-literal
-contaminant; its assertion was not weakened).
+source files**; full unit/contract/recovery collection **1,224 tests**
+(**1,221 passed, 3 skipped**); repeated contract suite **213 passed**;
+focused DDE-067 backend/contract suite **9 passed**; dde-studio client suite
+**69 passed**; design lint ratchet green at **70** legacy DD206 findings.
+The first full run found one Truth-boundary source-literal contaminant; its
+assertion was not weakened.
 
 ## What this mission wires
 
