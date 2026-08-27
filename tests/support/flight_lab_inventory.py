@@ -123,12 +123,15 @@ SUITES: tuple[SuiteInventory, ...] = (
             "tests/unit/test_flight_lab_golden_mission.py",
             "tests/unit/test_environments_postgres.py",
             "tests/unit/test_local_process_containment.py",
+            "tests/unit/test_chaos_suite.py",
         ),
         production_call_sites=(
             "engine.workspaces.paths.resolve_within_workspace",
             "engine.workspaces.service.WorkspaceService.read/write",
+            "engine.environments.service.ExecutionEnvironmentService.replace",
+            "engine.workers.service.WorkerManagerService.resume_run",
         ),
-        deferred="Environment replacement mid-run is DDE-061",
+        deferred=None,
     ),
     SuiteInventory(
         suite="Integration",

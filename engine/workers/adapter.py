@@ -29,6 +29,29 @@ from uuid import UUID
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.worker_run import WorkerRun
 from engine.contracts.workspace import Workspace
+from engine.core.errors import DdeError
+
+
+def require_ready_workspace(env_ref: Workspace) -> None:
+    """Chapter 7.5: prepare requires a READY workspace bound to some
+    environment. Equality with `ExecutionPlan.execution_environment_id` is
+    not required: Chapter 3.9 replacement mints a new WorkerRun bound to a
+    successor environment while the hashed plan still names the original
+    (now `REPLACEMENT`). `WorkerManagerService.resume_run` is the
+    authority for that substitution."""
+
+    if env_ref.execution_environment_id is None:
+        raise DdeError(
+            "ENVIRONMENT_FAILED",
+            "Workspace is not bound to an execution environment",
+            details={"workspace_id": str(env_ref.workspace_id)},
+        )
+    if env_ref.status != "READY":
+        raise DdeError(
+            "ENVIRONMENT_FAILED",
+            f"Workspace is {env_ref.status}, not ready to prepare a run",
+            details={"workspace_id": str(env_ref.workspace_id)},
+        )
 
 
 @dataclass(frozen=True)

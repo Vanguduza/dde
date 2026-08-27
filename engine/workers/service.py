@@ -82,7 +82,9 @@ checkpoint, commits attempt results (or fails the attempt), and stamps
 COMPLETED attempt or COMPLETED WorkerRun already exists for the task, and
 refuses a mutation listed in the latest valid checkpoint's `do_not_repeat`.
 `resume_run` creates a new WorkerRun on the same IN_PROGRESS attempt
-(Chapter 3.9 1:N) after a non-terminal predecessor. Chapter 12.3
+(Chapter 3.9 1:N). A recoverable WORKER_FAILURE or ENVIRONMENT_FAILURE
+leaves the attempt IN_PROGRESS so replacement can mint the next run;
+`invoke_run` refuses while that attempt is open. Chapter 12.3
 (`RecoveryService.assert_clear_to_retry`) runs before a new attempt:
 AUTHORIZATION/SCOPE/WRONG_PRODUCT/SPECIFICATION/DRIFT never silent-retry;
 WORKER_FAILURE allows one recover then reroute. Chapter 12.4
@@ -162,6 +164,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.contracts.command_idempotency import CommandIdempotency
+from engine.contracts.execution_environment import ExecutionEnvironment
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.task import Task
 from engine.contracts.worker_event import WorkerEvent
@@ -185,6 +188,7 @@ from engine.recovery.checkpoint_service import (
     do_not_repeat_from_effects,
 )
 from engine.recovery.dispatch import RecoveryService
+from engine.recovery.matrix import attempt_survives_run_failure, canonical_failure_class
 from engine.recovery.replay import MUTATION_ALREADY_DONE, ReplayService
 from engine.recovery.scope import (
     BROWSER_GOTO_OPERATION,
@@ -829,6 +833,27 @@ class WorkerManagerService:
                 mission_id=execution_plan.mission_id,
                 uow=active,
             )
+            existing_attempts = await self._attempts.list_for_task(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_id=task.task_id,
+                uow=active,
+            )
+            in_progress = [
+                row for row in existing_attempts if row.status == "IN_PROGRESS"
+            ]
+            if in_progress:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "An IN_PROGRESS attempt already exists; resume_run "
+                    "mints the replacement WorkerRun on that attempt "
+                    "(Chapter 3.9 1:N)",
+                    retryable=False,
+                    details={
+                        "task_id": str(task.task_id),
+                        "attempt_id": str(in_progress[-1].attempt_id),
+                    },
+                )
 
             environment = await self._environments.get_environment(
                 tenant_id=tenant_id,
@@ -1153,13 +1178,11 @@ class WorkerManagerService:
                     payload={"reason": "replaced_by_resume_run"},
                 )
 
-            environment = await self._environments.get_environment(
-                tenant_id=tenant_id,
-                project_id=project_id,
-                environment_id=execution_plan.execution_environment_id,
-                uow=active,
+            environment = await self._bound_environment_for_resume(
+                active,
+                execution_plan=execution_plan,
+                workspace=workspace,
             )
-            self._environments.assert_schedulable(environment)
             adapter = self._registry.get_certified_adapter(
                 execution_plan.worker_profile_id,
                 environment_class=environment.class_,
@@ -1180,7 +1203,7 @@ class WorkerManagerService:
                 worker_session_id=None,
                 worker_id=registration.worker_id,
                 worker_profile_id=execution_plan.worker_profile_id,
-                environment_id=execution_plan.execution_environment_id,
+                environment_id=environment.environment_id,
                 workspace_id=workspace.workspace_id,
                 context_package_id=execution_plan.context_package_id,
                 policy_version=WORKER_MANAGER_POLICY_VERSION,
@@ -1214,7 +1237,7 @@ class WorkerManagerService:
                     task_id=task.task_id,
                     execution_plan_id=execution_plan.plan_id,
                     worker_run_id=run.run_id,
-                    environment_id=execution_plan.execution_environment_id,
+                    environment_id=environment.environment_id,
                     capability_id=capability_id,
                     capability_version="1",
                     requested_by="engine.workers.service.WorkerManagerService",
@@ -1426,14 +1449,38 @@ class WorkerManagerService:
                 uow=active,
             )
         elif run.status == "FAILED":
-            await self._attempts.fail(
-                tenant_id=run.tenant_id,
-                project_id=run.project_id,
-                attempt_id=run.task_attempt_id,
-                failure_class=run.failure_class or WORKER_FAILURE,
-                checkpoint_id=checkpoint.checkpoint_id,
-                uow=active,
+            prior = await self._run_repository.list_for_attempt(
+                active.connection, run.task_attempt_id
             )
+            worker_failures = 0
+            for item in prior:
+                if item.status != "FAILED" or not item.failure_class:
+                    continue
+                try:
+                    if canonical_failure_class(item.failure_class) == "WORKER_FAILURE":
+                        worker_failures += 1
+                except DdeError:
+                    continue
+            if attempt_survives_run_failure(
+                run.failure_class or WORKER_FAILURE,
+                worker_failure_occurrence_count=worker_failures,
+            ):
+                await self._attempts.stamp_checkpoint(
+                    tenant_id=run.tenant_id,
+                    project_id=run.project_id,
+                    attempt_id=run.task_attempt_id,
+                    checkpoint_id=checkpoint.checkpoint_id,
+                    uow=active,
+                )
+            else:
+                await self._attempts.fail(
+                    tenant_id=run.tenant_id,
+                    project_id=run.project_id,
+                    attempt_id=run.task_attempt_id,
+                    failure_class=run.failure_class or WORKER_FAILURE,
+                    checkpoint_id=checkpoint.checkpoint_id,
+                    uow=active,
+                )
         return updated
 
     async def _drive_lifecycle(
@@ -1465,11 +1512,16 @@ class WorkerManagerService:
                 env_ref=workspace,
             )
         except DdeError as exc:
+            failure_class = (
+                "ENVIRONMENT_FAILURE"
+                if exc.error_code in {"ENVIRONMENT_FAILED", "ENVIRONMENT_FAILURE"}
+                else WORKER_PREPARE_FAILED
+            )
             return await self._fail(
                 active,
                 run,
                 task_id=task.task_id,
-                failure_class=WORKER_PREPARE_FAILED,
+                failure_class=failure_class,
                 payload={"error_code": exc.error_code, "message": exc.message},
             )
 
@@ -1500,6 +1552,23 @@ class WorkerManagerService:
             execution_plan=execution_plan,
         )
 
+        environment = await self._environments.get_environment(
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            environment_id=run.environment_id,
+            uow=active,
+        )
+        try:
+            self._environments.assert_schedulable(environment)
+        except DdeError as exc:
+            return await self._fail(
+                active,
+                run,
+                task_id=task.task_id,
+                failure_class="ENVIRONMENT_FAILURE",
+                payload={"error_code": exc.error_code, "message": exc.message},
+            )
+
         try:
             handle = await adapter.start(run)
         except DdeError as exc:
@@ -1527,7 +1596,11 @@ class WorkerManagerService:
             failure_class = (
                 SIDE_EFFECT_UNKNOWN
                 if exc.error_code == EFFECT_CONFLICT
-                else WORKER_CAPABILITY_DENIED
+                else (
+                    "ENVIRONMENT_FAILURE"
+                    if exc.error_code in {"ENVIRONMENT_FAILED", "ENVIRONMENT_FAILURE"}
+                    else WORKER_CAPABILITY_DENIED
+                )
             )
             return await self._fail(
                 active,
@@ -1750,6 +1823,56 @@ class WorkerManagerService:
             return await self._event_repository.list_for_run(active.connection, run_id)
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _bound_environment_for_resume(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        execution_plan: ExecutionPlan,
+        workspace: Workspace,
+    ) -> ExecutionEnvironment:
+        """Resume binds the new WorkerRun to the workspace's environment.
+
+        A successor environment (Chapter 7.3 replacement) is legal only
+        when the plan's original environment is already `REPLACEMENT`.
+        First-dispatch `invoke_run` still requires workspace == plan."""
+
+        if workspace.execution_environment_id is None:
+            raise DdeError(
+                "ENVIRONMENT_FAILED",
+                "Workspace is not bound to an execution environment",
+                details={"workspace_id": str(workspace.workspace_id)},
+            )
+        environment = await self._environments.get_environment(
+            tenant_id=execution_plan.tenant_id,
+            project_id=execution_plan.project_id,
+            environment_id=workspace.execution_environment_id,
+            uow=active,
+        )
+        self._environments.assert_schedulable(environment)
+        if (
+            workspace.execution_environment_id
+            == execution_plan.execution_environment_id
+        ):
+            return environment
+        original = await self._environments.get_environment(
+            tenant_id=execution_plan.tenant_id,
+            project_id=execution_plan.project_id,
+            environment_id=execution_plan.execution_environment_id,
+            uow=active,
+        )
+        if original.lifecycle_state != "REPLACEMENT":
+            raise DdeError(
+                "POLICY_DENIED",
+                "Resume onto a different environment requires the plan's "
+                "environment to be in REPLACEMENT",
+                details={
+                    "plan_environment_id": str(execution_plan.execution_environment_id),
+                    "workspace_environment_id": str(workspace.execution_environment_id),
+                    "plan_environment_state": original.lifecycle_state,
+                },
+            )
+        return environment
 
     async def _require_run(self, active: PostgresUnitOfWork, run_id: UUID) -> WorkerRun:
         record = await self._run_repository.get_run(active.connection, run_id)

@@ -115,16 +115,17 @@ async def test_second_worker_failure_reroutes_instead_of_another_run(
             idempotency_key="recovery-worker-1",
         )
         assert first.status == "FAILED"
-        second = await manager.invoke_run(
+        second = await manager.resume_run(
             task=fixture.task,
             execution_plan=fixture.execution_plan,
             workspace=fixture.workspace,
             input_context_hash=fixture.context_package.assembly_hash,
             action=fail_action,
+            attempt_id=first.task_attempt_id,
             idempotency_key="recovery-worker-2",
         )
         assert second.status == "FAILED"
-        assert second.task_attempt_id != first.task_attempt_id
+        assert second.task_attempt_id == first.task_attempt_id
         with pytest.raises(DdeError) as captured:
             await manager.invoke_run(
                 task=fixture.task,

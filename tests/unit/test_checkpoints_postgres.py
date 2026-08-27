@@ -237,11 +237,10 @@ async def test_resume_run_reuses_attempt_and_generic_retry_is_refused(
             project_id=fixture.tenant.project_id,
             attempt_id=first.task_attempt_id,
         )
-        assert attempt.status == "FAILED"
+        assert attempt.status == "IN_PROGRESS"
 
-        # FAILED attempt cannot resume_run; a new invoke_run is a new attempt
-        # (DDE-024 owns failure-class dispatch). Prove the 12.6 generic
-        # retry refusal independently.
+        # Chapter 3.9: the attempt survives a recoverable worker crash.
+        # invoke_run must not mint a second attempt; resume_run replaces.
         workflow = MissionWorkflowService(engine)
         with pytest.raises(DdeError) as generic:
             await workflow.retry(policy={})
@@ -266,16 +265,28 @@ async def test_resume_run_reuses_attempt_and_generic_retry_is_refused(
         routed = await workflow.reroute(reason="worker untrusted")
         assert routed.action == "reroute"
 
-        retry = await manager.invoke_run(
+        with pytest.raises(DdeError) as second_attempt:
+            await manager.invoke_run(
+                task=fixture.task,
+                execution_plan=fixture.execution_plan,
+                workspace=fixture.workspace,
+                input_context_hash=fixture.context_package.assembly_hash,
+                action=WorkerAction(command=[sys.executable, "-c", "pass"]),
+                idempotency_key="ckpt-resume-2",
+            )
+        assert second_attempt.value.error_code == "POLICY_DENIED"
+        retry = await manager.resume_run(
             task=fixture.task,
             execution_plan=fixture.execution_plan,
             workspace=fixture.workspace,
             input_context_hash=fixture.context_package.assembly_hash,
             action=WorkerAction(command=[sys.executable, "-c", "pass"]),
-            idempotency_key="ckpt-resume-2",
+            attempt_id=first.task_attempt_id,
+            idempotency_key="ckpt-resume-2b",
         )
-        assert retry.task_attempt_id != first.task_attempt_id
-        assert retry.sequence == 1
+        assert retry.task_attempt_id == first.task_attempt_id
+        assert retry.sequence == 2
+        assert retry.status == "COMPLETED"
     finally:
         if workspace is not None:
             await WorkspaceService(engine, root=repo_root()).cleanup(

@@ -93,6 +93,15 @@ class AcquiredEnvironment:
     provisioning_ms: int | None
 
 
+@dataclass(frozen=True)
+class ReplacedEnvironment:
+    """Result of `replace()`: the abandoned environment in `REPLACEMENT`
+    and the newly acquired substitute (Chapter 7.3)."""
+
+    retired: ExecutionEnvironment
+    replacement: AcquiredEnvironment
+
+
 class ExecutionEnvironmentService:
     """Async, PostgreSQL-backed writer for `execution_environments`
     (Chapter 3.8). Each public method opens and commits its own unit of
@@ -753,8 +762,95 @@ class ExecutionEnvironmentService:
 
         return await self._run(uow, tenant_id, project_id, _op)
 
+    async def replace(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        environment_id: UUID,
+        lock_version: int,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> ReplacedEnvironment:
+        """Chapter 7.3 production mutation: `any → FAILED → REPLACEMENT`
+        plus a newly acquired environment of the same class and policies.
+
+        `REPLACEMENT` is the terminal marker that this environment is
+        abandoned. A new WorkerRun may bind to the substitute, never to
+        the retired row. No run is scheduled into the retired
+        environment (`assert_schedulable` still refuses `FAILED`;
+        `REPLACEMENT` is also not a schedulable state)."""
+
+        async def _op(active: PostgresUnitOfWork) -> ReplacedEnvironment:
+            current = await self._require_environment(active, environment_id)
+            if current.lock_version != lock_version:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "ExecutionEnvironment lock_version mismatch",
+                    retryable=True,
+                    details={
+                        "expected": lock_version,
+                        "actual": current.lock_version,
+                    },
+                )
+            if current.lifecycle_state in {"RETIRED", "REPLACEMENT"}:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    f"Environment cannot be replaced from {current.lifecycle_state}",
+                    details={
+                        "environment_id": str(environment_id),
+                        "lifecycle_state": current.lifecycle_state,
+                    },
+                )
+            working = current
+            if working.lifecycle_state != "FAILED":
+                working = await self.transition(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    environment_id=environment_id,
+                    target_lifecycle_state="FAILED",
+                    lock_version=working.lock_version,
+                    uow=active,
+                )
+            retired = await self.transition(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                environment_id=environment_id,
+                target_lifecycle_state="REPLACEMENT",
+                lock_version=working.lock_version,
+                uow=active,
+            )
+            acquired = await self.acquire(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                environment_class=retired.class_,
+                resource_limits=dict(retired.resource_limits),
+                network_policy=dict(retired.network_policy),
+                filesystem_policy=dict(retired.filesystem_policy),
+                uow=active,
+            )
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="ExecutionEnvironmentReplaced",
+                aggregate_type="execution_environment",
+                aggregate_id=retired.environment_id,
+                payload={
+                    "replaced_environment_id": str(retired.environment_id),
+                    "replacement_environment_id": str(
+                        acquired.environment.environment_id
+                    ),
+                    "reused": acquired.reused,
+                },
+                uow=active,
+            )
+            return ReplacedEnvironment(retired=retired, replacement=acquired)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     def assert_schedulable(self, environment: ExecutionEnvironment) -> None:
-        """Chapter 7.4: "No run is scheduled into `DRAINING` or `FAILED`."""
+        """Chapter 7.4: "No run is scheduled into `DRAINING` or `FAILED`."
+        `REPLACEMENT` is the terminal abandoned marker and is also not
+        schedulable."""
         if environment.lifecycle_state in NOT_SCHEDULABLE:
             raise DdeError(
                 "ENVIRONMENT_FAILED",

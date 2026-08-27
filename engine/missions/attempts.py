@@ -521,6 +521,47 @@ class TaskAttemptService:
             await owned.commit()
             return result
 
+    async def stamp_checkpoint(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        attempt_id: UUID,
+        checkpoint_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> TaskAttempt:
+        """Record a recovery checkpoint on an IN_PROGRESS attempt without
+        failing it. Chapter 3.9: the attempt survives environment
+        replacement and a recoverable worker crash; the new WorkerRun
+        reads this checkpoint_id."""
+
+        async def _op(active: PostgresUnitOfWork) -> TaskAttempt:
+            current = await self._require(active, attempt_id)
+            if current.status != "IN_PROGRESS":
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    f"stamp_checkpoint requires IN_PROGRESS (got {current.status})",
+                    details={"attempt_id": str(attempt_id), "status": current.status},
+                )
+            now = self._clock.now()
+            rowcount = await self._repository.update_fields(
+                active.connection,
+                attempt_id,
+                fields={"checkpoint_id": checkpoint_id, "updated_at": now},
+            )
+            if rowcount != 1:
+                raise DdeError("POLICY_DENIED", "Unknown task attempt")
+            return await self._require(active, attempt_id)
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            result = await _op(owned)
+            await owned.commit()
+            return result
+
     async def _require(
         self, active: PostgresUnitOfWork, attempt_id: UUID
     ) -> TaskAttempt:

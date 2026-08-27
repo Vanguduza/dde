@@ -4,10 +4,12 @@ from engine.environments.service import (
     DEFAULT_WARM_POOL_SIZE,
     AcquiredEnvironment,
     ExecutionEnvironmentService,
+    ReplacedEnvironment,
 )
 
 __all__ = [
     "AcquiredEnvironment",
     "DEFAULT_WARM_POOL_SIZE",
     "ExecutionEnvironmentService",
+    "ReplacedEnvironment",
 ]

@@ -144,6 +144,24 @@ def canonical_failure_class(raw: str) -> str:
     )
 
 
+def attempt_survives_run_failure(
+    failure_class: str,
+    *,
+    worker_failure_occurrence_count: int,
+) -> bool:
+    """Chapter 3.9: a TaskAttempt survives environment replacement and a
+    recoverable worker crash; each recovery mints a new WorkerRun on the
+    same attempt. Repeated WORKER_FAILURE escalates to reroute, which
+    fails the attempt. Other classes still fail the attempt."""
+
+    canonical = canonical_failure_class(failure_class)
+    if canonical == "ENVIRONMENT_FAILURE":
+        return True
+    if canonical == "WORKER_FAILURE":
+        return worker_failure_occurrence_count < WORKER_FAILURE_REROUTE_AFTER
+    return False
+
+
 def decide(
     failure_class: str,
     *,

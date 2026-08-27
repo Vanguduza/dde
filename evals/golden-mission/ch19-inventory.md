@@ -20,7 +20,7 @@ policy rollback (`LearningActivationService.rollback`).
 | Context | `tests/unit/test_context_postgres.py`, `tests/unit/test_context_assembly.py`, `tests/unit/test_context_activation_postgres.py` | `ContextService.compile` | EDR-0002, EDR-0003 |
 | Routing | `tests/unit/test_routing_postgres.py`, `tests/unit/test_routing_rules.py`, `tests/unit/test_flight_lab_golden_mission.py`, `tests/unit/test_simulation_scenarios.py` | `RouterService.route` | Ch.6.10 pick-flip / distribution-shift harness; exploration structurally unreachable |
 | Worker protocol | `tests/unit/test_workers_postgres.py`, `tests/recovery/test_workers_recovery.py`, `tests/unit/test_kill_flag_process_sweep.py` | `WorkerManagerService` | |
-| Environment | `tests/unit/test_workspaces_postgres.py`, `tests/unit/test_flight_lab_golden_mission.py`, `tests/unit/test_environments_postgres.py`, `tests/unit/test_local_process_containment.py` | `WorkspaceService.read/write` | Replacement mid-run is DDE-061 |
+| Environment | `tests/unit/test_workspaces_postgres.py`, `tests/unit/test_flight_lab_golden_mission.py`, `tests/unit/test_environments_postgres.py`, `tests/unit/test_local_process_containment.py`, `tests/unit/test_chaos_suite.py` | `WorkspaceService.read/write`, `ExecutionEnvironmentService.replace`, `WorkerManagerService.resume_run` | |
 | Integration | `tests/unit/test_integration_queue_postgres.py`, `tests/unit/test_flight_lab_force_push.py`, `tests/unit/test_flight_lab_golden_mission.py` | `IntegrationQueueService.integrate`, `git.update_ref` | Semantic-conflict repair insert; revert-as-task |
 | Verification | `tests/unit/test_verification_postgres.py`, `tests/unit/test_cli_mission_trace_postgres.py`, `tests/unit/test_flaky_quarantine.py`, `tests/unit/test_mission_oracle_postgres.py` | `engine.verification.runner` | EDR-0007 |
 | Recovery | `tests/recovery/test_cli_mission_trace_recovery.py`, `tests/recovery/test_execution_recovery.py`, `tests/recovery/test_events_recovery.py`, `tests/unit/test_recovery_matrix.py` | `ExternalEffectService` | EDR-0027; full Core process-crash |
@@ -29,4 +29,4 @@ policy rollback (`LearningActivationService.rollback`).
 | Governance | `tests/unit/test_governance_approvals.py`, `tests/unit/test_governance.py`, `tests/recovery/test_governance_approvals_recovery.py` | `ApprovalService` | |
 | Learning | `tests/unit/test_learning_eligibility_rules.py`, `tests/unit/test_learning_activation_gates.py`, `tests/unit/test_learning_canary_postgres.py`, `tests/unit/test_flight_lab_golden_mission.py`, `tests/unit/test_context_activation_postgres.py` | `LearningActivationService.rollback` / `attempt_advance`, `ContextActivationService.rollback` | EDR-0005 |
 
-Chaos (`evals/chaos/`) remains empty until DDE-061.
+Chaos (`evals/chaos/catalog.md`) is the DDE-061 suite. Full Core OS process-crash remains EDR-0027.

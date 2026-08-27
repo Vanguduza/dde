@@ -20,8 +20,9 @@ Finding B).
 (DDE-025, now present), automatic git revert commits (Ch.10.7 --
 REVERT without a supplied revert task is refused), workspace discard plus
 write-scope lease release after RETIRE (leases stay held), WorkerRun
-cancel/pause for asynchronous harnesses, environment replacement before
-ENVIRONMENT_FAILURE resume.
+cancel/pause for asynchronous harnesses. Environment replacement before
+ENVIRONMENT_FAILURE resume is `ExecutionEnvironmentService.replace`
+plus `WorkerManagerService.resume_run` (DDE-061).
 """
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ from engine.recovery.checkpoint_service import (
 )
 from engine.recovery.matrix import (
     RecoveryDecision,
+    canonical_failure_class,
     classify_dispositions,
     decide,
 )
@@ -183,14 +185,21 @@ class RecoveryService:
                 canonical = decide(
                     lead.failure_class or "WORKER_FAILURE", occurrence_count=1
                 ).failure_class
-                count = sum(
-                    1
-                    for row in failed
-                    if decide(
-                        row.failure_class or "WORKER_FAILURE", occurrence_count=1
-                    ).failure_class
-                    == canonical
+                run_count = await self._count_failed_runs_of_class(
+                    active, attempts, canonical
                 )
+                if run_count > 0:
+                    count = run_count
+                else:
+                    count = sum(
+                        1
+                        for row in failed
+                        if decide(
+                            row.failure_class or "WORKER_FAILURE",
+                            occurrence_count=1,
+                        ).failure_class
+                        == canonical
+                    )
                 unreconciled = False
                 if canonical == "SIDE_EFFECT_UNKNOWN":
                     blocking = await self._effects.list_unreconciled(
@@ -693,6 +702,31 @@ class RecoveryService:
                 continue
             found.add(attempt.task_id)
         return found
+
+    async def _count_failed_runs_of_class(
+        self,
+        active: PostgresUnitOfWork,
+        attempts: Sequence[TaskAttempt],
+        canonical: str,
+    ) -> int:
+        """Chapter 3.9 folds recoverable worker crashes into one attempt;
+        repeated failure is counted on WorkerRuns so a new attempt cannot
+        bypass the matrix's reroute threshold."""
+
+        count = 0
+        for attempt in attempts:
+            runs = await self._runs.list_for_attempt(
+                active.connection, attempt.attempt_id
+            )
+            for run in runs:
+                if run.status != "FAILED" or not run.failure_class:
+                    continue
+                try:
+                    if canonical_failure_class(run.failure_class) == canonical:
+                        count += 1
+                except DdeError:
+                    continue
+        return count
 
     async def _count_verification_failures(
         self, active: PostgresUnitOfWork, task_id: UUID

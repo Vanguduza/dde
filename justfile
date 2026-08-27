@@ -37,6 +37,9 @@ typecheck:
 
 check: lint typecheck test contract-test design-lints studio-check
 
+chaos:
+    uv run pytest tests/unit/test_chaos_suite.py tests/unit/test_chaos_inventory.py
+
 design-lints:
     uv run python -m scripts.design_lints --baseline
 

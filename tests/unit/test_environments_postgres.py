@@ -24,6 +24,7 @@ from engine.environments.repository import ExecutionEnvironmentRepository
 from engine.environments.service import (
     DEFAULT_WARM_POOL_SIZE,
     ExecutionEnvironmentService,
+    ReplacedEnvironment,
 )
 from engine.events.repository import EventsRepository
 from engine.truth.db import open_unit_of_work
@@ -240,6 +241,61 @@ async def test_not_schedulable_environments_are_rejected() -> None:
         with pytest.raises(DdeError) as excinfo:
             service.assert_schedulable(draining)
         assert excinfo.value.error_code == "ENVIRONMENT_FAILED"
+        failed = await service.transition(
+            tenant_id=tenant.tenant_id,
+            project_id=tenant.project_id,
+            environment_id=draining.environment_id,
+            target_lifecycle_state="FAILED",
+            lock_version=draining.lock_version,
+        )
+        with pytest.raises(DdeError):
+            service.assert_schedulable(failed)
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_replace_marks_original_replacement_and_acquires_new() -> None:
+    """Chapter 7.3 production mutation: FAILED → REPLACEMENT plus a new
+    schedulable environment. The retired row is not schedulable."""
+    engine = new_engine()
+    try:
+        tenant = await seed_tenant(engine)
+        service = ExecutionEnvironmentService(engine)
+        environment = await service.provision(
+            tenant_id=tenant.tenant_id,
+            project_id=tenant.project_id,
+            environment_class="development",
+            resource_limits={"cpu_seconds": 30},
+            network_policy={"mode": "unenforced"},
+            filesystem_policy={"workspace_root_only": True},
+        )
+        replaced = await service.replace(
+            tenant_id=tenant.tenant_id,
+            project_id=tenant.project_id,
+            environment_id=environment.environment_id,
+            lock_version=environment.lock_version,
+        )
+        assert isinstance(replaced, ReplacedEnvironment)
+        assert replaced.retired.environment_id == environment.environment_id
+        assert replaced.retired.lifecycle_state == "REPLACEMENT"
+        assert (
+            replaced.replacement.environment.environment_id
+            != environment.environment_id
+        )
+        assert replaced.replacement.environment.lifecycle_state == "ACTIVE"
+        with pytest.raises(DdeError) as excinfo:
+            service.assert_schedulable(replaced.retired)
+        assert excinfo.value.error_code == "ENVIRONMENT_FAILED"
+        service.assert_schedulable(replaced.replacement.environment)
+        with pytest.raises(DdeError) as again:
+            await service.replace(
+                tenant_id=tenant.tenant_id,
+                project_id=tenant.project_id,
+                environment_id=replaced.retired.environment_id,
+                lock_version=replaced.retired.lock_version,
+            )
+        assert again.value.error_code == "POLICY_DENIED"
     finally:
         await engine.dispose()
 

@@ -89,6 +89,7 @@ from engine.workers.adapter import (
     UsageRecord,
     WorkerAction,
     WorkerHealth,
+    require_ready_workspace,
 )
 from engine.workers.certification import ProfileIdentity
 from engine.workspaces.service import WorkspaceService
@@ -199,22 +200,7 @@ class ScriptedWorkerAdapter:
                 "No WorkerAction bound for this execution plan",
                 details={"execution_plan_id": str(execution_plan.plan_id)},
             )
-        if env_ref.execution_environment_id != execution_plan.execution_environment_id:
-            raise DdeError(
-                "ENVIRONMENT_FAILED",
-                "Workspace is not bound to this plan's execution environment",
-                details={
-                    "execution_plan_id": str(execution_plan.plan_id),
-                    "workspace_environment_id": str(env_ref.execution_environment_id),
-                    "plan_environment_id": str(execution_plan.execution_environment_id),
-                },
-            )
-        if env_ref.status != "READY":
-            raise DdeError(
-                "ENVIRONMENT_FAILED",
-                f"Workspace is {env_ref.status}, not ready to prepare a run",
-                details={"workspace_id": str(env_ref.workspace_id)},
-            )
+        require_ready_workspace(env_ref)
         self._prepared[execution_plan.plan_id] = (env_ref, action)
         return PreparedRun(
             plan_id=execution_plan.plan_id,

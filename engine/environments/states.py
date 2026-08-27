@@ -36,4 +36,6 @@ ENVIRONMENT_TRANSITIONS: Final[dict[str, frozenset[str]]] = {
     "REPLACEMENT": frozenset(),
 }
 
-NOT_SCHEDULABLE: Final[frozenset[str]] = frozenset({"DRAINING", "FAILED"})
+NOT_SCHEDULABLE: Final[frozenset[str]] = frozenset(
+    {"DRAINING", "FAILED", "REPLACEMENT"}
+)

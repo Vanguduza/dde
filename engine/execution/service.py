@@ -291,12 +291,18 @@ class ExecutionPlanService:
         plan: ExecutionPlan,
         task: Task,
         base_revision: str | None = None,
+        execution_environment_id: UUID | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> Workspace:
         """Chapter 3.9 step 9 ("Workspace allocated, environment leased"):
         allocates a real `Workspace` bound to `plan.execution_environment_id`
-        and `task.task_id`, using `plan.workspace_policy` as Chapter 7.5's
-        `create(base_revision, policy)` policy argument."""
+        (or a replacement environment after Chapter 7.3 `replace()`) and
+        `task.task_id`, using `plan.workspace_policy` as Chapter 7.5's
+        `create(base_revision, policy)` policy argument.
+
+        A caller-supplied `execution_environment_id` that differs from the
+        hashed plan is legal only when the plan's original environment is
+        already in `REPLACEMENT`."""
         if plan.task_id != task.task_id:
             raise DdeError(
                 "POLICY_DENIED",
@@ -306,12 +312,38 @@ class ExecutionPlanService:
                     "plan_task_id": str(plan.task_id),
                 },
             )
+        bound_id = execution_environment_id or plan.execution_environment_id
+        if bound_id != plan.execution_environment_id:
+            original = await self._environments.get_environment(
+                tenant_id=plan.tenant_id,
+                project_id=plan.project_id,
+                environment_id=plan.execution_environment_id,
+                uow=uow,
+            )
+            if original.lifecycle_state != "REPLACEMENT":
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "Replacement workspace requires the plan's environment "
+                    "to be in REPLACEMENT",
+                    details={
+                        "plan_environment_id": str(plan.execution_environment_id),
+                        "requested_environment_id": str(bound_id),
+                        "plan_environment_state": original.lifecycle_state,
+                    },
+                )
+            replacement = await self._environments.get_environment(
+                tenant_id=plan.tenant_id,
+                project_id=plan.project_id,
+                environment_id=bound_id,
+                uow=uow,
+            )
+            self._environments.assert_schedulable(replacement)
         return await self._workspaces.create(
             tenant_id=plan.tenant_id,
             project_id=plan.project_id,
             mission_id=plan.mission_id,
             task_id=task.task_id,
-            execution_environment_id=plan.execution_environment_id,
+            execution_environment_id=bound_id,
             base_revision=base_revision,
             policy=plan.workspace_policy,
             uow=uow,

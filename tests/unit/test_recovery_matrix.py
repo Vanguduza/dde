@@ -10,6 +10,7 @@ from engine.core.errors import DdeError
 from engine.recovery.matrix import (
     MERGE_CONFLICT_REPLAN_AFTER,
     WORKER_FAILURE_REROUTE_AFTER,
+    attempt_survives_run_failure,
     classify_dispositions,
     decide,
 )
@@ -51,6 +52,19 @@ def test_environment_failure_refuses_a_retry_on_the_same_environment() -> None:
     decision = decide("ENVIRONMENT_FAILURE", occurrence_count=1)
     assert decision.allow_new_worker_run is False
     assert decision.action == "replace_environment"
+    assert attempt_survives_run_failure(
+        "ENVIRONMENT_FAILURE", worker_failure_occurrence_count=1
+    )
+    assert attempt_survives_run_failure(
+        "WORKER_COMMAND_FAILED", worker_failure_occurrence_count=1
+    )
+    assert not attempt_survives_run_failure(
+        "WORKER_FAILURE",
+        worker_failure_occurrence_count=WORKER_FAILURE_REROUTE_AFTER,
+    )
+    assert not attempt_survives_run_failure(
+        "AUTHORIZATION_FAILURE", worker_failure_occurrence_count=1
+    )
 
 
 def test_explicit_retire_ids_are_not_inferred() -> None:
