@@ -1,4 +1,5 @@
 import { escapeHtml } from "./html";
+import { RadiusScalePx, SemanticColors, SpacingScalePx } from "./tokens";
 
 export type FrontendStudioView =
   | "home"
@@ -36,7 +37,9 @@ export function frontendStudioHtml(view: FrontendStudioView, status = ""): strin
   const copy = COPY[view];
   const commands = COMMANDS[view] ?? [];
   const options = commands.map((item) => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join("");
-  const action = commands.length
+  const action = view === "canvas"
+    ? canvasAuthoringHtml()
+    : commands.length
     ? `<form id="studio-command">
         <label>Mission UUID<input id="mission-id" required autocomplete="off" /></label>
         <label>Command<select id="command-type">${options}</select></label>
@@ -59,5 +62,43 @@ export function frontendStudioHtml(view: FrontendStudioView, status = ""): strin
     try{parameters=JSON.parse(document.getElementById('parameters').value);if(!parameters||Array.isArray(parameters)||typeof parameters!=='object')throw new Error();}
     catch{document.querySelector('.status').textContent='Parameters must be a JSON object.';return;}
     vscode.postMessage({type:'frontendCommand',missionId:document.getElementById('mission-id').value,
-    commandType:document.getElementById('command-type').value,parameters});});}</script></body></html>`;
+    commandType:document.getElementById('command-type').value,parameters});});}
+    const palette=document.getElementById('component-palette');const drop=document.getElementById('canvas-drop-zone');let lifted='button';
+    const common=()=>({workspace_id:document.getElementById('workspace-id').value,screen_file:document.getElementById('screen-file').value});
+    const sendInsert=(kind)=>vscode.postMessage({type:'frontendCommand',missionId:document.getElementById('mission-id').value,
+      commandType:'frontend.canvas.insert_component',parameters:{...common(),component_ref:kind,anchor_parent:'root',position_index:0,label:kind}});
+    if(palette){palette.querySelectorAll('[data-component-kind]').forEach((button)=>{
+      button.addEventListener('click',()=>sendInsert(button.dataset.componentKind));
+      button.addEventListener('dragstart',(event)=>{lifted=button.dataset.componentKind;event.dataTransfer.setData('text/plain',lifted);});
+    });}
+    if(drop){drop.addEventListener('dragover',(event)=>event.preventDefault());drop.addEventListener('drop',(event)=>{event.preventDefault();sendInsert(event.dataTransfer.getData('text/plain')||lifted);});}
+    const property=document.getElementById('token-property');const value=document.getElementById('token-value');
+    if(property&&value){property.addEventListener('change',()=>{const values=JSON.parse(value.dataset[property.value]);value.replaceChildren(...values.map((item)=>{const option=document.createElement('option');option.value=item;option.textContent=item;return option;}));});
+      document.getElementById('apply-token').addEventListener('click',()=>vscode.postMessage({type:'frontendCommand',missionId:document.getElementById('mission-id').value,
+      commandType:'frontend.canvas.update_element',parameters:{...common(),element_id:document.getElementById('element-id').value,property:property.value,value:value.value}}));}</script></body></html>`;
+}
+
+function options(values: readonly string[]): string {
+  return values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
+}
+
+function canvasAuthoringHtml(): string {
+  const colors = Object.keys(SemanticColors);
+  const spacing = Object.keys(SpacingScalePx);
+  const radii = Object.keys(RadiusScalePx).map((item) => item.replace("--radius-", ""));
+  return `<section aria-label="Canvas authoring">
+    <label>Mission UUID<input id="mission-id" required autocomplete="off" /></label>
+    <label>Workspace UUID<input id="workspace-id" required autocomplete="off" /></label>
+    <label>Screen file<input id="screen-file" required pattern="[A-Za-z0-9._-]+\\.html" /></label>
+    <div id="component-palette" aria-label="Component palette">
+      ${["layout", "text", "button"].map((kind) => `<button type="button" draggable="true" data-component-kind="${kind}">Add ${kind}</button>`).join("")}
+    </div>
+    <div id="canvas-drop-zone" tabindex="0" role="button" aria-label="Insert selected component at root">Drop at root</div>
+    <label>Selected element ID<input id="element-id" autocomplete="off" /></label>
+    <label>Property<select id="token-property">${options(["color", "spacing", "radius"])}</select></label>
+    <label>Token value<select id="token-value" data-color="${escapeHtml(JSON.stringify(colors))}"
+      data-spacing="${escapeHtml(JSON.stringify(spacing))}" data-radius="${escapeHtml(JSON.stringify(radii))}">${options(colors)}</select></label>
+    <button type="button" id="apply-token">Apply token</button>
+    <p class="status" role="status"></p>
+  </section>`;
 }

@@ -331,7 +331,10 @@ describe("Frontend Studio honesty", () => {
     const html = frontendStudioHtml("canvas");
     assert.match(html, /frontend\.canvas\.insert_component/);
     assert.match(html, /frontend\.canvas\.update_element/);
-    assert.match(html, /JSON\.parse/);
+    assert.match(html, /draggable="true"/);
+    assert.match(html, /id="token-property"/);
+    assert.match(html, /--accent-primary/);
+    assert.doesNotMatch(html, /<textarea|type="color"/i);
     assert.doesNotMatch(html, /contenteditable|execCommand|innerHTML\s*=/i);
   });
 });
