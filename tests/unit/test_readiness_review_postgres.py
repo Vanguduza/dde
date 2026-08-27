@@ -23,6 +23,13 @@ async def test_readiness_review_fail_closes_to_keep_and_audits() -> None:
         assert result.proposed_edrs == ()
         assert all(v.decision == KEEP for v in result.verdicts)
         assert all(v.reason == "unmeasured" for v in result.verdicts)
+        assert {v.candidate for v in result.verdicts} == {
+            "context_critic",
+            "route_critic",
+            "model_assisted_planning",
+            "simulation_model",
+            "retriever",
+        }
         async with engine.connect() as connection:
             rows = (
                 await connection.execute(

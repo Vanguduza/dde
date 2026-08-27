@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from engine.readiness.inventory import REMOVAL_CANDIDATES, missing_inventory_files
+from engine.readiness.inventory import (
+    REMOVAL_CANDIDATES,
+    S7_PRIOR_LANDINGS,
+    missing_inventory_files,
+)
 from engine.readiness.removal import (
     KEEP,
     PROPOSE_EDR,
@@ -13,6 +17,15 @@ from engine.readiness.removal import (
 
 def test_s7_and_removal_inventory_files_exist() -> None:
     assert missing_inventory_files() == []
+    assert set(S7_PRIOR_LANDINGS) == {
+        "experience_record",
+        "routing_activation_gates",
+        "context_activation_gates",
+        "flight_lab",
+        "chaos_suite",
+        "dr_drill",
+        "chapter_16_5_slos",
+    }
     assert set(REMOVAL_CANDIDATES) == {
         "context_critic",
         "route_critic",

@@ -13,7 +13,11 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.audit.service import AuditService
-from engine.readiness.inventory import REMOVAL_CANDIDATES, missing_inventory_files
+from engine.readiness.inventory import (
+    REMOVAL_CANDIDATES,
+    S7_PRIOR_LANDINGS,
+    missing_inventory_files,
+)
 from engine.readiness.removal import (
     KEEP,
     RemovalMeasurement,
@@ -66,6 +70,7 @@ class ReadinessReview:
             event_type="readiness.reviewed",
             payload={
                 "chapter": "18.6",
+                "s7_prior_landings": list(S7_PRIOR_LANDINGS),
                 "candidates": list(REMOVAL_CANDIDATES),
                 "decisions": [v.decision for v in verdicts],
                 "proposed_edrs": list(proposed),
