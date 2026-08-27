@@ -63,6 +63,7 @@ def test_insert_update_move_remove_round_trip() -> None:
         position_index=1,
         label="Hint",
     )
+    assert second != first
     html = apply_move(
         html,
         element_id=second,

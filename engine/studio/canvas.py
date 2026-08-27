@@ -98,7 +98,10 @@ def apply_insert(
             retryable=False,
             details={"position_index": position_index},
         )
-    new_id = element_id or f"el-{uuid7().hex[:12]}"
+    # UUIDv7's leading bits are timestamp-heavy; truncating the prefix can
+    # collide for multiple authoring commands in one millisecond. Stable
+    # element anchors must remain unique because remove/update target them.
+    new_id = element_id or f"el-{uuid7().hex}"
     attrs = {
         "data-dde-el": new_id,
         "data-dde-kind": kind,
