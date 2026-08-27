@@ -1,0 +1,50 @@
+{
+  "catalog_id": "playbook-1.1-nevers",
+  "playbook_section": "1.1",
+  "items": [
+    {
+      "id": "NEVER-GRADIENT-PRIMARY",
+      "statement": "Do not use gradient fills as a primary visual device (no multi-stop linear-gradient decoration)."
+    },
+    {
+      "id": "NEVER-PURPLE-INDIGO",
+      "statement": "Do not use purple or indigo accent defaults."
+    },
+    {
+      "id": "NEVER-EMOJI-ICONS",
+      "statement": "Do not use emoji as icons, bullets, or nav items."
+    },
+    {
+      "id": "NEVER-IDENTICAL-CARD-GRID",
+      "statement": "Do not use identical repeated card grids with an icon-over-heading skeleton."
+    },
+    {
+      "id": "NEVER-PILL-SPAM",
+      "statement": "Do not use pill-spam badge rows."
+    },
+    {
+      "id": "NEVER-GLASSMORPHISM",
+      "statement": "Do not use glassmorphism or backdrop-blur chrome."
+    },
+    {
+      "id": "NEVER-TRAFFIC-LIGHT-TERMINAL",
+      "statement": "Do not use terminal mockups with three traffic-light dots."
+    },
+    {
+      "id": "NEVER-CENTERED-MARKETING-HERO",
+      "statement": "Do not use centered-marketing hero grammar inside operator tooling."
+    },
+    {
+      "id": "NEVER-PURE-BLACK-WHITE",
+      "statement": "Do not use pure #fff/#000 text pairs."
+    },
+    {
+      "id": "NEVER-DECORATIVE-CHARTS",
+      "statement": "Do not use decorative charts or sparklines that present no real data."
+    },
+    {
+      "id": "NEVER-HELPER-ESSAYS",
+      "statement": "Do not write instructional essays in empty states."
+    }
+  ]
+}

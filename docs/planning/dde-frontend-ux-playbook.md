@@ -380,8 +380,10 @@ Beyond the token sheet (palette/scale/motion), each product carries an
 **art-direction record**: chosen type pairing (display + body, from a
 curated corpus of distinctive, licence-cleared pairs — not Inter-only),
 accent identity, layout idiom, motion identity. Generated once per
-product at mission start, consumed by every screen. **Lands:** S4 tail /
-small dedicated mission; extends `schemas/design/tokens.json` + generator.
+product at mission start, consumed by every screen. **Lands:** **DDE-065**
+(gap-closure §6.5 + `design-tooling-integration.md` Phase 1); schema in
+`schemas/design/art_direction.schema.json`, compiler fail-closed until
+the record plus tokens pin resolve.
 
 ### 10.2 Extends §4.5 design lints — combination lints (DD207+)
 

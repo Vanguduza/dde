@@ -179,6 +179,20 @@ def _render_ts(tokens: dict[str, Any]) -> str:
         "export const MotionEasing: Readonly<Record<string, string>> = "
         + _record_literal(easing_entries)
         + ";\n",
+        "export const MotionIdentity: Readonly<Record<string, unknown>> = "
+        + json.dumps(
+            {
+                name: {
+                    key: _const(child, f"motion.identity.{name}.{key}")
+                    for key, child in schema["properties"].items()
+                }
+                for name, schema in tokens["motion"]["properties"]["identity"][
+                    "properties"
+                ].items()
+            },
+            indent=2,
+        )
+        + ";\n",
         "export const ZLayers: Readonly<Record<string, number>> = "
         + _record_literal(
             [

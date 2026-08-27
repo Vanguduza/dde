@@ -17,6 +17,14 @@ it. At sign-off: **EDR-0015** and **EDR-0016** filed PROPOSED same day
 (2026-08-24); DDE-065 + DDE-067 GUI shell authorized to start under the
 standing auto-resume order (§7).
 
+**Design-tooling priors (2026-08-26):**
+`docs/planning/design-tooling-integration.md` is a **binding design input
+and acceptance-criteria seed** for DDE-065 / DDE-067 / DDE-068 (recorded
+in gap-closure-record §6.10). Disposition: encode harvested concepts
+(art-direction dials + DESIGN.md grammar; DD207+ / WIG non-axe lints)
+into first-party schemas and scanners — do **not** install third-party
+design skills as merge-blocking oracles.
+
 ## 0. Naming
 
 `dde-studio` (`interfaces/dde-studio/package.json`, displayName "DDE
@@ -40,11 +48,14 @@ charter names. Inserted workstream of four missions:
 
 ### DDE-065 — Generation-Prompt Compiler (deterministic, offline)
 
-- **Scope IN:** deterministic compiler under `engine/planning/` (or
-  sibling `engine/studio/`). Inputs are all durable artifacts: the
-  approved PRD's Requirement rows, the art-direction record once it lands
-  (gap-closure-record §6.5; until then `schemas/design/tokens.json` is
-  the sole visual authority per the binding rule file), the nevers
+- **Scope IN:** deterministic compiler under `engine/studio/` (sibling of
+  `engine/planning/`). Inputs are all durable artifacts: the
+  approved PRD's Requirement rows, the art-direction record
+  (gap-closure-record §6.5 + **design-tooling-integration.md §4.1 / Phase 1** —
+  Stitch/DESIGN.md section grammar plus Taste-derived dials
+  `DESIGN_VARIANCE` / `MOTION_INTENSITY` / `VISUAL_DENSITY` and a one-line
+  Design Read; `schemas/design/tokens.json` remains the sole visual
+  value authority), the nevers
   catalog (playbook §1.1), the copy law (`FORBIDDEN_HELPER` superset),
   the declared layout-pattern map. Output: one versioned
   generation-prompt artifact per PRD, pinned to playbook version and
@@ -72,12 +83,18 @@ charter names. Inserted workstream of four missions:
  - MUST refuse (typed, same family) when the art-direction record is
    absent OR the tokens pin does not resolve — no degraded/stubbed
    compile path exists; the refusal names the missing input artifact.
+ - MUST refuse when art-direction lacks the three dials, Design Read
+   string, or semantic palette roles required by
+   `design-tooling-integration.md` Phase 1 (same fail-closed family).
  - SHALL embed every §1.1 never and the token-sheet reference such that
    a generated prompt cannot instruct off-token values (contract test
    scans prompt content).
  - SHALL record provenance (input artifact ids + versions) so any
    generated screen traces back to its PRD.
  - MUST NOT make a network or model call in the compile path.
+ - MUST NOT load third-party design skills (Taste Skill, Impeccable
+   guidance, Vercel agent-skills) into the compile path — encodings only
+   (`design-tooling-integration.md` §7).
 
 ### DDE-046 note — manual pin-by-URL (owner requirement, 2026-08-24)
 

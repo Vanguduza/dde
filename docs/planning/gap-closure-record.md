@@ -237,7 +237,7 @@ DDE-067 studio surface, DDE-068 visual verification & critique loop):**
 
 | Item | Lands in | Surface |
 |---|---|---|
-| Art-direction record schema (per-product type pairing, palette identity, layout idiom, motion identity) | **DDE-065** — hard compiler input; compilation fails closed (typed refusal) until it resolves | `schemas/design/tokens.json` extension + generator |
+| Art-direction record schema (type pairing, palette **roles**, layout idiom, motion identity, **VARIANCE/MOTION/DENSITY dials**, Design Read, DESIGN.md section grammar — see `design-tooling-integration.md` §4.1/§4.3) | **DDE-065** — hard compiler input; compilation fails closed (typed refusal) until it resolves | `schemas/design/` extension + generator |
 | Font-pairing corpus (curated distinctive pairs w/ licence metadata; bans Inter-as-display) | **DDE-065** — lands with the art-direction record it populates | `schemas/design/` data file, no dependency |
 | Combination lints (DD207+: flag Inter-only + indigo-gradient + centered-hero-3-card fingerprint) | **DDE-068** — blocking merge gate | `tests/unit/test_studio_design_lints.py` scanner |
 | Silhouette test (layout-shape fingerprint distinctiveness vs generic corpus) | **DDE-068** — unblocked from DDE-043/044: the EDR-0008 Phase B Playwright harness already renders screens in dde-studio.yml's visual job | Playwright suite admitted by EDR-0008 (`interfaces/dde-studio/visual/**`) |
@@ -264,7 +264,9 @@ the combination lints + silhouette test once both exist; until then the
 existing DD201-DD206 lints and honesty tests are the floor. The
 Definition-of-Polished battery in product-studio-charter.md §4 names the
 full gate list with per-gate status (live today vs lands-with-DDE-065/
-068); a screen may merge only when all eight gates are green.
+068); a screen may merge only when all eight gates are green. Tooling
+disposition and concept harvest that feed these rows:
+`docs/planning/design-tooling-integration.md` (§6.10).
 
 ### 6.6 Owner decision sweep — closed 2026-08-24
 
@@ -395,6 +397,22 @@ approval-surface commands) MUST evaluate the advisory-council design at charter 
 shadow-mode first. Until then nothing here authorizes engine changes: no council code
 exists, no agent-to-agent channel is admitted for core state, and rank-10 material
 stays non-authoritative per Ch.2.2.
+
+### 6.10 Design-tooling integration — trigger: DDE-065/067/068 charters (2026-08-26)
+
+Consolidated external brief + independent evaluations of Impeccable, Vercel
+agent-skills / Web Interface Guidelines, Taste Skill, and Awesome DESIGN.md into
+`docs/planning/design-tooling-integration.md`. Disposition: **patterns-and-encodings,
+not package installs**. Track A skills are not evidence; DD201–DD206 and axe stay
+first-party/LIVE; harvest Taste dials + Stitch/DESIGN.md grammar into DDE-065
+art-direction, Taste production tells + WIG non-axe rules into DDE-068 lints,
+conformance-by-construction remains DDE-067; silhouette/density/VLM remain
+build-from-scratch under DDE-068 / EDR-0016.
+
+**Trigger:** DDE-065, DDE-067, and DDE-068 charters (and any Phase-0 donor/admission
+work for an optional Impeccable DD207+ supplement) MUST consume that note as design
+inputs and acceptance-criteria seeds. Until then nothing here authorizes new
+dependencies or skill installs as merge-blocking gates.
 
 
 

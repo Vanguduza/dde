@@ -1,0 +1,25 @@
+{
+  "catalog_id": "playbook-4.6-copy-law",
+  "playbook_section": "4.6",
+  "forbidden_phrases": [
+    "simply",
+    "easily",
+    "just",
+    "welcome to",
+    "seamless",
+    "robust",
+    "cutting-edge",
+    "next-generation",
+    "delightful",
+    "leverage"
+  ],
+  "rules": [
+    "Buttons are verb-first and sentence case.",
+    "Error banners state cause and the next action.",
+    "Figures over words.",
+    "No exclamation marks in UI copy.",
+    "No emoji in UI copy.",
+    "Empty states use one-line factual titles, not helper essays.",
+    "Domain vocabulary comes from product schemas, never marketing synonyms."
+  ]
+}

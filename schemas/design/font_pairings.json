@@ -1,0 +1,56 @@
+{
+  "catalog_id": "dde-font-pairing-corpus-v1",
+  "ban_inter_as_default_display": true,
+  "pairings": [
+    {
+      "id": "ibm-plex",
+      "display": "IBM Plex Serif",
+      "body": "IBM Plex Sans",
+      "licence": "OFL-1.1",
+      "source_uri": "https://github.com/IBM/plex"
+    },
+    {
+      "id": "source-serif-sans",
+      "display": "Source Serif 4",
+      "body": "Source Sans 3",
+      "licence": "OFL-1.1",
+      "source_uri": "https://github.com/adobe-fonts/source-serif"
+    },
+    {
+      "id": "newsreader-public-sans",
+      "display": "Newsreader",
+      "body": "Public Sans",
+      "licence": "OFL-1.1",
+      "source_uri": "https://github.com/productiontype/Newsreader"
+    },
+    {
+      "id": "literata-source-sans",
+      "display": "Literata",
+      "body": "Source Sans 3",
+      "licence": "OFL-1.1",
+      "source_uri": "https://github.com/googlefonts/literata"
+    },
+    {
+      "id": "atkinson-source-serif",
+      "display": "Source Serif 4",
+      "body": "Atkinson Hyperlegible",
+      "licence": "OFL-1.1",
+      "source_uri": "https://www.brailleinstitute.org/freefont/"
+    },
+    {
+      "id": "libre-franklin-baskerville",
+      "display": "Libre Baskerville",
+      "body": "Libre Franklin",
+      "licence": "OFL-1.1",
+      "source_uri": "https://github.com/impallari/Libre-Baskerville"
+    },
+    {
+      "id": "inter-explicit",
+      "display": "Inter",
+      "body": "Inter",
+      "licence": "OFL-1.1",
+      "source_uri": "https://github.com/rsms/inter",
+      "requires_explicit_inter_display": true
+    }
+  ]
+}

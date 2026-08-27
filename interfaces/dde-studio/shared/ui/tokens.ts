@@ -98,6 +98,36 @@ export const MotionEasing: Readonly<Record<string, string>> = {
   "linear": "linear"
 };
 
+export const MotionIdentity: Readonly<Record<string, unknown>> = {
+  "restrained": {
+    "arrivalMs": 120,
+    "stateMs": 120,
+    "progressMs": 180,
+    "arrivalEasing": "arrival",
+    "stateEasing": "state",
+    "progressEasing": "linear",
+    "spring": "none"
+  },
+  "measured": {
+    "arrivalMs": 180,
+    "stateMs": 180,
+    "progressMs": 240,
+    "arrivalEasing": "arrival",
+    "stateEasing": "state",
+    "progressEasing": "linear",
+    "spring": "none"
+  },
+  "expressive": {
+    "arrivalMs": 240,
+    "stateMs": 180,
+    "progressMs": 240,
+    "arrivalEasing": "arrival",
+    "stateEasing": "state",
+    "progressEasing": "linear",
+    "spring": "none"
+  }
+};
+
 export const ZLayers: Readonly<Record<string, number>> = {
   "--z-content": 0,
   "--z-sticky": 10,

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/design/generation_prompt.schema.json",
+  "title": "GenerationPrompt",
+  "description": "Versioned generation-prompt artifact produced by the DDE-065 compiler. Content-addressed; not a Core table. Persistence for Studio intake is DDE-067.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prd_id",
+    "prd_version",
+    "playbook_version",
+    "tokens_version",
+    "tokens_hash",
+    "art_direction_id",
+    "art_direction_version",
+    "prompt_body",
+    "content_hash",
+    "preview_html",
+    "provenance"
+  ],
+  "properties": {
+    "prd_id": { "type": "string", "minLength": 1 },
+    "prd_version": { "type": "string", "minLength": 1 },
+    "playbook_version": { "type": "string", "minLength": 1 },
+    "tokens_version": { "type": "integer" },
+    "tokens_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "art_direction_id": { "type": "string", "minLength": 1 },
+    "art_direction_version": { "type": "string", "minLength": 1 },
+    "prompt_body": { "type": "string", "minLength": 1 },
+    "content_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "preview_html": { "type": "string", "minLength": 1 },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prd_id",
+        "prd_version",
+        "requirement_ids",
+        "requirement_slugs",
+        "feature_ids",
+        "art_direction_id",
+        "art_direction_version",
+        "playbook_version",
+        "tokens_version",
+        "tokens_hash",
+        "font_pairing_id",
+        "layout_patterns"
+      ],
+      "properties": {
+        "prd_id": { "type": "string" },
+        "prd_version": { "type": "string" },
+        "requirement_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requirement_slugs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "feature_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "art_direction_id": { "type": "string" },
+        "art_direction_version": { "type": "string" },
+        "playbook_version": { "type": "string" },
+        "tokens_version": { "type": "integer" },
+        "tokens_hash": { "type": "string" },
+        "font_pairing_id": { "type": "string" },
+        "layout_patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

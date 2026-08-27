@@ -1,0 +1,38 @@
+{
+  "catalog_id": "playbook-4.11-layout-patterns",
+  "playbook_section": "4.11",
+  "patterns": [
+    {
+      "id": "dashboard-ov-grid",
+      "description": "Dashboard overview grid (ov-* zones)."
+    },
+    {
+      "id": "mission-control-columnar",
+      "description": "Mission-control columnar shell."
+    },
+    {
+      "id": "status-form-panel",
+      "description": "Status or form panel."
+    },
+    {
+      "id": "settings-form",
+      "description": "Settings form."
+    },
+    {
+      "id": "columnar-worklist",
+      "description": "Columnar worklist of records."
+    },
+    {
+      "id": "document-panel-with-line-table",
+      "description": "Document panel with an embedded line table."
+    },
+    {
+      "id": "split-inspector",
+      "description": "Split list-plus-inspector."
+    },
+    {
+      "id": "timeline-feed",
+      "description": "Chronological event feed."
+    }
+  ]
+}

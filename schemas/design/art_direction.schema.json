@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/design/art_direction.schema.json",
+  "title": "ArtDirectionRecord",
+  "description": "Per-product art-direction record (DDE-065). DESIGN.md nine-section grammar plus Taste dials and Design Read. Fail-closed compiler input; not a Core table.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_id",
+    "product_id",
+    "version",
+    "design_read",
+    "dials",
+    "type_pairing",
+    "palette_roles",
+    "theme_atmosphere",
+    "typography_hierarchy",
+    "component_stylings",
+    "layout_idiom",
+    "layout_principles",
+    "depth_elevation",
+    "dos_donts",
+    "responsive_behavior",
+    "agent_prompt_guide",
+    "motion_identity"
+  ],
+  "properties": {
+    "record_id": { "type": "string", "minLength": 1 },
+    "product_id": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "design_read": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One-line Design Read: page kind × audience × language × foundation."
+    },
+    "dials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["DESIGN_VARIANCE", "MOTION_INTENSITY", "VISUAL_DENSITY"],
+      "properties": {
+        "DESIGN_VARIANCE": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "MOTION_INTENSITY": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "VISUAL_DENSITY": { "type": "integer", "minimum": 1, "maximum": 10 }
+      }
+    },
+    "type_pairing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pairing_id", "display", "body"],
+      "properties": {
+        "pairing_id": { "type": "string", "minLength": 1 },
+        "display": { "type": "string", "minLength": 1 },
+        "body": { "type": "string", "minLength": 1 },
+        "explicit_inter_display": { "type": "boolean" }
+      }
+    },
+    "palette_roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Semantic roles must name token-sheet semantic aliases, never raw hex.",
+      "required": [
+        "canvas",
+        "surface",
+        "ink",
+        "accent",
+        "semantic_ok",
+        "semantic_warn",
+        "semantic_err"
+      ],
+      "properties": {
+        "canvas": { "type": "string", "minLength": 1 },
+        "surface": { "type": "string", "minLength": 1 },
+        "ink": { "type": "string", "minLength": 1 },
+        "accent": { "type": "string", "minLength": 1 },
+        "semantic_ok": { "type": "string", "minLength": 1 },
+        "semantic_warn": { "type": "string", "minLength": 1 },
+        "semantic_err": { "type": "string", "minLength": 1 }
+      }
+    },
+    "theme_atmosphere": { "type": "string", "minLength": 1 },
+    "typography_hierarchy": { "type": "string", "minLength": 1 },
+    "component_stylings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["component", "states"],
+        "properties": {
+          "component": { "type": "string", "minLength": 1 },
+          "states": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "layout_idiom": { "type": "string", "minLength": 1 },
+    "layout_principles": { "type": "string", "minLength": 1 },
+    "depth_elevation": { "type": "string", "minLength": 1 },
+    "dos_donts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dos", "donts"],
+      "properties": {
+        "dos": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "donts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "responsive_behavior": { "type": "string", "minLength": 1 },
+    "agent_prompt_guide": { "type": "string", "minLength": 1 },
+    "motion_identity": {
+      "type": "string",
+      "enum": ["restrained", "measured", "expressive"]
+    }
+  }
+}
