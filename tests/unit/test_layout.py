@@ -32,6 +32,7 @@ ENGINE_PACKAGES = [
     "engine.workers",
     "engine.workspaces",
     "engine.dr",
+    "engine.load",
 ]
 
 

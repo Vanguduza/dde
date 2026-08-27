@@ -43,6 +43,9 @@ chaos:
 drill:
     uv run pytest tests/unit/test_dr_drill_postgres.py tests/unit/test_object_store_worm.py
 
+load:
+    uv run pytest tests/unit/test_load_slo.py
+
 design-lints:
     uv run python -m scripts.design_lints --baseline
 
