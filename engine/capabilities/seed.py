@@ -214,6 +214,31 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("planning", "verification"),
         network_requirements={"egress": "none"},
     ),
+    SeedCapability(
+        capability_id="capability.donor_discovery",
+        version="1",
+        category="donor",
+        summary=(
+            "Control-plane donor-search fan-out over the EDR-0015 host "
+            "allowlist. Classify-before-use; UNKNOWN defaults to "
+            "SOURCE_REFERENCE_ONLY. EXTERNAL_IDEMPOTENT: each query is "
+            "journaled with an idempotency key before fetch."
+        ),
+        side_effect_class="EXTERNAL_IDEMPOTENT",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=(
+            "engine.donor.discovery_service.DonorDiscoveryService.search",
+        ),
+        supported_workloads=("planning",),
+        network_requirements={
+            "egress": "allowlist",
+            "edr": "EDR-0015",
+            "allowlist": "schemas/design/donor_search_allowlist.json",
+            "quota_key": "donor_search_max_queries",
+            "default_max_queries": 32,
+        },
+    ),
     # DDE-048 / Chapter 9.8 mobile/Android class. Static APK analysis is
     # in-process (stdlib zipfile; no JADX/Apktool/MobSF/ADB binary).
     # PURE_READ: analysis never mutates the product or a device. Dynamic

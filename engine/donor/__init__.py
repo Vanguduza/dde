@@ -1,11 +1,18 @@
-"""Chapter 13.8 Donor Lab (DDE-046/047): ingest, classify, Feature DNA, taint.
+"""Chapter 13.8 Donor Lab (DDE-046/047/066): ingest, classify, taint, discovery.
 
-Network discovery/fan-out is DDE-066 (EDR-0015). This package owns the
-durable `donor_artifacts` / `feature_dna` / `donor_taints` mutation sites
-for human pin-by-URI, fixture ingest, and provenance propagation.
+Network discovery/fan-out is DDE-066 (EDR-0015) via DonorDiscoveryService.
+Human pin-by-URI and taint persistence stay on DonorLabService /
+DonorTaintService.
 """
 
+from engine.donor.discovery_service import DonorDiscoveryService, SearchQuery
 from engine.donor.service import DonorLabService, IngestResult
 from engine.donor.taint import DonorTaintService
 
-__all__ = ["DonorLabService", "DonorTaintService", "IngestResult"]
+__all__ = [
+    "DonorDiscoveryService",
+    "DonorLabService",
+    "DonorTaintService",
+    "IngestResult",
+    "SearchQuery",
+]

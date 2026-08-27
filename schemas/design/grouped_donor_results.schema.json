@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/design/grouped_donor_results.schema.json",
+  "title": "GroupedDonorResults",
+  "description": "DDE-066 grouped donor-discovery inventory. Derived cache + evidence, not a second source of donor truth. Manual DDE-046 pins appear in the same groups.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["prd_id", "groups", "unmatched", "refusals"],
+  "properties": {
+    "prd_id": { "type": "string", "minLength": 1 },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["feature_id", "hits"],
+        "properties": {
+          "feature_id": { "type": "string", "minLength": 1 },
+          "hits": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/hit" }
+          }
+        }
+      }
+    },
+    "unmatched": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/hit" }
+    },
+    "refusals": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "hit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_uri",
+        "source_class",
+        "licence_class",
+        "taint_tags",
+        "adoption_state",
+        "usable"
+      ],
+      "properties": {
+        "source_uri": { "type": "string", "minLength": 1 },
+        "source_class": {
+          "type": "string",
+          "enum": [
+            "OPEN_REUSE",
+            "CONDITIONAL_REUSE",
+            "SOURCE_REFERENCE_ONLY",
+            "RESTRICTED",
+            "UNKNOWN",
+            "REJECTED"
+          ]
+        },
+        "licence_class": { "type": "string" },
+        "taint_tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "adoption_state": {
+          "type": "string",
+          "enum": ["identified", "screened", "approved", "rejected"]
+        },
+        "usable": { "type": "boolean" },
+        "feature_id": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "catalog_id": "edr-0015-donor-search-allowlist-v1",
+  "version": 1,
+  "hosts": [
+    {
+      "host": "api.github.com",
+      "path_prefixes": ["/search/repositories", "/search/code", "/repos/"],
+      "use": "repos/tools/libraries search and licence/metadata evidence"
+    },
+    {
+      "host": "github.com",
+      "path_prefixes": ["/"],
+      "use": "licence-text and README reads for classification"
+    },
+    {
+      "host": "raw.githubusercontent.com",
+      "path_prefixes": ["/"],
+      "use": "licence-text and README reads for classification"
+    },
+    {
+      "host": "registry.npmjs.org",
+      "path_prefixes": ["/"],
+      "use": "npm-class package metadata for OPEN_REUSE donors"
+    },
+    {
+      "host": "ui.shadcn.com",
+      "path_prefixes": ["/"],
+      "use": "registry JSON for OPEN_REUSE components"
+    },
+    {
+      "host": "tailwindui.com",
+      "path_prefixes": ["/"],
+      "use": "CONDITIONAL_REUSE metadata only"
+    },
+    {
+      "host": "tailwindplus.com",
+      "path_prefixes": ["/"],
+      "use": "CONDITIONAL_REUSE metadata only"
+    },
+    {
+      "host": "cruip.com",
+      "path_prefixes": ["/"],
+      "use": "CONDITIONAL_REUSE metadata only"
+    }
+  ],
+  "rejected_hosts": [
+    "themeforest.net",
+    "codecanyon.net",
+    "creativemarket.com"
+  ]
+}

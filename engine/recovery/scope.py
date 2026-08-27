@@ -33,7 +33,9 @@ BLOCKING_STATUSES: Final[frozenset[str]] = frozenset({"SENT", "UNKNOWN", "RECONC
 LOCAL_PROCESS_SYSTEM: Final[str] = "local_process"
 GIT_SYSTEM: Final[str] = "git"
 BROWSER_SYSTEM: Final[str] = "browser"
+DONOR_SEARCH_SYSTEM: Final[str] = "donor_search"
 GIT_UPDATE_REF_OPERATION: Final[str] = "update-ref"
+DONOR_SEARCH_GET_OPERATION: Final[str] = "GET"
 GIT_SNAPSHOT_OPERATION: Final[str] = "git_snapshot"
 BROWSER_GOTO_OPERATION: Final[str] = "goto"
 
@@ -51,6 +53,10 @@ def local_process_operation(command: Sequence[str]) -> str:
 
 def browser_resource(url: str) -> str:
     return url
+
+
+def donor_search_resource(uri: str) -> str:
+    return uri
 
 
 def git_ref_resource(branch_or_ref: str) -> str:
