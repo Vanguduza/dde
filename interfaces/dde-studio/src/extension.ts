@@ -25,6 +25,7 @@ import { SIDEBAR_STUB_MODULES } from "./modules/registry";
 import { CoreStatusBar } from "./status/statusBar";
 import {
   ConnectionViewProvider,
+  FrontendStudioViewProvider,
   HarnessPanel,
   HarnessViewProvider,
   ModuleStubViewProvider,
@@ -78,6 +79,21 @@ export function activate(context: vscode.ExtensionContext): void {
     (msg) => void handleMessage(msg, "deepseek"),
   );
   const galleryView = new GalleryProvider("dde.studio.preview");
+  const frontendViews = [
+    ["dde.studio.frontend.home", "home"],
+    ["dde.studio.frontend.intake", "intake"],
+    ["dde.studio.frontend.donors", "donors"],
+    ["dde.studio.frontend.canvas", "canvas"],
+    ["dde.studio.frontend.verify", "verify"],
+    ["dde.studio.frontend.approvals", "approvals"],
+  ].map(
+    ([viewType, studioView]) =>
+      new FrontendStudioViewProvider(
+        viewType,
+        studioView as import("../shared/ui/frontendStudio").FrontendStudioView,
+        (msg) => void handleMessage(msg),
+      ),
+  );
 
   context.subscriptions.push(
     statusBar,
@@ -99,6 +115,9 @@ export function activate(context: vscode.ExtensionContext): void {
       deepSeekView,
     ),
     vscode.window.registerWebviewViewProvider(galleryView.viewType, galleryView),
+    ...frontendViews.map((view) =>
+      vscode.window.registerWebviewViewProvider(view.viewType, view),
+    ),
     galleryView,
     vscode.commands.registerCommand("dde.studio.refreshHealth", () =>
       refreshAll(),
@@ -492,6 +511,26 @@ export function activate(context: vscode.ExtensionContext): void {
             `DDE batch approve returned status "${result.acceptance.status}".`,
           );
         }
+        break;
+      }
+      case "frontendCommand": {
+        if (!gatewayService) {
+          void vscode.window.showErrorMessage(
+            "Frontend Studio needs a live Gateway session.",
+          );
+          break;
+        }
+        const result = await gatewayService.sendFrontendCommand(
+          msg.commandType,
+          msg.missionId,
+          msg.parameters,
+        );
+        const status =
+          result.ok && result.acceptance
+            ? `Accepted ${msg.commandType}; completion is asynchronous.`
+            : `Command refused: ${result.reason ?? "unknown error"}`;
+        for (const view of frontendViews) view.setStatus(status);
+        if (!result.ok) void vscode.window.showErrorMessage(status);
         break;
       }
       case "startMission":

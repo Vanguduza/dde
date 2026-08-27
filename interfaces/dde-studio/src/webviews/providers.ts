@@ -16,6 +16,10 @@ import {
   morningReviewHtml,
   overviewHtml,
 } from "./html";
+import {
+  frontendStudioHtml,
+  type FrontendStudioView,
+} from "../../shared/ui/frontendStudio";
 
 export type StudioMessage =
   | { type: "refresh" }
@@ -45,7 +49,40 @@ export type StudioMessage =
   | { type: "cancelMission" }
   | { type: "approve" }
   | { type: "reject" }
-  | { type: "batchApprove"; ids?: string[] };
+  | { type: "batchApprove"; ids?: string[] }
+  | {
+      type: "frontendCommand";
+      missionId: string;
+      commandType: string;
+      parameters: Record<string, unknown>;
+    };
+
+export class FrontendStudioViewProvider implements vscode.WebviewViewProvider {
+  private view?: vscode.WebviewView;
+  private status = "";
+
+  constructor(
+    public readonly viewType: string,
+    private readonly studioView: FrontendStudioView,
+    private readonly onMessage: (msg: StudioMessage) => void,
+  ) {}
+
+  resolveWebviewView(webviewView: vscode.WebviewView): void {
+    this.view = webviewView;
+    webviewView.webview.options = { enableScripts: true };
+    webviewView.webview.onDidReceiveMessage((msg: StudioMessage) => this.onMessage(msg));
+    this.render();
+  }
+
+  setStatus(status: string): void {
+    this.status = status;
+    this.render();
+  }
+
+  private render(): void {
+    if (this.view) this.view.webview.html = frontendStudioHtml(this.studioView, this.status);
+  }
+}
 
 export class OverviewViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "dde.studio.overview";

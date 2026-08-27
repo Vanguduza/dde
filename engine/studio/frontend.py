@@ -63,7 +63,9 @@ class FrontendStudioService:
         self._approvals = approvals or ApprovalService(engine)
         self._runs = runs or WorkerRunRepository()
 
-    async def compile_prompt(self, *, parameters: dict[str, object]) -> dict[str, object]:
+    async def compile_prompt(
+        self, *, parameters: dict[str, object]
+    ) -> dict[str, object]:
         request = _compile_request(parameters)
         prompt = compile_generation_prompt(request)
         payload = asdict(prompt)
@@ -128,15 +130,15 @@ class FrontendStudioService:
         content_bytes: bytes | None = None
         if isinstance(content, str):
             content_bytes = content.encode("utf-8")
+        raw_content_path = parameters.get("content_path")
+        content_path = raw_content_path if isinstance(raw_content_path, str) else None
         result = await self._donors.submit_uri(
             tenant_id=tenant_id,
             project_id=project_id,
             source_uri=_str(parameters, "source_uri"),
             idempotency_key=f"{idempotency_key}:submit_uri",
             content=content_bytes,
-            content_path=parameters.get("content_path")
-            if isinstance(parameters.get("content_path"), str)
-            else None,
+            content_path=content_path,
             media_kind=str(parameters.get("media_kind") or "other"),
             mission_id=mission_id,
         )

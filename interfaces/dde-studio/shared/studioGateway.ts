@@ -186,6 +186,47 @@ export class StudioGatewayService {
   }
 
   /**
+   * Send one DDE-067 Frontend Studio mutation through the ordinary Gateway
+   * command ledger. The caller supplies only structured parameters; the
+   * client never patches preview DOM or writes prototype files directly.
+   */
+  async sendFrontendCommand(
+    commandType: string,
+    missionId: string,
+    parameters: Record<string, unknown>,
+  ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
+    if (!/^frontend\./.test(commandType) || !isUuid(missionId.trim())) {
+      return { ok: false, reason: "Frontend Studio needs a valid command and mission UUID." };
+    }
+    const state = await this.state();
+    if (state.kind !== "ready" || !this.session) {
+      return {
+        ok: false,
+        reason: state.kind === "ready" ? "session not open yet" : state.reason,
+      };
+    }
+    try {
+      this.trackMission(missionId);
+      const acceptance = await this.client!.acceptCommand({
+        commandId: randomUUID(),
+        idempotencyKey: `${commandType}:${missionId}:${randomUUID()}`,
+        principalId: this.principalId,
+        clientSessionId: this.session.session_id,
+        targetType: "mission",
+        targetId: missionId,
+        commandType,
+        parameters,
+      });
+      return { ok: true, acceptance };
+    } catch (err) {
+      if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
+        this.session = null;
+      }
+      return { ok: false, reason: describe(err) };
+    }
+  }
+
+  /**
    * Accept `approval.batch_decide` for a set of pending approvals
    * (Chapter 13.1 amendment on POST /v1/commands). The engine requires
    * scope_hashes parallel to approval_ids and rejects an empty batch or
@@ -366,6 +407,7 @@ export class StudioGatewayService {
         "mission.control",
         "approval.read",
         "approval.decide",
+        "approval.request",
         "credential.capture",
       ],
       subscriptions: ["mission"],

@@ -15,7 +15,6 @@ from engine.studio.canvas import (
 )
 from engine.studio.tokens_catalog import assert_token_value, color_aliases
 
-
 STARTER = """<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8" /></head>
 <body></body></html>

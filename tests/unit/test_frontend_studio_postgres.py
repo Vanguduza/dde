@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -445,10 +446,8 @@ async def test_canvas_insert_token_refusal_and_donor_reuse(
             assert motion.status_code == 202, motion.text
     finally:
         if workspace is not None:
-            try:
+            with suppress(Exception):
                 await WorkspaceService(engine, root=repo_root()).cleanup(
                     workspace=workspace
                 )
-            except Exception:
-                pass
         await engine.dispose()

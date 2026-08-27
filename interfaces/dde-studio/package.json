@@ -268,6 +268,42 @@
           "id": "dde.studio.preview",
           "name": "Preview",
           "icon": "media/icon-preview.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.frontend.home",
+          "name": "Frontend Home",
+          "icon": "media/icon-overview.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.frontend.intake",
+          "name": "Frontend Intake",
+          "icon": "media/icon-mission.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.frontend.donors",
+          "name": "Frontend Donors",
+          "icon": "media/icon-donor.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.frontend.canvas",
+          "name": "Frontend Canvas",
+          "icon": "media/icon-preview.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.frontend.verify",
+          "name": "Frontend Verify",
+          "icon": "media/icon-verify.svg"
+        },
+        {
+          "type": "webview",
+          "id": "dde.studio.frontend.approvals",
+          "name": "Frontend Approvals",
+          "icon": "media/icon-approvals.svg"
         }
       ]
     },

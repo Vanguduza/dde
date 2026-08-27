@@ -31,6 +31,7 @@ import {
 import { readConnection, ConnectionConfigError } from "./settings";
 import { claudeCodeAuthBannerHtml, CLAUDE_CODE_DOCS_AUTH } from "./claudeAuth";
 import { messageBridgeScript } from "./ui/base";
+import { frontendStudioHtml } from "./ui/frontendStudio";
 
 import {
 
@@ -315,6 +316,24 @@ describe("PendingGatewayClient honesty", () => {
 
   });
 
+});
+
+describe("Frontend Studio honesty", () => {
+  it("contributes six real views without fabricated rows or verdicts", () => {
+    for (const view of ["home", "intake", "donors", "canvas", "verify", "approvals"] as const) {
+      const html = frontendStudioHtml(view);
+      assert.match(html, new RegExp(`data-frontend-studio-view="${view}"`));
+      assert.doesNotMatch(html, /stub[_-]?(mission|donor)|sample donor|rubric passed|quality score:\s*\d/i);
+    }
+  });
+
+  it("offers only registered structured frontend commands", () => {
+    const html = frontendStudioHtml("canvas");
+    assert.match(html, /frontend\.canvas\.insert_component/);
+    assert.match(html, /frontend\.canvas\.update_element/);
+    assert.match(html, /JSON\.parse/);
+    assert.doesNotMatch(html, /contenteditable|execCommand|innerHTML\s*=/i);
+  });
 });
 
 

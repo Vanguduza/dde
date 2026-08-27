@@ -119,7 +119,7 @@ def allowed_values(property_name: str) -> frozenset[str]:
 
 
 def assert_token_value(property_name: str, value: str) -> None:
-    """Refuse freehand literals. Production call site for conformance-by-construction."""
+    """Refuse freehand literals at the production authoring boundary."""
     if property_name == "label":
         if not value.strip():
             raise DdeError(

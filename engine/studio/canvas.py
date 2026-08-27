@@ -55,7 +55,9 @@ def _attrs(blob: str) -> dict[str, str]:
 
 
 def _render(attrs: dict[str, str], inner: str) -> str:
-    ordered = " ".join(f'{key}="{escape(value, quote=True)}"' for key, value in attrs.items())
+    ordered = " ".join(
+        f'{key}="{escape(value, quote=True)}"' for key, value in attrs.items()
+    )
     return f"<div {ordered}>{inner}</div>"
 
 
@@ -144,7 +146,9 @@ def apply_update(html: str, *, element_id: str, property_name: str, value: str) 
         elif property_name in STYLE_PROPERTIES:
             css_name = css_var_for(property_name, value)
             next_attrs[f"data-dde-{property_name.replace('_', '-')}"] = value
-            next_attrs["style"] = _merge_style(next_attrs.get("style", ""), property_name, css_name)
+            next_attrs["style"] = _merge_style(
+                next_attrs.get("style", ""), property_name, css_name
+            )
         updated.append((eid, next_attrs, next_inner))
     if not found:
         raise DdeError(
@@ -396,7 +400,12 @@ def _validate_animation(animation: dict[str, Any]) -> None:
         )
     if "boundedLoopMs" in animation:
         bound = animation["boundedLoopMs"]
-        if not isinstance(bound, int) or isinstance(bound, bool) or bound <= 0 or bound > 2000:
+        if (
+            not isinstance(bound, int)
+            or isinstance(bound, bool)
+            or bound <= 0
+            or bound > 2000
+        ):
             raise DdeError(
                 "POLICY_DENIED",
                 "boundedLoopMs must be an integer 1..2000",
