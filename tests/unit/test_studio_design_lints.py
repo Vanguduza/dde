@@ -1,7 +1,8 @@
 """Unit tests for scripts/design_lints.py (playbook guardrail 4.5, 4.14).
 
-Each lint rule is exercised with a violating and a compliant line; the
-ratchet baseline semantics are tested against a temp baseline file.
+Each lint rule is exercised with a violating and a compliant line; DDE-068
+also proves combination fingerprints require multiple simultaneous signals
+rather than outlawing legitimate individual design choices.
 """
 
 from __future__ import annotations
@@ -107,6 +108,47 @@ def test_font_size_must_use_type_scale(ts_file: Path) -> None:
         encoding="utf-8",
     )
     assert _lint(ts_file).count("off-scale-value") == 1
+
+
+def test_dd207_blocks_generic_ai_combination(ts_file: Path) -> None:
+    ts_file.write_text(
+        "const font = 'Inter';\n"
+        "const theme = 'indigo-accent';\n"
+        "const name = 'hero-section';\n"
+        "const css = `.hero { text-align: center; "
+        "grid-template-columns: repeat(3, 1fr); }`;\n",
+        encoding="utf-8",
+    )
+    assert "generic-ai-stack" in _lint(ts_file)
+
+
+def test_dd207_does_not_ban_single_signal(ts_file: Path) -> None:
+    ts_file.write_text(
+        "const css = `.toolbar { text-align: center; }`;\n",
+        encoding="utf-8",
+    )
+    assert "generic-ai-stack" not in _lint(ts_file)
+
+
+def test_dd208_requires_emoji_plus_repeated_pill_grammar(ts_file: Path) -> None:
+    ts_file.write_text(
+        "const icon = '🚀';\n"
+        "const a = 'pill'; const b = 'radius-pill';\n"
+        "const c = 'pill'; const d = 'radius-pill';\n",
+        encoding="utf-8",
+    )
+    rules = _lint(ts_file)
+    assert "emoji" in rules
+    assert "emoji-pill-spam" in rules
+
+
+def test_dd208_allows_repeated_status_pills_without_emoji(ts_file: Path) -> None:
+    ts_file.write_text(
+        "const a = 'pill'; const b = 'radius-pill';\n"
+        "const c = 'pill'; const d = 'radius-pill';\n",
+        encoding="utf-8",
+    )
+    assert "emoji-pill-spam" not in _lint(ts_file)
 
 
 def test_generated_tokens_module_is_allowlisted() -> None:
