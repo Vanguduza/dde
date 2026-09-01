@@ -70,9 +70,22 @@ class _CaptureProbe:
 def _good_layout() -> BrowserLayoutResult:
     blocks = (
         BrowserLayoutBlock("header", "", "Orders", 20, 20, 300, 60, False),
-        BrowserLayoutBlock("section", "", "Open orders", 30, 120, 420, 150, False),
-        BrowserLayoutBlock("table", "", "Order status owner amount", 30, 300, 700, 250, False),
-        BrowserLayoutBlock("button", "", "Create order", 760, 40, 140, 40, True),
+        BrowserLayoutBlock(
+            "section", "", "Open orders", 30, 120, 420, 150, False
+        ),
+        BrowserLayoutBlock(
+            "table",
+            "",
+            "Order status owner amount",
+            30,
+            300,
+            700,
+            250,
+            False,
+        ),
+        BrowserLayoutBlock(
+            "button", "", "Create order", 760, 40, 140, 40, True
+        ),
         BrowserLayoutBlock("a", "", "View details", 760, 110, 120, 32, True),
     )
     return BrowserLayoutResult(
@@ -80,7 +93,8 @@ def _good_layout() -> BrowserLayoutResult:
         blocks=blocks,
         body_text=(
             "Orders Open orders assigned to your team. Order status owner amount "
-            "updated destination priority customer reference. Create order View details."
+            "updated destination priority customer reference. Create order "
+            "View details."
         ),
         active_motion_count=0,
         spatial_motion_count=0,
@@ -137,7 +151,9 @@ def test_load_visual_diff_spec_round_trip(tmp_path: Path) -> None:
 
 def test_compare_pngs_byte_identical_passes() -> None:
     result = compare_pngs(
-        actual=_PNG_BLACK, golden=_PNG_BLACK, max_diff_pixel_ratio=0.02
+        actual=_PNG_BLACK,
+        golden=_PNG_BLACK,
+        max_diff_pixel_ratio=0.02,
     )
     assert result.passed is True
     assert result.diff_ratio == 0.0
@@ -145,7 +161,9 @@ def test_compare_pngs_byte_identical_passes() -> None:
 
 def test_compare_pngs_exact_mode_fails_on_mismatch() -> None:
     result = compare_pngs(
-        actual=_PNG_BLACK, golden=_PNG_WHITE, max_diff_pixel_ratio=0.0
+        actual=_PNG_BLACK,
+        golden=_PNG_WHITE,
+        max_diff_pixel_ratio=0.0,
     )
     assert result.passed is False
 
@@ -249,7 +267,11 @@ async def test_visual_diff_quality_gate_blocks_low_density(tmp_path: Path) -> No
     )
     sparse = BrowserLayoutResult(
         exit_code=0,
-        blocks=(BrowserLayoutBlock("p", "", "Item 1", 10, 10, 60, 20, False),),
+        blocks=(
+            BrowserLayoutBlock(
+                "p", "", "Item 1", 10, 10, 60, 20, False
+            ),
+        ),
         body_text="Item 1",
         active_motion_count=0,
         spatial_motion_count=0,
