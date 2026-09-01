@@ -57,15 +57,28 @@ LENGTH = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)(px|rem)")
 # the word "indigo" is not a violation by itself. The rule catches the
 # *combination* that creates the generic template silhouette described in the
 # playbook. Likewise DD208 requires both UI emoji and repeated pill grammar.
-CENTERED_LAYOUT = re.compile(r"text-align\s*:\s*center|justify-content\s*:\s*center", re.I)
-THREE_EQUAL_COLUMNS = re.compile(
-    r"grid-template-columns\s*:\s*repeat\(\s*3\s*,|grid-template-columns\s*:\s*(?:1fr\s+){2}1fr",
+CENTERED_LAYOUT = re.compile(
+    r"text-align\s*:\s*center|justify-content\s*:\s*center",
     re.I,
 )
-HERO_LANGUAGE = re.compile(r"\bhero\b|hero[-_ ]?(?:section|shell|content)", re.I)
-INDIGO_LANGUAGE = re.compile(r"\bindigo\b|violet[-_ ]?accent|purple[-_ ]?accent", re.I)
+THREE_EQUAL_COLUMNS = re.compile(
+    r"grid-template-columns\s*:\s*repeat\(\s*3\s*,|"
+    r"grid-template-columns\s*:\s*(?:1fr\s+){2}1fr",
+    re.I,
+)
+HERO_LANGUAGE = re.compile(
+    r"\bhero\b|hero[-_ ]?(?:section|shell|content)",
+    re.I,
+)
+INDIGO_LANGUAGE = re.compile(
+    r"\bindigo\b|violet[-_ ]?accent|purple[-_ ]?accent",
+    re.I,
+)
 INTER_LANGUAGE = re.compile(r"\bInter\b", re.I)
-PILL_LANGUAGE = re.compile(r"\bpill\b|radius[-_ ]?pill|border-radius\s*:\s*999", re.I)
+PILL_LANGUAGE = re.compile(
+    r"\bpill\b|radius[-_ ]?pill|border-radius\s*:\s*999",
+    re.I,
+)
 
 RULE_IDS = {
     "raw-color": "DD201",
