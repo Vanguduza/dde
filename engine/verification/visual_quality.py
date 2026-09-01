@@ -31,12 +31,23 @@ _FILLER = re.compile(
     re.I,
 )
 _STRUCTURAL_TAGS = frozenset(
-    {"header", "nav", "section", "article", "aside", "footer", "form", "table"}
+    {
+        "header",
+        "nav",
+        "section",
+        "article",
+        "aside",
+        "footer",
+        "form",
+        "table",
+    }
 )
 
 # Normalized x, y, width, height rectangles. These are generated internal
 # abstractions of generic layout grammars, not copies of a third-party page.
-_GENERIC_RECTANGLES: Final[dict[str, tuple[tuple[float, float, float, float], ...]]] = {
+_GENERIC_RECTANGLES: Final[
+    dict[str, tuple[tuple[float, float, float, float], ...]]
+] = {
     "centered_hero_three_cards": (
         (0.16, 0.08, 0.68, 0.28),
         (0.08, 0.48, 0.25, 0.30),
@@ -134,7 +145,10 @@ def _cells_for_rect(
 
 
 def _all_cells(
-    blocks: tuple[BrowserLayoutBlock, ...], *, viewport_width: int, viewport_height: int
+    blocks: tuple[BrowserLayoutBlock, ...],
+    *,
+    viewport_width: int,
+    viewport_height: int,
 ) -> set[int]:
     cells: set[int] = set()
     for block in blocks:
@@ -152,7 +166,10 @@ def _all_cells(
 
 
 def _structural_cells(
-    blocks: tuple[BrowserLayoutBlock, ...], *, viewport_width: int, viewport_height: int
+    blocks: tuple[BrowserLayoutBlock, ...],
+    *,
+    viewport_width: int,
+    viewport_height: int,
 ) -> set[int]:
     viewport_area = max(viewport_width * viewport_height, 1)
     cells: set[int] = set()
@@ -173,7 +190,9 @@ def _structural_cells(
     return cells
 
 
-def _corpus_cells(rectangles: tuple[tuple[float, float, float, float], ...]) -> set[int]:
+def _corpus_cells(
+    rectangles: tuple[tuple[float, float, float, float], ...],
+) -> set[int]:
     cells: set[int] = set()
     for x, y, width, height in rectangles:
         cells.update(
@@ -197,7 +216,8 @@ def _jaccard(left: set[int], right: set[int]) -> float:
 
 
 def _fingerprint(cells: set[int]) -> str:
-    return "".join("1" if index in cells else "0" for index in range(GRID_COLUMNS * GRID_ROWS))
+    size = GRID_COLUMNS * GRID_ROWS
+    return "".join("1" if index in cells else "0" for index in range(size))
 
 
 def silhouette_match(
@@ -212,7 +232,11 @@ def silhouette_match(
         viewport_height=viewport_height,
     )
     if not actual:
-        return SilhouetteMatch(corpus_id=None, similarity=0.0, fingerprint=_fingerprint(actual))
+        return SilhouetteMatch(
+            corpus_id=None,
+            similarity=0.0,
+            fingerprint=_fingerprint(actual),
+        )
     best_id: str | None = None
     best = 0.0
     for corpus_id, rectangles in _GENERIC_RECTANGLES.items():
@@ -233,7 +257,9 @@ def _density(
     viewport_width: int,
     viewport_height: int,
 ) -> tuple[int, float, int, int, int, bool]:
-    visible = tuple(block for block in layout.blocks if block.width * block.height >= 16)
+    visible = tuple(
+        block for block in layout.blocks if block.width * block.height >= 16
+    )
     interactive = sum(1 for block in visible if block.interactive)
     words = re.findall(r"\b[\w'-]+\b", layout.body_text)
     filler = bool(_FILLER.search(layout.body_text))
@@ -324,7 +350,11 @@ def assess_visual_quality(
     failures: list[str] = []
     if density < density_floor:
         failures.append("believable_density_below_floor")
-    if silhouette.corpus_id is not None and silhouette.similarity >= silhouette_threshold:
+    generic_match = (
+        silhouette.corpus_id is not None
+        and silhouette.similarity >= silhouette_threshold
+    )
+    if generic_match:
         failures.append(f"generic_silhouette:{silhouette.corpus_id}")
     if reduced_motion.spatial_motion_count > 0:
         failures.append("reduced_motion_spatial_motion_present")
