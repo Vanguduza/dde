@@ -45,9 +45,7 @@ _STRUCTURAL_TAGS = frozenset(
 
 # Normalized x, y, width, height rectangles. These are generated internal
 # abstractions of generic layout grammars, not copies of a third-party page.
-_GENERIC_RECTANGLES: Final[
-    dict[str, tuple[tuple[float, float, float, float], ...]]
-] = {
+_GENERIC_RECTANGLES: Final[dict[str, tuple[tuple[float, float, float, float], ...]]] = {
     "centered_hero_three_cards": (
         (0.16, 0.08, 0.68, 0.28),
         (0.08, 0.48, 0.25, 0.30),
