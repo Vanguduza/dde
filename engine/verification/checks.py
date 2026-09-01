@@ -1,14 +1,15 @@
-"""Chapter 11.1's mechanical check execution: a real subprocess, rooted at
-the real `Workspace` the worker touched, whose real exit code is the
-evidence.
+"""Chapter 11.1's mechanical check execution.
 
-`CheckSpec` is a caller-declared, deterministic binding -- exactly like
-`engine.workers.adapter.WorkerAction`'s caller-supplied `command`, this
-module never invents which command proves an outcome. `run_check` reuses
-`engine.workspaces.service.WorkspaceService.execute()` (Chapter 7.5) rather
-than reimplementing subprocess execution, matching the mission brief's
-explicit instruction: verification is a check *runner*, not a second
-process-execution stack.
+`CheckSpec` is a caller-declared, deterministic binding. `test`/`invariant`
+reuse `WorkspaceService.execute`; specialized evidence kinds use injected
+capability contracts so vendor runtimes stay in `adapters/**`.
+
+DDE-068 extends `visual_diff`: after the DDE-044 screenshot/golden compare,
+the same real ProductEnvironment is measured through `BrowserCapability.layout`
+under normal and reduced-motion preferences. Density, generic-silhouette and
+reduced-motion failures are hard deterministic failures and are persisted in
+the check evidence JSON. They cannot later be waived by a VLM score or pixel
+sign-off.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from engine.capabilities.android import AndroidCapability, AndroidScanSpec
 from engine.capabilities.browser import (
     BrowserCapability,
     BrowserCaptureSpec,
+    BrowserLayoutSpec,
     BrowserProbeSpec,
 )
 from engine.capabilities.database import (
@@ -35,6 +37,7 @@ from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
 from engine.truth.db import PostgresUnitOfWork
 from engine.verification.pixel_compare import compare_pngs
+from engine.verification.visual_quality import assess_visual_quality
 from engine.verification.visual_spec import load_visual_diff_spec
 from engine.workspaces.service import WorkspaceService
 
@@ -43,12 +46,7 @@ DEFAULT_CHECK_TIMEOUT_SECONDS = 120.0
 
 @dataclass(frozen=True)
 class CheckSpec:
-    """One `ObservableOutcome`'s (or negative case's) executable binding,
-    supplied by whoever authors the `AcceptanceOracle` (Chapter 11.2's
-    `evidence_binding`). `kind`/`ref` mirror the oracle's own binding fields;
-    `command` is the additive, literal argv this Stage 1 runner actually
-    invokes (Chapter 11.2's ASCII sketch names the binding but not its
-    invocation mechanics)."""
+    """One AcceptanceOracle outcome's executable binding."""
 
     outcome_id: UUID
     statement: str
@@ -59,11 +57,6 @@ class CheckSpec:
 
 
 def _check_status(*, exit_code: int, timed_out: bool) -> str:
-    """`ERRORED` means the check could not produce a truth value (timeout, or
-    the backend could not even spawn the process -- `LocalProcessBackend.run`
-    reports that as `exit_code=-1`). `PASSED`/`FAILED` are both genuine,
-    checked outcomes -- a non-zero exit from ruff/mypy/pytest is real
-    evidence the statement does not hold, never an unhandled exception."""
     if timed_out or exit_code < 0:
         return "ERRORED"
     if exit_code == 0:
@@ -93,12 +86,7 @@ async def run_check(
     android: AndroidCapability | None = None,
     database: DatabaseCapability | None = None,
 ) -> CheckResult:
-    """Execute one real check. `test`/`invariant` run via
-    `WorkspaceService.execute()`. `api_probe`/`visual_diff` run via the
-    injected `BrowserCapability`. `security_scan` runs via the injected
-    `SecurityCapability`; `android_scan` via the injected
-    `AndroidCapability`; `db_assertion` via the injected
-    `DatabaseCapability`."""
+    """Execute one real check using the capability that owns its effects."""
     if spec.kind == "api_probe":
         return await _run_api_probe(spec, browser=browser)
     if spec.kind == "visual_diff":
@@ -239,6 +227,41 @@ async def _run_visual_diff(
         diff_path.write_bytes(compare.diff_png)
         diff_written = diff_rel
 
+    quality_payload: dict[str, object] | None = None
+    quality_passed = True
+    quality_duration = 0
+    if visual.quality_gate:
+        normal_layout = await browser.layout(
+            BrowserLayoutSpec(
+                url=visual.url,
+                viewport_width=visual.viewport_width,
+                viewport_height=visual.viewport_height,
+                expect_text=visual.expect_text,
+                reduced_motion=False,
+            )
+        )
+        reduced_layout = await browser.layout(
+            BrowserLayoutSpec(
+                url=visual.url,
+                viewport_width=visual.viewport_width,
+                viewport_height=visual.viewport_height,
+                expect_text=visual.expect_text,
+                reduced_motion=True,
+            )
+        )
+        quality_duration = normal_layout.duration_ms + reduced_layout.duration_ms
+        quality = assess_visual_quality(
+            normal_layout,
+            reduced_layout,
+            viewport_width=visual.viewport_width,
+            viewport_height=visual.viewport_height,
+            density_floor=visual.density_floor,
+            silhouette_threshold=visual.silhouette_threshold,
+            end_state_similarity_floor=visual.reduced_motion_end_state_similarity,
+        )
+        quality_payload = quality.as_dict()
+        quality_passed = quality.passed
+
     evidence = {
         "actual_path": actual_rel,
         "golden_path": visual.golden_path,
@@ -247,17 +270,26 @@ async def _run_visual_diff(
         "golden_sha256": hashlib.sha256(golden_bytes).hexdigest(),
         "diff_ratio": compare.diff_ratio,
         "max_diff_pixel_ratio": visual.max_diff_pixel_ratio,
-        "detail": compare.detail,
+        "pixel_detail": compare.detail,
+        "quality_gate": visual.quality_gate,
+        "quality": quality_payload,
     }
-    exit_code = 0 if compare.passed else 1
+    passed = compare.passed and quality_passed
+    errors: list[str] = []
+    if not compare.passed:
+        errors.append(compare.detail)
+    if quality_payload is not None and not quality_passed:
+        failures = quality_payload.get("failures")
+        errors.append(f"visual quality failures: {failures}")
+    exit_code = 0 if passed else 1
     return CheckResult(
         check_ref=spec.ref,
         kind=spec.kind,
         command=list(spec.command),
         exit_code=exit_code,
         stdout=json.dumps(evidence, sort_keys=True),
-        stderr="" if compare.passed else compare.detail,
-        duration_ms=capture.duration_ms,
+        stderr="; ".join(errors),
+        duration_ms=capture.duration_ms + quality_duration,
         timed_out=False,
         status=_check_status(exit_code=exit_code, timed_out=False),
     )
