@@ -143,7 +143,10 @@ class PlaywrightBrowserProbe:
                             return BrowserCaptureResult(
                                 exit_code=1,
                                 png_bytes=b"",
-                                stderr=f"expected text not found: {spec.expect_text!r}",
+                                stderr=(
+                                    "expected text not found: "
+                                    f"{spec.expect_text!r}"
+                                ),
                                 duration_ms=elapsed,
                                 timed_out=False,
                             )
@@ -187,12 +190,15 @@ class PlaywrightBrowserProbe:
             async with async_playwright() as playwright:
                 browser = await playwright.chromium.launch(headless=True)
                 try:
+                    reduced_motion = (
+                        "reduce" if spec.reduced_motion else "no-preference"
+                    )
                     context = await browser.new_context(
                         viewport={
                             "width": spec.viewport_width,
                             "height": spec.viewport_height,
                         },
-                        reduced_motion="reduce" if spec.reduced_motion else "no-preference",
+                        reduced_motion=reduced_motion,
                     )
                     page = await context.new_page()
                     await page.goto(
@@ -213,54 +219,100 @@ class PlaywrightBrowserProbe:
                             spatial_motion_count=0,
                             duration_ms=elapsed,
                             timed_out=False,
-                            stderr=f"expected text not found: {spec.expect_text!r}",
+                            stderr=(
+                                "expected text not found: "
+                                f"{spec.expect_text!r}"
+                            ),
                         )
                     raw: Mapping[str, Any] = await page.evaluate(
                         """(limit) => {
                           const structural = new Set([
-                            'HEADER','NAV','MAIN','SECTION','ARTICLE','ASIDE','FOOTER',
-                            'FORM','TABLE','UL','OL','H1','H2','H3','H4','H5','H6',
-                            'P','BUTTON','A','INPUT','SELECT','TEXTAREA'
+                            'HEADER','NAV','MAIN','SECTION','ARTICLE',
+                            'ASIDE','FOOTER','FORM','TABLE','UL','OL',
+                            'H1','H2','H3','H4','H5','H6','P','BUTTON',
+                            'A','INPUT','SELECT','TEXTAREA'
                           ]);
                           const spatialProps = new Set([
-                            'transform','translate','top','left','right','bottom',
-                            'margin','margin-left','margin-right','margin-top','margin-bottom'
+                            'transform','translate','top','left','right',
+                            'bottom','margin','margin-left','margin-right',
+                            'margin-top','margin-bottom'
+                          ]);
+                          const interactiveTags = new Set([
+                            'BUTTON','A','INPUT','SELECT','TEXTAREA'
                           ]);
                           let activeMotion = 0;
                           let spatialMotion = 0;
                           const blocks = [];
-                          const nodes = Array.from(document.body.querySelectorAll('*'));
+                          const nodes = Array.from(
+                            document.body.querySelectorAll('*')
+                          );
                           for (const el of nodes) {
                             const style = getComputedStyle(el);
-                            if (style.display === 'none' || style.visibility === 'hidden' ||
-                                Number(style.opacity) === 0) continue;
+                            const invisible =
+                              style.display === 'none' ||
+                              style.visibility === 'hidden' ||
+                              Number(style.opacity) === 0;
+                            if (invisible) continue;
                             const rect = el.getBoundingClientRect();
                             if (rect.width < 2 || rect.height < 2) continue;
-                            if (rect.bottom <= 0 || rect.right <= 0 ||
-                                rect.top >= innerHeight || rect.left >= innerWidth) continue;
+                            const offscreen =
+                              rect.bottom <= 0 || rect.right <= 0 ||
+                              rect.top >= innerHeight ||
+                              rect.left >= innerWidth;
+                            if (offscreen) continue;
 
-                            const td = style.transitionDuration.split(',').map(v => parseFloat(v) || 0);
-                            const ad = style.animationDuration.split(',').map(v => parseFloat(v) || 0);
+                            const td = style.transitionDuration
+                              .split(',')
+                              .map(v => parseFloat(v) || 0);
+                            const ad = style.animationDuration
+                              .split(',')
+                              .map(v => parseFloat(v) || 0);
                             const hasTransition = td.some(v => v > 0);
-                            const hasAnimation = ad.some(v => v > 0) && style.animationName !== 'none';
-                            if (hasTransition || hasAnimation) activeMotion += 1;
-                            const properties = style.transitionProperty.split(',').map(v => v.trim());
-                            if ((hasTransition && properties.some(v => spatialProps.has(v) || v === 'all')) ||
-                                hasAnimation) spatialMotion += 1;
+                            const hasAnimation =
+                              ad.some(v => v > 0) &&
+                              style.animationName !== 'none';
+                            if (hasTransition || hasAnimation) {
+                              activeMotion += 1;
+                            }
+                            const properties = style.transitionProperty
+                              .split(',')
+                              .map(v => v.trim());
+                            const spatialTransition =
+                              hasTransition && properties.some(
+                                v => spatialProps.has(v) || v === 'all'
+                              );
+                            if (spatialTransition || hasAnimation) {
+                              spatialMotion += 1;
+                            }
 
                             const tag = el.tagName;
                             const role = el.getAttribute('role') || '';
-                            const interactive = ['BUTTON','A','INPUT','SELECT','TEXTAREA'].includes(tag) ||
-                              role === 'button' || role === 'link' || el.hasAttribute('tabindex');
-                            const ownText = (el.innerText || '').replace(/\s+/g, ' ').trim();
-                            const hasDdeAnchor = el.hasAttribute('data-dde-el');
-                            if (!structural.has(tag) && !role && !interactive && !hasDdeAnchor) continue;
+                            const interactive =
+                              interactiveTags.has(tag) ||
+                              role === 'button' ||
+                              role === 'link' ||
+                              el.hasAttribute('tabindex');
+                            const ownText = (el.innerText || '')
+                              .replace(/\s+/g, ' ')
+                              .trim();
+                            const hasDdeAnchor =
+                              el.hasAttribute('data-dde-el');
+                            const meaningful =
+                              structural.has(tag) || role ||
+                              interactive || hasDdeAnchor;
+                            if (!meaningful) continue;
                             blocks.push({
-                              tag: tag.toLowerCase(), role,
+                              tag: tag.toLowerCase(),
+                              role,
                               text: ownText.slice(0, 240),
-                              x: Math.max(0, rect.left), y: Math.max(0, rect.top),
-                              width: Math.min(innerWidth, rect.right) - Math.max(0, rect.left),
-                              height: Math.min(innerHeight, rect.bottom) - Math.max(0, rect.top),
+                              x: Math.max(0, rect.left),
+                              y: Math.max(0, rect.top),
+                              width:
+                                Math.min(innerWidth, rect.right) -
+                                Math.max(0, rect.left),
+                              height:
+                                Math.min(innerHeight, rect.bottom) -
+                                Math.max(0, rect.top),
                               interactive
                             });
                             if (blocks.length >= limit) break;
