@@ -1,8 +1,8 @@
-"""DDE-067 Frontend Studio Gateway mutations.
+"""DDE-067/068 Frontend Studio Gateway mutations.
 
-Production call sites for compile, donor pin/discovery/adoption, and
-canvas/manifest edits. Every public method is reached from
-`CommandDispatcher` after CommandLedger begin — callers must not invoke
+Production call sites for compile, donor pin/discovery/adoption, canvas/manifest
+edits, and evidence-scoped visual sign-off. Every public method is reached
+from `CommandDispatcher` after CommandLedger begin — callers must not invoke
 these as a second write path around `/v1/commands`.
 """
 
@@ -33,8 +33,10 @@ from engine.studio.canvas import (
 )
 from engine.studio.compiler import compile_generation_prompt
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
+from engine.studio.pixel_signoff import pixel_signoff_scope
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.truth.db import open_unit_of_work
+from engine.verification.repository import VerificationRunRepository
 from engine.workers.repository import WorkerRunRepository
 from engine.workspaces.service import WorkspaceService
 
@@ -55,6 +57,7 @@ class FrontendStudioService:
         discovery: DonorDiscoveryService | None = None,
         approvals: ApprovalService | None = None,
         runs: WorkerRunRepository | None = None,
+        verification_runs: VerificationRunRepository | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -62,6 +65,7 @@ class FrontendStudioService:
         self._discovery = discovery or DonorDiscoveryService(engine)
         self._approvals = approvals or ApprovalService(engine)
         self._runs = runs or WorkerRunRepository()
+        self._verification_runs = verification_runs or VerificationRunRepository()
 
     async def compile_prompt(
         self, *, parameters: dict[str, object]
@@ -197,18 +201,85 @@ class FrontendStudioService:
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
-    async def request_pixel_signoff(self) -> dict[str, object]:
-        """D2: prototype_pixel_signoff is not in APPROVAL_TYPES. DDE-068 adds it."""
-        raise DdeError(
-            "POLICY_DENIED",
-            "prototype_pixel_signoff is not an admitted approval type",
-            retryable=False,
-            details={
-                "open_item": "D2",
-                "deferred": "DDE-068",
-                "missing_approval_type": "prototype_pixel_signoff",
-            },
+    async def request_pixel_signoff(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        principal_id: UUID,
+        idempotency_key: str,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Request a human waiver for a failed subjective visual judge only.
+
+        The immutable VerificationRun is re-read server-side. The command
+        cannot nominate its own check results, so a crafted client cannot use
+        this approval type to waive a deterministic or errored check.
+        """
+        verification_run_id = _uuid(parameters, "verification_run_id")
+        render_set_hash = _str(parameters, "render_set_hash")
+        design_authority_version = _str(parameters, "design_authority_version")
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            run = await self._verification_runs.get_run(
+                uow.connection, verification_run_id
+            )
+        if run is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "unknown verification_run_id",
+                retryable=False,
+                details={"verification_run_id": str(verification_run_id)},
+            )
+        if run.tenant_id != tenant_id or run.project_id != project_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "verification run belongs to another tenant or project",
+                retryable=False,
+            )
+        if run.mission_id != mission_id:
+            raise DdeError(
+                "POLICY_DENIED",
+                "verification run is not bound to the command mission",
+                retryable=False,
+                details={
+                    "verification_run_id": str(verification_run_id),
+                    "mission_id": str(mission_id),
+                },
+            )
+
+        scope = pixel_signoff_scope(
+            run,
+            render_set_hash=render_set_hash,
+            design_authority_version=design_authority_version,
         )
+        digest = approval_scope_hash(
+            approval_type="prototype_pixel_signoff",
+            mission_id=mission_id,
+            payload=scope.as_payload(),
+        )
+        approval = await self._approvals.request(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            task_id=run.task_id,
+            approval_type="prototype_pixel_signoff",
+            scope_hash=digest,
+            requested_by=principal_id,
+            idempotency_key=f"{idempotency_key}:pixel_signoff",
+            evidence_refs=list(scope.evidence_refs),
+        )
+        return {
+            "approval_id": str(approval.approval_id),
+            "approval_type": approval.approval_type,
+            "status": approval.status,
+            "scope_hash": approval.scope_hash,
+            "verification_run_id": scope.verification_run_id,
+            "failed_judge_refs": list(scope.failed_judge_refs),
+            "evidence_refs": list(scope.evidence_refs),
+        }
 
     async def insert_component(
         self,
