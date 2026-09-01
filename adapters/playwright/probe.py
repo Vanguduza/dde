@@ -144,8 +144,7 @@ class PlaywrightBrowserProbe:
                                 exit_code=1,
                                 png_bytes=b"",
                                 stderr=(
-                                    "expected text not found: "
-                                    f"{spec.expect_text!r}"
+                                    f"expected text not found: {spec.expect_text!r}"
                                 ),
                                 duration_ms=elapsed,
                                 timed_out=False,
@@ -219,10 +218,7 @@ class PlaywrightBrowserProbe:
                             spatial_motion_count=0,
                             duration_ms=elapsed,
                             timed_out=False,
-                            stderr=(
-                                "expected text not found: "
-                                f"{spec.expect_text!r}"
-                            ),
+                            stderr=(f"expected text not found: {spec.expect_text!r}"),
                         )
                     raw: Mapping[str, Any] = await page.evaluate(
                         """(limit) => {
