@@ -70,9 +70,7 @@ class _CaptureProbe:
 def _good_layout() -> BrowserLayoutResult:
     blocks = (
         BrowserLayoutBlock("header", "", "Orders", 20, 20, 300, 60, False),
-        BrowserLayoutBlock(
-            "section", "", "Open orders", 30, 120, 420, 150, False
-        ),
+        BrowserLayoutBlock("section", "", "Open orders", 30, 120, 420, 150, False),
         BrowserLayoutBlock(
             "table",
             "",
@@ -83,9 +81,7 @@ def _good_layout() -> BrowserLayoutResult:
             250,
             False,
         ),
-        BrowserLayoutBlock(
-            "button", "", "Create order", 760, 40, 140, 40, True
-        ),
+        BrowserLayoutBlock("button", "", "Create order", 760, 40, 140, 40, True),
         BrowserLayoutBlock("a", "", "View details", 760, 110, 120, 32, True),
     )
     return BrowserLayoutResult(
@@ -267,11 +263,7 @@ async def test_visual_diff_quality_gate_blocks_low_density(tmp_path: Path) -> No
     )
     sparse = BrowserLayoutResult(
         exit_code=0,
-        blocks=(
-            BrowserLayoutBlock(
-                "p", "", "Item 1", 10, 10, 60, 20, False
-            ),
-        ),
+        blocks=(BrowserLayoutBlock("p", "", "Item 1", 10, 10, 60, 20, False),),
         body_text="Item 1",
         active_motion_count=0,
         spatial_motion_count=0,
