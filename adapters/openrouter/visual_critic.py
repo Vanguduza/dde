@@ -217,9 +217,7 @@ class OpenRouterVisualCritic:
                 cost_usd=0.0,
                 duration_ms=response.duration_ms,
                 timed_out=False,
-                stderr=(
-                    f"OpenRouter HTTP {response.status_code}: {error_type}"
-                ),
+                stderr=(f"OpenRouter HTTP {response.status_code}: {error_type}"),
             )
 
         try:
@@ -278,9 +276,7 @@ class OpenRouterVisualCritic:
             )
             cost_usd = _number(usage["cost"], field="usage.cost")
             actual_model = str(response.body.get("model") or spec.model_id)
-            provider = str(
-                response.body.get("provider") or OPENROUTER_PROVIDER_ID
-            )
+            provider = str(response.body.get("provider") or OPENROUTER_PROVIDER_ID)
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             return VisualCriticResult(
                 exit_code=-1,
