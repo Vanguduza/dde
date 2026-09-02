@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "rubric_version": "visual-critic-v1",
+  "score_scale": {
+    "minimum": 0,
+    "maximum": 5,
+    "pass_threshold": 4.0
+  },
+  "law": [
+    "Judge the rendered product screen, not implementation source code.",
+    "Do not waive clipping, overflow, accessibility, security, functional, density, silhouette, reduced-motion, or other deterministic failures.",
+    "Use concrete visible evidence. Do not invent hidden product behavior.",
+    "A score below the threshold must include at least one actionable finding.",
+    "Distinctiveness must serve product purpose; novelty alone is not quality."
+  ],
+  "dimensions": [
+    {
+      "rubric_id": "hierarchy",
+      "title": "Information hierarchy",
+      "instruction": "Assess whether primary task, secondary information, and actions are visually ordered without ambiguity.",
+      "weight": 1.2
+    },
+    {
+      "rubric_id": "typography",
+      "title": "Typography",
+      "instruction": "Assess legibility, scale contrast, line length, rhythm, and whether typography feels deliberate rather than default-generated.",
+      "weight": 1.0
+    },
+    {
+      "rubric_id": "composition",
+      "title": "Composition",
+      "instruction": "Assess spatial balance, alignment, grouping, whitespace, density, and whether the screen has a coherent visual silhouette.",
+      "weight": 1.2
+    },
+    {
+      "rubric_id": "interaction_clarity",
+      "title": "Interaction clarity",
+      "instruction": "Assess whether controls, affordances, navigation, state, and next actions are visually understandable at a glance.",
+      "weight": 1.2
+    },
+    {
+      "rubric_id": "content_believability",
+      "title": "Content believability",
+      "instruction": "Assess whether labels, values, states, and content resemble a credible production workflow rather than demo filler.",
+      "weight": 0.9
+    },
+    {
+      "rubric_id": "distinctiveness",
+      "title": "Distinctiveness",
+      "instruction": "Assess whether the product has a memorable, defensible visual point of view without generic AI-dashboard or template aesthetics.",
+      "weight": 1.0
+    },
+    {
+      "rubric_id": "brand_coherence",
+      "title": "Brand coherence",
+      "instruction": "Assess whether color, type, iconography, imagery, surfaces, and interaction tone feel like one product system.",
+      "weight": 0.9
+    },
+    {
+      "rubric_id": "platform_fidelity",
+      "title": "Platform fidelity",
+      "instruction": "Assess whether the interface feels appropriate for its declared platform and usage context rather than a generic web mockup.",
+      "weight": 0.8
+    },
+    {
+      "rubric_id": "motion_readiness",
+      "title": "Motion readiness",
+      "instruction": "From the rendered state, assess whether hierarchy and state changes appear suitable for purposeful restrained motion; do not infer unseen animation behavior.",
+      "weight": 0.6
+    },
+    {
+      "rubric_id": "polish",
+      "title": "Production polish",
+      "instruction": "Assess visual precision, consistency, icon/text alignment, edge treatment, controls, states, and whether the screen appears ready for professional use.",
+      "weight": 1.2
+    }
+  ]
+}
