@@ -338,6 +338,10 @@ class CommandDispatcher:
             scope_hashes=_param_list(params, "scope_hashes"),
             human_minutes=float(_param_int_opt(params, "human_minutes") or 0),
             edr_id=_param_uuid(params, "edr_id"),
+            # Namespaced inner key: the gateway's outer ledger owns the
+            # raw command key; ApprovalService keeps its own Chapter 12.5
+            # row under a derived one so the two `begin` calls never
+            # collide on the same row with different request hashes.
             idempotency_key=f"approval.batch:{command.idempotency_key}",
         )
         return CommandAcceptance(
@@ -351,6 +355,19 @@ class CommandDispatcher:
     async def _request_budget_increase(
         self, command: Command, tenant_id: UUID, project_id: UUID
     ) -> CommandAcceptance:
+        """Human/service budget-request half (Ch.7.1/12.3) over the command
+        path.
+
+        Parameters: `mission_id`, `task_id` (required by the service: the
+        request binds to exactly one task), `reason`, and at least one of
+        `requested_max_tokens` / `requested_max_tool_calls`; optional
+        `human_minutes` is not accepted here — a request costs no human
+        minutes yet. The service records its own ledger row under a
+        namespaced derivative of this command's idempotency key.
+        `target_id` is the addressed project; the payload's primary
+        identity is `approval_id` — the durable Approval a human later
+        decides on.
+        """
         params = command.parameters
         result = await self._approvals().request_budget_increase(
             tenant_id=tenant_id,
@@ -361,6 +378,7 @@ class CommandDispatcher:
             reason=_param_str(params, "reason"),
             requested_max_tokens=_param_int_opt(params, "requested_max_tokens"),
             requested_max_tool_calls=_param_int_opt(params, "requested_max_tool_calls"),
+            # Namespaced inner key -- see `_batch_decide`.
             idempotency_key=f"approval.budget_request:{command.idempotency_key}",
         )
         return CommandAcceptance(
@@ -374,6 +392,15 @@ class CommandDispatcher:
     async def _decide_budget_increase(
         self, command: Command, tenant_id: UUID, project_id: UUID
     ) -> CommandAcceptance:
+        """Human budget-decision half (Ch.7.1/12.3) over the command path.
+
+        Parameters: `approval_id` (the `budget_increase` approval),
+        `decision` (`APPROVED`|`REJECTED`), `rationale`, optional
+        `human_minutes`. On APPROVED the service re-plans the bound task
+        with the raised ceiling in the same transaction; on REJECTED
+        nothing is widened. `target_id` is the addressed project; the
+        payload's primary identity is `approval_id`.
+        """
         params = command.parameters
         result = await self._approvals().decide_budget_increase(
             tenant_id=tenant_id,
@@ -395,6 +422,13 @@ class CommandDispatcher:
     async def _capture_opensandbox(
         self, command: Command, tenant_id: UUID, project_id: UUID
     ) -> CommandAcceptance:
+        """Studio Settings paste → hash → broker capture for OpenSandbox.
+
+        Parameters: `api_key` (required), optional `domain`. The raw key is
+        never returned in the acceptance payload — only fingerprint / last4 /
+        captured metadata. Inner ledger key is namespaced so it does not
+        collide with the gateway outer CommandLedger row.
+        """
         params = command.parameters
         domain_raw = params.get("domain")
         domain = (
@@ -423,6 +457,7 @@ class CommandDispatcher:
     async def _inspect_opensandbox(
         self, command: Command, tenant_id: UUID, project_id: UUID
     ) -> CommandAcceptance:
+        """Return captured OpenSandbox fingerprint chip (never the raw key)."""
         active = await self._captures().inspect(
             tenant_id=tenant_id, project_id=project_id
         )
@@ -444,6 +479,12 @@ class CommandDispatcher:
     async def _device_heartbeat(
         self, command: Command, tenant_id: UUID, project_id: UUID
     ) -> CommandAcceptance:
+        """Minimal device liveness command (DDE-054 / Ch.14.2).
+
+        Acceptance only — no Project Truth or mission mutation. The outer
+        CommandLedger still records the idempotency key so offline flush
+        cannot mint a second mutation (Ch.15.2 / Ch.12.5).
+        """
         return CommandAcceptance(
             command_id=command.command_id,
             status="accepted",
@@ -467,6 +508,8 @@ class CommandDispatcher:
         project_id: UUID,
         command_type: str,
     ) -> CommandAcceptance:
+        """DDE-067 Frontend Studio commands. Domain mutation is
+        FrontendStudioService; this method only maps parameters."""
         studio = self._studio()
         params = command.parameters
         mission_id = command.target_id
@@ -579,6 +622,9 @@ def _int_or_none(value: int | None) -> int | None:
 
 
 def batch_decision_payload(result: BatchDecisionResult) -> dict[str, object]:
+    """JSON-able Chapter 13.1 batch outcome. `batch_id` is the batch's own
+    durable command identity (None when the caller supplied none); every
+    member carries its post-decision state with all UUIDs stringified."""
     return {
         "batch_id": _uuid_or_none(result.batch_id),
         "decision": result.decision,
@@ -607,6 +653,8 @@ def batch_decision_payload(result: BatchDecisionResult) -> dict[str, object]:
 
 
 def budget_request_payload(result: BudgetRequest) -> dict[str, object]:
+    """JSON-able BudgetRequest outcome: the durable Approval handle plus
+    the exact requested ceiling, all UUIDs stringified."""
     return {
         "approval_id": str(result.approval.approval_id),
         "mission_id": str(result.approval.mission_id),
@@ -625,6 +673,8 @@ def budget_request_payload(result: BudgetRequest) -> dict[str, object]:
 
 
 def budget_decision_payload(result: BudgetDecision) -> dict[str, object]:
+    """JSON-able BudgetDecision outcome: the decided approval plus, on
+    grant, the new ACTIVE plan carrying the raised ceiling."""
     plan = result.plan
     budget = result.budget
     return {
@@ -728,6 +778,8 @@ class GatewayCommandService:
     async def read_task(
         self, *, session_id: UUID, principal_id: UUID, task_id: UUID
     ) -> Task:
+        """Chapter 15.4 task read — authorized via `mission.read` until a
+        dedicated `task.read` baseline scope lands (DDE-051 tenancy)."""
         session = await self._sessions.authorize_scope(
             session_id=session_id,
             principal_id=principal_id,
@@ -746,6 +798,8 @@ class GatewayCommandService:
     async def read_task_graph(
         self, *, session_id: UUID, principal_id: UUID, graph_id: UUID
     ) -> TaskGraph:
+        """Chapter 15.4 task-graph read — authorized via `mission.read` until
+        `plan.read` is in the human baseline scopes."""
         session = await self._sessions.authorize_scope(
             session_id=session_id,
             principal_id=principal_id,
@@ -764,6 +818,13 @@ class GatewayCommandService:
     async def read_mission_control(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
     ) -> MissionControl:
+        """Operational projection (Chapter 15.4 `GET /v1/mission-control/{id}`).
+
+        Authorizes `mission.read` on the session, verifies the mission belongs
+        to the session's tenant, then authorizes the principal for the mission's
+        project before building the read model — the same fail-closed order as
+        `read_mission`.
+        """
         session = await self._sessions.authorize_scope(
             session_id=session_id,
             principal_id=principal_id,
@@ -792,6 +853,9 @@ class GatewayCommandService:
                 details={"target_type": command.target_type},
             )
         if command.target_type == "device":
+            # Device commands address the bound device; the ledger still
+            # needs a project scope (Ch.13.9). Caller supplies project_id
+            # in parameters; target_id must match the session's device_id.
             if session.device_id is None or command.target_id != session.device_id:
                 raise DdeError(
                     "FORBIDDEN",
@@ -828,6 +892,10 @@ class GatewayCommandService:
         status: str,
         result: dict[str, object] | None,
     ) -> CommandAcceptance:
+        """Replay keeps the CLIENT-facing identity stable: the first
+        acceptance echoed `command.command_id`, so a true retry of the same
+        body sees the same acceptance shape (the ledger's internal
+        `command_id` is storage identity, not part of the 202 contract)."""
         if status == "completed" and result is not None:
             return CommandAcceptance(
                 command_id=command.command_id,
