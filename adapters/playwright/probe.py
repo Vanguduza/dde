@@ -221,7 +221,7 @@ class PlaywrightBrowserProbe:
                             stderr=(f"expected text not found: {spec.expect_text!r}"),
                         )
                     raw: Mapping[str, Any] = await page.evaluate(
-                        """(limit) => {
+                        r"""(limit) => {
                           const structural = new Set([
                             'HEADER','NAV','MAIN','SECTION','ARTICLE',
                             'ASIDE','FOOTER','FORM','TABLE','UL','OL',
