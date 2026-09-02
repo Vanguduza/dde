@@ -2,7 +2,19 @@
 
 DDE is a model-agnostic software manufacturing control plane. It owns product truth, mission state, context policy, routing policy, capability governance, verification and evidence. External agent harnesses are workers. Editors, phones, browsers and chat channels are clients. This repository is the DDE Core control plane.
 
-The authoritative specification is [`docs/blueprint/REV_2_0.md`](docs/blueprint/REV_2_0.md).
+## Rev 3 source of truth
+
+New development starts from the repository truth set, not from historic chat context:
+
+1. [`docs/truth/BLUEPRINT_REV3.md`](docs/truth/BLUEPRINT_REV3.md) — canonical human-readable product and technical architecture.
+2. [`docs/truth/ARCHITECTURE_DECISIONS.md`](docs/truth/ARCHITECTURE_DECISIONS.md) — architecture decision index; accepted Project Truth EDR rows remain authoritative.
+3. [`docs/truth/DEV_PLAN_REV3.md`](docs/truth/DEV_PLAN_REV3.md) — canonical implementation sequence and gates.
+4. [`docs/truth/IMPLEMENTATION_STATE.md`](docs/truth/IMPLEMENTATION_STATE.md) — evidence-based current state and next work packet.
+5. [`docs/truth/RESUME_PROMPT.md`](docs/truth/RESUME_PROMPT.md) — canonical bootstrap prompt for a fresh engineering session.
+
+[`docs/blueprint/REV_2_0.md`](docs/blueprint/REV_2_0.md) is retained as historical/reference depth. It is no longer the forward-development authority where it conflicts with Rev 3.
+
+Read [`AGENTS.md`](AGENTS.md) before changing code.
 
 ## The five environments
 
@@ -85,7 +97,6 @@ npm run dist:win
 ```
 
 `justfile` does not load dotenv. Export `DDE_DATABASE_URL` and `DDE_REDIS_URL` in the same shell if recipes cannot reach the database.
-
 
 ## Cursor worker (models via SDK bridge)
 
