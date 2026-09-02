@@ -46,9 +46,13 @@ These commits establish documentation/control-plane memory only; they do **not**
 
 - `98110744c175f5d8c83c2248962f670fa7b00748` — Blueprint Rev 3 created;
 - `45624dc6a009c0eecc4bae6009d8621ff39ec09e` — Development Plan Rev 3 created;
-- `fc12925ebcaa32eae880f173ea6a8e746d6bf406` — Architecture Decision index created.
+- `fc12925ebcaa32eae880f173ea6a8e746d6bf406` — Architecture Decision index created;
+- `8e460bf2a7a74bdec226ef5fbce43f8be5e65116` — initial Implementation State created;
+- `1b21a195563a4c55426fd6090ed66941524d853c` — canonical Resume Prompt created;
+- `fe45ba54299343ae3d70def59b439900fe85a7cc` — `AGENTS.md` switched to Rev 3 bootstrap/authority;
+- `a3bfbd240820648892d11d951fe542593ad1d8b2` — `README.md` switched to Rev 3 SOT links.
 
-Additional SOT/bootstrap commits made after this snapshot should be appended here when the file is next updated.
+This file's current commit is the close-out of the R3-0 source-of-truth migration.
 
 ---
 
@@ -57,7 +61,7 @@ Additional SOT/bootstrap commits made after this snapshot should be appended her
 | Area | State | Evidence / current reality |
 |---|---|---|
 | DDE Core control-plane foundation | `IMPLEMENTED_PARTIAL` | Repository contains truth, mission/planning, routing, capability, verification, adapters, interfaces, migrations and tests; several historical EDRs explicitly describe partial implementation and remaining production-call-site gaps. |
-| Rev 3 repository-memory/SOT model | `IN_PROGRESS` | Five canonical files are being established and bootstrap pointers in `AGENTS.md` / `README.md` still need to be switched at this snapshot. |
+| Rev 3 repository-memory/SOT model | `COMPLETE_EVIDENCED` | All five canonical files exist under `docs/truth`; `AGENTS.md` and `README.md` now boot new work from Rev 3 and demote Rev 2 to historical/reference depth. |
 | DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Landed in commit `9a8bb86...`; chapter-gate document exists. Treat later regressions separately. |
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
@@ -69,7 +73,7 @@ Additional SOT/bootstrap commits made after this snapshot should be appended her
 | DeepSeek worker integration | `IMPLEMENTED_PARTIAL` | Harness/profile references exist; Rev 3 lower-cost delegation policy and measured routing specialization remain to be proven end-to-end. |
 | Frontend Studio professional Rev 3 redesign | `PLANNED` | DDE-067 surface exists and design-tooling rules exist, but Rev 3 calls for a broader professional operator-shell redesign and DDE-068 evidence integration. |
 | Routing intelligence / learned policy promotion | `IMPLEMENTED_PARTIAL` | Existing routing registry/telemetry/learning planning exists; open EDR/partial implementation records require careful production-call-site audit before claiming full adaptive routing. |
-| Context optimization / repository memory | `IMPLEMENTED_PARTIAL` | DDE has context policy work, but Rev 3 SOT/bootstrap migration is the first explicit step toward removing chat-history dependency. |
+| Context optimization / repository memory | `IMPLEMENTED_PARTIAL` | Rev 3 bootstrap removes chat history as a required project-memory source; deeper task-packet/retrieval optimization remains planned. |
 | Windows complete installer / DDE Code distribution | `IMPLEMENTED_PARTIAL` | README and packaging describe DDE Code + Core/Postgres/Redis/migrations/wizard paths; release/recovery/signing/operational hardening remains a Rev 3 phase. |
 
 ---
@@ -108,7 +112,7 @@ Observed evidence:
 
 Observed evidence:
 
-- latest product implementation commit is named `DDE-067 Frontend Studio surface`;
+- latest product implementation commit before Rev 3 bootstrap is named `DDE-067 Frontend Studio surface`;
 - DDE Code includes Mission Overview and Hermes/Claude Code/DeepSeek views;
 - Frontend Studio commands are wired through Gateway-oriented surfaces;
 - chapter gate records remaining list/read gaps honestly rather than fabricating rows;
@@ -227,9 +231,9 @@ The gate also records missing D3 list/read endpoints for some Studio surfaces. U
 
 ### RISK-01 — Documentation/code authority drift
 
-Rev 2 pointers in bootstrap docs can cause agents to ignore Rev 3.
+**Current status:** mitigated for bootstrap. `AGENTS.md` and `README.md` now point to the Rev 3 truth set.
 
-**Mitigation:** update `AGENTS.md` and `README.md` during R3-0 and keep SOT files linked from both.
+**Residual:** future architecture changes must keep all five truth files synchronized through change control.
 
 ### RISK-02 — DDE-068 becomes a documentation-only quality layer
 
