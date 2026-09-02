@@ -403,9 +403,7 @@ async def _run_judge(
             context={
                 "check_ref": spec.ref,
                 "visual_spec": spec.command[0],
-                "viewport": (
-                    f"{visual.viewport_width}x{visual.viewport_height}"
-                ),
+                "viewport": (f"{visual.viewport_width}x{visual.viewport_height}"),
             },
             model_id=model_id,
             max_cost_usd=PER_CYCLE_COST_CEILING_USD,
