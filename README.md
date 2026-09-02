@@ -1,38 +1,58 @@
 # DDE — Development & Engineering Engine
 
-DDE is a model-agnostic software manufacturing control plane. It owns product truth, mission state, context policy, routing policy, capability governance, verification and evidence. External agent harnesses are workers. Editors, phones, browsers and chat channels are clients. This repository is the DDE Core control plane.
+DDE is a model-agnostic software manufacturing control plane. It owns product truth, mission state, context policy, routing policy, capability governance, verification and evidence. External agent harnesses and design providers are replaceable workers/capabilities. Editors, phones, browsers and chat channels are clients. This repository is the DDE Core control plane.
 
-## Rev 3 source of truth
+## Rev 3 canonical source of truth
 
-New development starts from the repository truth set, not from historic chat context:
+New development starts from the repository/Core, not historic chat context.
 
-1. [`docs/truth/BLUEPRINT_REV3.md`](docs/truth/BLUEPRINT_REV3.md) — canonical human-readable product and technical architecture.
-2. [`docs/truth/ARCHITECTURE_DECISIONS.md`](docs/truth/ARCHITECTURE_DECISIONS.md) — architecture decision index; accepted Project Truth EDR rows remain authoritative.
-3. [`docs/truth/DEV_PLAN_REV3.md`](docs/truth/DEV_PLAN_REV3.md) — canonical implementation sequence and gates.
-4. [`docs/truth/IMPLEMENTATION_STATE.md`](docs/truth/IMPLEMENTATION_STATE.md) — evidence-based current state and next work packet.
-5. [`docs/truth/RESUME_PROMPT.md`](docs/truth/RESUME_PROMPT.md) — canonical bootstrap prompt for a fresh engineering session.
+### Primary forward-development authorities
 
-[`docs/blueprint/REV_2_0.md`](docs/blueprint/REV_2_0.md) is retained as historical/reference depth. It is no longer the forward-development authority where it conflicts with Rev 3.
+1. [`docs/truth/BLUEPRINT_REV3.md`](docs/truth/BLUEPRINT_REV3.md) — canonical human-readable product/technical architecture and invariants.
+2. [`docs/truth/DEV_PLAN_REV3.md`](docs/truth/DEV_PLAN_REV3.md) — canonical implementation sequence, vertical slices and gates.
+
+Accepted Project Truth/EDR records outrank both.
+
+### Supporting controlled projections/helpers
+
+- [`docs/truth/IMPLEMENTATION_STATE.md`](docs/truth/IMPLEMENTATION_STATE.md) — evidence-based current state and next work packet; not target architecture.
+- [`docs/truth/ARCHITECTURE_DECISIONS.md`](docs/truth/ARCHITECTURE_DECISIONS.md) — readable decision index; accepted EDR rows and Blueprint authority rules control conflicts.
+- [`docs/truth/RESUME_PROMPT.md`](docs/truth/RESUME_PROMPT.md) — canonical bootstrap helper for a fresh engineering session.
+
+[`docs/blueprint/REV_2_0.md`](docs/blueprint/REV_2_0.md) is historical/reference depth. Standalone Rev 3 amendments/addenda are also historical evidence after their decisions have been absorbed by the consolidated Blueprint/Plan.
+
+**Current default next implementation gate:** `REV-3A Operational Safety Gate`, beginning with ProjectIdentity/bootstrap preflight, unless repository evidence shows REV-3A already passed.
 
 Read [`AGENTS.md`](AGENTS.md) before changing code.
 
+## Core consolidated Rev 3 laws
+
+- Models occupy roles; model names are not permanent architectural jobs.
+- Fable is the preferred strategic-orchestrator occupant when certified/available; Opus may temporarily occupy the role under fallback policy and returns to the ordinary worker pool when Fable is restored.
+- Hermes remembers/retrieves/discovers patterns; DDE remains truth/routing/promotion authority.
+- Context, provider quota and executable-tool versions are governed runtime resources.
+- Every controlled mutation belongs to explicit packet/workspace scope; rejected work may not contaminate later commits.
+- Existing verification evidence is inherited until a relevant dependency/invariant invalidates it.
+- Claude `/design` is integrated behind DDE's DesignGateway. Provider artboards are DESIGN; only code-backed candidate runtimes are LIVE.
+- Execution Graph/Node Inspector/Workflow Composer expose or compile into the real DDE runtime; they never create a second orchestration truth.
+
 ## The five environments
 
-These must stay separate. Confusing them is the most common way a project like this fails.
+These must stay separate:
 
-1. **Authoring environment** — Cursor Desktop on your machine. Edits code, drives agents. Never authoritative for anything.
-2. **DDE Core** — the cloud control plane. Owns Project Truth, missions, events, evidence. The only authoritative state.
-3. **ExecutionEnvironment** — disposable sandboxed containers where workers run. Isolated filesystem, deny-by-default network, no ambient credentials.
-4. **ProductEnvironment** — throwaway deployments of the software DDE is building, used to verify it. Distinct from ExecutionEnvironment.
-5. **Worker providers** — model APIs and agent harnesses. Replaceable, never trusted, never authoritative.
+1. **Authoring environment** — Cursor/VS Code/DDE Code/terminal/chat. Edits or requests work; never authoritative.
+2. **DDE Core** — owns Project Truth, missions, routing/policy, capabilities, evidence and governance.
+3. **ExecutionEnvironment** — disposable sandboxed worker runtime with explicit filesystem/network/credential capabilities.
+4. **ProductEnvironment** — throwaway/staged deployment of the software DDE is building, used for real verification/rendering.
+5. **Worker providers/harnesses/design providers** — replaceable external capabilities; never authoritative.
 
 ## Codespace quickstart
 
-This project is Linux/devcontainer-first. You do not need local Python or Docker.
+This project is Linux/devcontainer-first. Local Python/Docker is not required when using Codespaces.
 
-1. Push this repository to GitHub and create a Codespace on `main`.
-2. Connect Cursor: `Ctrl+Shift+P` → `Codespaces: Connect to Codespace`.
-3. In the Codespace terminal:
+1. Create/open a Codespace on the intended branch.
+2. Connect Cursor/VS Code to that Codespace.
+3. In the terminal:
 
 ```bash
 uv sync
@@ -48,63 +68,87 @@ curl localhost:8000/healthz
 curl localhost:8000/readyz
 ```
 
-`just check` runs lint, typecheck, unit tests and contract tests. GitHub Actions additionally applies migrations to an empty PostgreSQL 16 database (upgrade and reverse) and fails on generated-contract drift.
+`just check` runs lint, formatting/type/unit/contract checks according to the repository recipe. GitHub Actions additionally applies migrations to an empty PostgreSQL database and checks generated-contract drift.
 
-Copy `.env.example` when running outside compose. Use `DDE_DATABASE_URL` (async SQLAlchemy URL) and `DDE_REDIS_URL`.
+Copy `.env.example` when running outside compose and configure `DDE_DATABASE_URL` / `DDE_REDIS_URL` as documented.
 
-## Windows complete product (installer)
+> **Rev-3A warning:** until the native `ProjectIdentity`/`BootstrapReceipt` path is implemented, manually verify that you are in the intended DDE repository/root before loading project-specific agent configuration.
 
-Codespaces remain the default cloud path. For a single Windows install, build and run the complete installer under [`packaging/windows`](packaging/windows/README.md).
+## Windows complete product
 
-The installer bundles:
+Codespaces remain the default cloud development path. The Windows distribution is under [`packaging/windows`](packaging/windows/README.md) and bundles DDE Code, DDE Core, PostgreSQL/Redis, migrations and setup tooling.
 
-- **DDE Code** (Electron desktop UI under `Program Files\DDE\dde-code\`)
-- **DDE Core** (Docker image)
-- **PostgreSQL + Redis**
-- **Database migrations** (Alembic via Core entrypoint)
-- **GUI setup wizard** (`DdeSetupWizard.exe`)
-- **Optional Authenticode signing** when cert secrets are configured
-
-After install, open **DDE Code**. First run offers the wizard if needed:
-
-1. Detects Docker and offers **download/install** if missing
-2. Asks **local vs cloud** mode
-3. Collects **admin login and provider API keys**
-4. Loads Core, migrates DB, starts services, verifies `/healthz`
+Example build:
 
 ```powershell
 powershell.exe -File packaging/windows/scripts/Build-Installer.ps1 -Version 0.1.0
-# Primary Windows product:
-#   dist\windows\DDE-Complete-Setup-0.1.0.exe
-# (DDE Code UI + Core image + wizard; reuse tar with -SkipDocker)
 ```
 
-CI: `.github/workflows/windows-installer.yml` (set `DDE_SIGNING_CERT_BASE64` + `DDE_SIGNING_CERT_PASSWORD` for signed releases).
+The current distribution/readiness state is evidence-tracked in `docs/truth/IMPLEMENTATION_STATE.md`; README presence does not imply every release-hardening path is complete.
 
-## DDE Code (VS Code / Cursor extension suite)
+## DDE Code / Frontend Studio
 
-Package [`interfaces/dde-studio`](interfaces/dde-studio/README.md) (display name **DDE Code**). **Primary Windows distribution** is the complete installer above. Optional clients: VS Code/Cursor **extension**, and UI-only Electron NSIS/portable for hosts that already have Core. Same dashboards (Hermes / Claude Code / DeepSeek + stubs). Live `/healthz` / `/readyz`. Plan amendment: [`docs/planning/dde-vscode-extension-suite.md`](docs/planning/dde-vscode-extension-suite.md) §3.2.
+DDE Code is the operator surface for the software factory, not a collection of decorative dashboards.
 
-```powershell
-cd interfaces\dde-studio
-npm install
-npm run compile
-# Extension: F5 in that folder (optional Cursor host)
-npm run desktop:install
-$env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
-npm run dist:win
-# UI-only (optional): interfaces\dde-studio\desktop\dist\DDE-Code-Setup-0.1.0.exe
+Frontend Studio target workflow:
+
+```text
+Brief → Explore → References → Build → Motion → Verify → Ship
 ```
 
-`justfile` does not load dotenv. Export `DDE_DATABASE_URL` and `DDE_REDIS_URL` in the same shell if recipes cannot reach the database.
+The consolidated target adds:
 
-## Cursor worker (models via SDK bridge)
-
-Workers reach Cursor models through `adapters/cursor`, which owns a local `cursor-sdk-bridge` process. The Cursor API key stays on the adapter host; it is never given to a WorkerRun environment. v1 is **local runtime only** so Cursor cannot clone or open PRs outside the DDE merge queue.
-
-```bash
-uv sync --extra cursor
-# set DDE_CURSOR_API_KEY from https://cursor.com/dashboard/api
+```text
+Design with Claude
+→ DesignArtifact candidate
+→ Try live in isolated workspace
+→ real application LIVE candidate
+→ compare/refine
+→ promote exact design/code pair
+→ independent verification
 ```
 
-See [`docs/adapters/cursor.md`](docs/adapters/cursor.md).
+and a DDE-native runtime control surface:
+
+```text
+Mission Overview
+Execution Graph
+Node Inspector
+Design Review
+Run Comparison
+Workflow Library
+Workflow Composer
+```
+
+These target features must remain honest in UI: no fabricated rows, no decorative graph disconnected from runtime, and no artboard labelled LIVE.
+
+## Worker/harness model
+
+Workers are selected as exact configurations, not merely by model name:
+
+```text
+model + model version
++ provider
++ harness + version
++ profile
++ tools/skills
++ context strategy
++ execution environment
++ policy hashes
+```
+
+Routing hard-gates illegal candidates before optimizing expected verified success, effective cost, latency, rework, quota/context pressure and operational risk.
+
+Initial model affinities are priors only and decay as verified evidence accumulates.
+
+## Cursor worker
+
+Cursor-related worker logic lives behind `adapters/cursor` and the accepted adapter/capability boundary. Credentials remain on the adapter/broker side and are not passed into model-generated worker environments.
+
+See [`docs/adapters/cursor.md`](docs/adapters/cursor.md) and current `IMPLEMENTATION_STATE.md` before assuming a specific Cursor runtime capability is live; installed/certified capability outranks README prose.
+
+## Controlled commits
+
+Read `AGENTS.md` before using commit helper scripts.
+
+The consolidated Rev 3 architecture forbids broad staging for normal controlled feature packets because unrelated or rejected edits can be swept into accepted commits. `scripts/commit_if_green.*` predates the native ChangePacket/StagingManifest gate and must not be treated as permission to stage unrelated working-tree state. REV-3A will harden this path.

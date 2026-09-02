@@ -1,364 +1,238 @@
-# DDE Architecture Decisions — Rev 3 Decision Index
+# DDE Architecture Decisions — Rev 3 Consolidated Index
 
-**Status:** CANONICAL HUMAN-READABLE DECISION INDEX  
+**Status:** CONTROLLED HUMAN-READABLE DECISION INDEX  
 **Effective:** 2026-09-02  
-**Authority note:** accepted Project Truth EDR rows outrank this file. This file exists to let agents and humans understand the locked architecture without reconstructing it from chat history or scanning every historical document.
+**Architecture authority:** `docs/truth/BLUEPRINT_REV3.md`  
+**Plan authority:** `docs/truth/DEV_PLAN_REV3.md`  
+**Authority note:** accepted Project Truth EDR rows outrank this file. This index is not a competing blueprint.
 
 ---
 
 ## 0. Decision classes
 
-- **ACCEPTED-EDR** — implemented/locked by an accepted Project Truth EDR. The actual EDR row is authoritative.
-- **REV3-LOCKED** — explicitly locked by Blueprint Rev 3. If implementation requires a contract-level divergence, file an EDR before changing the design.
-- **PLANNED** — direction is accepted in the development plan but may depend on unavailable interfaces or later sequencing.
-- **DEFERRED** — deliberately not current work.
+- **ACCEPTED-EDR** — authoritative decision exists in Project Truth/EDR records.
+- **REV3-LOCKED** — locked by the consolidated Rev 3 Blueprint.
+- **PLANNED** — accepted target direction awaiting implementation/evidence.
+- **DEFERRED/HISTORICAL** — not current implementation authority.
+
+A material contract change requires the appropriate EDR/change-control path.
 
 ---
 
-## AD-001 — DDE, not any model or harness, owns authoritative state
+## 1. Retained Rev 3 decision index
+
+The initial Rev 3 index is retained conceptually and normalized to the consolidated Blueprint. Where earlier wording implied a fixed model role, the consolidated decision below controls.
+
+| ID | Decision | Status |
+|---|---|---|
+| AD-001 | DDE, not any model/harness, owns authoritative state | REV3-LOCKED |
+| AD-002 | Project Truth outranks human-readable documents | REV3-LOCKED |
+| AD-003 | Blueprint Rev 3 supersedes Rev 2 for forward development | REV3-LOCKED |
+| AD-004 | `schemas/**` remains contract SSOT for generated contracts | REV3-LOCKED |
+| AD-005 | Interfaces use Gateway/Core boundaries; no direct table access | REV3-LOCKED |
+| AD-006 | Vendor/provider code lives behind adapters | REV3-LOCKED |
+| AD-007 | Worker environments receive no ambient long-lived credentials | ACCEPTED-EDR / REV3-LOCKED |
+| AD-008 | Network egress is deny-by-default and capability-admitted | ACCEPTED-EDR / REV3-LOCKED |
+| AD-009 | Side effects require durable identity/idempotency/reconciliation | REV3-LOCKED |
+| AD-010 | Mission completion is evidence-backed, never self-reported | REV3-LOCKED |
+| AD-011 | Production call-site wiring is part of Definition of Done | REV3-LOCKED |
+| AD-012 | Planning output is untrusted until validated/promoted | REV3-LOCKED |
+| AD-013 | Strategic orchestration is a dynamic role; Fable is preferred occupant when certified/available | REV3-LOCKED target |
+| AD-014 | Hermes is persistent context/research/experience intelligence, not authority | REV3-LOCKED |
+| AD-015 | Premium reasoning capacity is an escalation/resource choice, not universal default work | REV3-LOCKED |
+| AD-016 | Lower-cost workers are valid when hard gates and verification support them | REV3-LOCKED |
+| AD-017 | High-risk implementation receives independent review/oracle coverage | REV3-LOCKED |
+| AD-018 | Routing uses eligibility/hard gates before optimization | REV3-LOCKED |
+| AD-019 | Learned routing promotes through evaluation/canary/rollback | REV3-LOCKED |
+| AD-020 | Repository/Core artifacts, not chat history, carry durable project memory | REV3-LOCKED |
+| AD-021 | Context is task-specific, provenance-aware and budgeted | REV3-LOCKED |
+| AD-022 | Donor discovery is evidence/reference, not adoption authority | ACCEPTED-EDR / REV3-LOCKED |
+| AD-023 | Frontend Studio uses conformance by construction | REV3-LOCKED |
+| AD-024 | Frontend quality includes distinctiveness, not only correctness | REV3-LOCKED |
+| AD-025 | Visual verification is a real DDE verification capability | ACCEPTED direction / PLANNED implementation |
+| AD-026 | VLM critique is rank-9 evidence with bounded revision | ACCEPTED-EDR |
+| AD-027 | External design skills inform DDE encodings; they are not product oracles | REV3-LOCKED |
+| AD-028 | DDE Code shows honest empty/unavailable/degraded states | REV3-LOCKED |
+| AD-029 | DDE Code is a professional manufacturing control-plane product | REV3-LOCKED |
+| AD-030 | Web Frontend Studio quality closes before broad multi-target expansion | PLANNED |
+| AD-031 | One design authority, many platform renderers | REV3-LOCKED direction |
+| AD-032 | Cost/quota/context/provider health are first-class routing/observability inputs | REV3-LOCKED |
+| AD-033 | Deterministic mechanisms replace model calls where possible | REV3-LOCKED |
+| AD-034 | Rev 3 controlled docs are repository memory, with Blueprint/Plan as primary forward authorities | REV3-LOCKED |
+
+---
+
+## 2. Consolidated operational-hardening decisions
+
+### AD-035 — Project identity precedes configuration
 
 **Status:** REV3-LOCKED
 
-DDE Core owns Project Truth, mission state, approvals, routing policy, capability policy, verification and evidence. Claude Code, Hermes, Fable, DeepSeek, Cursor workers and future harnesses are replaceable workers/clients.
+No project configuration may be provisioned until `RuntimeRoot`/`ProjectIdentity` is positively resolved and authorized. Wrong/unrelated roots fail closed.
 
-**Consequence:** no external harness may become the source of truth for missions, requirements, approvals or completion.
-
----
-
-## AD-002 — Project Truth outranks all human-readable documents
-
-**Status:** REV3-LOCKED / inherited architecture invariant
-
-Accepted Project Truth rows written through `engine/truth/**` outrank markdown summaries, code comments, prompts, chat history and model memory.
-
-**Consequence:** a markdown change cannot silently override an accepted EDR/requirement row.
-
----
-
-## AD-003 — Blueprint Rev 3 supersedes Rev 2 for forward development
+### AD-036 — Models occupy roles; models are not roles
 
 **Status:** REV3-LOCKED
 
-`docs/truth/BLUEPRINT_REV3.md` is the canonical human-readable architecture. `docs/blueprint/REV_2_0.md` remains historical depth/reference.
+Strategic-orchestrator occupancy and ordinary worker eligibility are independent runtime concepts.
 
-**Consequence:** new work boots from Rev 3; where Rev 2 conflicts with Rev 3, Rev 3 wins unless an accepted Project Truth record says otherwise.
+Target default:
 
----
+```text
+Fable available   → Fable strategic occupant; Opus ordinary candidate
+Fable unavailable → Opus temporary occupant; Opus removed from ordinary pool
+Fable restored    → Fable strategic occupant; Opus returns to ordinary pool
+```
 
-## AD-004 — Schemas remain the contract SSOT
+This supersedes any interpretation of older AD-013/015 wording as fixed permanent model jobs.
 
-**Status:** REV3-LOCKED / inherited
-
-`schemas/**` is the single source of truth for generated contracts. `engine/contracts/**` is generated output and must not be hand-edited.
-
-**Consequence:** contract changes start at schemas and include drift checks.
-
----
-
-## AD-005 — Interfaces never bypass Gateway/Core boundaries
-
-**Status:** REV3-LOCKED / inherited
-
-`interfaces/**` consumes API/Gateway/MCP surfaces and never reads/writes core tables directly.
-
-**Consequence:** DDE Code and Frontend Studio must use the same governed command paths as other clients.
-
----
-
-## AD-006 — Vendor code lives in adapters
-
-**Status:** REV3-LOCKED / inherited
-
-Core logic reasons about worker/capability profiles. Vendor SDKs and provider-specific implementation stay in adapters.
-
-**Consequence:** replacing Claude/Hermes/Fable/DeepSeek/Cursor must not require rewriting mission or truth domains.
-
----
-
-## AD-007 — Worker environments receive no ambient long-lived credentials
-
-**Status:** ACCEPTED-EDR / REV3-LOCKED
-
-Credential access is brokered, scoped and revocable. Long-lived secrets are never passed to environments executing model-generated code.
-
-**Related readable EDR:** `docs/truth/edr/EDR-0001-subscription-based-worker-credentials.md` and later accepted credential/containment decisions.
-
----
-
-## AD-008 — Network egress is deny-by-default and admitted by capability
-
-**Status:** ACCEPTED-EDR / REV3-LOCKED
-
-Outbound access is not a general worker privilege. Admitted surfaces use allowlists, brokered credentials, durable side-effect identity and audit/reconciliation rules.
-
-**Related EDR:** `EDR-0015` accepts bounded donor-search egress for DDE-066. General containment/egress remains governed by its own accepted EDRs and implementation state.
-
----
-
-## AD-009 — Side effects require durable identity and reconciliation semantics
+### AD-037 — Routing learns from independently verified outcomes
 
 **Status:** REV3-LOCKED
 
-Every side-effecting operation declares a side-effect class, idempotency key and retry/reconciliation behavior.
+Static model/harness affinities are bootstrap priors. DDE increasingly ranks exact `WorkerConfiguration` using verified success, first-pass success, cost, latency, rework, risk and human intervention.
 
-**Consequence:** uncertain external outcomes enter reconciliation; blind retry is forbidden.
-
----
-
-## AD-010 — Mission completion is evidence-backed, not self-reported
+### AD-038 — Hermes learns; DDE governs
 
 **Status:** REV3-LOCKED
 
-Workers cannot self-certify completion. Completion requires applicable tests, production call-site evidence and verification records.
+Hermes may retrieve/distill execution experience and propose `RoutingInsightCandidate`/workflow candidates. DDE telemetry and policy promotion remain authoritative.
 
-**Consequence:** a schema, stub, prompt, UI mock or green unit test alone is insufficient.
-
----
-
-## AD-011 — Production call-site wiring is part of Definition of Done
+### AD-039 — Mutable work belongs to a ChangePacket
 
 **Status:** REV3-LOCKED
 
-A guard, approval type, verifier, telemetry event or service is not considered complete until the real execution/promotion/UI path invokes it.
+Every controlled mutation has explicit task/run/workspace/read/write scope and provenance.
 
-**Consequence:** chapter gates must map MUST/SHALL clauses to actual call sites.
-
----
-
-## AD-012 — Planning output is untrusted until validated/promoted
-
-**Status:** REV3-LOCKED / inherited
-
-Candidate mission/task decompositions use the established draft -> validate -> promote pattern rather than directly minting authoritative work graphs.
-
-**Consequence:** Fable/Hermes/Claude or any planner can propose plans but cannot bypass promotion policy.
-
----
-
-## AD-013 — Fable 5 is preferred as a strategic orchestration worker, not state authority
-
-**Status:** PLANNED / REV3-LOCKED role definition
-
-When a supported Fable 5 interface is actually available and evaluation supports the route, DDE should prefer it for high-level decomposition, architecture review, dependency/risk planning and arbitration.
-
-**Constraints:**
-
-- no fake adapter if the interface is unavailable;
-- no authoritative mission state in Fable memory;
-- outputs pass ordinary validation/promotion;
-- measured fallback exists.
-
----
-
-## AD-014 — Hermes is the preferred persistent research/coordination harness
-
-**Status:** REV3-LOCKED role definition
-
-Hermes is best used for long-lived research, repository reconnaissance, context-packet assembly, external dependency intelligence, failure triage, recovery preparation and conversational operator assistance.
-
-**Constraints:** Hermes memory is working memory only; authoritative facts are rehydrated from DDE state.
-
----
-
-## AD-015 — Premium coding models are escalation resources, not default orchestration engines
+### AD-040 — Rejected work must be dispositioned
 
 **Status:** REV3-LOCKED
 
-Claude Code or equivalent high-cost reasoning profiles should be used when complexity/risk justifies them, not for all crawling, dispatch, monitoring and mechanical work.
+`REJECTED` requires quarantine/revert/isolation and baseline verification. Rejected mutations may not remain anonymous dirty state.
 
-**Consequence:** quota pressure must be handled by specialization and deterministic validation rather than transferring all work to another premium model.
-
----
-
-## AD-016 — Lower-cost workers are valid when deterministic gates can arbitrate quality
+### AD-041 — Commit scope must match accepted packet scope
 
 **Status:** REV3-LOCKED
 
-DeepSeek-class/local/other lower-cost eligible workers should handle bounded implementation, mechanical refactors, test generation and parallel candidates where verification is strong enough to select/reject outputs.
+Unexpected staged paths block controlled commits. Broad staging requires explicit bulk-maintenance authorization.
 
----
-
-## AD-017 — Independent review is preferred for high-risk implementation
+### AD-042 — Evidence is inherited until specifically invalidated
 
 **Status:** REV3-LOCKED
 
-The same worker that implements a consequential change should not be the sole reviewer unless deterministic oracles fully cover the relevant risk.
+Previously verified work remains trusted unless a changed dependency/invariant invalidates its evidence. DDE uses delta-only audit/re-verification.
 
----
-
-## AD-018 — Routing uses eligibility first, optimization second
+### AD-043 — Context is a runtime resource
 
 **Status:** REV3-LOCKED
 
-Routing considers capability, context, safety/containment, quota, provider health, quality history, latency and cost. The cheapest route may not be chosen if it fails required confidence or capability constraints.
+High-risk work may not begin when the active session is `UNSAFE_FOR_HIGH_RISK_WORK`. DDE checkpoints and resumes through `ContinuationPackage`.
 
----
-
-## AD-019 — Routing learning is promoted through evaluation, not self-modifying authority
+### AD-044 — Passive reset metadata is preferred over expensive probes
 
 **Status:** REV3-LOCKED
 
-Learned routing policies are candidates evaluated by shadow runs, calibration, canaries and rollback. They do not self-promote based on model confidence.
+Provider availability probing includes probe economics. Reliable passive reset signals outrank unnecessary expensive active probes.
 
----
-
-## AD-020 — Repository artifacts, not chat history, carry project memory
+### AD-045 — Installed/certified capability beats assumed/documented capability
 
 **Status:** REV3-LOCKED
 
-Engineering sessions must be resumable from repository truth/state plus current code.
+Production routing/lifecycle logic relies on exact installed, certified runtime capabilities; vendor documentation alone is insufficient proof.
 
-**Consequence:** each meaningful tranche updates `IMPLEMENTATION_STATE.md`; major accepted architecture changes update the relevant truth docs/EDRs.
-
----
-
-## AD-021 — Context is task-specific, provenance-aware and budgeted
+### AD-046 — Executable updates require certification
 
 **Status:** REV3-LOCKED
 
-DDE should assemble the smallest sufficient context packet rather than shipping entire chat/repository history to each model.
-
-**Consequence:** source rank, taint, input hashes and staleness matter; semantic retrieval does not outrank deterministic truth.
+Hermes, Claude Code, Codex harnesses, DeepSeek, MCPs, skills, plugins and other executable components may not silently replace active certified versions. Update candidates are quarantined, certified, canaried and promoted with rollback.
 
 ---
 
-## AD-022 — Donor discovery is evidence/reference, not adoption authority
+## 3. Consolidated Frontend Studio / design / workflow decisions
 
-**Status:** ACCEPTED-EDR / REV3-LOCKED
+### AD-047 — Claude Design is a provider capability behind DDE DesignGateway
 
-DDE-066 may discover donors through accepted egress, but discovered code is not automatically executable/adopted. Classification and provenance precede use.
+**Status:** REV3-LOCKED target
 
-**Related:** EDR-0015, signed Frontend Studio charter, Chapter 13.8 rules.
+Claude `/design` is a first-class Frontend Studio specialist capability, but DDE binds to `DesignProvider`/`DesignGateway`, not to slash-command syntax or provider-owned runtime state.
 
----
-
-## AD-023 — Frontend Studio uses conformance by construction
-
-**Status:** REV3-LOCKED / signed charter
-
-Authoring surfaces should expose token-valid structured values rather than arbitrary style mutation. Button-add, drag/drop, property edits and preview changes go through one structured manifest mutation path.
-
-**Consequence:** important design violations become unauthorable, not merely lint findings after generation.
-
----
-
-## AD-024 — Frontend quality includes distinctiveness, not only correctness
-
-**Status:** REV3-LOCKED / signed charter
-
-Generated interfaces are evaluated for generic layout fingerprints, hierarchy, believable density, copy, accessibility, motion semantics and rendered quality.
-
-**Consequence:** a functionally correct generic AI dashboard may still fail Definition of Polished.
-
----
-
-## AD-025 — Visual verification is a real DDE verification capability
-
-**Status:** ACCEPTED-EDR direction / DDE-068 planned implementation
-
-Playwright/rendered screenshots and visual evidence must be executed through the verification architecture and persisted as VerificationRun/Evidence artifacts rather than existing only as an ad-hoc CI script.
-
----
-
-## AD-026 — VLM critique is rank-9 evidence with bounded revision
-
-**Status:** ACCEPTED-EDR
-
-EDR-0016 accepts the VLM design critic needed by DDE-068.
-
-**Constraints:**
-
-- critique is evidence, not direct mutation authority;
-- revision loop is bounded to at most 3 automated cycles;
-- residuals escalate to human decision;
-- critic cost/provider failure is observable.
-
----
-
-## AD-027 — External design skills inform encodings; they do not become product oracles
-
-**Status:** REV3-LOCKED / existing signed design-tooling disposition
-
-Useful concepts from strong design tools/skills are harvested into first-party DDE schemas, design dials, lints, scanners and acceptance criteria.
-
-**Consequence:** DDE does not depend on third-party design skills as merge-blocking authorities.
-
----
-
-## AD-028 — DDE Code must show honest unavailable/empty/degraded states
+### AD-048 — Provider artboards are DESIGN; only code-backed runtime is LIVE
 
 **Status:** REV3-LOCKED
 
-No fabricated mission, donor, evidence or quality rows may be generated just to make the UI appear populated.
+`DESIGN`, `LIVE` and `VERIFIED` are semantic states. A provider canvas/artboard cannot be presented as implemented software.
 
----
+### AD-049 — Material UI work uses a governed design gate
 
-## AD-029 — DDE Code is a professional control-plane product, not a collection of stubs
+**Status:** REV3-LOCKED target
 
-**Status:** REV3-LOCKED
+Material design work produces versioned `DesignArtifact` candidates and an immutable promoted design/code pair before merge eligibility. Small deterministic changes may bypass only by auditable policy.
 
-The operator experience should unify Mission Overview, truth/context, work, fleet/routing, worker rooms, Frontend Studio, approvals, verification, integrations and attention state with coherent visual hierarchy and operational honesty.
+### AD-050 — Try-Live work is isolated and non-authoritative until promotion
 
----
+**Status:** REV3-LOCKED target
 
-## AD-030 — Web Frontend Studio quality closes before multi-target expansion
+Design candidates can be implemented in `LiveEditWorkspace` for real rendering/iteration, but may not mutate accepted/main state directly.
 
-**Status:** PLANNED
+### AD-051 — Frontend Studio supports deterministic, contextual-AI and divergent-design lanes
 
-DDE-069 mobile/multi-target profiles are sequenced after the web Frontend Studio verification loop is evidence-complete enough to avoid multiplying an immature pipeline.
+**Status:** REV3-LOCKED target
 
----
+Known token/component changes compile deterministically; ambiguous visual refinements may use DesignGateway; major/new work may generate divergent candidates.
 
-## AD-031 — One design authority, many renderers
+### AD-052 — Execution Graph is a projection of real runtime truth
 
-**Status:** PLANNED / REV3-LOCKED direction
+**Status:** REV3-LOCKED target
 
-Multi-target/mobile support reuses one design/token authority and adds renderer adapters plus target-specific verification. A platform must not fork its own independent design truth.
+No manually maintained duplicate graph. Nodes derive from DDE workflow/task/session/event/evidence state.
 
----
+### AD-053 — Node replay/reroute/fork/compare preserve lineage and policy
 
-## AD-032 — Costs and quotas are first-class observability/routing inputs
+**Status:** REV3-LOCKED target
 
-**Status:** REV3-LOCKED
+Operator debugging controls create governed runtime operations, not hidden mutations.
 
-Tokens, model spend, external search calls, screenshots, VLM critique, build minutes and other metered resources are observable and attributable to missions/runs.
+### AD-054 — Reusable workflows/playbooks express capabilities, not fixed model macros
 
----
+**Status:** REV3-LOCKED target
 
-## AD-033 — Deterministic mechanisms replace model calls where possible
+Playbooks are versioned/evidence-promoted. Provider choice remains dynamic unless a real capability requirement constrains it.
 
-**Status:** REV3-LOCKED
+### AD-055 — Workflow Composer is a compiler front-end, not a second orchestrator
 
-Compilers, validators, lints, state machines, rule tables and test oracles should perform work that does not require probabilistic reasoning.
+**Status:** REV3-LOCKED target
 
-**Consequence:** lower cost, less quota pressure and more reproducible behavior.
+Visual graphs compile to the same validated DDE workflow/runtime and cannot bypass mandatory gates, capability checks or Project Truth authority.
 
----
-
-## AD-034 — Rev 3 truth docs are living controlled artifacts, not disposable generated notes
+### AD-056 — Opal is inspiration, not a runtime dependency
 
 **Status:** REV3-LOCKED
 
-`BLUEPRINT_REV3.md`, `DEV_PLAN_REV3.md`, `ARCHITECTURE_DECISIONS.md`, `IMPLEMENTATION_STATE.md` and `RESUME_PROMPT.md` form the human-readable bootstrap set.
-
-**Consequence:** they must remain internally consistent and must be updated deliberately when the project advances.
+DDE adopts the high-value usability/inspectability patterns natively. It does not move authoritative orchestration into Google Opal or another external no-code runtime.
 
 ---
 
-## 1. Known open/partial decisions from the DDE-067 gate
+## 4. Sequencing decision
 
-The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.
+### AD-057 — REV-3A Operational Safety Gate precedes DDE-068
 
-The same gate states that DDE-068 is the next sequential mission and that accepted EDR-0016 authorizes it.
+**Status:** REV3-LOCKED plan sequencing
+
+Do not renumber DDE-068…DDE-083. After the consolidated truth change, implement REV-3A first: project identity, role occupancy, context continuation, ChangePacket/rejection/staging and evidence-validity safety.
 
 ---
 
-## 2. How to add/change a decision
+## 5. Known open/partial historical EDRs
 
-1. Identify the actual conflict or new requirement.
-2. Check whether an accepted EDR already decides it.
-3. If the change alters Project Truth, locked contracts, security boundaries or core authority, create/propose an EDR through the ordinary truth path.
-4. After acceptance, update the relevant Blueprint Rev 3 section and this decision index.
-5. Update `DEV_PLAN_REV3.md` and `IMPLEMENTATION_STATE.md` if sequencing/current state changed.
+The DDE-067 gate previously recorded EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 as open/unchanged at that handoff. Do not infer resolution from this index. Read the actual Project Truth/EDR record before affected implementation.
 
-Do not use this file to bypass the EDR process.
+---
+
+## 6. Change protocol
+
+1. Identify the actual contract/decision conflict.
+2. Check accepted Project Truth/EDR state.
+3. If Project Truth/core authority/security changes, use EDR/change control.
+4. Synchronize Blueprint/Plan only after the decision is accepted.
+5. Update this index as a readable projection.
+6. Never let this file outrank accepted EDRs or the consolidated Blueprint.

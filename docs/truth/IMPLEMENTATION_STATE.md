@@ -1,19 +1,16 @@
-# DDE Implementation State — Rev 3
+# DDE Implementation State — Rev 3 Consolidated
 
-**Status:** CANONICAL CURRENT-STATE SNAPSHOT  
+**Status:** CANONICAL EVIDENCE-BASED CURRENT-STATE PROJECTION  
 **Snapshot date:** 2026-09-02  
 **Architecture:** `docs/truth/BLUEPRINT_REV3.md`  
-**Plan:** `docs/truth/DEV_PLAN_REV3.md`
+**Plan:** `docs/truth/DEV_PLAN_REV3.md`  
+**Important:** this file reports what is implemented; it is not a third architecture source of truth.
 
 ---
 
-## 0. How to use this file
+## 0. State discipline
 
-This document answers: **what is actually implemented now?**
-
-It must remain evidence-based. Do not mark a feature complete because it appears in the blueprint, a schema exists, a test fixture exists, or an agent reported success.
-
-Allowed state labels:
+Allowed labels:
 
 - `COMPLETE_EVIDENCED`
 - `IMPLEMENTED_PARTIAL`
@@ -24,274 +21,220 @@ Allowed state labels:
 - `DEFERRED`
 - `HISTORICAL`
 
-Every state transition should cite concrete repository evidence: commit, chapter gate, code paths, tests or verification artifacts.
+A schema, document, prompt, UI card, enum, fixture or agent statement is not implementation proof. State advances only with production call-site and verification evidence.
+
+The Rev 3 consolidated Blueprint/Development Plan change **does not itself advance product implementation**.
 
 ---
 
-## 1. Repository heads observed during Rev 3 bootstrap
+## 1. Inherited repository baseline
 
-### Last observed product implementation head before Rev 3 truth-doc commits
+### Product implementation baseline
 
-`c30d2969e3205d1a277dd128e8b182137a8892e0` — **DDE-067 Frontend Studio surface** — 2026-08-27.
+`c30d2969e3205d1a277dd128e8b182137a8892e0` — **DDE-067 Frontend Studio surface** — remains the last inherited product implementation milestone for this snapshot unless newer code evidence is discovered after this document is read.
 
-The preceding implementation sequence visible in recent commits includes:
+Preceding evidenced sequence:
 
 - `9a8bb86f6b9c8791e2db4030680abb32d29d475a` — DDE-065 generation-prompt compiler;
-- `32ae479cd133ddab86431250fe7888623bf8453a` — DDE-066 donor discovery and feature-function taxonomy;
+- `32ae479cd133ddab86431250fe7888623bf8453a` — DDE-066 donor discovery / feature-function taxonomy;
 - `c30d2969e3205d1a277dd128e8b182137a8892e0` — DDE-067 Frontend Studio surface.
 
-### Rev 3 source-of-truth bootstrap commits
+### Initial Rev 3 repository-memory bootstrap
 
-These commits establish documentation/control-plane memory only; they do **not** advance product implementation beyond DDE-067:
+The initial Rev 3 documentation migration closed through:
 
-- `98110744c175f5d8c83c2248962f670fa7b00748` — Blueprint Rev 3 created;
-- `45624dc6a009c0eecc4bae6009d8621ff39ec09e` — Development Plan Rev 3 created;
-- `fc12925ebcaa32eae880f173ea6a8e746d6bf406` — Architecture Decision index created;
-- `8e460bf2a7a74bdec226ef5fbce43f8be5e65116` — initial Implementation State created;
-- `1b21a195563a4c55426fd6090ed66941524d853c` — canonical Resume Prompt created;
-- `fe45ba54299343ae3d70def59b439900fe85a7cc` — `AGENTS.md` switched to Rev 3 bootstrap/authority;
-- `a3bfbd240820648892d11d951fe542593ad1d8b2` — `README.md` switched to Rev 3 SOT links.
+`fcc3e542ebc98ce769ec7ca74de72887dc5e5c02` — `docs: mark Rev 3 source-of-truth migration complete`.
 
-This file's current commit is the close-out of the R3-0 source-of-truth migration.
+### Consolidated Rev 3 truth change
+
+The current consolidation replaces the compressed Rev 3 architecture/plan with a single comprehensive Blueprint and Development Plan that absorb:
+
+- original Rev 3 architecture and realization plan;
+- Rev 3 quantum-audit findings;
+- Rev 3.1 operational hardening/adaptive routing;
+- Claude `/design` live-design + high-value Opal-pattern integration.
+
+This is **documentation/control-plane memory change only** until corresponding missions/gates implement the contracts.
 
 ---
 
-## 2. Overall program state
+## 2. Authority after consolidation
 
-| Area | State | Evidence / current reality |
+Primary human-readable forward-development authorities:
+
+1. `docs/truth/BLUEPRINT_REV3.md` — architecture/invariants/target contracts.
+2. `docs/truth/DEV_PLAN_REV3.md` — dependency order, vertical slices and acceptance gates.
+
+Supporting files:
+
+- `ARCHITECTURE_DECISIONS.md` — decision index/history, subordinate to Blueprint and accepted EDRs;
+- `IMPLEMENTATION_STATE.md` — this evidence projection;
+- `RESUME_PROMPT.md` — bootstrap helper.
+
+Accepted Project Truth/EDR records continue to outrank all markdown.
+
+---
+
+## 3. Overall program state
+
+| Area | State | Current reality |
 |---|---|---|
-| DDE Core control-plane foundation | `IMPLEMENTED_PARTIAL` | Repository contains truth, mission/planning, routing, capability, verification, adapters, interfaces, migrations and tests; several historical EDRs explicitly describe partial implementation and remaining production-call-site gaps. |
-| Rev 3 repository-memory/SOT model | `COMPLETE_EVIDENCED` | All five canonical files exist under `docs/truth`; `AGENTS.md` and `README.md` now boot new work from Rev 3 and demote Rev 2 to historical/reference depth. |
-| DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Landed in commit `9a8bb86...`; chapter-gate document exists. Treat later regressions separately. |
-| DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
-| DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
-| DDE-068 Visual Verification & Critique Loop | `PLANNED` | DDE-067 chapter gate names it as next sequential mission; accepted EDR-0016 authorizes the VLM critic dependency. No DDE-068 implementation commit was found in the repo search used for this snapshot. |
-| DDE-069 Mobile/Multi-target Profiles | `DEFERRED` | Planned/provisional in blueprint and Frontend Studio GUI spec; intentionally sequenced after web verification quality closes. |
-| Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
-| Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
-| Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
-| DeepSeek worker integration | `IMPLEMENTED_PARTIAL` | Harness/profile references exist; Rev 3 lower-cost delegation policy and measured routing specialization remain to be proven end-to-end. |
-| Frontend Studio professional Rev 3 redesign | `PLANNED` | DDE-067 surface exists and design-tooling rules exist, but Rev 3 calls for a broader professional operator-shell redesign and DDE-068 evidence integration. |
-| Routing intelligence / learned policy promotion | `IMPLEMENTED_PARTIAL` | Existing routing registry/telemetry/learning planning exists; open EDR/partial implementation records require careful production-call-site audit before claiming full adaptive routing. |
-| Context optimization / repository memory | `IMPLEMENTED_PARTIAL` | Rev 3 bootstrap removes chat history as a required project-memory source; deeper task-packet/retrieval optimization remains planned. |
-| Windows complete installer / DDE Code distribution | `IMPLEMENTED_PARTIAL` | README and packaging describe DDE Code + Core/Postgres/Redis/migrations/wizard paths; release/recovery/signing/operational hardening remains a Rev 3 phase. |
+| DDE Core control-plane foundation | `IMPLEMENTED_PARTIAL` | Truth, missions/planning, routing, capabilities, workers, verification/evidence, adapters, interfaces, migrations/tests exist; consolidated Rev 3 still identifies native runtime gaps. |
+| Rev 3 canonical repository-memory model | `COMPLETE_EVIDENCED` | Blueprint/Plan canonical paths exist and repository bootstraps from Rev 3. Consolidation changes target architecture/sequence only. |
+| DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Existing implementation/chapter-gate evidence retained. Do not reopen without invalidating delta. |
+| DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Existing implementation and accepted egress decision retained. |
+| DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Complete for signed DDE-067 scope; not equivalent to Frontend Studio V2/live-design target. |
+| REV-3A Operational Safety Gate | `PLANNED` | New immediate implementation gate. No claim that ProjectIdentity, StrategicOrchestratorLease, ContextBudget, ChangePacket staging guard or EvidenceValidityGraph are natively complete. |
+| DDE-068 Visual Verification & Critique Loop | `PLANNED` | Sequenced after REV-3A. Existing visual/lint primitives do not prove full production visual-verification path. |
+| DDE-069 Frontend Studio V2 + Live Design Foundation | `PLANNED` | DDE-067 surface exists, but DesignGateway/Claude Design Try-Live loop and professional V2 workbench are not claimed implemented. |
+| DDE-070 Harness V2 + WorkerSession + Bootstrap Runtime | `PLANNED` / existing pieces partial | Current WorkerRun/adapter infrastructure is useful; durable generic WorkerSession/bootstrap capability discovery remains target work. |
+| DDE-071 Strategic Orchestrator Runtime | `PLANNED` | Dynamic Fable/Opus role occupancy is now locked architecture but is not claimed natively implemented. |
+| DDE-072 Codex Native Worker | `PLANNED` | No full first-class production adapter is claimed by this consolidation. |
+| DDE-073 Claude Agent SDK Worker | `IMPLEMENTED_PARTIAL` | Existing Claude Path A remains safe/executable but limited; persistent SDK/capability-certification target remains. |
+| DDE-074 DeepSeek Harness Worker | `IMPLEMENTED_PARTIAL` | References/integration seams exist; full target route/telemetry/certification requires evidence. |
+| DDE-075 Hermes Experience Intelligence | `IMPLEMENTED_PARTIAL` | Hermes representation/UI/research seams exist; ExperienceScout/FailureMemory/RoutingInsight/Continuity/Provenance target remains. |
+| DDE-076 Persistent Fleet Registry + Provider Capacity | `PLANNED` / existing registries partial | Static/in-memory sources require convergence and version-specific certification. |
+| DDE-077 Change/Workspace Governance | `PLANNED` / isolation pieces partial | Existing workspace isolation is retained; ChangePacket/rejection/staging/commit-scope target remains. |
+| DDE-078 Real usage/cost/quota/context/occupancy telemetry | `IMPLEMENTED_PARTIAL` | Usage writer exists; full live producers/new metrics remain. |
+| DDE-079 Empirical Routing + Route Critic | `IMPLEMENTED_PARTIAL` | Hard gates/policy activation exist; experience-driven WorkerConfiguration ranking remains target. |
+| DDE-080 Truth/Context/Evidence Validity compilers | `PLANNED` / pieces partial | Repository memory/context seams exist; selective evidence invalidation/ContinuationPackage compiler target remains. |
+| DDE-081 Mission Workspace + Execution Graph | `PLANNED` | No claim of full real graph/node-inspector/replay runtime. |
+| DDE-082 Design Intelligence + Playbooks/Composer | `PLANNED` | Existing design tooling is retained; DesignGateway hardening, learned playbooks and policy-compiled composer remain. |
+| DDE-083 Hardening/Chaos/Update Certification/RC | `PLANNED` | Release proof depends on prior missions. |
 
 ---
 
-## 3. Frontend Studio detailed state
+## 4. Locked corrections now reflected by the target architecture
 
-### DDE-065 — Generation-Prompt Compiler
+These are **architectural decisions**, not assertions that runtime is complete:
 
-**State:** `COMPLETE_EVIDENCED`
+### 4.1 Models occupy roles; models are not roles
 
-Observed evidence:
+Static `Fable=strategy / Opus=specialist / Codex=implementation` assignment is superseded.
 
-- implementation commit exists;
-- signed Frontend Studio charter defines deterministic/fail-closed inputs;
-- DDE-065 chapter gate exists;
-- compiler is intended to avoid model/network calls at compile time and embed design constraints/provenance.
+Target semantics:
 
-**Do not reopen unless:** current tests/code show regression or DDE-068/Rev 3 requires a contract amendment.
+```text
+Fable available   → Fable strategic occupant; Opus ordinary candidate
+Fable unavailable → Opus temporary strategic occupant; Opus removed from ordinary pool
+Fable restored    → Fable strategic occupant; Opus returns to ordinary pool
+```
 
-### DDE-066 — Donor Discovery & Feature-Function Taxonomy
+### 4.2 Hermes learns; DDE governs
 
-**State:** `COMPLETE_EVIDENCED`
+Hermes may retrieve/distill execution experience and propose routing/playbook insights. DDE telemetry, routing policy and promotion remain authoritative.
 
-Observed evidence:
+### 4.3 Mutable work requires packet ownership
 
-- implementation commit exists;
-- accepted EDR-0015 authorizes brokered allowlisted donor search;
-- chapter gate exists;
-- search path is control-plane capability, not a worker egress bypass.
+Target controlled mutation uses `ChangePacket`, rejection disposition, staged-scope verification and commit provenance. Rejected mutations may not contaminate later work.
 
-**Known operational caution:** live provider behavior still depends on correctly captured credentials/provider setup; do not confuse code-path completion with every deployment having credentials configured.
+### 4.4 Context is a runtime resource
 
-### DDE-067 — Frontend Studio Surface & Consumption Wiring
+High-risk work must not begin/continue below safe context thresholds. Target behavior checkpoints and resumes through `ContinuationPackage`.
 
-**State:** `COMPLETE_EVIDENCED` for signed DDE-067 scope.
+### 4.5 Evidence is inherited selectively
 
-Observed evidence:
+Previously verified work remains valid unless a changed dependency/invariant specifically invalidates it. Blanket re-audit is not the default.
 
-- latest product implementation commit before Rev 3 bootstrap is named `DDE-067 Frontend Studio surface`;
-- DDE Code includes Mission Overview and Hermes/Claude Code/DeepSeek views;
-- Frontend Studio commands are wired through Gateway-oriented surfaces;
-- chapter gate records remaining list/read gaps honestly rather than fabricating rows;
-- chapter gate explicitly states DDE-068 is next.
+### 4.6 Frontend Studio live means code-backed runtime
 
-**Residuals intentionally not charged to DDE-067:**
-
-- DD207+ combination lints;
-- silhouette distinctiveness;
-- density enforcement;
-- reduced-motion semantics beyond current baseline;
-- rendered verification evidence as a first-class DDE verification path;
-- bounded VLM critique/revision;
-- D3 list endpoints / richer live read surfaces where contracts are absent.
-
-### DDE-068 — Visual Verification & Critique Loop
-
-**State:** `PLANNED`, next sequential mission.
-
-**Unblocked by:** accepted EDR-0016.
-
-**Required before completion:**
-
-1. real visual executor behind DDE verification capability;
-2. persisted screenshot/render evidence;
-3. DD207+ combination lints;
-4. silhouette/fingerprint gate;
-5. believable-density enforcement;
-6. reduced-motion semantic assertions;
-7. VLM screenshot critique as rank-9 evidence;
-8. bounded revision <= 3 cycles;
-9. human escalation after bound;
-10. real production promotion/merge gate consuming visual verdicts.
-
-### DDE-069 — Mobile / multi-target
-
-**State:** `DEFERRED`.
-
-Do not expand targets before the DDE-068 quality loop is stable enough to avoid multiplying an immature pipeline.
+Claude/provider artboards are `DESIGN`; isolated real application candidates are `LIVE`; passed candidates are `VERIFIED`. Design artifacts cannot masquerade as implementation.
 
 ---
 
-## 4. Worker/orchestration state
+## 5. Immediate next work packet
 
-### Fable 5
+**Next gate:** `REV-3A Operational Safety Gate`.
 
-**State:** `BLOCKED_EXTERNAL`.
+Start with:
 
-Rev 3 defines Fable 5 as the preferred strategic orchestration worker **when a supported interface exists**. No repository evidence currently proves a functioning Fable adapter.
+### REV-3A.1 — ProjectIdentity / bootstrap preflight
 
-Next actions when available:
+Audit current bootstrap/config behavior and implement the smallest production slice for:
 
-- define/extend generic worker profile capabilities;
-- implement adapter only behind that contract;
-- benchmark against alternative planner profiles;
-- route outputs through draft -> validate -> promote;
-- never persist authoritative state in Fable memory.
+```text
+ProjectIdentity
+RuntimeRoot
+SessionBootstrapContract
+EffectiveExecutionConfiguration
+BootstrapReceipt
+```
 
-### Hermes
+Required first proof:
 
-**State:** `IMPLEMENTED_PARTIAL`.
+1. approved DDE root resolves correct identity/config;
+2. unrelated/wrong root fails closed;
+3. no Dial/DDE project configuration contaminates an unrelated project;
+4. effective configuration source hashes are reconstructable;
+5. no session is treated healthy before PASS receipt.
 
-Current repository evidence:
+Then continue:
 
-- `engine/routing/registry.py` includes `HARNESS_HERMES`;
-- DDE Code includes Hermes Mission Control/harness UI surfaces;
-- packaging/README describes Hermes alongside other worker dashboards.
-
-Rev 3 gap:
-
-- make its persistent research/context/recovery responsibilities explicit in profile policy and production workflows;
-- prove capability/credential containment;
-- ensure Hermes working memory always rehydrates authoritative facts from DDE;
-- collect routing quality/cost telemetry for Hermes task classes.
-
-### Claude Code
-
-**State:** `IMPLEMENTED_PARTIAL`.
-
-Rev 3 gap:
-
-- explicit high-complexity/high-risk task eligibility;
-- quota-aware routing rather than default premium absorption;
-- independent review policy;
-- measured quality/cost comparison.
-
-### DeepSeek
-
-**State:** `IMPLEMENTED_PARTIAL`.
-
-Rev 3 gap:
-
-- explicit bounded/mechanical task eligibility;
-- deterministic arbitration of parallel candidates;
-- quota/health telemetry and fallback behavior.
+```text
+REV-3A.2 strategic occupancy
+→ REV-3A.3 context/continuation
+→ REV-3A.4 ChangePacket/rejection/staging
+→ REV-3A.5 evidence validity/delta audit
+→ REV-3A chapter gate
+→ DDE-068
+```
 
 ---
 
-## 5. Known open/partial governance items at DDE-067 handoff
+## 6. Evidence inheritance / forbidden unnecessary rework
 
-The DDE-067 chapter gate records the following as unchanged/open at that point:
+The consolidation does not invalidate DDE-065, DDE-066 or DDE-067 evidence by itself.
 
-- EDR-0002;
-- EDR-0003;
-- EDR-0005;
-- EDR-0027;
-- EDR-0033.
+Do not reopen those missions merely because the Blueprint grew. Re-verification is required only when the current delta changes an invariant/dependency/call site their evidence depends on, or repository inspection reveals regression.
 
-Do **not** infer their final status from this summary. Read the corresponding Project Truth/EDR record before changing affected behavior.
-
-The gate also records missing D3 list/read endpoints for some Studio surfaces. Until contracts exist, UI must remain honest rather than synthesizing rows.
+The same rule applies to all future verified capabilities through the planned `EvidenceValidityGraph`.
 
 ---
 
-## 6. Current risks
+## 7. Risks to watch during REV-3A
 
-### RISK-01 — Documentation/code authority drift
+### RISK-01 — Documentation mistaken for implementation
 
-**Current status:** mitigated for bootstrap. `AGENTS.md` and `README.md` now point to the Rev 3 truth set.
+Mitigation: keep new contracts `PLANNED` until production call sites/evidence exist.
 
-**Residual:** future architecture changes must keep all five truth files synchronized through change control.
+### RISK-02 — Wrong-root/config contamination
 
-### RISK-02 — DDE-068 becomes a documentation-only quality layer
+Mitigation: ProjectIdentity must precede configuration and fail closed.
 
-Visual/VLM concepts already exist in planning, but completion requires real verification executors and promotion call sites.
+### RISK-03 — Premium quota transfer
 
-**Mitigation:** implement DDE-068 using the vertical slices in `DEV_PLAN_REV3.md` and gate each at production paths.
+Mitigation: role occupancy separate from worker eligibility; fallback orchestrator removed from ordinary pool while occupying.
 
-### RISK-03 — Premium-model quota transfer
+### RISK-04 — Rejected-work contamination
 
-If Fable is unavailable, there is a temptation to make Claude Code absorb orchestration plus implementation plus review.
+Mitigation: explicit `RejectionDisposition` + staging scope guard.
 
-**Mitigation:** deterministic planning/validation + Hermes research + lower-cost bounded workers + premium escalation only for high-value reasoning.
+### RISK-05 — Whole-repository re-audits
 
-### RISK-04 — Hermes UI presence mistaken for complete Hermes orchestration
+Mitigation: preserve existing evidence and create delta-only invalidation semantics.
 
-A harness card/room is not proof of the full runtime role.
+### RISK-06 — Frontend Studio overclaim
 
-**Mitigation:** keep state `IMPLEMENTED_PARTIAL` until routing, capabilities, recovery and telemetry prove the Rev 3 role.
+Mitigation: no `LIVE`/`VERIFIED` state without code-backed runtime/evidence.
 
-### RISK-05 — Frontend quality overclaim
+### RISK-07 — Tool auto-update instability
 
-DDE-067 landed the surface; DDE-068 is still required for rendered quality evidence.
-
-**Mitigation:** no `Definition of Polished` or quality badge without evidence-backed DDE-068 gates.
-
----
-
-## 7. Immediate next work packet
-
-Unless newer implementation evidence exists:
-
-**Mission:** DDE-068 Visual Verification & Critique Loop.
-
-Start by auditing these areas against the signed charter and Rev 3 plan:
-
-- `engine/verification/**`;
-- visual executor/oracle bindings;
-- `interfaces/dde-studio/visual/**`;
-- `scripts/design_lints.py`;
-- `tests/unit/test_studio_design_lints.py`;
-- Gateway/verification command path;
-- Evidence persistence;
-- approval/promotion call sites.
-
-First vertical slice should prove a real visual verification request can render a ProductEnvironment screen and persist an evidence-backed result.
+Mitigation: executable updates remain pinned until ToolUpdateManager/certification path is implemented; do not blindly auto-update.
 
 ---
 
 ## 8. Update protocol
 
-At the end of every meaningful implementation tranche:
+At the end of each meaningful tranche:
 
-1. record new head/commit;
+1. record new branch/HEAD/commit;
 2. change only states supported by evidence;
 3. list production call sites added;
 4. list tests/verification evidence;
-5. record residuals/blocks;
-6. update immediate next work packet;
-7. if architecture changed, update Blueprint/Decisions through the proper EDR/change-control path.
+5. record evidence invalidated vs inherited;
+6. record residuals/blocks;
+7. update immediate next work packet;
+8. update Blueprint/Plan only through proper change control if architecture/sequence materially changes;
+9. keep supporting docs synchronized without promoting them above the two canonical forward documents.
 
-Never erase an earlier limitation simply because later intent says it should be fixed.
+Never leave the only record of progress in chat/model memory.
