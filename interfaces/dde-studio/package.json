@@ -342,7 +342,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "tsc -p ./ --noEmit",
-    "test": "npm run check && npm run compile && node --test out/shared/*.test.js",
+    "test": "npm run check && npm run compile && node --test",
     "test:visual": "npm run check && npm run compile && node --test out/shared/overviewVisual.test.js && npx playwright test --config visual/playwright.config.ts",
     "package": "npm run compile && npx --yes @vscode/vsce package --no-dependencies",
     "dist:win": "npm run compile && npm --prefix desktop run dist:win",
