@@ -1,11 +1,11 @@
-"""Chapter 11.2 `visual_diff` binding — workspace JSON spec (DDE-044).
+"""Chapter 11.2 `visual_diff` binding — workspace JSON spec.
 
-Blueprint example ref: `visual/supplier-credit-screen.json`. The binding's
-`command[0]` is the workspace-relative path to this JSON; the runner loads
-it, captures a screenshot via `capability.browser`, and compares against
-the golden PNG named here.
-
-VLM critique / silhouette / Definition-of-Polished remain DDE-068.
+DDE-044 introduced deterministic screenshot/golden comparison. DDE-068
+extends the same rendered evidence request with hard Definition-of-Polished
+thresholds: believable density, generic-silhouette distance, and
+reduced-motion end-state preservation. Keeping these settings on the same
+workspace spec means the screenshot and the hard quality verdict are pinned
+to one URL, viewport and evidence lineage.
 """
 
 from __future__ import annotations
@@ -20,16 +20,14 @@ from engine.core.errors import DdeError
 DEFAULT_MAX_DIFF_PIXEL_RATIO = 0.02
 DEFAULT_VIEWPORT_WIDTH = 1280
 DEFAULT_VIEWPORT_HEIGHT = 720
+DEFAULT_DENSITY_FLOOR = 4
+DEFAULT_SILHOUETTE_THRESHOLD = 0.94
+DEFAULT_REDUCED_MOTION_END_STATE_SIMILARITY = 0.98
 
 
 @dataclass(frozen=True)
 class VisualDiffSpec:
-    """One deterministic pixel check.
-
-    `url` is navigated under the browser allowlist. `golden_path` is a
-    workspace-relative PNG. `max_diff_pixel_ratio` matches the studio
-    Phase-B default (EDR-0008 / Playwright `maxDiffPixelRatio: 0.02`).
-    """
+    """One deterministic rendered visual check."""
 
     url: str
     golden_path: str
@@ -39,6 +37,12 @@ class VisualDiffSpec:
     expect_text: str | None = None
     actual_path: str | None = None
     diff_path: str | None = None
+    quality_gate: bool = True
+    density_floor: int = DEFAULT_DENSITY_FLOOR
+    silhouette_threshold: float = DEFAULT_SILHOUETTE_THRESHOLD
+    reduced_motion_end_state_similarity: float = (
+        DEFAULT_REDUCED_MOTION_END_STATE_SIMILARITY
+    )
 
 
 def load_visual_diff_spec(path: Path) -> VisualDiffSpec:
@@ -85,6 +89,12 @@ def load_visual_diff_spec(path: Path) -> VisualDiffSpec:
         )
     width = int(viewport.get("width", DEFAULT_VIEWPORT_WIDTH))
     height = int(viewport.get("height", DEFAULT_VIEWPORT_HEIGHT))
+    if width <= 0 or height <= 0:
+        raise DdeError(
+            "POLICY_DENIED",
+            "visual_diff viewport dimensions must be positive",
+            details={"width": width, "height": height},
+        )
     ratio = float(raw.get("max_diff_pixel_ratio", DEFAULT_MAX_DIFF_PIXEL_RATIO))
     if not (0.0 <= ratio <= 1.0):
         raise DdeError(
@@ -101,6 +111,39 @@ def load_visual_diff_spec(path: Path) -> VisualDiffSpec:
         )
     actual = raw.get("actual_path")
     diff = raw.get("diff_path")
+    quality_gate = raw.get("quality_gate", True)
+    if not isinstance(quality_gate, bool):
+        raise DdeError(
+            "POLICY_DENIED",
+            "quality_gate must be boolean",
+            details={"path": str(path)},
+        )
+    density_floor = int(raw.get("density_floor", DEFAULT_DENSITY_FLOOR))
+    if not (0 <= density_floor <= 5):
+        raise DdeError(
+            "POLICY_DENIED",
+            "density_floor must be within [0, 5]",
+            details={"density_floor": density_floor},
+        )
+    silhouette_threshold = float(
+        raw.get("silhouette_threshold", DEFAULT_SILHOUETTE_THRESHOLD)
+    )
+    end_state_similarity = float(
+        raw.get(
+            "reduced_motion_end_state_similarity",
+            DEFAULT_REDUCED_MOTION_END_STATE_SIMILARITY,
+        )
+    )
+    for name, value in (
+        ("silhouette_threshold", silhouette_threshold),
+        ("reduced_motion_end_state_similarity", end_state_similarity),
+    ):
+        if not (0.0 <= value <= 1.0):
+            raise DdeError(
+                "POLICY_DENIED",
+                f"{name} must be within [0, 1]",
+                details={name: value},
+            )
     return VisualDiffSpec(
         url=url,
         golden_path=golden,
@@ -110,4 +153,8 @@ def load_visual_diff_spec(path: Path) -> VisualDiffSpec:
         expect_text=expect,
         actual_path=actual if isinstance(actual, str) else None,
         diff_path=diff if isinstance(diff, str) else None,
+        quality_gate=quality_gate,
+        density_floor=density_floor,
+        silhouette_threshold=silhouette_threshold,
+        reduced_motion_end_state_similarity=end_state_similarity,
     )

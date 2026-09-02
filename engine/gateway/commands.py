@@ -542,7 +542,14 @@ class CommandDispatcher:
                 parameters=params,
             )
         elif command_type == "frontend.prototype.request_pixel_signoff":
-            payload = await studio.request_pixel_signoff()
+            payload = await studio.request_pixel_signoff(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                principal_id=command.principal_id,
+                idempotency_key=key,
+                parameters=params,
+            )
         elif command_type == "frontend.canvas.insert_component":
             payload = await studio.insert_component(
                 tenant_id=tenant_id,

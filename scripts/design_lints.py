@@ -4,7 +4,9 @@ DDE styles live inside TS template strings, so the stylelint strict-value
 pattern is ported as a stdlib text scanner: raw colors, gradients,
 backdrop-filter, motion literals, font-family literals, emoji-as-UI, and
 off-scale spacing/font values are banned outside the generated tokens
-module. Exit 1 with file:line findings.
+module. DDE-068 adds file-level combination fingerprints (DD207+) so a
+surface that is individually token-clean can still fail when it reproduces
+one of the generic AI-layout combinations named by the playbook.
 
 Ratchet mode (--baseline): guardrail 4.14 lets legacy surfaces carry a
 committed violation budget per rule that may only shrink; any count above
@@ -50,6 +52,34 @@ SPACING_PROP = re.compile(
 FONT_SIZE_PROP = re.compile(r"(?<![\w-])font-size\s*:([^;]*)")
 LENGTH = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)(px|rem)")
 
+# DDE-068 combination fingerprints. They intentionally require several
+# independent signals: a single centred heading, a three-column layout, or
+# the word "indigo" is not a violation by itself. The rule catches the
+# *combination* that creates the generic template silhouette described in the
+# playbook. Likewise DD208 requires both UI emoji and repeated pill grammar.
+CENTERED_LAYOUT = re.compile(
+    r"text-align\s*:\s*center|justify-content\s*:\s*center",
+    re.I,
+)
+THREE_EQUAL_COLUMNS = re.compile(
+    r"grid-template-columns\s*:\s*repeat\(\s*3\s*,|"
+    r"grid-template-columns\s*:\s*(?:1fr\s+){2}1fr",
+    re.I,
+)
+HERO_LANGUAGE = re.compile(
+    r"\bhero\b|hero[-_ ]?(?:section|shell|content)",
+    re.I,
+)
+INDIGO_LANGUAGE = re.compile(
+    r"\bindigo\b|violet[-_ ]?accent|purple[-_ ]?accent",
+    re.I,
+)
+INTER_LANGUAGE = re.compile(r"\bInter\b", re.I)
+PILL_LANGUAGE = re.compile(
+    r"\bpill\b|radius[-_ ]?pill|border-radius\s*:\s*999",
+    re.I,
+)
+
 RULE_IDS = {
     "raw-color": "DD201",
     "backdrop-filter": "DD202",
@@ -57,6 +87,8 @@ RULE_IDS = {
     "font-family-literal": "DD204",
     "emoji": "DD205",
     "off-scale-value": "DD206",
+    "generic-ai-stack": "DD207",
+    "emoji-pill-spam": "DD208",
 }
 
 ALLOWLIST_FILES = {GENERATED_TOKENS.resolve()}
@@ -77,12 +109,37 @@ def _on_scale(value: str, unit: str, px_scale: set[str], rem_scale: set[str]) ->
     return normalized in (px_scale if unit == "px" else rem_scale)
 
 
+def _combination_findings(text: str) -> list[tuple[int, str, str]]:
+    findings: list[tuple[int, str, str]] = []
+    generic_signals = (
+        bool(CENTERED_LAYOUT.search(text)),
+        bool(THREE_EQUAL_COLUMNS.search(text)),
+        bool(HERO_LANGUAGE.search(text)),
+        bool(INDIGO_LANGUAGE.search(text)),
+        bool(INTER_LANGUAGE.search(text)),
+    )
+    # Require four of five signals so the detector is a high-precision
+    # fingerprint rather than a style preference. The combination may use
+    # token names rather than raw values, which is exactly why DD201-DD206
+    # alone cannot catch it.
+    if sum(generic_signals) >= 4:
+        findings.append((1, RULE_IDS["generic-ai-stack"], "generic-ai-stack"))
+
+    # Emoji alone is DD205. A pill alone is legitimate status/tag grammar.
+    # Their combination becomes the named anti-pattern only when pill
+    # language is repeated across the same surface.
+    if EMOJI.search(text) and len(PILL_LANGUAGE.findall(text)) >= 4:
+        findings.append((1, RULE_IDS["emoji-pill-spam"], "emoji-pill-spam"))
+    return findings
+
+
 def lint_file(
     path: Path, px_scale: set[str], rem_scale: set[str]
 ) -> list[tuple[int, str, str]]:
     findings: list[tuple[int, str, str]] = []
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        text = path.read_text(encoding="utf-8")
+        lines = text.splitlines()
     except (UnicodeDecodeError, OSError):
         return findings
     generated = path.resolve() in ALLOWLIST_FILES
@@ -130,6 +187,8 @@ def lint_file(
             stripped = re.sub(r"\$\{[^}]*\}", "", stripped)
             if EMOJI.search(stripped):
                 add("emoji")
+    if not generated:
+        findings.extend(_combination_findings(text))
     return findings
 
 

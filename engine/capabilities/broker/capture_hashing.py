@@ -5,6 +5,7 @@ from __future__ import annotations
 from engine.core.hashing import canonical_json, sha256_hex
 
 OPENSANDBOX_API_KEY_PROVIDER = "opensandbox_api_key"
+OPENROUTER_API_KEY_PROVIDER = "openrouter_api_key"
 FINGERPRINT_LEN = 12
 
 
