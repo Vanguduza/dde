@@ -1,14 +1,14 @@
 """Broker-internal authenticated JSON HTTP execution.
 
-This is the network counterpart to static-secret capture.  Callers provide a
-provider id, HTTPS URL and secret-free request body.  The raw provider secret
+This is the network counterpart to static-secret capture. Callers provide a
+provider id, HTTPS URL and secret-free request body. The raw provider secret
 is resolved and attached to the Authorization header entirely inside
 `engine.capabilities.broker`; it is never returned to an adapter, Gateway,
 Studio, event payload, log, or idempotency record.
 
 The caller must construct this service with an explicit hostname allowlist.
 Redirects are disabled so an allowed origin cannot bounce a credential to a
-different host.  This seam intentionally uses the Python standard library;
+different host. This seam intentionally uses the Python standard library;
 provider-specific request/response syntax belongs in `adapters/**`.
 """
 
@@ -21,6 +21,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from urllib.parse import urlparse
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -64,8 +65,8 @@ class BrokeredJsonHttpService:
     async def post_json(
         self,
         *,
-        tenant_id,
-        project_id,
+        tenant_id: UUID,
+        project_id: UUID,
         provider_id: str,
         url: str,
         body: dict[str, object],
@@ -130,7 +131,10 @@ class BrokeredJsonHttpService:
         headers: dict[str, str],
     ) -> BrokeredJsonResponse:
         started = time.monotonic()
-        request = urllib.request.Request(
+        # S310 is safe here: `post_json()` has already parsed this exact URL,
+        # required HTTPS, matched its hostname against the explicit allowlist,
+        # rejected URL userinfo, and this opener refuses redirects.
+        request = urllib.request.Request(  # noqa: S310
             url=url,
             data=encoded,
             headers=headers,
@@ -146,7 +150,7 @@ class BrokeredJsonHttpService:
             status = int(exc.code)
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise DdeError(
-                "PROVIDER_UNAVAILABLE",
+                "TOOL_FAILURE",
                 "brokered provider request failed",
                 retryable=True,
                 details={"error_type": type(exc).__name__},
@@ -164,14 +168,14 @@ class BrokeredJsonHttpService:
             parsed = json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise DdeError(
-                "PROVIDER_UNAVAILABLE",
+                "TOOL_FAILURE",
                 "brokered provider returned invalid JSON",
                 retryable=True,
                 details={"status_code": status},
             ) from exc
         if not isinstance(parsed, dict):
             raise DdeError(
-                "PROVIDER_UNAVAILABLE",
+                "TOOL_FAILURE",
                 "brokered provider response must be a JSON object",
                 retryable=True,
                 details={"status_code": status},
