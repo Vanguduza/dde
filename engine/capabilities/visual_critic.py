@@ -3,11 +3,11 @@
 The verification engine is allowed to ask for a subjective design judgement,
 but it is not allowed to know which external API performs that judgement.
 Provider request syntax, authentication and SDK/HTTP details live outside
-this module.  The result deliberately carries measured usage and cost so the
+this module. The result deliberately carries measured usage and cost so the
 verification path can enforce EDR-0016's hard spending ceilings without
 inventing estimates after the fact.
 
-A VisualCriticCapability is advisory evidence only.  It never edits a
+A VisualCriticCapability is advisory evidence only. It never edits a
 workspace, mutates Project Truth, approves its own result, or overrides a
 failed deterministic check.
 """
@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Protocol
+from uuid import UUID
 
 
 @dataclass(frozen=True)
@@ -33,11 +34,15 @@ class VisualCriticSpec:
     """One screenshot judgement request.
 
     `png_bytes` is captured from the real ProductEnvironment by
-    `capability.browser`.  `context` is bounded product/screen intent, not a
-    hidden worker transcript.  `model_id` is the policy-selected model pin;
+    `capability.browser`. `context` is bounded product/screen intent, not a
+    hidden worker transcript. `model_id` is the policy-selected model pin;
     verification never asks an adapter to silently choose a different model.
+    Tenant/project identity exists only so a broker-backed adapter can resolve
+    the correct project-scoped credential without widening that credential.
     """
 
+    tenant_id: UUID
+    project_id: UUID
     png_bytes: bytes
     statement: str
     rubric_version: str
