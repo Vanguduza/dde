@@ -18,6 +18,7 @@ from __future__ import annotations
 import base64
 import json
 from typing import Protocol
+from uuid import UUID
 
 from engine.capabilities.broker.capture_hashing import OPENROUTER_API_KEY_PROVIDER
 from engine.capabilities.broker.http import BrokeredJsonResponse
@@ -39,8 +40,8 @@ class BrokeredJsonClient(Protocol):
     async def post_json(
         self,
         *,
-        tenant_id,
-        project_id,
+        tenant_id: UUID,
+        project_id: UUID,
         provider_id: str,
         url: str,
         body: dict[str, object],
@@ -168,6 +169,7 @@ class OpenRouterVisualCritic:
             ],
             "temperature": 0,
             "max_tokens": MAX_COMPLETION_TOKENS,
+            "usage": {"include": True},
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
@@ -201,6 +203,7 @@ class OpenRouterVisualCritic:
         )
         if response.status_code < 200 or response.status_code >= 300:
             error = response.body.get("error")
+            error_type = type(error).__name__
             return VisualCriticResult(
                 exit_code=-1,
                 verdict="ERROR",
@@ -214,7 +217,9 @@ class OpenRouterVisualCritic:
                 cost_usd=0.0,
                 duration_ms=response.duration_ms,
                 timed_out=False,
-                stderr=f"OpenRouter HTTP {response.status_code}: {type(error).__name__}",
+                stderr=(
+                    f"OpenRouter HTTP {response.status_code}: {error_type}"
+                ),
             )
 
         try:
