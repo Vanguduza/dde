@@ -6,6 +6,13 @@ backdrop-filter, motion literals, font-family literals, emoji-as-UI, and
 off-scale spacing/font values are banned outside the generated tokens
 module. Exit 1 with file:line findings.
 
+DD207 (gap-closure-record.md §6.5; DDE-068 residual "combination lints")
+is a whole-file rule layered on top of DD201-206's per-line rules: it flags
+the specific generic-AI-tell fingerprint named in the playbook -- an
+Inter-only font, an indigo/violet gradient, and a repeated 3-card block --
+only when all three co-occur in one file. Any one or two alone is not
+flagged; DD201/DD204 already police the raw literals individually.
+
 Ratchet mode (--baseline): guardrail 4.14 lets legacy surfaces carry a
 committed violation budget per rule that may only shrink; any count above
 baseline fails. Without --baseline the law is absolute zero.
@@ -14,6 +21,7 @@ baseline fails. Without --baseline the law is absolute zero.
 from __future__ import annotations
 
 import argparse
+import colorsys
 import json
 import re
 import sys
@@ -57,7 +65,77 @@ RULE_IDS = {
     "font-family-literal": "DD204",
     "emoji": "DD205",
     "off-scale-value": "DD206",
+    "generic-tell-combination": "DD207",
 }
+
+# --- DD207 combination-lint detectors -------------------------------------
+#
+# Each leg is checked independently over the whole file; DD207 fires only
+# when all three legs are present (see module docstring). The hue band was
+# derived from the playbook's own example colors (#4f46e5 ~= 243 deg,
+# #7c3aed ~= 262 deg) with headroom on each side, capped before magenta/pink
+# (~300+ deg) so the rule stays specific to "indigo/violet".
+INDIGO_VIOLET_HUE_MIN_DEGREES = 215.0
+INDIGO_VIOLET_HUE_MAX_DEGREES = 300.0
+
+INTER_FONT_FAMILY = re.compile(r"font-family\s*:\s*[\"']?Inter\b", re.IGNORECASE)
+GRADIENT_FUNCTION = re.compile(r"(?:linear|radial)-gradient\(([^)]*)\)")
+GRADIENT_HEX_STOP = re.compile(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b")
+CARD_CLASS_ATTR = re.compile(
+    r'class(?:Name)?=["\']([^"\']*\bcard\b[^"\']*)["\']', re.IGNORECASE
+)
+
+
+def _hex_hue_degrees(hex_digits: str) -> float:
+    if len(hex_digits) == 3:
+        hex_digits = "".join(ch * 2 for ch in hex_digits)
+    r = int(hex_digits[0:2], 16) / 255.0
+    g = int(hex_digits[2:4], 16) / 255.0
+    b = int(hex_digits[4:6], 16) / 255.0
+    hue, _lightness, _saturation = colorsys.rgb_to_hls(r, g, b)
+    return hue * 360.0
+
+
+def _has_inter_font(text: str) -> bool:
+    return bool(INTER_FONT_FAMILY.search(text))
+
+
+def _has_indigo_violet_gradient(text: str) -> bool:
+    for gradient in GRADIENT_FUNCTION.finditer(text):
+        stops = GRADIENT_HEX_STOP.findall(gradient.group(1))
+        if not stops:
+            continue
+        if any(
+            INDIGO_VIOLET_HUE_MIN_DEGREES
+            <= _hex_hue_degrees(stop)
+            <= INDIGO_VIOLET_HUE_MAX_DEGREES
+            for stop in stops
+        ):
+            return True
+    return False
+
+
+def _three_card_repetition_line(lines: list[str]) -> int | None:
+    """First line of a class value that repeats 3+ times and names a card.
+
+    A card grid legitimately repeats a class name; the fingerprint this
+    rule targets is specifically *card*-shaped repetition (the playbook's
+    "centered-hero-3-card" pattern), not any repeated class in general.
+    """
+    first_seen: dict[str, int] = {}
+    counts: dict[str, int] = {}
+    for lineno, line in enumerate(lines, start=1):
+        for match in CARD_CLASS_ATTR.finditer(line):
+            value = match.group(1).strip()
+            if not value:
+                continue
+            counts[value] = counts.get(value, 0) + 1
+            first_seen.setdefault(value, lineno)
+    repeated = [value for value, count in counts.items() if count >= 3]
+    if not repeated:
+        return None
+    return min(first_seen[value] for value in repeated)
+
 
 ALLOWLIST_FILES = {GENERATED_TOKENS.resolve()}
 EXCLUDED_SUFFIXES = (".test.ts",)
@@ -130,6 +208,23 @@ def lint_file(
             stripped = re.sub(r"\$\{[^}]*\}", "", stripped)
             if EMOJI.search(stripped):
                 add("emoji")
+
+    if not generated:
+        whole_file = "\n".join(lines)
+        card_line = _three_card_repetition_line(lines)
+        if (
+            card_line is not None
+            and _has_inter_font(whole_file)
+            and _has_indigo_violet_gradient(whole_file)
+        ):
+            findings.append(
+                (
+                    card_line,
+                    RULE_IDS["generic-tell-combination"],
+                    "generic-tell-combination",
+                )
+            )
+
     return findings
 
 
