@@ -222,5 +222,13 @@ export function tokenCssRoot(): string {
       --z-overlay: 500;
       --z-toast: 600;
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      :root {
+        --motion-duration-fast: 0ms;
+        --motion-duration-base: 0ms;
+        --motion-duration-slow: 0ms;
+      }
+    }
   `;
 }

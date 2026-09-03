@@ -93,6 +93,26 @@ def _css_var_lines(tokens: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _reduced_motion_css_lines(tokens: dict[str, Any]) -> list[str]:
+    """Real `prefers-reduced-motion: reduce` support (DDE-068 residual,
+    gap-closure-record.md §6.5), not just a test-time emulation.
+
+    Every component that already animates through a `--motion-duration-*`
+    token gets this for free: no per-component media query is needed.
+    """
+    duration = tokens["motion"]["properties"]["duration"]["properties"]
+    lines = [
+        "",
+        "    @media (prefers-reduced-motion: reduce) {",
+        "      :root {",
+    ]
+    for name in duration:
+        lines.append(f"        --motion-duration-{_kebab(name)}: 0ms;")
+    lines.append("      }")
+    lines.append("    }")
+    return lines
+
+
 def _record_literal(entries: list[tuple[str, Any]]) -> str:
     body = ",\n".join(f'  "{name}": {json.dumps(value)}' for name, value in entries)
     return "{\n" + body + "\n}"
@@ -204,7 +224,10 @@ def _render_ts(tokens: dict[str, Any]) -> str:
     ]
 
     css_root_lines = _css_var_lines(tokens)
-    ts_root_block = "\n".join(["    :root {", *css_root_lines, "    }"])
+    reduced_motion_lines = _reduced_motion_css_lines(tokens)
+    ts_root_block = "\n".join(
+        ["    :root {", *css_root_lines, "    }", *reduced_motion_lines]
+    )
     sections.append(
         "/** CSS :root block consumed by sharedStyles(); codegen only. */\n"
         "export function tokenCssRoot(): string {\n"

@@ -81,6 +81,36 @@ def test_check_detects_drift(generator, tmp_path: Path, monkeypatch) -> None:
     assert generator.check(generator.render()) == 0
 
 
+def test_reduced_motion_media_query_zeroes_all_durations(generator) -> None:
+    # DDE-068 residual (gap-closure-record.md §6.5): "reduced-motion
+    # blocking assertions" require the product to *actually* respect
+    # prefers-reduced-motion, not just a test-time screenshot emulation.
+    # Every --motion-duration-* token must be overridden to 0ms inside a
+    # real @media (prefers-reduced-motion: reduce) block so any component
+    # already using the token automatically degrades, with no per-component
+    # media query needed.
+    tokens = generator.load_tokens()
+    duration_names = list(
+        tokens["motion"]["properties"]["duration"]["properties"].keys()
+    )
+    assert duration_names, "expected at least one motion duration token"
+    rendered = generator._render_ts(tokens)
+    assert "@media (prefers-reduced-motion: reduce)" in rendered
+    media_block = rendered.split("@media (prefers-reduced-motion: reduce)", 1)[1]
+    for name in duration_names:
+        var_name = f"--motion-duration-{generator._kebab(name)}"
+        assert f"{var_name}: 0ms;" in media_block, (
+            f"{var_name} not zeroed inside the reduced-motion media block"
+        )
+
+
+def test_reduced_motion_block_matches_current_generated_file(generator) -> None:
+    expected = generator._render_ts(generator.load_tokens())
+    actual = GENERATED_TS.read_text(encoding="utf-8").replace("\r\n", "\n")
+    assert "@media (prefers-reduced-motion: reduce)" in actual
+    assert actual == expected
+
+
 def test_new_palette_token_flows_into_generated_output(
     generator, tmp_path: Path, monkeypatch
 ) -> None:
