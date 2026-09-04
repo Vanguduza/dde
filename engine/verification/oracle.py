@@ -9,11 +9,15 @@ repository layout puts "oracle, runners, product envs" under
 
 **Stage 1+5 scope, stated explicitly:** deterministic bindings plus the
 DDE-043 `api_probe` browser probe, DDE-044 `visual_diff` pixel check,
-DDE-048 `android_scan`, and DDE-049's `db_assertion`.
+DDE-068 `silhouette` layout-fingerprint gate, DDE-048 `android_scan`, and
+DDE-049's `db_assertion`.
 `judge`/`human` are rejected by `validate_definition`.
 `test`/`invariant` remain command-exit evidence;
 `api_probe` is a Playwright navigation whose argv is `[url, expect_text?]`;
 `visual_diff` argv is `[visual/*.json]` (Chapter 11.2);
+`silhouette` argv is `[url, expect_text?]` (playbook §10.3: renders the
+page, fingerprints its coarse layout occupancy grid, and blocks on a
+near-match against the self-generated generic-layout corpus);
 `security_scan` argv is `[sast]` (DDE-045 in-process SAST);
 `android_scan` argv is `[static]` (DDE-048 in-process APK analysis);
 `db_assertion` argv is `[datastore_url, assertion_sql...]`
@@ -48,6 +52,7 @@ from engine.verification.repository import AcceptanceOracleRepository
 #: Kinds this runner can genuinely execute. `judge`/`human` remain valid
 #: enum members but have no executor here (DDE-068 for VLM critique).
 #: `api_probe` is DDE-043; `visual_diff` is DDE-044 (pixel goldens);
+#: `silhouette` is DDE-068 (layout-fingerprint gate, playbook §10.3);
 #: `android_scan` is DDE-048; `db_assertion` is DDE-049.
 EXECUTABLE_KINDS: frozenset[str] = frozenset(
     {
@@ -55,6 +60,7 @@ EXECUTABLE_KINDS: frozenset[str] = frozenset(
         "invariant",
         "api_probe",
         "visual_diff",
+        "silhouette",
         "security_scan",
         "android_scan",
         "db_assertion",

@@ -65,7 +65,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Landed in commit `9a8bb86...`; chapter-gate document exists. Treat later regressions separately. |
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
-| DDE-068 Visual Verification & Critique Loop | `PLANNED` | DDE-067 chapter gate names it as next sequential mission; accepted EDR-0016 authorizes the VLM critic dependency. No DDE-068 implementation commit was found in the repo search used for this snapshot. |
+| DDE-068 Visual Verification & Critique Loop | `IMPLEMENTED_PARTIAL` | See §3's dedicated DDE-068 entry below: silhouette-distinctiveness gate landed with a real production call site; token-injection golden fix landed; VLM critique and the density floor that depends on it remain `BLOCKED_EXTERNAL` (no real multimodal-model provider credential exists in any environment this project has run in to date). |
 | DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `PLANNED` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Hard-blocked on DDE-068 evidence per FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause; no implementation commit exists yet. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
@@ -130,22 +130,112 @@ Observed evidence:
 
 ### DDE-068 — Visual Verification & Critique Loop
 
-**State:** `PLANNED`, next sequential mission.
+**State:** `IMPLEMENTED_PARTIAL`.
 
 **Unblocked by:** accepted EDR-0016.
 
-**Required before completion:**
+**Required before completion, evidence-checked 2026-09-04:**
 
-1. real visual executor behind DDE verification capability;
-2. persisted screenshot/render evidence;
-3. DD207+ combination lints;
-4. silhouette/fingerprint gate;
-5. believable-density enforcement;
-6. reduced-motion semantic assertions;
-7. VLM screenshot critique as rank-9 evidence;
-8. bounded revision <= 3 cycles;
-9. human escalation after bound;
-10. real production promotion/merge gate consuming visual verdicts.
+1. real visual executor behind DDE verification capability — `LANDED`.
+   `engine/verification/checks.py::run_check` dispatches `api_probe` and
+   `visual_diff` through the brokered `BrowserCapability`
+   (`engine/capabilities/browser.py`); `oracle.py`'s `EXECUTABLE_KINDS`
+   includes both. Predates this tranche (DDE-043/044); verified still real
+   by reading the current call sites, not assumed from the plan.
+2. persisted screenshot/render evidence — `LANDED`. `_run_visual_diff`
+   writes `actual_path`/`diff_path` PNGs under the workspace and returns
+   `actual_sha256`/`golden_sha256`/`diff_ratio` as `CheckResult` evidence.
+3. DD207+ combination lints — `LANDED`. `scripts/design_lints.py`'s
+   `DD207`/`generic-tell-combination` detector (Inter-only + indigo accent
+   + centered-hero-3-card, emoji-icon + pill-spam) runs inside `just check`
+   (`design-lints` recipe) with a committed shrink-only baseline
+   (`docs/design/lint-baseline.json`).
+4. silhouette/fingerprint gate — `LANDED` (this tranche, commit
+   `582e06a`'s follow-up). `engine/verification/silhouette.py`:
+   `compute_fingerprint()` reduces a rendered PNG to a coarse
+   `GRID_COLS`x`GRID_ROWS` content/empty occupancy grid (variance +
+   background-luminance-delta classifier per cell, deterministic and
+   hash-recorded per playbook §10.3's acceptance criterion);
+   `evaluate_silhouette()` Jaccard-matches it against
+   `GENERIC_LAYOUT_CORPUS` -- two self-generated templates
+   (`centered-hero-3-card`, `centered-hero-plus-badge`) traced verbatim to
+   the tells already named in `dde-frontend-ux-playbook.md` §1/§10.2
+   (EDR-0016 decision 6: self-generated corpus, no scraping). New oracle
+   kind `"silhouette"` added to `schemas/objects/acceptance_oracle.json`
+   (regenerated into `engine/contracts/acceptance_oracle.py` via
+   `scripts/generate_contracts`), `EXECUTABLE_KINDS`, and a real executor
+   `_run_silhouette()` in `checks.py` that renders through the same
+   brokered `BrowserCapability` as `visual_diff`, fails closed without a
+   browser capability, and returns `FAILED`/`exit_code=1` on a near-match
+   (`NEAR_MATCH_THRESHOLD=0.85`) -- "near-match = review blocker
+   regardless of palette" per playbook §10.3.
+   **Test evidence:** `tests/unit/test_silhouette.py` (9 tests: fingerprint
+   determinism, corpus match/no-match on synthetic self-drawn PNGs, the
+   `_run_silhouette` executor pass/fail/fail-closed paths, and the
+   `EXECUTABLE_KINDS`/`validate_definition` contract) — **passed 9/9**
+   with the optional `pillow` extra installed (`uv sync --extra browser`).
+   Pillow is not in the default `uv sync --group dev` CI environment (same
+   as the pre-existing `visual_diff`/`api_probe` browser-capability tests,
+   e.g. `test_real_playwright_file_url_when_installed`), so the file
+   `pytest.importorskip("PIL")`-skips there rather than silently
+   fabricating a pass; `ruff`/`mypy` are clean in the default (no-extra)
+   environment, matching what CI actually runs.
+5. believable-density enforcement — `BLOCKED_EXTERNAL`. Per
+   `docs/planning/product-studio-charter.md` line 373 and playbook §8.3,
+   this is a *rubric-scored* dimension ("believable-density >= 4",
+   "hierarchy, rhythm, and states" judged from rendered pixels), not a
+   deterministic check — it is one scored dimension of the same VLM
+   critique call as item 7, so it shares that blocker. A deterministic
+   proxy (e.g. regex-detecting `"Item 1"`/lorem-style filler strings) was
+   considered and rejected: it would silently substitute a materially
+   weaker mechanism for the spec's rubric-scored gate and misrepresent
+   what "believable-density enforcement" means per the accepted EDR/plan.
+6. reduced-motion semantic assertions — `LANDED` (recovered this session,
+   commit `582e06a`'s parent `b35fb41`). `screens.spec.ts`'s
+   reduced-motion-semantics test reads real computed
+   `animation-duration`/`animation-name` under
+   `prefers-reduced-motion: reduce`, distinct from the pre-existing
+   snapshot-only reduced-motion golden.
+7. VLM screenshot critique as rank-9 evidence — `BLOCKED_EXTERNAL`.
+   Verified (not assumed) before writing this: no `ANTHROPIC_API_KEY` or
+   any multimodal-provider credential is present in this or any prior
+   session environment for this project; `engine/routing/rules.py`'s
+   Appendix A "vision and visual evidence" profile is a routing-eligibility
+   *description*, not a wired adapter; no `engine/**` module imports an
+   `anthropic`/`openai`/vision-provider SDK — the only sanctioned model
+   egress recorded anywhere in the repo is
+   `engine/capabilities/seed.py`'s `"external:anthropic (via local claude
+   CLI only)"`, which is not a callable production API surface this
+   codebase can invoke as a brokered capability. Per RESUME_PROMPT.md
+   §15's stop condition ("a provider/interface ... is unavailable and no
+   generic contract path can progress safely"), this is reported as a
+   genuine external blocker rather than stubbed with a fabricated verdict.
+8. bounded revision <= 3 cycles — `BLOCKED_EXTERNAL`, downstream of 7 (the
+   revision loop has nothing to bound without a real critique call).
+9. human escalation after bound — `BLOCKED_EXTERNAL`, downstream of 7/8.
+10. real production promotion/merge gate consuming visual verdicts — `NOT
+    STARTED` this tranche. `FAILED` `CheckResult`s from `visual_diff`/
+    `silhouette` already flow into the generic verification-run
+    pass/fail signal, but no code path was found or built that makes a
+    DDE "merge"/task-completion decision actually refuse on that signal
+    (`engine/governance/` has no `promotion`/`merge_gate` module; the
+    `promotion_gate_run` contract that does exist belongs to a different
+    subsystem, Ch.5.13's eval-corpus promotion, DDE-031 — not this gate).
+    Next work packet's first item.
+
+**Immediate next work packet:**
+
+- Wire item 10: find or build the real task/mission completion path that
+  consumes `VerificationRun` status and refuses to advance on a `FAILED`
+  `visual_diff`/`silhouette` result, with a contract test exercising the
+  refusal (not just the happy path), per the charter's own acceptance
+  criterion for this mission.
+- Items 5/7/8/9 stay `BLOCKED_EXTERNAL` until a real multimodal-model
+  provider credential is admitted through the brokered capability path
+  (Appendix A "vision" profile gets a real adapter under `adapters/**`,
+  `RouterService.model_mode="fixed"` pins it, EDR-0016's cost ceiling is
+  enforced). Do not stub a fake critique response to unblock these —
+  report the blocker at the next session's start per RESUME_PROMPT.md §16.
 
 ### DDE-069 — DDE Code / Frontend Studio V2 + Live Design Foundation
 

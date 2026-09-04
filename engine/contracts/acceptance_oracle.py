@@ -19,6 +19,7 @@ class EvidenceBinding(BaseModel):
         "db_assertion",
         "api_probe",
         "visual_diff",
+        "silhouette",
         "security_scan",
         "android_scan",
         "invariant",

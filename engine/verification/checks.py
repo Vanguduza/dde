@@ -35,6 +35,7 @@ from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
 from engine.truth.db import PostgresUnitOfWork
 from engine.verification.pixel_compare import compare_pngs
+from engine.verification.silhouette import evaluate_silhouette
 from engine.verification.visual_spec import load_visual_diff_spec
 from engine.workspaces.service import WorkspaceService
 
@@ -94,15 +95,17 @@ async def run_check(
     database: DatabaseCapability | None = None,
 ) -> CheckResult:
     """Execute one real check. `test`/`invariant` run via
-    `WorkspaceService.execute()`. `api_probe`/`visual_diff` run via the
-    injected `BrowserCapability`. `security_scan` runs via the injected
-    `SecurityCapability`; `android_scan` via the injected
+    `WorkspaceService.execute()`. `api_probe`/`visual_diff`/`silhouette` run
+    via the injected `BrowserCapability`. `security_scan` runs via the
+    injected `SecurityCapability`; `android_scan` via the injected
     `AndroidCapability`; `db_assertion` via the injected
     `DatabaseCapability`."""
     if spec.kind == "api_probe":
         return await _run_api_probe(spec, browser=browser)
     if spec.kind == "visual_diff":
         return await _run_visual_diff(workspace, spec, browser=browser)
+    if spec.kind == "silhouette":
+        return await _run_silhouette(spec, browser=browser)
     if spec.kind == "security_scan":
         return await _run_security_scan(workspace, spec, security=security)
     if spec.kind == "android_scan":
@@ -153,6 +156,74 @@ async def _run_api_probe(
         duration_ms=probe.duration_ms,
         timed_out=probe.timed_out,
         status=status,
+    )
+
+
+async def _run_silhouette(
+    spec: CheckSpec, *, browser: BrowserCapability | None
+) -> CheckResult:
+    """DDE-068 playbook §10.3 silhouette gate: render the page, fingerprint
+    its coarse layout occupancy grid, and fail closed on a near-match
+    against the self-generated generic-layout corpus (near-match blocks
+    regardless of palette -- `engine.verification.silhouette`)."""
+    if browser is None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "silhouette requires a BrowserCapability (capability.browser); "
+            "none was injected on the verification runner",
+            details={"check_ref": spec.ref},
+        )
+    if not spec.command:
+        raise DdeError(
+            "POLICY_DENIED",
+            "silhouette command[0] must be the URL to render",
+            details={"check_ref": spec.ref},
+        )
+    url = spec.command[0]
+    expect_text = spec.command[1] if len(spec.command) > 1 else None
+    capture = await browser.screenshot(
+        BrowserCaptureSpec(
+            url=url,
+            viewport_width=1280,
+            viewport_height=720,
+            expect_text=expect_text,
+        )
+    )
+    if capture.exit_code != 0 or capture.timed_out:
+        status = _check_status(exit_code=capture.exit_code, timed_out=capture.timed_out)
+        return CheckResult(
+            check_ref=spec.ref,
+            kind=spec.kind,
+            command=list(spec.command),
+            exit_code=capture.exit_code,
+            stdout="",
+            stderr=capture.stderr,
+            duration_ms=capture.duration_ms,
+            timed_out=capture.timed_out,
+            status=status,
+        )
+    verdict = evaluate_silhouette(capture.png_bytes)
+    evidence = {
+        "url": url,
+        "grid_cols": verdict.fingerprint.grid_cols,
+        "grid_rows": verdict.fingerprint.grid_rows,
+        "fingerprint_hash": verdict.fingerprint.fingerprint_hash,
+        "matched_template": verdict.matched_template,
+        "similarity": verdict.similarity,
+        "blocked": verdict.blocked,
+        "detail": verdict.detail,
+    }
+    exit_code = 1 if verdict.blocked else 0
+    return CheckResult(
+        check_ref=spec.ref,
+        kind=spec.kind,
+        command=list(spec.command),
+        exit_code=exit_code,
+        stdout=json.dumps(evidence, sort_keys=True),
+        stderr="" if not verdict.blocked else verdict.detail,
+        duration_ms=capture.duration_ms,
+        timed_out=False,
+        status=_check_status(exit_code=exit_code, timed_out=False),
     )
 
 
