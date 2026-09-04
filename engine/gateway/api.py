@@ -142,6 +142,52 @@ async def accept_command(command: Command, request: Request) -> dict[str, object
     return _acceptance_dict(await _services(request).commands.accept(command=command))
 
 
+@router.get("/missions/{mission_id}/frontend/snapshot")
+async def read_frontend_snapshot(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_snapshot(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/previews/{preview_session_id}")
+async def read_frontend_preview(
+    mission_id: UUID,
+    preview_session_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_preview(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        preview_session_id=preview_session_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/inspector/{candidate_id}")
+async def read_frontend_inspector(
+    mission_id: UUID,
+    candidate_id: UUID,
+    pxg_key: str,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_inspector(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        candidate_id=candidate_id,
+        pxg_key=pxg_key,
+    )
+
+
 @router.get("/missions/{mission_id}", response_model=Mission)
 async def read_mission(
     mission_id: UUID,

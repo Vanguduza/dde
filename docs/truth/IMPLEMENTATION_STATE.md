@@ -66,12 +66,12 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend and DesignGateway are landed; the inherited DDE-068 binding carry-over is closed. Live preview, stable canvas identity, functional Inspector, React Chat UI, Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. React live-canvas wiring, workbench selection/edit E2E, React Chat UI, Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
 | DeepSeek worker integration | `IMPLEMENTED_PARTIAL` | Harness/profile references exist; Rev 3 lower-cost delegation policy and measured routing specialization remain to be proven end-to-end. |
-| Frontend Studio professional Rev 3 redesign | `IMPLEMENTED_PARTIAL` | The host-neutral React shell, canonical composition and DDE-068 backend integration exist. The real live canvas, stable selection, functional Inspector, React Chat UI, Screen Audit and source intelligence are still incomplete under DDE-069. |
+| Frontend Studio professional Rev 3 redesign | `IMPLEMENTED_PARTIAL` | The host-neutral React shell, canonical composition, DDE-068 backend integration, code-backed prototype preview foundation and InspectorDescriptor reads exist. React/host live-canvas wiring, real selected-node editing, React Chat UI, Screen Audit and source intelligence are still incomplete under DDE-069. |
 | Routing intelligence / learned policy promotion | `IMPLEMENTED_PARTIAL` | Existing routing registry/telemetry/learning planning exists; open EDR/partial implementation records require careful production-call-site audit before claiming full adaptive routing. |
 | Context optimization / repository memory | `IMPLEMENTED_PARTIAL` | Rev 3 bootstrap removes chat history as a required project-memory source; deeper task-packet/retrieval optimization remains planned. |
 | Windows complete installer / DDE Code distribution | `IMPLEMENTED_PARTIAL` | README and packaging describe DDE Code + Core/Postgres/Redis/migrations/wizard paths; release/recovery/signing/operational hardening remains a Rev 3 phase. |
@@ -334,9 +334,11 @@ covers it automatically.
 
 **State:** `IN_PROGRESS` (reconstructed 2026-09-05). Backend domain, M7
 mutation/candidate/lock runtime, the host-neutral React shell, Frontend Chat
-backend and DesignGateway are implemented. Live preview, stable selection,
-descriptor-driven Inspector, React Chat UI, Screen Audit and M8 Source
-Intelligence are not complete.
+backend and DesignGateway are implemented. A code-backed prototype preview
+runtime, stable PXG instrumentation, InspectorDescriptor projection and
+mission-scoped Frontend Gateway reads are implemented as backend foundation.
+The React live canvas/selection/edit loop, React Chat UI, Screen Audit and M8
+Source Intelligence are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
 the authoritative per-control projection of
@@ -409,14 +411,28 @@ neither is a completion claim under v2.
   accepting it, and reaches code only through Try live's isolated
   candidate. Commands: `frontend.design.provider_status|request|try_live`,
   `frontend.chat.open|set_context|send`.
+- **Code-backed preview + Inspector foundation** — `engine/studio/preview_runtime/`,
+  `engine/studio/inspector.py`, migration `0027`, and mission-scoped Frontend
+  Gateway reads. `PrototypeHtmlPreviewAdapter` materializes actual candidate
+  workspace code, applies the governed mutation log, instruments stable
+  `pxg_key` anchors, and requires a content-hash/browser handshake before a
+  preview session can become `LIVE`. Unsupported React/Vite source remains
+  typed unavailable rather than being substituted with `srcDoc` demo HTML.
+  `InspectorDescriptor` derives legal token values, source mapping, lock/stale
+  writability and verification invalidation from real project state. The
+  mutation planner now also refuses stale candidate bases and rechecks accepted
+  PXG revision inside apply-time write authority. Evidence:
+  `docs/evidence/dde-069/PREVIEW_RUNTIME_FOUNDATION.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / not started:** M8 source adapters, provenance and candidate
-scoring; code-backed candidate preview/runtime; rendered-node ↔ `pxg_key`
-instrumentation and stable selection; Inspector descriptor reads and actual
-property controls; the React Frontend Chat composer/context surface; mandatory
-Screen Audit domain/projections/Coverage-QA-Architecture integration and
-dogfood; cross-DDE migration (M12); mobile adapters (M13).
+scoring; general React/Vite/Expo PreviewRuntimeAdapters; React/host binding of
+the live candidate document; workbench selected-node state and selection
+outline; actual Inspector controls and Inspector edit → mutation → rerender E2E;
+DDE-068 rerun scheduling after preview-invalidating edits; the React Frontend
+Chat composer/context surface; mandatory Screen Audit domain/projections/
+Coverage-QA-Architecture integration and dogfood; cross-DDE migration (M12);
+mobile adapters (M13).
 
 #### `Claude /design` — BLOCKED_EXTERNAL on a certified transport
 
@@ -447,8 +463,9 @@ proven against a stub transport in
 **Deliberately honest gaps at this snapshot.** Candidate thumbnails, scores,
 Try-live and compare do not exist as functional React controls. The current
 candidate strip renders an explicit `NOT_IMPLEMENTED` state and deliberately
-shows no Direction A/B/C cards at all, because no preview runtime or
-`CandidateScorecard` exists. Backend candidate/Try-live operations are real,
+shows no Direction A/B/C cards at all. A real prototype-HTML preview runtime
+now exists behind Core/Gateway, but the React candidate strip does not consume
+it and `CandidateScorecard` still does not exist. Backend candidate/Try-live operations are real,
 but they are not counted as UI completion (FRONTEND_STUDIO_REV3 section 17.2
 forbids fabricated scores).
 
@@ -688,18 +705,23 @@ Unless newer implementation evidence exists:
 
 **Mission:** DDE-069 — real Frontend Studio vertical slice.
 
-The multidimensional 99-control ledger is now hardened. Stop expanding backend
-breadth and implement the first missing end-to-end dependency:
+The multidimensional ledger, prototype-HTML preview service, stable PXG
+instrumentation, InspectorDescriptor and mission-scoped Core reads are now
+landed. The next dependency is the real workbench integration, not more backend
+breadth:
 
-1. code-backed isolated candidate `PreviewRuntimeAdapter` with honest
-   BUILDING / LOADING / LIVE / STALE / RUNTIME_ERROR / RENDER_ERROR /
-   UNAVAILABLE states;
-2. rendered-node instrumentation ↔ stable `pxg_key` ↔ PXG/source identity;
-3. canvas selection → descriptor-driven Inspector reads;
-4. token/lock/stale-governed Inspector edit → `MutationRequest` → Gateway /
-   MutationPlanner → candidate mutation → rerender;
-5. verification invalidation and DDE-068 recheck where required;
-6. real React/Playwright proof through the workbench, not service-only tests.
+1. make the host bridge execute the canonical mission-scoped Frontend reads and
+   `/v1/commands` without a parallel extension API;
+2. bind CandidateBoardSnapshot to real candidate cards and open the latest real
+   preview document in a sandboxed canvas;
+3. browser ready → `frontend.preview.set_state` → Core-confirmed `LIVE`;
+4. preview selection message → stable `pxg_key` → InspectorDescriptor → real
+   selected-node/selection-outline state;
+5. descriptor control → `frontend.mutation.apply` → candidate `DIRTY` → preview
+   rerender → new hash/handshake, with stale/lock/token refusal surfaced;
+6. invalidate/re-run DDE-068 evidence where the descriptor requires it;
+7. prove the whole flow through React/Playwright plus production host/Gateway
+   integration evidence.
 
 After that vertical slice is green, bind the existing Frontend Chat backend to
 the React composer/context surface, then implement the mandatory Screen Audit

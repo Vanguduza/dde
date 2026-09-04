@@ -58,6 +58,7 @@ from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.mutations.planner import MutationRequest
+from engine.studio.preview_runtime.service import PreviewService, PreviewState
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.truth.db import open_unit_of_work
@@ -140,6 +141,21 @@ class FrontendStudioService:
             locks=self._lock_service(),
             coverage=self._coverage,
             mutations=self._mutation_executor(),
+        )
+
+    def _preview_service(self) -> PreviewService:
+        candidates = self._candidate_service()
+        mutations = MutationExecutor(
+            self._engine,
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            candidates=candidates,
+        )
+        return PreviewService(
+            self._engine,
+            workspaces=self._workspaces,
+            candidates=candidates,
+            mutations=mutations,
         )
 
     def _screens(self) -> ScreenAcceptanceService:
@@ -637,6 +653,76 @@ class FrontendStudioService:
             "target_key": compensating.target_key,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
+
+    async def start_preview(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.preview.start` -- materialize real candidate code."""
+        source_workspace = _optional_uuid(parameters, "source_workspace_id")
+        session = await self._preview_service().start(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            screen_key=_str(parameters, "screen_key"),
+            viewport=_str(parameters, "viewport"),
+            source_workspace_id=source_workspace,
+        )
+        return _preview_payload(session)
+
+    async def set_preview_state(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Browser-owned preview signals.
+
+        Server-owned build/render/staleness states cannot be asserted by the UI.
+        """
+        state = PreviewState(_str(parameters, "state"))
+        service = self._preview_service()
+        if state is PreviewState.LIVE:
+            session = await service.confirm_live(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                preview_session_id=_uuid(parameters, "preview_session_id"),
+                content_hash=_str(parameters, "content_hash"),
+            )
+        elif state is PreviewState.RUNTIME_ERROR:
+            session = await service.report_runtime_error(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                preview_session_id=_uuid(parameters, "preview_session_id"),
+                detail=_str(parameters, "detail"),
+            )
+        else:
+            raise DdeError(
+                "POLICY_DENIED",
+                "clients may only attest LIVE or report RUNTIME_ERROR; "
+                "build/render/stale states are server-owned",
+                retryable=False,
+                details={"state": state.value},
+            )
+        return _preview_payload(session)
+
+    async def stop_preview(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        session = await self._preview_service().stop(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            preview_session_id=_uuid(parameters, "preview_session_id"),
+        )
+        return _preview_payload(session)
 
     async def create_lock(
         self,
@@ -1191,6 +1277,25 @@ class FrontendStudioService:
     ) -> None:
         workspace = await self._workspace(tenant_id, project_id, parameters)
         self._workspaces.write(workspace, FLOWS_RELATIVE, dump_manifest(manifest))
+
+
+def _preview_payload(session: Any) -> dict[str, object]:
+    return {
+        "preview_session_id": str(session.preview_session_id),
+        "candidate_id": str(session.candidate_id),
+        "workspace_id": (str(session.workspace_id) if session.workspace_id else None),
+        "screen_key": session.screen_key,
+        "state": session.state,
+        "viewport": session.viewport,
+        "route": session.route,
+        "candidate_pxg_revision": session.candidate_pxg_revision,
+        "source_revision": session.source_revision,
+        "source_path": session.source_path,
+        "document_path": session.document_path,
+        "content_hash": session.content_hash,
+        "state_detail": session.state_detail,
+        "side_effect_class": "WORKSPACE_LOCAL",
+    }
 
 
 def _str(parameters: dict[str, object], name: str) -> str:

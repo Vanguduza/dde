@@ -5361,47 +5361,78 @@
         "BUILD_FAILED",
         "RUNTIME_UNAVAILABLE"
       ],
-      "note": "The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3).",
+      "note": "A real code-backed prototype-HTML PreviewRuntimeAdapter and PreviewService now exist. The React workbench still renders the prior honest unavailable Design surface, so UI/WIRED/E2E remain incomplete.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/runtime.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3)."
+          "note": "Code-backed prototype-HTML candidate preview sessions now implement persisted BUILDING/LOADING/LIVE/STALE/error semantics; React/host execution is not yet proven end-to-end."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_preview_gateway_reads.py"
           ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Mission-scoped Gateway reads expose candidate/preview state and the actual materialized preview document; fresh PostgreSQL execution is unavailable on this host."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/runtime.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "frontend.preview.start|set_state|stop are registered and mapped to PreviewService; no fresh PostgreSQL Gateway E2E is available on this host."
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/runtime.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3)."
+          "note": "Code-backed prototype-HTML candidate preview sessions now implement persisted BUILDING/LOADING/LIVE/STALE/error semantics; React/host execution is not yet proven end-to-end."
         },
         "UI": {
           "applicable": true,
@@ -5472,23 +5503,36 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/runtime.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9."
+          "note": "LIVE is server-owned and requires browser content-hash attestation plus current candidate workspace/state/PXG checks; no React badge is wired yet."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_preview_gateway_reads.py"
           ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Preview session state is available through mission-scoped Core reads, but the React badge does not consume it yet."
         },
         "COMMAND": {
           "applicable": false,
@@ -5500,15 +5544,22 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/runtime.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9."
+          "note": "LIVE is server-owned and requires browser content-hash attestation plus current candidate workspace/state/PXG checks; no React badge is wired yet."
         },
         "UI": {
           "applicable": true,
@@ -5663,7 +5714,7 @@
       "failure_states": [
         "SOURCE_MAPPING_UNAVAILABLE"
       ],
-      "note": "",
+      "note": "Stable pxg_key instrumentation is implemented in the code-backed prototype preview. DOM geometry remains overlay metadata only; the React selection outline is still unbound.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -5675,11 +5726,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/studio/inspector.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/unit/test_frontend_inspector.py"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "The preview emits stable pxg_key selection anchors and Core can resolve that key to an InspectorDescriptor; React does not yet consume the message."
         },
         "COMMAND": {
           "applicable": false,
@@ -5691,11 +5748,15 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_preview_runtime.py"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Stable selection identity exists in the preview protocol and survives DOM reordering; selected-node UI state is not yet implemented."
         },
         "UI": {
           "applicable": true,
@@ -7124,20 +7185,14 @@
         },
         "READ": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/reads.py",
+            "engine/studio/candidates/service.py"
           ],
-          "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
-          ],
+          "test_refs": [],
           "evidence_refs": [],
-          "note": ""
+          "note": "CandidateBoardSnapshot now projects real candidate lifecycle/staleness and latest preview state. A dedicated projection test and React card binding are still missing."
         },
         "COMMAND": {
           "applicable": true,
@@ -8354,27 +8409,37 @@
         "NO_SELECTION",
         "SOURCE_MAPPING_UNAVAILABLE"
       ],
-      "note": "The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed.",
+      "note": "InspectorDescriptor and mission-scoped read transport are implemented. The existing React panel still receives selectedKey=null, so no UI completion is claimed.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py"
+          ],
           "evidence_refs": [],
-          "note": "The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed."
+          "note": "InspectorDescriptor resolves real candidate PXG/source identity and staleness/lock state; the React Inspector still has no selected-node binding."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "engine/studio/inspector.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py"
           ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "InspectorDescriptor resolves real candidate PXG/source identity and staleness/lock state; the React Inspector still has no selected-node binding."
         },
         "COMMAND": {
           "applicable": false,
@@ -8386,15 +8451,18 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "engine/studio/inspector.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py"
           ],
           "evidence_refs": [],
-          "note": "The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed."
+          "note": "InspectorDescriptor resolves real candidate PXG/source identity and staleness/lock state; the React Inspector still has no selected-node binding."
         },
         "UI": {
           "applicable": true,
@@ -8571,26 +8639,27 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_inspector.py"
           ],
           "evidence_refs": [],
-          "note": ""
+          "note": "Descriptor-driven token style properties, legal values, computed values, source mapping, lock behaviour and verification invalidation are implemented; the Style tab UI is not wired."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py"
+          ],
           "evidence_refs": [],
-          "note": "The declared InspectorDescriptor read model is not implemented; mutation planner/executor evidence does not substitute for descriptor resolution."
+          "note": "Descriptor-driven token style properties, legal values, computed values, source mapping, lock behaviour and verification invalidation are implemented; the Style tab UI is not wired."
         },
         "COMMAND": {
           "applicable": true,
@@ -8609,18 +8678,15 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_inspector.py"
           ],
           "evidence_refs": [],
-          "note": ""
+          "note": "Descriptor-driven token style properties, legal values, computed values, source mapping, lock behaviour and verification invalidation are implemented; the Style tab UI is not wired."
         },
         "UI": {
           "applicable": true,

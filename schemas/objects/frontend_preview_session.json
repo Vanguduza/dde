@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_preview_session.json",
+  "title": "FrontendPreviewSession",
+  "description": "DDE-069 code-backed candidate preview session. Owned by engine.studio.preview. A LIVE session proves an isolated candidate workspace exists, a preview document was materialised from that workspace, the browser loaded the exact content hash, and the candidate/accepted revisions still match. Design artifacts and screenshots cannot create LIVE sessions.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_preview_sessions",
+    "order": 311,
+    "pk": [
+      "preview_session_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "frontend_preview_sessions_state_known",
+        "expression": "state IN ('BUILDING', 'LOADING', 'LIVE', 'STALE', 'RUNTIME_ERROR', 'RENDER_ERROR', 'UNAVAILABLE', 'STOPPED')"
+      },
+      {
+        "name": "frontend_preview_sessions_revision_valid",
+        "expression": "candidate_pxg_revision >= 0"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_preview_sessions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_sessions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_sessions_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_sessions_candidate_id_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "frontend_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_sessions_workspace_id_fkey",
+        "columns": [
+          "workspace_id"
+        ],
+        "ref_table": "workspaces",
+        "ref_columns": [
+          "workspace_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "preview_session_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "screen_key",
+    "state",
+    "viewport",
+    "candidate_pxg_revision",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "preview_session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspace_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "screen_key": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "BUILDING",
+        "LOADING",
+        "LIVE",
+        "STALE",
+        "RUNTIME_ERROR",
+        "RENDER_ERROR",
+        "UNAVAILABLE",
+        "STOPPED"
+      ]
+    },
+    "viewport": {
+      "type": "string"
+    },
+    "route": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "candidate_pxg_revision": {
+      "type": "integer"
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "document_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state_detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

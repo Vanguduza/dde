@@ -94,6 +94,9 @@ class MutationExecutor:
         graph = await self.candidate_graph(
             tenant_id=tenant_id, project_id=project_id, candidate_id=candidate_id
         )
+        accepted_revision = await self._pxg.current_revision(
+            tenant_id=tenant_id, project_id=project_id
+        )
         locks = await self._locks.active(tenant_id=tenant_id, project_id=project_id)
         return plan(
             requests,
@@ -102,6 +105,7 @@ class MutationExecutor:
             locks=locks,
             contract_version=contract_version,
             design_system_hash=design_system_hash,
+            accepted_pxg_revision=accepted_revision,
         )
 
     async def candidate_graph(
@@ -141,6 +145,9 @@ class MutationExecutor:
         graph = await self.candidate_graph(
             tenant_id=tenant_id, project_id=project_id, candidate_id=candidate_id
         )
+        accepted_revision = await self._pxg.current_revision(
+            tenant_id=tenant_id, project_id=project_id
+        )
         locks = await self._locks.active(tenant_id=tenant_id, project_id=project_id)
         computed = plan(
             requests,
@@ -149,6 +156,7 @@ class MutationExecutor:
             locks=locks,
             contract_version=contract_version,
             design_system_hash=design_system_hash,
+            accepted_pxg_revision=accepted_revision,
         )
 
         now = datetime.now(UTC)
@@ -163,6 +171,22 @@ class MutationExecutor:
             # Re-check the preconditions inside the write transaction. The
             # plan above was made against a read that has since had time to
             # go stale.
+            current_accepted_revision = await self._pxg._current_revision(
+                connection, tenant_id=tenant_id, project_id=project_id
+            )
+            if current_accepted_revision != accepted_revision:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "accepted PXG changed while this mutation was planned; "
+                    "replan against the current project graph",
+                    retryable=True,
+                    details={
+                        "candidate_id": str(candidate_id),
+                        "planned_pxg_revision": accepted_revision,
+                        "current_pxg_revision": current_accepted_revision,
+                    },
+                )
+
             current_locks = await self._locks.active_on(
                 connection, tenant_id=tenant_id, project_id=project_id
             )

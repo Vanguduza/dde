@@ -261,6 +261,19 @@ def test_an_edit_outside_the_candidate_scope_is_refused() -> None:
     assert result.refused[0].code == "SCOPE_DENIED"
 
 
+def test_a_candidate_is_stale_when_the_accepted_base_has_advanced() -> None:
+    result = plan(
+        [_request()],
+        candidate=_candidate(base_revision=1),
+        graph=_graph(),
+        locks=[],
+        accepted_pxg_revision=2,
+    )
+    assert result.planned == ()
+    assert result.refused[0].code == "STALE_CANDIDATE"
+    assert "revision 1 to 2" in result.refused[0].detail
+
+
 def test_token_discipline_survives_the_new_write_path() -> None:
     """DDE-067 refuses freehand literals at the canvas boundary. The V2
     inspector must not become a hole in the same rule."""

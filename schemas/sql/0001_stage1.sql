@@ -1682,6 +1682,31 @@ CREATE TABLE frontend_conversation_turns (
     CHECK (outcome IN ('ROUTED', 'REFUSED', 'ANSWERED'))
 );
 
+CREATE TABLE frontend_preview_sessions (
+    preview_session_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    candidate_id uuid NOT NULL,
+    workspace_id uuid,
+    screen_key text NOT NULL,
+    state text NOT NULL,
+    viewport text NOT NULL,
+    route text,
+    candidate_pxg_revision integer NOT NULL,
+    source_revision text,
+    document_path text,
+    content_hash text,
+    state_detail text,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    source_path text,
+    PRIMARY KEY (preview_session_id),
+    CHECK (state IN ('BUILDING', 'LOADING', 'LIVE', 'STALE', 'RUNTIME_ERROR', 'RENDER_ERROR', 'UNAVAILABLE', 'STOPPED')),
+    CHECK (candidate_pxg_revision >= 0)
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -2050,6 +2075,12 @@ ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_tur
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
 
+ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
+ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -2373,3 +2404,7 @@ CREATE POLICY frontend_conversations_tenant_isolation ON frontend_conversations 
 ALTER TABLE frontend_conversation_turns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_conversation_turns FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_conversation_turns_tenant_isolation ON frontend_conversation_turns USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_preview_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_preview_sessions FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_preview_sessions_tenant_isolation ON frontend_preview_sessions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

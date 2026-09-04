@@ -649,3 +649,11 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## FrontendPreviewSession
+
+- table: `frontend_preview_sessions`
+- primary key: preview_session_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -50,7 +50,11 @@ from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
 from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
+from engine.studio.candidates.service import CandidateService
 from engine.studio.frontend import FrontendStudioService
+from engine.studio.inspector import InspectorService
+from engine.studio.preview_runtime.service import PreviewService
+from engine.studio.reads import FrontendReadService
 
 
 @dataclass(frozen=True)
@@ -620,6 +624,24 @@ class CommandDispatcher:
                 project_id=project_id,
                 parameters=params,
             )
+        elif command_type == "frontend.preview.start":
+            payload = await studio.start_preview(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.preview.set_state":
+            payload = await studio.set_preview_state(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.preview.stop":
+            payload = await studio.stop_preview(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
         elif command_type == "frontend.lock.create":
             payload = await studio.create_lock(
                 tenant_id=tenant_id,
@@ -866,6 +888,94 @@ class GatewayCommandService:
             },
         )
         return acceptance
+
+    async def read_frontend_snapshot(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        snapshot = await FrontendReadService(self._engine).snapshot(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        return asdict(snapshot)
+
+    async def read_frontend_preview(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        preview_session_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        document = await PreviewService(self._engine).document(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            preview_session_id=preview_session_id,
+        )
+        if document.session.mission_id != mission_id:
+            raise DdeError(
+                "POLICY_DENIED",
+                "preview session belongs to another mission",
+                retryable=False,
+                details={"preview_session_id": str(preview_session_id)},
+            )
+        payload = document.session.model_dump(mode="json")
+        payload["content"] = document.content
+        return payload
+
+    async def read_frontend_inspector(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        candidate_id: UUID,
+        pxg_key: str,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        candidate = await CandidateService(self._engine).get(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            candidate_id=candidate_id,
+        )
+        if candidate.mission_id != mission_id:
+            raise DdeError(
+                "POLICY_DENIED",
+                "candidate belongs to another mission",
+                retryable=False,
+                details={"candidate_id": str(candidate_id)},
+            )
+        descriptor = await InspectorService(self._engine).describe(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            candidate_id=candidate_id,
+            pxg_key=pxg_key,
+        )
+        return asdict(descriptor)
+
+    async def _frontend_mission_context(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> tuple[ClientSession, Mission]:
+        session = await self._sessions.authorize_scope(
+            session_id=session_id,
+            principal_id=principal_id,
+            required_scope="mission.read",
+        )
+        mission = await self._dispatcher.load_mission(mission_id)
+        if mission.tenant_id != session.tenant_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "Mission belongs to another tenant",
+                details={"mission_id": str(mission_id)},
+            )
+        await self._sessions.authorize_project(session, mission.project_id)
+        return session, mission
 
     async def read_mission(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID

@@ -32,8 +32,10 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.pxg_node import PxgNode
+from engine.studio.candidates.service import CandidateService
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageRead, CoverageService
+from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.pxg.service import PxgGraph, PxgService
 
 
@@ -194,6 +196,28 @@ class AttentionCenterSnapshot:
 
 
 @dataclass(frozen=True)
+class CandidateCardSnapshot:
+    candidate_id: str
+    title: str
+    state: str
+    origin: str
+    workspace_id: str | None
+    base_pxg_revision: int
+    current_pxg_revision: int
+    stale: bool
+    scope_keys: tuple[str, ...]
+    preview_session_id: str | None
+    preview_state: str | None
+    preview_state_detail: str | None
+
+
+@dataclass(frozen=True)
+class CandidateBoardSnapshot:
+    cards: tuple[CandidateCardSnapshot, ...]
+    count: CountValue
+
+
+@dataclass(frozen=True)
 class FrontendStudioSnapshot:
     """One composed read for the whole workbench."""
 
@@ -206,6 +230,7 @@ class FrontendStudioSnapshot:
     orchestrator: OrchestratorFrontendStatus
     sync: StudioSyncSnapshot
     attention: AttentionCenterSnapshot
+    candidates: CandidateBoardSnapshot
     degraded_reasons: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -243,6 +268,8 @@ class FrontendReadService:
         pxg: PxgService | None = None,
         contracts: FrontendContractService | None = None,
         coverage: CoverageService | None = None,
+        candidates: CandidateService | None = None,
+        previews: PreviewService | None = None,
         build_version: str | None = None,
     ) -> None:
         self._engine = engine
@@ -251,6 +278,8 @@ class FrontendReadService:
         self._coverage = coverage or CoverageService(
             engine, pxg=self._pxg, contracts=self._contracts
         )
+        self._candidates = candidates or CandidateService(engine, pxg=self._pxg)
+        self._previews = previews or PreviewService(engine, candidates=self._candidates)
         self._build_version = build_version
 
     async def snapshot(
@@ -269,6 +298,9 @@ class FrontendReadService:
         degraded: list[str] = []
         if coverage.availability is not Availability.AVAILABLE and coverage.reason:
             degraded.append(coverage.reason)
+        candidates = await self.candidate_board(
+            tenant_id=tenant_id, project_id=project_id
+        )
 
         return FrontendStudioSnapshot(
             project_id=project_id,
@@ -288,6 +320,7 @@ class FrontendReadService:
                 build_version=self._build_version,
             ),
             attention=attention,
+            candidates=candidates,
             degraded_reasons=tuple(degraded),
         )
 
@@ -296,6 +329,42 @@ class FrontendReadService:
     ) -> tuple[ScreenNode, ...]:
         graph = await self._pxg.load(tenant_id=tenant_id, project_id=project_id)
         return screen_tree(graph)
+
+    async def candidate_board(
+        self, *, tenant_id: UUID, project_id: UUID
+    ) -> CandidateBoardSnapshot:
+        views = await self._candidates.board(tenant_id=tenant_id, project_id=project_id)
+        cards: list[CandidateCardSnapshot] = []
+        for view in views:
+            candidate = view.candidate
+            preview = await self._previews.latest_for_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate.candidate_id,
+            )
+            cards.append(
+                CandidateCardSnapshot(
+                    candidate_id=str(candidate.candidate_id),
+                    title=candidate.title,
+                    state=candidate.state,
+                    origin=candidate.origin,
+                    workspace_id=(
+                        str(candidate.workspace_id) if candidate.workspace_id else None
+                    ),
+                    base_pxg_revision=candidate.base_pxg_revision,
+                    current_pxg_revision=view.current_pxg_revision,
+                    stale=view.stale,
+                    scope_keys=tuple(candidate.scope_keys),
+                    preview_session_id=(
+                        str(preview.preview_session_id) if preview else None
+                    ),
+                    preview_state=preview.state if preview else None,
+                    preview_state_detail=preview.state_detail if preview else None,
+                )
+            )
+        return CandidateBoardSnapshot(
+            cards=tuple(cards), count=CountValue.of(len(cards))
+        )
 
 
 def screen_tree(graph: PxgGraph) -> tuple[ScreenNode, ...]:

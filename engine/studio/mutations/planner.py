@@ -113,6 +113,7 @@ def plan(
     locks: Sequence[FrontendLock],
     contract_version: int | None = None,
     design_system_hash: str | None = None,
+    accepted_pxg_revision: int | None = None,
 ) -> MutationPlan:
     """Decide each request against locks, scope, staleness and tokens.
 
@@ -121,8 +122,11 @@ def plan(
     than one per round trip.
     """
     lock_hash = effective_lock_hash(locks)
+    accepted_revision = (
+        graph.revision if accepted_pxg_revision is None else accepted_pxg_revision
+    )
     preconditions = Preconditions(
-        pxg_revision=graph.revision,
+        pxg_revision=accepted_revision,
         candidate_base_revision=candidate.base_pxg_revision,
         frontend_contract_version=contract_version,
         design_system_hash=design_system_hash,
@@ -140,6 +144,7 @@ def plan(
             state=state,
             graph=graph,
             locks=locks,
+            accepted_pxg_revision=accepted_revision,
         )
         if refusal is not None:
             code, detail = refusal
@@ -169,6 +174,7 @@ def _refusal_for(
     state: CandidateState,
     graph: PxgGraph,
     locks: Sequence[FrontendLock],
+    accepted_pxg_revision: int,
 ) -> tuple[str, str] | None:
     if request.operation not in VALID_OPERATIONS:
         return (
@@ -181,6 +187,18 @@ def _refusal_for(
         return (
             "MUTATION_INVALID",
             f"candidate is {state.value} and does not accept mutations",
+        )
+
+    # Staleness is about the accepted base, not the candidate's effective
+    # revision. Candidate-local mutations advance the effective projection
+    # without advancing accepted PXG, so comparing base_revision to
+    # graph.revision would falsely mark every edited candidate stale.
+    if candidate.base_pxg_revision < accepted_pxg_revision:
+        return (
+            "STALE_CANDIDATE",
+            "accepted PXG advanced from revision "
+            f"{candidate.base_pxg_revision} to {accepted_pxg_revision}; "
+            "rebase or create a new candidate before editing",
         )
 
     # Scope: a candidate may only touch keys it declared. Without this a

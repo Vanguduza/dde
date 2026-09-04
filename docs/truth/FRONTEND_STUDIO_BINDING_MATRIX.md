@@ -129,10 +129,10 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CV-01 | Live preview surface | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `TYPED_UNAVAILABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `TYPED_UNAVAILABLE` | `BOUND` | `UNBOUND` |
-| CV-02 | LIVE badge | `TYPED_UNAVAILABLE` | `UNBOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CV-01 | Live preview surface | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `UNBOUND` | `TYPED_UNAVAILABLE` | `BOUND` | `UNBOUND` |
+| CV-02 | LIVE badge | `BOUND` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CV-03 | Route / screen navigation | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CV-04 | Selection outline | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CV-04 | Selection outline | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CV-05 | Resize handles | `VERIFIED` | `UNBOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CV-06 | Section lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CV-07 | Style lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -140,8 +140,9 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
 
 Notes:
 
-- **CV-01** — The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3).
+- **CV-01** — A real code-backed prototype-HTML PreviewRuntimeAdapter and PreviewService now exist. The React workbench still renders the prior honest unavailable Design surface, so UI/WIRED/E2E remain incomplete.
 - **CV-02** — No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9.
+- **CV-04** — Stable pxg_key instrumentation is implemented in the code-backed prototype preview. DOM geometry remains overlay metadata only; the React selection outline is still unbound.
 
 ## Frontend Chat composer
 
@@ -168,7 +169,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CA-01 | Candidate cards | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `TYPED_UNAVAILABLE` | `UNBOUND` | `TYPED_UNAVAILABLE` | `VERIFIED` | `UNBOUND` |
+| CA-01 | Candidate cards | `VERIFIED` | `BOUND` | `VERIFIED` | `VERIFIED` | `TYPED_UNAVAILABLE` | `UNBOUND` | `TYPED_UNAVAILABLE` | `VERIFIED` | `UNBOUND` |
 | CA-02 | Candidate thumbnail | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CA-03 | Candidate score | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CA-04 | Score classification | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -205,9 +206,9 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| IN-01 | Selected node header | `TYPED_UNAVAILABLE` | `UNBOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `TYPED_UNAVAILABLE` | `BOUND` | `UNBOUND` |
+| IN-01 | Selected node header | `BOUND` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `TYPED_UNAVAILABLE` | `UNBOUND` | `TYPED_UNAVAILABLE` | `BOUND` | `UNBOUND` |
 | IN-02 | Layout tab | `VERIFIED` | `UNBOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-03 | Style tab | `VERIFIED` | `UNBOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| IN-03 | Style tab | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-04 | Behaviour tab | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-05 | Responsive tab | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-06 | Lock tab | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -224,7 +225,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 
 Notes:
 
-- **IN-01** — The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed.
+- **IN-01** — InspectorDescriptor and mission-scoped read transport are implemented. The existing React panel still receives selectedKey=null, so no UI completion is claimed.
 - **IN-15** — Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated.
 
 ## Status bar

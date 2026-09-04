@@ -143,9 +143,9 @@ The backend/domain architecture is ahead of the actual Frontend Studio user expe
 
 Verify the following known gaps before deciding they still exist:
 
-1. **Live Design canvas / preview runtime is not yet a real candidate runtime in the React workbench.**
-2. **Stable canvas selection is not yet wired end-to-end.**
-3. **Inspector cannot yet perform the full selected-node → descriptor → mutation → rerender loop.**
+1. **A code-backed prototype-HTML PreviewRuntimeAdapter/PreviewService now exists in Core, but the React workbench is not yet wired to it and general React/Vite project preview remains unavailable.**
+2. **Stable `pxg_key` preview instrumentation now exists, but React canvas selection/outline is not yet wired end-to-end.**
+3. **InspectorDescriptor reads now exist, but React cannot yet perform the full selected-node → descriptor → mutation → rerender loop.**
 4. **Frontend Chat backend exists, but the golden React chat composer/control surface was not yet implemented when this packet was written.**
 5. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
 6. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
@@ -223,40 +223,36 @@ axis or delete requirements to improve the count.
 
 ---
 
-# 8. Next highest-value vertical slice — real live preview loop
+# 8. Next highest-value vertical slice — compose the landed preview foundation
 
-After ledger correctness, prioritize a complete vertical slice over more disconnected backend breadth.
-
-Prove:
+The backend half is now present: prototype-HTML candidate materialization,
+preview-session lifecycle/hash handshake, stable `pxg_key` instrumentation,
+InspectorDescriptor reads and mission-scoped Gateway reads. Do not rebuild them.
+The remaining vertical slice is the actual workbench composition:
 
 ```text
-real candidate
-→ isolated code-backed preview runtime
-→ live canvas render
-→ stable pxg_key instrumentation
-→ canvas selection
-→ Inspector descriptor resolution
-→ governed Inspector mutation
-→ candidate mutation log
-→ rerender
-→ verification evidence invalidated/recomputed as appropriate
-→ candidate status updated
+real candidate board
+→ host bridge reads real Core snapshot
+→ sandbox opens the real candidate preview document
+→ browser ready handshake
+→ Core-confirmed LIVE
+→ stable pxg_key selection
+→ InspectorDescriptor
+→ real descriptor control
+→ frontend.mutation.apply
+→ candidate DIRTY
+→ code-backed rerender/new preview hash
+→ DDE-068 evidence invalidated/recomputed as required
+→ candidate state updated
 ```
 
-This vertical slice should make several currently separate systems compose into the actual product.
+Requirements remain fail-closed: accepted code is untouched until promotion;
+selection identity survives DOM reflow; off-token/locked/stale edits use the same
+mutation authority; render/runtime failures stay typed; React cannot mint LIVE;
+and no screenshot or `srcDoc` demo may substitute for candidate code.
 
-Requirements:
-
-- accepted code remains untouched until promotion;
-- selected identity is stable across DOM reflow;
-- Inspector only exposes writable properties backed by real descriptors/mutations;
-- off-token writes fail through the same mutation path;
-- locks and stale-revision rules apply identically to Inspector edits;
-- render failure is a typed state;
-- LIVE badge is allowed only for a real code-backed runtime;
-- no screenshot may masquerade as a live canvas.
-
-Add browser/E2E evidence through the real React workbench.
+Add browser/E2E evidence through the real React workbench and production host
+transport, not only TestHostBridge service tests.
 
 ---
 
@@ -748,7 +744,7 @@ Begin by reporting only evidence-backed facts:
 
 ## First packet
 
-Default first packet is the **live preview / stable selection / Inspector vertical slice**. The binding-ledger semantic hardening is already implemented in v2 and should only be revisited if repository evidence shows regression or superseding canonical change control.
+Default first packet is **React/host integration of the landed preview + stable selection + Inspector foundation**: production host reads/commands → real candidate canvas → Core-confirmed LIVE → selected pxg_key → descriptor control → governed mutation → rerender. The binding-ledger hardening and backend preview foundation should only be revisited for regressions or superseding canonical change control.
 
 Then execute automatically.
 
