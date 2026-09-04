@@ -368,10 +368,23 @@ tests that exist). At this snapshot: **9 VERIFIED, 14 TYPED_UNAVAILABLE,
   (`mutations/projection.py`), so promotion is the only writer of accepted
   state. Commands: `frontend.candidate.create|transition|promote`,
   `frontend.mutation.apply|revert`, `frontend.lock.create|release`.
+- **M3/M4 host-neutral workbench and golden shell** —
+  `interfaces/dde-studio/ui/` (React 19 / TS / Vite, admitted in
+  `docs/planning/dde-069-dependency-admission.md`). `DdeHostBridge` with
+  VS Code and test implementations; `acquireVsCodeApi()` appears in exactly
+  one file. Canonical tokens transcribed verbatim from
+  `FRONTEND_STUDIO_REV3.md` Part I section 3, and the four-zone shell built
+  on the section 2 measurements. 15 Playwright assertions at 1672x941 cover
+  panel geometry, zone tiling, canvas dominance, the applied token values,
+  responsive degradation, and the honest-state rules (an unknown count
+  renders an em-dash with its reason; a partially assessed project shows no
+  percentage; serving identity reads UNATTESTED; `Claude /design` is
+  visible but disabled; the candidate strip carries no invented cards).
+  Run with `just studio-visual`. Screenshot:
+  `docs/evidence/dde-069/frontend-studio-shell-actual.png`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
-**Not started:** host-neutral React/TS/Vite runtime and `DdeHostBridge`
-(M3), golden shell (M4), source adapters and candidate scoring (M8),
+**Not started:** source adapters and candidate scoring (M8),
 Frontend Chat and the preview/render runtime (M9), DesignGateway and
 `Claude /design` (M10), cross-DDE migration (M12), mobile adapters (M13).
 

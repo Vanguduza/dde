@@ -10,10 +10,10 @@
 
 | Status | Rows |
 |---|---:|
-| `UNBOUND` | 53 |
-| `TYPED_UNAVAILABLE` | 18 |
+| `UNBOUND` | 39 |
+| `TYPED_UNAVAILABLE` | 22 |
 | `BOUND` | 0 |
-| `VERIFIED` | 28 |
+| `VERIFIED` | 38 |
 | **total** | **99** |
 
 ## Global top bar
@@ -22,18 +22,18 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| TB-01 | Product title / module identity | Left of top bar, 58px band, 15-16px 600 weight | `shell.module_registry` | — | — | — | any authenticated principal | `MODULE_UNKNOWN` | — | — | `UNBOUND` |
-| TB-02 | Project selector | Active ProjectIdentity chip beside title | `FrontendStudioSnapshot.project` | `frontend.project.switch` | active project changes | — | principal grant on target project | `NO_PROJECT` `PROJECT_UNAVAILABLE` `SCOPE_DENIED` | — | — | `UNBOUND` |
+| TB-01 | Product title / module identity | Left of top bar, 58px band, 15-16px 600 weight | `shell.module_registry` | — | — | — | any authenticated principal | `MODULE_UNKNOWN` | `interfaces/dde-studio/ui/src/shell/DdeShell.tsx` `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` `interfaces/dde-studio/ui/src/styles/global.css` `interfaces/dde-studio/ui/src/styles/tokens.css` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
+| TB-02 | Project selector | Active ProjectIdentity chip beside title | `FrontendStudioSnapshot.project` | `frontend.project.switch` | active project changes | — | principal grant on target project | `NO_PROJECT` `PROJECT_UNAVAILABLE` `SCOPE_DENIED` | `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `UNBOUND` |
 | TB-03 | Saved timestamp | 12px tertiary text next to sync chip | `StudioSyncSnapshot.durable_revision_at` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
-| TB-04 | Sync status chip | Pill; colour by state | `StudioSyncSnapshot.state` | — | LOCAL_PENDING->COMMAND_ACCEPTED->PERSISTING->DURABLE->PROJECTING->SYNCED | — | project read | `FAILED` `STALE` `OFFLINE` `CONFLICT` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| TB-05 | Design mode tab | Centre tab row, selected tab tinted | `FrontendStudioSnapshot.mode` | `frontend.mode.select` | studio mode transition | — | project read | — | — | — | `UNBOUND` |
-| TB-06 | Coverage mode tab | Same tab row | `CoverageSummary` | `frontend.mode.select` | studio mode transition | — | project read | `COVERAGE_UNASSESSED` | `engine/studio/coverage/service.py` `engine/studio/coverage/scoring.py` | `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` `tests/unit/test_frontend_studio_characterization_postgres.py` | `VERIFIED` |
-| TB-07 | Architecture mode tab | Same tab row | `PxgGraphSnapshot` | `frontend.mode.select` | studio mode transition | — | project read | `PXG_EMPTY` | — | — | `UNBOUND` |
-| TB-08 | QA mode tab | Same tab row | `QaFindingInventory` | `frontend.mode.select` | studio mode transition | — | project read | `VERIFICATION_UNAVAILABLE` | — | — | `UNBOUND` |
-| TB-09 | Source mode tab | Same tab row | `DesignSourceInventory` | `frontend.mode.select` | studio mode transition | — | project read | `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
-| TB-10 | Coverage ring | Right-aligned ring + percentage | `CoverageSummary.weighted_percent` | — | — | — | project read | `UNASSESSED` `BLOCKED` `PARTIAL` | `engine/studio/coverage/service.py` `engine/studio/coverage/scoring.py` `engine/studio/reads.py` | `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` `tests/unit/test_frontend_studio_characterization_postgres.py` | `VERIFIED` |
+| TB-04 | Sync status chip | Pill; colour by state | `StudioSyncSnapshot.state` | — | LOCAL_PENDING->COMMAND_ACCEPTED->PERSISTING->DURABLE->PROJECTING->SYNCED | — | project read | `FAILED` `STALE` `OFFLINE` `CONFLICT` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| TB-05 | Design mode tab | Centre tab row, selected tab tinted | `FrontendStudioSnapshot.mode` | `frontend.mode.select` | studio mode transition | — | project read | — | `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
+| TB-06 | Coverage mode tab | Same tab row | `CoverageSummary` | `frontend.mode.select` | studio mode transition | — | project read | `COVERAGE_UNASSESSED` | `engine/studio/coverage/scoring.py` `engine/studio/coverage/service.py` `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_characterization_postgres.py` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| TB-07 | Architecture mode tab | Same tab row | `PxgGraphSnapshot` | `frontend.mode.select` | studio mode transition | — | project read | `PXG_EMPTY` | `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
+| TB-08 | QA mode tab | Same tab row | `QaFindingInventory` | `frontend.mode.select` | studio mode transition | — | project read | `VERIFICATION_UNAVAILABLE` | `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
+| TB-09 | Source mode tab | Same tab row | `DesignSourceInventory` | `frontend.mode.select` | studio mode transition | — | project read | `PROVIDER_DEGRADED` | `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
+| TB-10 | Coverage ring | Right-aligned ring + percentage | `CoverageSummary.weighted_percent` | — | — | — | project read | `UNASSESSED` `BLOCKED` `PARTIAL` | `engine/studio/coverage/scoring.py` `engine/studio/coverage/service.py` `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_characterization_postgres.py` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | TB-11 | Activity / metrics icon | Icon button | `FrontendActivityProjection` | — | — | — | project read | `NOT_ADMITTED` | — | — | `UNBOUND` |
-| TB-12 | Attention notification badge | Count badge on bell icon | `AttentionCenterSnapshot` | `frontend.attention.acknowledge` | attention item acknowledged | — | project read | `UNKNOWN_NOT_SHOWN_AS_COUNT` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| TB-12 | Attention notification badge | Count badge on bell icon | `AttentionCenterSnapshot` | `frontend.attention.acknowledge` | attention item acknowledged | — | project read | `UNKNOWN_NOT_SHOWN_AS_COUNT` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | TB-13 | Help | Icon button | `shell.help_registry` | — | — | — | any authenticated principal | — | — | — | `UNBOUND` |
 | TB-14 | User avatar / principal | Circular avatar at far right | `session.principal` | — | — | — | own session | `UNAUTHENTICATED` | — | — | `UNBOUND` |
 
@@ -47,21 +47,21 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| EX-01 | App rail module icons | 44-48px rail, tinted rounded square on selected | `shell.module_registry` | `shell.module.select` | active module changes | — | module grant | `MODULE_UNAVAILABLE` | — | — | `UNBOUND` |
-| EX-02 | Project heading + menu | 215-225px panel header row | `ProjectExplorerSnapshot.project` | — | — | — | project read | — | — | — | `UNBOUND` |
+| EX-01 | App rail module icons | 44-48px rail, tinted rounded square on selected | `shell.module_registry` | `shell.module.select` | active module changes | — | module grant | `MODULE_UNAVAILABLE` | `interfaces/dde-studio/ui/src/shell/AppRail.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
+| EX-02 | Project heading + menu | 215-225px panel header row | `ProjectExplorerSnapshot.project` | — | — | — | project read | — | `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
 | EX-03 | Explorer search | Search icon in header row | `ProjectExplorerSnapshot (filtered)` | — | — | — | project read | `INDEX_UNAVAILABLE` | — | — | `UNBOUND` |
-| EX-04 | Screens group + count | Collapsible group, 11px numeric counter | `ScreenTreeSnapshot` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
-| EX-05 | Journeys group + count | Same | `JourneyInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
-| EX-06 | Components group + count | Same | `ComponentInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
-| EX-07 | Sources group | Collapsible group | `DesignSourceInventory` | — | — | — | project read | `PROVIDER_DEGRADED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| EX-08 | DDE Library source | Nested item + status dot | `DesignSourceInventory[internal]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read | `UNAVAILABLE` `EMPTY` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| EX-09 | 21st MCP source | Nested item + status dot | `DesignSourceInventory[twentyfirst]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read + external egress admission | `AUTH_REQUIRED` `PROVIDER_OFFLINE` `NOT_ADMITTED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-04 | Screens group + count | Collapsible group, 11px numeric counter | `ScreenTreeSnapshot` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| EX-05 | Journeys group + count | Same | `JourneyInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| EX-06 | Components group + count | Same | `ComponentInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| EX-07 | Sources group | Collapsible group | `DesignSourceInventory` | — | — | — | project read | `PROVIDER_DEGRADED` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-08 | DDE Library source | Nested item + status dot | `DesignSourceInventory[internal]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read | `UNAVAILABLE` `EMPTY` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-09 | 21st MCP source | Nested item + status dot | `DesignSourceInventory[twentyfirst]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read + external egress admission | `AUTH_REQUIRED` `PROVIDER_OFFLINE` `NOT_ADMITTED` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | EX-10 | Donor Sources | Nested item + status dot | `DesignSourceInventory[donor]` | `frontend.donors.run_discovery` | donor discovery run | `capability.donor_search` | donor_reuse approval for adoption | `APPROVAL_REQUIRED` `SOURCE_CLASS_FORBIDS` | — | — | `UNBOUND` |
 | EX-11 | Internal Components | Nested item + count | `ComponentInventory[project_native]` | — | — | — | project read | `EMPTY` | — | — | `UNBOUND` |
-| EX-12 | Source numeric badges | 11px counter or em-dash | `DesignSourceInventory[*].indexed_count` | — | — | — | project read | `UNKNOWN` `STALE` `ERROR` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| EX-13 | Templates group | Collapsible group | `TemplateInventory` | `frontend.source.import_candidate` | foundation candidate created | — | project read | `EMPTY` `PROVIDER_DEGRADED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-12 | Source numeric badges | 11px counter or em-dash | `DesignSourceInventory[*].indexed_count` | — | — | — | project read | `UNKNOWN` `STALE` `ERROR` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-13 | Templates group | Collapsible group | `TemplateInventory` | `frontend.source.import_candidate` | foundation candidate created | — | project read | `EMPTY` `PROVIDER_DEGRADED` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | EX-14 | Template entries | Nested neutral-identity items | `TemplateInventory.entries` | — | — | — | project read | `EMPTY` | — | — | `UNBOUND` |
-| EX-15 | Locks group + count | Collapsible group + counter | `LockInventory` | — | — | — | project read | `UNKNOWN` | `engine/studio/locks/service.py` `engine/studio/locks/resolution.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| EX-15 | Locks group + count | Collapsible group + counter | `LockInventory` | — | — | — | project read | `UNKNOWN` | `engine/studio/locks/resolution.py` `engine/studio/locks/service.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
 | EX-16 | Style Locks | Nested item + count | `LockInventory[STYLE]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | `engine/studio/locks/service.py` `engine/studio/locks/resolution.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
 | EX-17 | Section Locks | Nested item + count | `LockInventory[SECTION]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | `engine/studio/locks/service.py` `engine/studio/locks/resolution.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
 | EX-18 | Component Locks | Nested item + count | `LockInventory[COMPONENT]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | `engine/studio/locks/service.py` `engine/studio/locks/resolution.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
@@ -85,12 +85,12 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| OR-01 | Orchestrator status | Bottom card of explorer, status dot | `OrchestratorFrontendStatus.runtime_state` | — | ACTIVE\|PAUSED\|WAITING\|DEGRADED\|UNKNOWN | — | project read | `UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| OR-02 | Manager Chair identity | Name row inside card | `OrchestratorFrontendStatus.manager_chair` | — | — | — | project read | `SERVING_UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| OR-03 | Desired/Configured/Serving split | Three distinct labelled values | `OrchestratorFrontendStatus.model_roles` | — | — | — | project read | `SERVING_UNATTESTED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-01 | Orchestrator status | Bottom card of explorer, status dot | `OrchestratorFrontendStatus.runtime_state` | — | ACTIVE\|PAUSED\|WAITING\|DEGRADED\|UNKNOWN | — | project read | `UNKNOWN` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-02 | Manager Chair identity | Name row inside card | `OrchestratorFrontendStatus.manager_chair` | — | — | — | project read | `SERVING_UNKNOWN` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-03 | Desired/Configured/Serving split | Three distinct labelled values | `OrchestratorFrontendStatus.model_roles` | — | — | — | project read | `SERVING_UNATTESTED` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | OR-04 | Design Director role | Subordinate role row | `OrchestratorFrontendStatus.design_director` | — | — | — | project read | `UNASSIGNED` | — | — | `UNBOUND` |
-| OR-05 | Activity visualisation | Compact waveform of real events | `OrchestratorFrontendStatus.activity_window` | — | — | — | project read | `NO_ACTIVITY` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
-| OR-06 | Status dot | Colour by typed health | `OrchestratorFrontendStatus.health` | — | — | — | project read | `UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-05 | Activity visualisation | Compact waveform of real events | `OrchestratorFrontendStatus.activity_window` | — | — | — | project read | `NO_ACTIVITY` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-06 | Status dot | Colour by typed health | `OrchestratorFrontendStatus.health` | — | — | — | project read | `UNKNOWN` | `engine/studio/reads.py` `interfaces/dde-studio/ui/src/components/Honest.tsx` `interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 
 Notes:
 
@@ -106,14 +106,18 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| CT-01 | Viewport selector | Compact select, e.g. Desktop 1440 | `PreviewViewportState` | `frontend.preview.set_state` | viewport changes | — | project read | — | — | — | `UNBOUND` |
+| CT-01 | Viewport selector | Compact select, e.g. Desktop 1440 | `PreviewViewportState` | `frontend.preview.set_state` | viewport changes | — | project read | — | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
 | CT-02 | Select tool | Icon toggle | `editor.interaction_mode` | — | SELECT mode | — | project read | — | — | — | `UNBOUND` |
 | CT-03 | Hand / pan tool | Icon toggle | `editor.interaction_mode` | — | PAN mode | — | project read | — | — | — | `UNBOUND` |
 | CT-04 | Comment tool | Icon toggle | `DesignCommentInventory` | `frontend.comment.create|resolve` | comment lifecycle | — | project read | `ANCHOR_LOST` | — | — | `UNBOUND` |
 | CT-05 | Grid / overlay options | Icon toggle + menu | `PreviewOverlayState` | `frontend.preview.set_state` | overlay toggles | — | project read | — | — | — | `UNBOUND` |
-| CT-06 | Claude /design button | Accent AI-action button in toolbar | `DesignProviderStatus` | `frontend.design.request` | DesignSession + DesignArtifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_AUTH_REQUIRED` `PROVIDER_UNAVAILABLE` `CAPABILITY_UNAVAILABLE` `ARTIFACT_REJECTED` | — | — | `UNBOUND` |
-| CT-07 | Zoom control | Percentage stepper | `editor.canvas_transform` | — | — | — | project read | — | — | — | `UNBOUND` |
+| CT-06 | Claude /design button | Accent AI-action button in toolbar | `DesignProviderStatus` | `frontend.design.request` | DesignSession + DesignArtifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_AUTH_REQUIRED` `PROVIDER_UNAVAILABLE` `CAPABILITY_UNAVAILABLE` `ARTIFACT_REJECTED` | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `TYPED_UNAVAILABLE` |
+| CT-07 | Zoom control | Percentage stepper | `editor.canvas_transform` | — | — | — | project read | — | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
 | CT-08 | Fullscreen / fit | Icon buttons | `editor.presentation_state` | — | — | — | project read | `HOST_UNSUPPORTED` | — | — | `UNBOUND` |
+
+Notes:
+
+- **CT-06** — The control is present in the canvas toolbar exactly where the golden composition puts it, rendered disabled with the reason on the element. DesignGateway and a certified provider are DDE-069 M10; a button that opened a generic chat would be the theatre the mission forbids.
 
 ## Real canvas and selection
 
@@ -121,14 +125,19 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| CV-01 | Live preview surface | Dominant central area, code-backed | `FrontendCanvasSnapshot` | `frontend.preview.start|stop` | DESIGN\|BUILDING\|LIVE\|PROMOTED\|VERIFIED\|DISCARDED | `capability.frontend_preview` | project read | `RENDER_FAILED` `BUILD_FAILED` `RUNTIME_UNAVAILABLE` | — | — | `UNBOUND` |
-| CV-02 | LIVE badge | Small pill on canvas chrome | `FrontendCanvasSnapshot.preview_badge` | — | LIVE only with revision+build+runtime+route | — | project read | `DESIGN_ONLY` `BUILDING` `UNHEALTHY` | — | — | `UNBOUND` |
+| CV-01 | Live preview surface | Dominant central area, code-backed | `FrontendCanvasSnapshot` | `frontend.preview.start|stop` | DESIGN\|BUILDING\|LIVE\|PROMOTED\|VERIFIED\|DISCARDED | `capability.frontend_preview` | project read | `RENDER_FAILED` `BUILD_FAILED` `RUNTIME_UNAVAILABLE` | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `TYPED_UNAVAILABLE` |
+| CV-02 | LIVE badge | Small pill on canvas chrome | `FrontendCanvasSnapshot.preview_badge` | — | LIVE only with revision+build+runtime+route | — | project read | `DESIGN_ONLY` `BUILDING` `UNHEALTHY` | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `TYPED_UNAVAILABLE` |
 | CV-03 | Route / screen navigation | Breadcrumb + in-preview routing | `ScreenTreeSnapshot + PreviewRuntime route` | `frontend.preview.set_state` | route change | — | project read | `ROUTE_UNKNOWN` | `engine/studio/pxg/service.py` `engine/studio/reads.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | CV-04 | Selection outline | Indigo outline on selected node | `PreviewSelectionAnchor` | — | selection changes | — | project read | `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
 | CV-05 | Resize handles | Corner/edge handles on selection | `InspectorDescriptor (layout group)` | `frontend.mutation.plan|apply` | mutation planned then applied to candidate | — | mutation authority | `LOCK_DENIED` `STALE_REVISION` `MUTATION_INVALID` | `engine/studio/mutations/planner.py` `engine/studio/mutations/executor.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
 | CV-06 | Section lock chip | Chip on locked region | `LockInventory (effective)` | — | — | — | project read | — | `engine/studio/locks/service.py` `engine/studio/locks/resolution.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
 | CV-07 | Style lock chip | Chip on style-locked node | `LockInventory (effective)` | — | — | — | project read | — | `engine/studio/locks/service.py` `engine/studio/locks/resolution.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
 | CV-08 | State simulation controls | Overlay control for loading/empty/error/role | `PreviewScenarioState` | `frontend.preview.set_state` | scenario change | — | project read | `SCENARIO_UNSUPPORTED` | — | — | `UNBOUND` |
+
+Notes:
+
+- **CV-01** — The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3).
+- **CV-02** — No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9.
 
 ## Frontend Chat composer
 
@@ -184,7 +193,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| IN-01 | Selected node header | 310-325px panel header, stable selection | `PreviewSelectionAnchor` | — | — | — | project read | `NO_SELECTION` `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
+| IN-01 | Selected node header | 310-325px panel header, stable selection | `PreviewSelectionAnchor` | — | — | — | project read | `NO_SELECTION` `SOURCE_MAPPING_UNAVAILABLE` | `interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `TYPED_UNAVAILABLE` |
 | IN-02 | Layout tab | Descriptor group tab | `InspectorDescriptor[layout]` | `frontend.mutation.plan|apply` | layout mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` `LOCK_DENIED` | `engine/studio/mutations/planner.py` `engine/studio/mutations/executor.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
 | IN-03 | Style tab | Descriptor group tab | `InspectorDescriptor[style]` | `frontend.mutation.plan|apply` | style mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` `LOCK_DENIED` `OFF_TOKEN_REFUSED` | `engine/studio/mutations/planner.py` `engine/studio/mutations/executor.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
 | IN-04 | Behaviour tab | Descriptor group tab | `InspectorDescriptor[behavior]` | `frontend.mutation.plan|apply` | behaviour mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` `LOCK_DENIED` | — | — | `UNBOUND` |
@@ -203,6 +212,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 
 Notes:
 
+- **IN-01** — The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed.
 - **IN-15** — Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated.
 
 ## Status bar
@@ -211,9 +221,9 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| ST-01 | Breadcrumb | 32-36px bar, selected path from PXG | `PxgGraphSnapshot path` | — | — | — | project read | `NO_SELECTION` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
-| ST-02 | Error count | 'No errors' / count | `QaFindingInventory.blocking` | — | — | — | project read | `UNKNOWN` | `engine/studio/coverage/service.py` `engine/studio/coverage/scoring.py` `engine/studio/reads.py` | `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| ST-01 | Breadcrumb | 32-36px bar, selected path from PXG | `PxgGraphSnapshot path` | — | — | — | project read | `NO_SELECTION` | `engine/studio/pxg/service.py` `engine/studio/reads.py` `interfaces/dde-studio/ui/src/shell/StatusBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| ST-02 | Error count | 'No errors' / count | `QaFindingInventory.blocking` | — | — | — | project read | `UNKNOWN` | `engine/studio/coverage/scoring.py` `engine/studio/coverage/service.py` `engine/studio/reads.py` `interfaces/dde-studio/ui/src/shell/StatusBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | ST-03 | Warning count | 'N warnings' | `QaFindingInventory.warnings` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
 | ST-04 | Auto Layout state | ON/OFF toggle | `EditorAssistState.auto_layout` | `frontend.editor.set_assist` | assist toggled | — | project read | — | — | — | `UNBOUND` |
 | ST-05 | AI Suggest state | ON/OFF toggle | `EditorAssistState.ai_suggest` | `frontend.editor.set_assist` | assist toggled; suggestions never auto-mutate accepted design | — | project read | `PROVIDER_UNAVAILABLE` | — | — | `UNBOUND` |
-| ST-06 | Build / version | Studio build + project revision | `StudioSyncSnapshot.build` | — | — | — | any authenticated principal | `UNKNOWN` | — | — | `UNBOUND` |
+| ST-06 | Build / version | Studio build + project revision | `StudioSyncSnapshot.build` | — | — | — | any authenticated principal | `UNKNOWN` | `interfaces/dde-studio/ui/src/shell/StatusBar.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |

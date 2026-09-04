@@ -1,0 +1,103 @@
+/*
+ * DDE canonical design tokens.
+ *
+ * Values are transcribed from docs/truth/FRONTEND_STUDIO_REV3.md Part I
+ * sections 2-3 (the locked visual constitution), which is Project Truth.
+ * Do not tune them to taste: a change here is a visual-law change and goes
+ * through the same approval as any other Project Truth edit.
+ *
+ * The workbench owns these. Host theme variables (VS Code's, Electron's)
+ * are advisory input for native integration surfaces only and must never
+ * silently recolour the golden shell (FS-GAP-035).
+ */
+
+:root {
+  /* Section 3.1 core palette. */
+  --dde-bg: #f7f8fb;
+  --dde-surface: #ffffff;
+  --dde-surface-muted: #f3f5f9;
+  --dde-surface-hover: #eef2ff;
+  --dde-border: #e2e5ee;
+  --dde-border-strong: #d2d7e5;
+  --dde-text: #111827;
+  --dde-text-secondary: #5d6473;
+  --dde-text-tertiary: #8a91a1;
+
+  --dde-primary: #4f46e5;
+  --dde-primary-strong: #4338ca;
+  --dde-primary-soft: #eef2ff;
+  --dde-blue: #2563eb;
+  --dde-violet: #7c3aed;
+  --dde-indigo-deep: #0d1c4f;
+
+  --dde-success: #22c55e;
+  --dde-warning: #f59e0b;
+  --dde-danger: #ef4444;
+  --dde-info: #3b82f6;
+
+  /* Section 3.2 typography. */
+  --dde-font-ui: Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --dde-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  --dde-text-11: 11px;
+  --dde-text-12: 12px;
+  --dde-text-13: 13px;
+  --dde-text-14: 14px;
+  --dde-text-15: 15px;
+  --dde-text-18: 18px;
+
+  /* Section 3.3 radius. */
+  --dde-radius-xs: 4px;
+  --dde-radius-sm: 6px;
+  --dde-radius-md: 8px;
+  --dde-radius-lg: 10px;
+  --dde-radius-xl: 12px;
+
+  /* Section 3.4 borders and shadows. Borders do the structural work; the
+     reference relies on fine borders, subtle shadow and whitespace, not
+     heavy cards. */
+  --dde-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 14px rgba(15, 23, 42, 0.035);
+  --dde-shadow-float: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  /* Section 2 golden-master frame. These are the measurements the
+     structural conformance test asserts. */
+  --dde-topbar-height: 58px;
+  --dde-statusbar-height: 34px;
+  --dde-rail-width: 46px;
+  --dde-explorer-width: 220px;
+  --dde-inspector-width: 318px;
+  --dde-candidate-strip-height: 132px;
+
+  --dde-gutter: 14px;
+  --dde-panel-padding: 14px;
+  --dde-gap-dense: 7px;
+  --dde-gap-normal: 11px;
+  --dde-gap-section: 18px;
+}
+
+/*
+ * Section 2.3: dark is a required derived parity theme, not the golden
+ * baseline. Roles are preserved exactly; only the values swap, so a
+ * component written against the tokens needs no dark-specific code.
+ */
+:root[data-dde-theme="dark"] {
+  --dde-bg: #0f1117;
+  --dde-surface: #161923;
+  --dde-surface-muted: #1c202c;
+  --dde-surface-hover: #232838;
+  --dde-border: #262b39;
+  --dde-border-strong: #343b4d;
+  --dde-text: #e8eaf0;
+  --dde-text-secondary: #a1a8b8;
+  --dde-text-tertiary: #767d8d;
+
+  --dde-primary: #6366f1;
+  --dde-primary-strong: #818cf8;
+  --dde-primary-soft: #1e2140;
+
+  --dde-shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 14px rgba(0, 0, 0, 0.25);
+  --dde-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.4);
+}

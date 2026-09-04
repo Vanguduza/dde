@@ -59,6 +59,15 @@ studio-check:
     npm --prefix interfaces/dde-studio test
     npm --prefix interfaces/dde-studio/desktop ci
     npm --prefix interfaces/dde-studio/desktop run check
+    npm --prefix interfaces/dde-studio/ui ci
+    npm --prefix interfaces/dde-studio/ui run check
+    npm --prefix interfaces/dde-studio/ui run build
+
+# DDE-069 structural conformance of the golden shell at 1672x941. Kept out
+# of `check` because it needs a browser; run it in CI's visual job and
+# before any change to the shell geometry or tokens.
+studio-visual:
+    npm --prefix interfaces/dde-studio/ui run test:visual
 
 fmt:
     uv run ruff check --fix .

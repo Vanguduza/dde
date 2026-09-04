@@ -1,0 +1,125 @@
+/*
+ * Shell layout. The grid below is the four-zone composition the locked
+ * visual constitution requires (section 2): rail, contextual explorer,
+ * dominant work surface, contextual inspector, between a global top bar
+ * and a status bar.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#dde-root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--dde-bg);
+  color: var(--dde-text);
+  font-family: var(--dde-font-ui);
+  font-size: var(--dde-text-13);
+  -webkit-font-smoothing: antialiased;
+}
+
+.dde-shell {
+  display: grid;
+  height: 100%;
+  grid-template-rows: var(--dde-topbar-height) 1fr var(--dde-statusbar-height);
+  grid-template-columns:
+    var(--dde-rail-width) var(--dde-explorer-width) 1fr
+    var(--dde-inspector-width);
+  grid-template-areas:
+    "topbar topbar topbar topbar"
+    "rail explorer workspace inspector"
+    "statusbar statusbar statusbar statusbar";
+}
+
+.dde-topbar {
+  grid-area: topbar;
+}
+.dde-rail {
+  grid-area: rail;
+}
+.dde-explorer {
+  grid-area: explorer;
+}
+.dde-workspace {
+  grid-area: workspace;
+}
+.dde-inspector {
+  grid-area: inspector;
+}
+.dde-statusbar {
+  grid-area: statusbar;
+}
+
+/*
+ * Section 9 responsive rules. The composition degrades deliberately
+ * rather than collapsing: the canvas stays dominant, and the information
+ * architecture is preserved rather than destroyed to fit a narrow window.
+ */
+@media (max-width: 1439px) {
+  .dde-shell {
+    --dde-inspector-width: 288px;
+  }
+}
+
+@media (max-width: 1179px) {
+  .dde-shell {
+    grid-template-columns: var(--dde-rail-width) var(--dde-explorer-width) 1fr;
+    grid-template-areas:
+      "topbar topbar topbar"
+      "rail explorer workspace"
+      "statusbar statusbar statusbar";
+  }
+  .dde-inspector {
+    position: fixed;
+    top: var(--dde-topbar-height);
+    right: 0;
+    bottom: var(--dde-statusbar-height);
+    width: var(--dde-inspector-width);
+    box-shadow: var(--dde-shadow-float);
+    z-index: 20;
+  }
+  .dde-inspector[data-collapsed="true"] {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .dde-shell {
+    grid-template-columns: var(--dde-rail-width) 1fr;
+    grid-template-areas:
+      "topbar topbar"
+      "rail workspace"
+      "statusbar statusbar";
+  }
+  .dde-explorer[data-collapsed="true"] {
+    display: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--dde-primary);
+  outline-offset: 1px;
+  border-radius: var(--dde-radius-xs);
+}
+
+/*
+ * Section 7: animation is restrained and must respect the user's setting.
+ * DDE-068 already proved prefers-reduced-motion support at the prototype
+ * layer; the workbench honours the same rule.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

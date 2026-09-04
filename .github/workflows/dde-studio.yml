@@ -99,3 +99,42 @@ jobs:
             interfaces/dde-studio/visual/.test-results/
           if-no-files-found: ignore
           retention-days: 14
+
+  workbench:
+    # DDE-069 M3/M4: the host-neutral Frontend Studio workbench, and the
+    # structural conformance of the golden shell at the canonical
+    # 1672x941 viewport. These are geometry and honest-state assertions,
+    # not screenshot goldens -- the AD-035 reference image is absent from
+    # the repository (AD-039), so pixel-reference conformance is refused
+    # fail-closed rather than approximated here.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: interfaces/dde-studio/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: interfaces/dde-studio/ui/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run check
+      - name: Build
+        run: npm run build
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium
+      - name: Structural conformance at 1672x941
+        run: npm run test:visual
+      - name: Upload structural evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dde-069-workbench-evidence
+          path: |
+            interfaces/dde-studio/ui/playwright-report/
+            interfaces/dde-studio/ui/test-results/
+          if-no-files-found: ignore
+          retention-days: 14

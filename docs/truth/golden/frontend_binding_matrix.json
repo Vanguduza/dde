@@ -75,9 +75,16 @@
       "failure_states": [
         "MODULE_UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/DdeShell.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+        "interfaces/dde-studio/ui/src/styles/global.css",
+        "interfaces/dde-studio/ui/src/styles/tokens.css"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -95,8 +102,13 @@
         "PROJECT_UNAVAILABLE",
         "SCOPE_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
       "status": "UNBOUND",
       "note": ""
     },
@@ -135,9 +147,12 @@
         "CONFLICT"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -154,9 +169,13 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -173,13 +192,15 @@
         "COVERAGE_UNASSESSED"
       ],
       "implementation_refs": [
+        "engine/studio/coverage/scoring.py",
         "engine/studio/coverage/service.py",
-        "engine/studio/coverage/scoring.py"
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_coverage_engine.py",
-        "tests/unit/test_frontend_studio_domain_postgres.py",
-        "tests/unit/test_frontend_studio_characterization_postgres.py"
+        "tests/unit/test_frontend_studio_characterization_postgres.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
       "note": ""
@@ -197,9 +218,13 @@
       "failure_states": [
         "PXG_EMPTY"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -215,9 +240,13 @@
       "failure_states": [
         "VERIFICATION_UNAVAILABLE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -233,9 +262,13 @@
       "failure_states": [
         "PROVIDER_DEGRADED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -254,14 +287,17 @@
         "PARTIAL"
       ],
       "implementation_refs": [
-        "engine/studio/coverage/service.py",
         "engine/studio/coverage/scoring.py",
-        "engine/studio/reads.py"
+        "engine/studio/coverage/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_coverage_engine.py",
-        "tests/unit/test_frontend_studio_domain_postgres.py",
-        "tests/unit/test_frontend_studio_characterization_postgres.py"
+        "tests/unit/test_frontend_studio_characterization_postgres.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
       "note": ""
@@ -298,9 +334,12 @@
         "UNKNOWN_NOT_SHOWN_AS_COUNT"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
@@ -353,9 +392,13 @@
       "failure_states": [
         "MODULE_UNAVAILABLE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -369,9 +412,13 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -409,9 +456,12 @@
       ],
       "implementation_refs": [
         "engine/studio/pxg/service.py",
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
@@ -434,9 +484,12 @@
       ],
       "implementation_refs": [
         "engine/studio/pxg/service.py",
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
@@ -459,9 +512,12 @@
       ],
       "implementation_refs": [
         "engine/studio/pxg/service.py",
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
@@ -481,9 +537,12 @@
         "PROVIDER_DEGRADED"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -504,9 +563,12 @@
         "EMPTY"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -528,9 +590,12 @@
         "NOT_ADMITTED"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -589,9 +654,12 @@
         "ERROR"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -612,9 +680,12 @@
         "PROVIDER_DEGRADED"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -652,10 +723,13 @@
         "UNKNOWN"
       ],
       "implementation_refs": [
+        "engine/studio/locks/resolution.py",
         "engine/studio/locks/service.py",
-        "engine/studio/locks/resolution.py"
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_mutation_engine.py",
         "tests/unit/test_frontend_mutation_engine_postgres.py",
         "tests/unit/test_frontend_studio_e2e_postgres.py"
@@ -834,9 +908,12 @@
         "UNKNOWN"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -856,9 +933,12 @@
         "SERVING_UNKNOWN"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -878,9 +958,12 @@
         "SERVING_UNATTESTED"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -918,9 +1001,12 @@
         "NO_ACTIVITY"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -940,9 +1026,12 @@
         "UNKNOWN"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
@@ -959,9 +1048,13 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1046,10 +1139,14 @@
         "CAPABILITY_UNAVAILABLE",
         "ARTIFACT_REJECTED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The control is present in the canvas toolbar exactly where the golden composition puts it, rendered disabled with the reason on the element. DesignGateway and a certified provider are DDE-069 M10; a button that opened a generic chat would be the theatre the mission forbids."
     },
     {
       "id": "CT-07",
@@ -1062,9 +1159,13 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1100,10 +1201,14 @@
         "BUILD_FAILED",
         "RUNTIME_UNAVAILABLE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3)."
     },
     {
       "id": "CV-02",
@@ -1120,10 +1225,14 @@
         "BUILDING",
         "UNHEALTHY"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9."
     },
     {
       "id": "CV-03",
@@ -1678,10 +1787,14 @@
         "NO_SELECTION",
         "SOURCE_MAPPING_UNAVAILABLE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed."
     },
     {
       "id": "IN-02",
@@ -2014,9 +2127,11 @@
       ],
       "implementation_refs": [
         "engine/studio/pxg/service.py",
-        "engine/studio/reads.py"
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
       "status": "VERIFIED",
@@ -2036,11 +2151,13 @@
         "UNKNOWN"
       ],
       "implementation_refs": [
-        "engine/studio/coverage/service.py",
         "engine/studio/coverage/scoring.py",
-        "engine/studio/reads.py"
+        "engine/studio/coverage/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
       ],
       "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
         "tests/unit/test_frontend_coverage_engine.py",
         "tests/unit/test_frontend_studio_domain_postgres.py"
       ],
@@ -2112,9 +2229,13 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "VERIFIED",
       "note": ""
     }
   ]
