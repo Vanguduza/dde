@@ -1,0 +1,200 @@
+{
+  "candidates": [
+    {
+      "blocking_defects": [
+        {
+          "detail": "Secondary/label text throughout (column headers 'TASK \u00b7 CHECK \u00b7 CONFIDENCE \u00b7 DURATION \u00b7 STATE', section labels 'VERIFICATION RUNS / THIS ATTEMPT / APPROVALS', the 'DDE-068 \u00b7 updated 12:41:07 UTC' timestamp, and the stat captions 'Checks passed / Revision cycle / Critique spend') renders in a light gray on the off-white page background. That combination reads well under the ~4.5:1 AA threshold for normal-size text, making these labels hard to read for low-vision users and failing the rubric's AA contrast bar.",
+          "dimension": "accessibility"
+        }
+      ],
+      "candidate": "good-candidate",
+      "confidence": 0.72,
+      "critic_cost_usd": 0.19488700000000003,
+      "critic_duration_ms": 59209,
+      "critic_model": "claude-sonnet-5",
+      "deterministic": {
+        "density": {
+          "bottom_half_ratio": 0.3958333333333333,
+          "largest_empty_row_run": 2,
+          "occupancy_ratio": 0.53125,
+          "occupied_cells": 51,
+          "occupied_columns": 12,
+          "occupied_rows": 6,
+          "top_half_ratio": 0.6666666666666666,
+          "total_cells": 96
+        },
+        "silhouette": {
+          "blocked": false,
+          "fingerprint_hash": "e1606f849b98aa705f14903ba23797be634f05804b50ffef0e9d4a8f47b5f9f4",
+          "matched_template": null,
+          "similarity": 0.46875
+        }
+      },
+      "dimension_scores": {
+        "accessibility": 3,
+        "believable_density": 5,
+        "copy_voice": 5,
+        "data_presentation": 5,
+        "hierarchy_and_rhythm": 4,
+        "motion_restraint": 5,
+        "pattern_fidelity": 4,
+        "states_completeness": 4,
+        "token_discipline": 4
+      },
+      "expectation": "expected to pass",
+      "failing_dimensions": [
+        "accessibility"
+      ],
+      "non_blocking_defects": [
+        {
+          "detail": "Content is clustered in the top ~65% of the viewport (per density evidence: top_half_ratio 0.67 vs bottom_half_ratio 0.40), leaving a large unbalanced dead zone below both cards; at full viewport height this reads as unfinished rather than an intentional composition.",
+          "dimension": "hierarchy_and_rhythm"
+        },
+        {
+          "detail": "Silhouette similarity to any known template is low (0.47, no matched_template), so while the table+sidebar grammar is internally consistent, it doesn't clearly register as one recognized, named pattern \u2014 worth confirming this was the intended layout rather than an ad-hoc one-off.",
+          "dimension": "pattern_fidelity"
+        },
+        {
+          "detail": "Row states cover passed/failed/running and the sidebar shows one true empty state ('No approvals requested\u2026'), but no loading skeleton or disabled-control state is demonstrated anywhere in the screenshot.",
+          "dimension": "states_completeness"
+        },
+        {
+          "detail": "Cannot confirm token-only styling from a static image alone (no inspector access); the amber-for-passed / red-for-failed choice departs from a conventional green/red pass-fail convention, so verify these map to declared semantic tokens rather than one-off hex values.",
+          "dimension": "token_discipline"
+        }
+      ],
+      "policy_detail": "dimensions below the blocking threshold (4): accessibility=3",
+      "policy_passed": false,
+      "promotion": "DENIED",
+      "repair_instructions": [
+        "Darken all secondary/label gray text (table column headers, card section titles, timestamp, stat captions) to a value that meets 4.5:1 contrast against the off-white background (e.g. shift from a light gray token to a mid-dark gray like #595959 or the design system's designated 'text-secondary-AA' token), and verify each with a contrast checker.",
+        "Rebalance vertical rhythm so content isn't stranded in the top two-thirds of the viewport \u2014 either cap the page height to the content, add a third row of cards/detail, or vertically center the two-column block.",
+        "Add and show at least one loading-skeleton state and one disabled-control example alongside the existing passed/failed/running/empty states so all required states are demonstrable.",
+        "Confirm the passed/failed status colors resolve to declared semantic design tokens (not literal hex codes) and document the amber-for-passed choice if intentional."
+      ],
+      "revision_action": "REVISE",
+      "rubric_version": "1",
+      "screenshot": "good-candidate.png",
+      "screenshot_bytes": 72512,
+      "summary": "Clean, terse verification-queue dashboard with honest data presentation (right-aligned figures, an em-dash for missing confidence, a real empty state, no decorative pill-spam) and strong copy voice, but it blocks on accessibility: header, label, and metadata text is rendered in a low-contrast light gray that appears to fail WCAG AA against the off-white background. Secondary issues (uneven top/bottom density balance, incomplete state coverage, unverified token usage) are non-blocking but worth tightening.",
+      "url": "file:///home/user/dde/docs/evidence/dde-068/candidates/good-candidate.html",
+      "verdict": "BLOCK"
+    },
+    {
+      "blocking_defects": [
+        {
+          "detail": "Headline 'Seamless Insights, Reimagined' plus subhead 'Our cutting-edge platform empowers your team to unlock robust, best-in-class productivity at scale!' is marketing-brochure tone with buzzwords and an exclamation mark, not verb-first/sentence-case/domain-exact product copy. The 'New!' pill also carries an exclamation mark.",
+          "dimension": "copy_voice"
+        },
+        {
+          "detail": "All three cards use literal placeholder labels 'Item 1' / 'Item 2' / 'Item 3' filled with Lorem ipsum text \u2014 this is unlabeled filler that cannot be used to judge real hierarchy or content behavior, matching the rubric's explicit anti-example.",
+          "dimension": "believable_density"
+        },
+        {
+          "detail": "Every card carries the identical three status pills (Active, New, Beta) with no differentiation \u2014 decorative pill-spam rather than honest per-item state, and no empty/partial data case is shown.",
+          "dimension": "data_presentation"
+        },
+        {
+          "detail": "Card icons are raw emoji (\ud83d\ude80\u26a1\ud83d\udd25) rather than a generated icon-token/icon-system reference, and the gradient/color treatment on the headline shows no evidence of token-based color usage.",
+          "dimension": "token_discipline"
+        },
+        {
+          "detail": "The screen mixes a marketing-hero section (badge + big gradient headline + tagline) with a generic 3-up card grid; there is no single declared UI pattern this corresponds to, and the hero portion reads as landing-page grammar bolted onto what should be a product surface.",
+          "dimension": "pattern_fidelity"
+        },
+        {
+          "detail": "Content occupies only the top third of the frame (occupancy ratio ~0.34) with a large dead zone below the cards and no further content or footer, breaking scan-path continuity and grid rhythm at this viewport.",
+          "dimension": "hierarchy_and_rhythm"
+        },
+        {
+          "detail": "Only the happy/idle path is shown for the three cards; no loading, empty, error, or disabled state is depicted anywhere in the composition.",
+          "dimension": "states_completeness"
+        },
+        {
+          "detail": "The status pills (Active/New/Beta) appear well under the 28px minimum interactive target height, and no focus ring or keyboard-focus state is demonstrated on any control.",
+          "dimension": "accessibility"
+        }
+      ],
+      "candidate": "poor-candidate",
+      "confidence": 0.92,
+      "critic_cost_usd": 0.07793720000000001,
+      "critic_duration_ms": 40044,
+      "critic_model": "claude-sonnet-5",
+      "deterministic": {
+        "density": {
+          "bottom_half_ratio": 0.3333333333333333,
+          "largest_empty_row_run": 2,
+          "occupancy_ratio": 0.34375,
+          "occupied_cells": 33,
+          "occupied_columns": 10,
+          "occupied_rows": 5,
+          "top_half_ratio": 0.3541666666666667,
+          "total_cells": 96
+        },
+        "silhouette": {
+          "blocked": false,
+          "fingerprint_hash": "c0e9f224fa26052e7c017d746cee7e82fe82d2afe7f94d9a981ceb98bba2264e",
+          "matched_template": null,
+          "similarity": 0.6888888888888889
+        }
+      },
+      "dimension_scores": {
+        "accessibility": 2,
+        "believable_density": 1,
+        "copy_voice": 1,
+        "data_presentation": 1,
+        "hierarchy_and_rhythm": 2,
+        "motion_restraint": 3,
+        "pattern_fidelity": 2,
+        "states_completeness": 1,
+        "token_discipline": 1
+      },
+      "expectation": "expected to be rejected",
+      "failing_dimensions": [
+        "pattern_fidelity",
+        "token_discipline",
+        "hierarchy_and_rhythm",
+        "data_presentation",
+        "copy_voice",
+        "states_completeness",
+        "motion_restraint",
+        "accessibility",
+        "believable_density"
+      ],
+      "non_blocking_defects": [],
+      "policy_detail": "dimensions below the blocking threshold (4): pattern_fidelity=2, token_discipline=1, hierarchy_and_rhythm=2, data_presentation=1, copy_voice=1, states_completeness=1, motion_restraint=3, accessibility=2, believable_density=1",
+      "policy_passed": false,
+      "promotion": "DENIED",
+      "repair_instructions": [
+        "Rewrite all copy to verb-first, sentence-case, domain-exact microcopy; remove exclamation marks and marketing adjectives ('cutting-edge', 'best-in-class', 'seamless', 'reimagined', 'at scale').",
+        "Replace 'Item 1/2/3' and Lorem ipsum body text with realistic, domain-specific sample content marked data-sample=\"demo\" so hierarchy and density can actually be judged.",
+        "Differentiate the status pills per card (or remove them) so they reflect real, varied state instead of identical repeated badges; add an explicit empty-state card or note.",
+        "Swap emoji icons for the generated icon-token set used elsewhere in the system, and audit all colors/spacing/motion for token references instead of ad-hoc values.",
+        "Declare and conform to one specific UI pattern (e.g. a dashboard summary or settings-cards pattern) rather than a marketing hero + card grid hybrid; remove or repurpose the hero band if the target pattern is a product screen.",
+        "Fill or intentionally compose the lower two-thirds of the viewport (additional content, footer, or a deliberate constrained container) instead of leaving a large unexplained empty region.",
+        "Design and show loading, empty, error, and disabled variants for the card grid, not just the populated happy path.",
+        "Increase pill/badge hit targets to at least 28px and show a visible focus ring on interactive elements."
+      ],
+      "revision_action": "REVISE",
+      "rubric_version": "1",
+      "screenshot": "poor-candidate.png",
+      "screenshot_bytes": 68067,
+      "summary": "This is a generic marketing-style landing mockup (hero badge + gradient headline + buzzword tagline over three placeholder 'Item N' / Lorem ipsum cards with identical status pills) rather than a rubric-conformant product UI: copy reads as ad copy, content is unlabeled filler, status badges are decorative and undifferentiated, icons are raw emoji instead of tokens, only the happy path is shown, and the layout leaves most of the viewport empty. Every dimension falls below the passing threshold; this should not merge as-is.",
+      "url": "file:///home/user/dde/docs/evidence/dde-068/candidates/poor-candidate.html",
+      "verdict": "BLOCK"
+    }
+  ],
+  "chain": [
+    "render",
+    "screenshot",
+    "silhouette",
+    "density_evidence",
+    "multimodal_critique",
+    "structured_verdict",
+    "deterministic_policy",
+    "bounded_revision_decision",
+    "promotion_decision"
+  ],
+  "recorded_at": "2026-09-04T13:23:02.514934+00:00",
+  "total_cost_usd": 0.27282420000000007
+}

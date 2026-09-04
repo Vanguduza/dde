@@ -1,0 +1,196 @@
+<!doctype html>
+<!--
+  DDE-068 end-to-end evidence: the GOOD candidate, revision cycle 1.
+
+  Cycle 0 was BLOCKED by the live critic on accessibility=3 (low-contrast
+  secondary text) with non-blocking findings on vertical rhythm and state
+  coverage. This revision applies that critique's own repair instructions:
+
+    - secondary/label text darkened to --dde-text-secondary-aa (>= 4.5:1
+      against the off-white ground) -- the blocking defect
+    - vertical rhythm rebalanced so content is not stranded in the top
+      two-thirds (third panel row added, sidebar filled)
+    - loading-skeleton and disabled-control states added, so idle /
+      loading / empty / error / disabled are all demonstrable
+    - status colours moved onto declared semantic tokens rather than
+      one-off literals
+
+  A DDE-shaped operator surface otherwise: tabular truth with aligned
+  figures, realistic marked sample data (data-sample="demo") dense enough
+  to judge hierarchy and rhythm, verb-first terse copy, reduced-motion
+  variant.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mission verification queue</title>
+<style>
+  :root {
+    --dde-bg: #fbfbfa;
+    --dde-surface: #ffffff;
+    --dde-border: #d9d6d1;
+    --dde-text: #1f1e1c;
+    /* Repair (cycle 1): secondary text meets AA (>= 4.5:1) on --dde-bg. */
+    --dde-text-secondary-aa: #55524c;
+    --dde-status-pass: #2f5d3a;
+    --dde-status-fail: #8a3324;
+    --dde-status-run: #55524c;
+    --dde-status-disabled: #9a968f;
+    --dde-skeleton: #ebe9e5;
+    --dde-space-1: 4px;
+    --dde-space-2: 8px;
+    --dde-space-3: 16px;
+    --dde-space-4: 24px;
+    --dde-radius: 4px;
+    --dde-motion: 120ms;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--dde-bg); color: var(--dde-text);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: var(--dde-space-4);
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+           border-bottom: 1px solid var(--dde-border);
+           padding-bottom: var(--dde-space-3); margin-bottom: var(--dde-space-3); }
+  h1 { font-size: 18px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .meta { color: var(--dde-text-secondary-aa); font-size: 12px;
+          font-variant-numeric: tabular-nums; }
+  .layout { display: grid; grid-template-columns: minmax(0,2.2fr) minmax(0,1fr);
+            gap: var(--dde-space-3); align-items: start; }
+  section { background: var(--dde-surface); border: 1px solid var(--dde-border);
+            border-radius: var(--dde-radius); margin-bottom: var(--dde-space-3); }
+  section > h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+                 color: var(--dde-text-secondary-aa); font-weight: 700;
+                 margin: 0; padding: 10px var(--dde-space-3);
+                 border-bottom: 1px solid var(--dde-border); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px var(--dde-space-3);
+           border-bottom: 1px solid var(--dde-border); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+       color: var(--dde-text-secondary-aa); font-weight: 700; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .state { font-size: 12px; font-weight: 600; }
+  .state.pass { color: var(--dde-status-pass); }
+  .state.fail { color: var(--dde-status-fail); }
+  .state.run  { color: var(--dde-status-run); }
+  .run-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+             background: var(--dde-status-run); margin-right: 6px;
+             animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .run-dot { animation: none; opacity: 1; } }
+  .skel { display: inline-block; height: 10px; border-radius: 2px;
+          background: var(--dde-skeleton); vertical-align: middle; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .grid3 > div { padding: var(--dde-space-3); border-right: 1px solid var(--dde-border); }
+  .grid3 > div:last-child { border-right: 0; }
+  .k { color: var(--dde-text-secondary-aa); font-size: 12px; }
+  .v { font-size: 20px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .stack > div { padding: var(--dde-space-3); border-bottom: 1px solid var(--dde-border); }
+  .stack > div:last-child { border-bottom: 0; }
+  .empty { padding: var(--dde-space-3); color: var(--dde-text-secondary-aa);
+           font-size: 13px; }
+  .blocked { padding: 10px var(--dde-space-3); font-size: 13px;
+             color: var(--dde-status-fail); border-top: 1px solid var(--dde-border); }
+  .btn { font: inherit; font-size: 13px; padding: 6px 12px;
+         border: 1px solid var(--dde-border); border-radius: var(--dde-radius);
+         background: var(--dde-surface); color: var(--dde-text);
+         transition: background var(--dde-motion) ease; }
+  .btn:focus-visible { outline: 2px solid var(--dde-status-pass); outline-offset: 2px; }
+  .btn[disabled] { color: var(--dde-status-disabled); background: var(--dde-bg);
+                   cursor: not-allowed; }
+  .actions { padding: var(--dde-space-3); display: flex; gap: var(--dde-space-2); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Mission verification queue</h1>
+    <span class="meta">DDE-068 · updated 12:41:07 UTC</span>
+  </header>
+
+  <div class="layout">
+    <div>
+      <section>
+        <h2>Verification runs</h2>
+        <table data-sample="demo">
+          <thead>
+            <tr><th scope="col">Task</th><th scope="col">Check</th>
+                <th scope="col" class="num">Confidence</th>
+                <th scope="col" class="num">Duration</th><th scope="col">State</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>DDE-068 · silhouette gate</td><td>silhouette</td>
+                <td class="num">1.00</td><td class="num">1.4s</td>
+                <td class="state pass">Passed</td></tr>
+            <tr><td>DDE-068 · rubric critique</td><td>visual_critique</td>
+                <td class="num">0.92</td><td class="num">18.7s</td>
+                <td class="state pass">Passed</td></tr>
+            <tr><td>DDE-067 · token drift</td><td>invariant</td>
+                <td class="num">1.00</td><td class="num">0.3s</td>
+                <td class="state pass">Passed</td></tr>
+            <tr><td>DDE-066 · donor licence scan</td><td>security_scan</td>
+                <td class="num">0.00</td><td class="num">2.9s</td>
+                <td class="state fail">Failed</td></tr>
+            <tr><td>DDE-065 · prompt compile</td><td>test</td>
+                <td class="num">1.00</td><td class="num">6.1s</td>
+                <td class="state pass">Passed</td></tr>
+            <tr><td>DDE-064 · context assembly</td><td>test</td>
+                <td class="num">1.00</td><td class="num">3.8s</td>
+                <td class="state pass">Passed</td></tr>
+            <tr><td>DDE-068 · reduced motion</td><td>visual_diff</td>
+                <td class="num">—</td><td class="num">4.2s</td>
+                <td class="state run"><span class="run-dot"></span>Running</td></tr>
+            <tr><td><span class="skel" style="width:190px"></span></td>
+                <td><span class="skel" style="width:76px"></span></td>
+                <td class="num"><span class="skel" style="width:34px"></span></td>
+                <td class="num"><span class="skel" style="width:30px"></span></td>
+                <td><span class="skel" style="width:58px"></span></td></tr>
+          </tbody>
+        </table>
+        <div class="blocked">1 run blocked promotion — donor licence scan must
+          clear before this attempt can complete.</div>
+      </section>
+
+      <section>
+        <h2>Attempt totals</h2>
+        <div class="grid3" data-sample="demo">
+          <div><div class="k">Checks passed</div><div class="v">5 / 8</div></div>
+          <div><div class="k">Blocking defects</div><div class="v">1</div></div>
+          <div><div class="k">Elapsed</div><div class="v">41.6s</div></div>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section>
+        <h2>This attempt</h2>
+        <div class="stack" data-sample="demo">
+          <div><div class="k">Revision cycle</div><div class="v">2 of 3</div></div>
+          <div><div class="k">Critique spend</div><div class="v">$0.31</div></div>
+          <div><div class="k">Rubric version</div><div class="v">1</div></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Approvals</h2>
+        <div class="empty">No approvals requested. Requests appear here when a
+          run exhausts its revision budget.</div>
+        <div class="actions">
+          <button class="btn" type="button">Request review</button>
+          <button class="btn" type="button" disabled>Promote</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Last critique</h2>
+        <div class="stack" data-sample="demo">
+          <div><div class="k">Verdict</div><div class="v">Block</div></div>
+          <div><div class="k">Lowest dimension</div>
+               <div class="v">accessibility · 3</div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

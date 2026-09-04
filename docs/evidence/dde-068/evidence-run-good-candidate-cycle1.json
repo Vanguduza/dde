@@ -1,0 +1,82 @@
+{
+  "candidates": [
+    {
+      "blocking_defects": [],
+      "candidate": "good-candidate",
+      "confidence": 0.72,
+      "critic_cost_usd": 0.09032280000000001,
+      "critic_duration_ms": 50747,
+      "critic_model": "claude-sonnet-5",
+      "cycle": 1,
+      "deterministic": {
+        "density": {
+          "bottom_half_ratio": 0.7291666666666666,
+          "largest_empty_row_run": 0,
+          "occupancy_ratio": 0.7291666666666666,
+          "occupied_cells": 70,
+          "occupied_columns": 12,
+          "occupied_rows": 8,
+          "top_half_ratio": 0.7291666666666666,
+          "total_cells": 96
+        },
+        "silhouette": {
+          "blocked": false,
+          "fingerprint_hash": "50c73ede8c8ebad4063846ae23949a79e33ba6396e11dd8daa8417ba55cf2cc0",
+          "matched_template": null,
+          "similarity": 0.43037974683544306
+        }
+      },
+      "dimension_scores": {
+        "accessibility": 4,
+        "believable_density": 5,
+        "copy_voice": 5,
+        "data_presentation": 5,
+        "hierarchy_and_rhythm": 5,
+        "motion_restraint": 4,
+        "pattern_fidelity": 5,
+        "states_completeness": 5,
+        "token_discipline": 4
+      },
+      "expectation": "expected to pass",
+      "failing_dimensions": [],
+      "non_blocking_defects": [
+        {
+          "detail": "Secondary/label gray text (column headers, card section titles like 'VERIFICATION RUNS'/'THIS ATTEMPT', the timestamp, stat captions) is now visibly darker than the prior revision and appears to clear AA contrast on the off-white background, but exact contrast cannot be verified pixel-precisely from a static screenshot alone \u2014 worth confirming with a contrast checker against the actual token value.",
+          "dimension": "accessibility"
+        },
+        {
+          "detail": "Static screenshot cannot confirm token-based durations, bounded loops, or a reduced-motion variant for the 'Running' state pulse/skeleton shimmer; verify in the live component.",
+          "dimension": "motion_restraint"
+        },
+        {
+          "detail": "Colors and spacing appear systematic (green/red status text, consistent card padding/grid) but literal token usage vs. inline hex/px cannot be confirmed from a rendered image alone.",
+          "dimension": "token_discipline"
+        }
+      ],
+      "policy_detail": "all rubric dimensions at or above the blocking threshold",
+      "policy_passed": true,
+      "promotion": "ELIGIBLE",
+      "repair_instructions": [],
+      "revision_action": "PROMOTE",
+      "rubric_version": "1",
+      "screenshot": "good-candidate.png",
+      "screenshot_bytes": 88906,
+      "summary": "Prior blocking contrast defect appears resolved: section/column labels, the timestamp, and stat captions now render in a visibly darker gray that reads as AA-compliant against the off-white background. The dashboard shows a coherent, single-grammar pattern (bordered cards, uppercase labels, right-aligned tabular figures, quiet text-only status instead of pills) with all required states present \u2014 passed/failed/running, a loading skeleton row, a disabled 'Promote' button, and an honest empty state for Approvals. Copy is terse and domain-exact ('1 run blocked promotion \u2014 donor licence scan must clear before this attempt can complete.'). Remaining items (exact token usage, motion timing/reduced-motion variant) can't be fully confirmed from a static image but show no visible red flags, so verdict is PASS with minor non-blocking notes for a code-level spot-check.",
+      "url": "file:///home/user/dde/docs/evidence/dde-068/candidates/good-candidate.html",
+      "verdict": "PASS"
+    }
+  ],
+  "chain": [
+    "render",
+    "screenshot",
+    "silhouette",
+    "density_evidence",
+    "multimodal_critique",
+    "structured_verdict",
+    "deterministic_policy",
+    "bounded_revision_decision",
+    "promotion_decision"
+  ],
+  "recorded_at": "2026-09-04T13:25:28.800266+00:00",
+  "total_cost_usd": 0.09032280000000001
+}
