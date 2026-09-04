@@ -6,9 +6,9 @@ loads it, enforces its integrity rules, and renders the human-readable
 `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`.
 
 The point of the ledger is that a control cannot quietly become theatre.
-A row claiming `BOUND` must name production code that exists; a row
-claiming `VERIFIED` must additionally name tests that exist. Those claims
-are checked mechanically, so the matrix cannot drift ahead of the code.
+Evidence is recorded independently for DOMAIN, READ, COMMAND, UI, WIRED,
+E2E and VISUAL layers. Final status is derived from those layers, so a
+backend test cannot make a missing React control VERIFIED.
 """
 
 from __future__ import annotations
@@ -32,6 +32,31 @@ class BindingStatus(StrEnum):
     VERIFIED = "VERIFIED"
 
 
+class EvidenceLayer(StrEnum):
+    DOMAIN = "DOMAIN"
+    READ = "READ"
+    COMMAND = "COMMAND"
+    UI = "UI"
+    WIRED = "WIRED"
+    E2E = "E2E"
+    VISUAL = "VISUAL"
+
+
+class LayerStatus(StrEnum):
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    UNBOUND = "UNBOUND"
+    TYPED_UNAVAILABLE = "TYPED_UNAVAILABLE"
+    BOUND = "BOUND"
+    VERIFIED = "VERIFIED"
+
+
+@dataclass(frozen=True)
+class LayerEvidence:
+    layer: EvidenceLayer
+    status: LayerStatus
+    refs: tuple[str, ...]
+
+
 @dataclass(frozen=True)
 class BindingRow:
     id: str
@@ -46,8 +71,26 @@ class BindingRow:
     failure_states: tuple[str, ...]
     implementation_refs: tuple[str, ...]
     tests: tuple[str, ...]
+    evidence: tuple[LayerEvidence, ...]
     status: BindingStatus
     note: str
+
+    def evidence_for(self, layer: EvidenceLayer) -> LayerEvidence:
+        return next(item for item in self.evidence if item.layer is layer)
+
+    def derived_status(self) -> BindingStatus:
+        applicable = tuple(
+            item.status
+            for item in self.evidence
+            if item.status is not LayerStatus.NOT_APPLICABLE
+        )
+        if LayerStatus.UNBOUND in applicable:
+            return BindingStatus.UNBOUND
+        if LayerStatus.TYPED_UNAVAILABLE in applicable:
+            return BindingStatus.TYPED_UNAVAILABLE
+        if LayerStatus.BOUND in applicable:
+            return BindingStatus.BOUND
+        return BindingStatus.VERIFIED
 
 
 @dataclass(frozen=True)
@@ -88,6 +131,40 @@ def _row(entry: dict[str, object]) -> BindingRow:
             )
         return tuple(str(item) for item in value)
 
+    raw_evidence = entry.get("evidence")
+    if not isinstance(raw_evidence, dict):
+        raise DdeError(
+            "VALIDATION_FAILED",
+            "binding matrix row must declare layered evidence",
+            retryable=False,
+            details={"row": str(entry.get("id"))},
+        )
+    evidence: list[LayerEvidence] = []
+    for layer in EvidenceLayer:
+        item = raw_evidence.get(layer.value)
+        if not isinstance(item, dict):
+            raise DdeError(
+                "VALIDATION_FAILED",
+                f"binding matrix row is missing {layer.value} evidence",
+                retryable=False,
+                details={"row": str(entry.get("id"))},
+            )
+        refs = item.get("refs", [])
+        if not isinstance(refs, list):
+            raise DdeError(
+                "VALIDATION_FAILED",
+                f"binding matrix {layer.value} refs must be a list",
+                retryable=False,
+                details={"row": str(entry.get("id"))},
+            )
+        evidence.append(
+            LayerEvidence(
+                layer=layer,
+                status=LayerStatus(str(item["status"])),
+                refs=tuple(str(ref) for ref in refs),
+            )
+        )
+
     return BindingRow(
         id=str(entry["id"]),
         region=str(entry["region"]),
@@ -101,6 +178,7 @@ def _row(entry: dict[str, object]) -> BindingRow:
         failure_states=seq("failure_states"),
         implementation_refs=seq("implementation_refs"),
         tests=seq("tests"),
+        evidence=tuple(evidence),
         status=BindingStatus(str(entry["status"])),
         note=str(entry.get("note", "")),
     )
@@ -149,6 +227,43 @@ def integrity_findings(matrix: BindingMatrix, root: Path) -> tuple[str, ...]:
         if not row.visual_contract:
             findings.append(f"{row.id}: no visual contract recorded")
 
+        if row.status is not row.derived_status():
+            findings.append(
+                f"{row.id}: final status {row.status.value} does not match "
+                f"layer-derived {row.derived_status().value}"
+            )
+
+        if row.evidence_for(EvidenceLayer.UI).status is LayerStatus.NOT_APPLICABLE:
+            findings.append(f"{row.id}: visible golden control makes UI applicable")
+        if row.evidence_for(EvidenceLayer.VISUAL).status is LayerStatus.NOT_APPLICABLE:
+            findings.append(f"{row.id}: visible golden control makes VISUAL applicable")
+        if (
+            row.read_model
+            and row.evidence_for(EvidenceLayer.READ).status
+            is LayerStatus.NOT_APPLICABLE
+        ):
+            findings.append(f"{row.id}: declared read model makes READ applicable")
+        if (
+            row.command
+            and row.evidence_for(EvidenceLayer.COMMAND).status
+            is LayerStatus.NOT_APPLICABLE
+        ):
+            findings.append(f"{row.id}: declared command makes COMMAND applicable")
+
+        for item in row.evidence:
+            if (
+                item.status in (LayerStatus.BOUND, LayerStatus.VERIFIED)
+                and not item.refs
+            ):
+                findings.append(
+                    f"{row.id}: {item.layer.value} {item.status.value} names no refs"
+                )
+            for ref in item.refs:
+                if not (root / _path_part(ref)).exists():
+                    findings.append(
+                        f"{row.id}: {item.layer.value} evidence ref not found: {ref}"
+                    )
+
         if row.status in (BindingStatus.BOUND, BindingStatus.VERIFIED):
             if not row.read_model and not row.command:
                 findings.append(
@@ -164,6 +279,16 @@ def integrity_findings(matrix: BindingMatrix, root: Path) -> tuple[str, ...]:
                     findings.append(f"{row.id}: implementation ref not found: {ref}")
 
         if row.status is BindingStatus.VERIFIED:
+            incomplete = [
+                item.layer.value
+                for item in row.evidence
+                if item.status not in (LayerStatus.NOT_APPLICABLE, LayerStatus.VERIFIED)
+            ]
+            if incomplete:
+                findings.append(
+                    f"{row.id}: final VERIFIED with incomplete layers "
+                    + ", ".join(incomplete)
+                )
             if not row.tests:
                 findings.append(f"{row.id}: status VERIFIED names no tests")
             for ref in row.tests:
@@ -196,6 +321,10 @@ def render_markdown(matrix: BindingMatrix) -> str:
         "",
         f"**Closure rule:** {matrix.closure_rule}",
         "",
+        "**Final status is derived:** every applicable DOMAIN / READ / COMMAND / "
+        "UI / WIRED / E2E / VISUAL layer must be VERIFIED before the row is "
+        "VERIFIED.",
+        "",
         "## Ledger state",
         "",
         "| Status | Rows |",
@@ -213,30 +342,29 @@ def render_markdown(matrix: BindingMatrix) -> str:
             f"Specification: `{region.specification}`",
             "",
             "| ID | Feature | Visual contract | Read model | Command | "
-            "State transition | Capability | Permission | Failure states | "
-            "Implementation | Tests | Status |",
-            "|---|---|---|---|---|---|---|---|---|---|---|---|",
+            "Domain | Read | Command evidence | UI | Wired | E2E | Visual | "
+            "Implementation | Tests | Final |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         for row in rows:
-            lines.append(
-                "| {id} | {feature} | {visual} | {read} | {command} | "
-                "{transition} | {capability} | {permission} | {failures} | "
-                "{impl} | {tests} | `{status}` |".format(
-                    id=row.id,
-                    feature=_cell(row.feature),
-                    visual=_cell(row.visual_contract),
-                    read=_code(row.read_model),
-                    command=_code(row.command),
-                    transition=_cell(row.state_transition),
-                    capability=_code(row.capability),
-                    permission=_cell(row.permission),
-                    failures=" ".join(f"`{item}`" for item in row.failure_states)
-                    or "—",
-                    impl=_refs(row.implementation_refs),
-                    tests=_refs(row.tests),
-                    status=row.status.value,
-                )
+            cells = (
+                row.id,
+                _cell(row.feature),
+                _cell(row.visual_contract),
+                _code(row.read_model),
+                _code(row.command),
+                _layer(row, EvidenceLayer.DOMAIN),
+                _layer(row, EvidenceLayer.READ),
+                _layer(row, EvidenceLayer.COMMAND),
+                _layer(row, EvidenceLayer.UI),
+                _layer(row, EvidenceLayer.WIRED),
+                _layer(row, EvidenceLayer.E2E),
+                _layer(row, EvidenceLayer.VISUAL),
+                _refs(row.implementation_refs),
+                _refs(row.tests),
+                f"`{row.status.value}`",
             )
+            lines.append("| " + " | ".join(cells) + " |")
         lines.append("")
         notes = [row for row in rows if row.note]
         if notes:
@@ -258,3 +386,7 @@ def _code(value: str | None) -> str:
 
 def _refs(refs: tuple[str, ...]) -> str:
     return " ".join(f"`{ref}`" for ref in refs) if refs else "—"
+
+
+def _layer(row: BindingRow, layer: EvidenceLayer) -> str:
+    return f"`{row.evidence_for(layer).status.value}`"

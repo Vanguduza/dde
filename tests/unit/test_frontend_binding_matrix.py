@@ -1,9 +1,9 @@
 """DDE-069 — the binding ledger must stay honest and in sync.
 
 The matrix is only worth having if a row cannot claim more than the code
-delivers. These tests enforce that mechanically: a `BOUND` row must name
-production files that exist, a `VERIFIED` row must additionally name
-tests that exist, and the rendered markdown must match the registry.
+delivers. These tests enforce that mechanically: backend/domain evidence
+cannot certify a missing UI, every applicable layer is explicit, and the
+rendered markdown must match the registry.
 """
 
 from __future__ import annotations
@@ -19,6 +19,8 @@ from engine.studio.binding_matrix import (
     MATRIX_RELATIVE,
     RENDERED_RELATIVE,
     BindingStatus,
+    EvidenceLayer,
+    LayerStatus,
     integrity_findings,
     load_matrix,
     render_markdown,
@@ -103,6 +105,18 @@ def test_claims_beyond_the_code_are_rejected(tmp_path) -> None:
         "failure_states": [],
         "implementation_refs": [],
         "tests": [],
+        "evidence": {
+            "DOMAIN": {"status": "NOT_APPLICABLE", "refs": []},
+            "READ": {
+                "status": "BOUND",
+                "refs": ["docs/truth/golden/frontend_binding_matrix.json"],
+            },
+            "COMMAND": {"status": "NOT_APPLICABLE", "refs": []},
+            "UI": {"status": "UNBOUND", "refs": []},
+            "WIRED": {"status": "UNBOUND", "refs": []},
+            "E2E": {"status": "UNBOUND", "refs": []},
+            "VISUAL": {"status": "UNBOUND", "refs": []},
+        },
         "status": "UNBOUND",
         "note": "",
     }
@@ -158,3 +172,71 @@ def test_status_vocabulary_is_closed() -> None:
     matrix = load_matrix(repo_root())
     for row in matrix.rows:
         assert isinstance(row.status, BindingStatus)
+        assert row.status is row.derived_status()
+        assert {item.layer for item in row.evidence} == set(EvidenceLayer)
+        assert all(isinstance(item.status, LayerStatus) for item in row.evidence)
+
+
+def test_backend_only_evidence_cannot_verify_a_visible_control(tmp_path: Path) -> None:
+    root = repo_root()
+    production_ref = "engine/studio/chat/service.py"
+    test_ref = "tests/unit/test_frontend_chat_intent.py"
+    document = {
+        "matrix_version": 2,
+        "authority": "authority",
+        "closure_rule": "all applicable layers",
+        "regions": [{"id": "chat", "title": "Chat", "specification": "spec"}],
+        "rows": [
+            {
+                "id": "CH-X",
+                "region": "chat",
+                "feature": "Chat composer",
+                "visual_contract": "Visible composer",
+                "read_model": "FrontendConversation",
+                "command": "frontend.chat.send",
+                "state_transition": "turn appended",
+                "capability": None,
+                "permission": "project read",
+                "failure_states": ["UNAVAILABLE"],
+                "implementation_refs": [production_ref],
+                "tests": [test_ref],
+                "evidence": {
+                    "DOMAIN": {
+                        "status": "VERIFIED",
+                        "refs": [production_ref, test_ref],
+                    },
+                    "READ": {
+                        "status": "VERIFIED",
+                        "refs": [production_ref, test_ref],
+                    },
+                    "COMMAND": {
+                        "status": "VERIFIED",
+                        "refs": [production_ref, test_ref],
+                    },
+                    "UI": {"status": "UNBOUND", "refs": []},
+                    "WIRED": {"status": "UNBOUND", "refs": []},
+                    "E2E": {"status": "UNBOUND", "refs": []},
+                    "VISUAL": {"status": "UNBOUND", "refs": []},
+                },
+                "status": "VERIFIED",
+                "note": "",
+            }
+        ],
+    }
+    matrix_path = tmp_path / MATRIX_RELATIVE
+    matrix_path.parent.mkdir(parents=True)
+    matrix_path.write_text(json.dumps(document), encoding="utf-8")
+    for ref in (production_ref, test_ref):
+        destination = tmp_path / ref
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(
+            (root / ref).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+
+    matrix = load_matrix(tmp_path)
+    assert matrix.rows[0].derived_status() is BindingStatus.UNBOUND
+    assert any(
+        "final status VERIFIED does not match layer-derived UNBOUND" in finding
+        for finding in integrity_findings(matrix, tmp_path)
+    )

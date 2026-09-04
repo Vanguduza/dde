@@ -199,9 +199,15 @@ A provider implementation must implement the accepted `DesignProvider` contract 
 
 # 7. Mandatory first correction — harden the golden binding ledger
 
-Before allowing the binding matrix to drive claims of Frontend Studio completion, fix its semantic weakness.
+**Completed in the first Screen Audit packet; verify it remains green before
+building on it.**
 
-Current problem class:
+The binding matrix now records independent `DOMAIN`, `READ`, `COMMAND`, `UI`,
+`WIRED`, `E2E` and `VISUAL` evidence per row. Final status is derived: every
+applicable layer must be `VERIFIED` before a visible control is final
+`VERIFIED`.
+
+The regression test preserves the original problem class:
 
 ```text
 backend/domain for "Chat composer" exists
@@ -212,31 +218,19 @@ actual React composer absent
 → row can still be called VERIFIED
 ```
 
-That is not acceptable.
-
-The ledger must distinguish applicable dimensions such as:
+The evidence-based reclassification is intentionally conservative:
 
 ```text
-DOMAIN
-READ
-COMMAND
-UI
-WIRED
-E2E
-VISUAL
+VERIFIED             0
+BOUND                1
+TYPED_UNAVAILABLE    9
+UNBOUND             89
+TOTAL               99
 ```
 
-or implement an equivalent contract proving the same thing.
-
-Minimum invariant:
-
-> A visible golden-control row cannot reach final VERIFIED unless every applicable layer required by its own contract is evidenced, including the real UI and real production wiring.
-
-Implement this in the binding-matrix schema/validator and tests, not merely in prose.
-
-Then reclassify the 99 rows from repository evidence.
-
-Do not delete or weaken requirements to improve the verified count.
+`engine/studio/binding_matrix.py` rejects a stored final status that differs
+from the layer-derived result, rejects missing layers, and keeps UI/VISUAL
+applicable to every golden visible-control row.
 
 ---
 
