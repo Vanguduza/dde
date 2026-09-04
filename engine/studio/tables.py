@@ -1,0 +1,93 @@
+"""SQLAlchemy Core tables for the DDE-069 Frontend Studio V2 domain.
+
+Hand-written to mirror `schemas/sql/0001_stage1.sql`, which is generated
+from `schemas/objects/*.json` -- the schema is authoritative (Chapter
+3.1); this module only maps the same columns onto SQLAlchemy Core so
+`engine.studio` can read and write them inside a shared PostgreSQL
+transaction (Chapter 3.5).
+
+`engine.studio.contract`, `engine.studio.pxg` and `engine.studio.coverage`
+are the sole writers of their respective tables.
+"""
+
+from __future__ import annotations
+
+from sqlalchemy import (
+    TIMESTAMP,
+    Column,
+    Integer,
+    MetaData,
+    Numeric,
+    Table,
+    Text,
+    Uuid,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+
+metadata = MetaData()
+
+frontend_contracts = Table(
+    "frontend_contracts",
+    metadata,
+    Column("contract_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=True),
+    Column("contract_version", Integer, nullable=False),
+    Column("content_hash", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("obligations", JSONB, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+pxg_nodes = Table(
+    "pxg_nodes",
+    metadata,
+    Column("node_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("pxg_key", Text, nullable=False),
+    Column("node_kind", Text, nullable=False),
+    Column("title", Text, nullable=False),
+    Column("parent_key", Text, nullable=True),
+    Column("pxg_revision", Integer, nullable=False),
+    Column("source_refs", JSONB, nullable=False),
+    Column("attributes", JSONB, nullable=False),
+    Column("provenance", JSONB, nullable=False),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+pxg_edges = Table(
+    "pxg_edges",
+    metadata,
+    Column("edge_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("from_key", Text, nullable=False),
+    Column("to_key", Text, nullable=False),
+    Column("edge_kind", Text, nullable=False),
+    Column("pxg_revision", Integer, nullable=False),
+    Column("attributes", JSONB, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+frontend_coverage_snapshots = Table(
+    "frontend_coverage_snapshots",
+    metadata,
+    Column("snapshot_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("contract_id", Uuid(as_uuid=True), nullable=False),
+    Column("contract_version", Integer, nullable=False),
+    Column("pxg_revision", Integer, nullable=False),
+    Column("summary_state", Text, nullable=False),
+    Column("weighted_percent", Numeric, nullable=True),
+    Column("dimensions", JSONB, nullable=False),
+    Column("findings", JSONB, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)

@@ -90,6 +90,12 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "frontend.canvas.remove_element": "mission.control",
     "frontend.motion.set_animation": "mission.control",
     "frontend.flow.upsert_step": "mission.control",
+    # DDE-069 Frontend Studio V2 -- contract/PXG/coverage authoring is
+    # ordinary project authoring, so it rides `mission.control` like the
+    # DDE-067 canvas commands. No new scope and no autonomy widening.
+    "frontend.contract.publish": "mission.control",
+    "frontend.pxg.apply": "mission.control",
+    "frontend.coverage.recompute": "mission.control",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -119,6 +125,9 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "frontend.canvas.remove_element": "mission",
     "frontend.motion.set_animation": "mission",
     "frontend.flow.upsert_step": "mission",
+    "frontend.contract.publish": "mission",
+    "frontend.pxg.apply": "mission",
+    "frontend.coverage.recompute": "mission",
 }
 
 #: Mission control command -> target mission status (Chapter 4.8).

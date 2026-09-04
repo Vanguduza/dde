@@ -550,6 +550,25 @@ class CommandDispatcher:
                 idempotency_key=key,
                 parameters=params,
             )
+        elif command_type == "frontend.contract.publish":
+            payload = await studio.publish_contract(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.pxg.apply":
+            payload = await studio.apply_pxg(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.coverage.recompute":
+            payload = await studio.recompute_coverage(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
         elif command_type == "frontend.canvas.insert_component":
             payload = await studio.insert_component(
                 tenant_id=tenant_id,

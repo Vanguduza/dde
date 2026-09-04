@@ -1457,6 +1457,80 @@ CREATE TABLE audit_events (
     PRIMARY KEY (audit_event_id)
 );
 
+CREATE TABLE frontend_contracts (
+    contract_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    contract_version integer NOT NULL,
+    content_hash text NOT NULL,
+    status text NOT NULL,
+    obligations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (contract_id),
+    UNIQUE (tenant_id, project_id, contract_version),
+    CHECK (contract_version >= 1),
+    CHECK (status IN ('DRAFT', 'ACTIVE', 'SUPERSEDED'))
+);
+
+CREATE TABLE pxg_nodes (
+    node_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    pxg_key text NOT NULL,
+    node_kind text NOT NULL,
+    title text NOT NULL,
+    parent_key text,
+    pxg_revision integer NOT NULL,
+    source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    attributes jsonb NOT NULL DEFAULT '{}'::jsonb,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (node_id),
+    UNIQUE (tenant_id, project_id, pxg_key),
+    CHECK (pxg_revision >= 1),
+    CHECK (node_kind IN ('journey', 'screen', 'region', 'component', 'interaction', 'state', 'data_binding', 'navigation', 'responsive_state', 'accessibility_contract'))
+);
+
+CREATE TABLE pxg_edges (
+    edge_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    from_key text NOT NULL,
+    to_key text NOT NULL,
+    edge_kind text NOT NULL,
+    pxg_revision integer NOT NULL,
+    attributes jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (edge_id),
+    UNIQUE (tenant_id, project_id, from_key, edge_kind, to_key),
+    CHECK (edge_kind IN ('navigates_to', 'triggers', 'binds_data', 'renders_state', 'satisfies', 'derived_from', 'depends_on', 'variant_of')),
+    CHECK (pxg_revision >= 1)
+);
+
+CREATE TABLE frontend_coverage_snapshots (
+    snapshot_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    contract_id uuid NOT NULL,
+    contract_version integer NOT NULL,
+    pxg_revision integer NOT NULL,
+    summary_state text NOT NULL,
+    weighted_percent numeric,
+    dimensions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (snapshot_id),
+    CHECK ((weighted_percent IS NULL OR (weighted_percent >= 0 AND weighted_percent <= 100))),
+    CHECK (summary_state IN ('UNASSESSED', 'PARTIAL', 'ASSESSED', 'BLOCKED')),
+    CHECK ((weighted_percent IS NULL OR summary_state = 'ASSESSED'))
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -1783,6 +1857,20 @@ ALTER TABLE command_idempotency ADD CONSTRAINT command_idempotency_project_id_fk
 ALTER TABLE audit_events ADD CONSTRAINT audit_events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE audit_events ADD CONSTRAINT audit_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
+ALTER TABLE frontend_contracts ADD CONSTRAINT frontend_contracts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_contracts ADD CONSTRAINT frontend_contracts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_contracts ADD CONSTRAINT frontend_contracts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE pxg_nodes ADD CONSTRAINT pxg_nodes_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE pxg_nodes ADD CONSTRAINT pxg_nodes_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE pxg_edges ADD CONSTRAINT pxg_edges_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE pxg_edges ADD CONSTRAINT pxg_edges_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE frontend_coverage_snapshots ADD CONSTRAINT frontend_coverage_snapshots_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_coverage_snapshots ADD CONSTRAINT frontend_coverage_snapshots_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_coverage_snapshots ADD CONSTRAINT frontend_coverage_snapshots_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES frontend_contracts (contract_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -2062,3 +2150,19 @@ CREATE POLICY command_idempotency_tenant_isolation ON command_idempotency USING 
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
 CREATE POLICY audit_events_tenant_isolation ON audit_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
+
+ALTER TABLE frontend_contracts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_contracts FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_contracts_tenant_isolation ON frontend_contracts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE pxg_nodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pxg_nodes FORCE ROW LEVEL SECURITY;
+CREATE POLICY pxg_nodes_tenant_isolation ON pxg_nodes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE pxg_edges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pxg_edges FORCE ROW LEVEL SECURITY;
+CREATE POLICY pxg_edges_tenant_isolation ON pxg_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_coverage_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_coverage_snapshots FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_coverage_snapshots_tenant_isolation ON frontend_coverage_snapshots USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

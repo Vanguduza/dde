@@ -33,6 +33,11 @@ router = APIRouter(prefix="/v1")
 #: Chapter 15.5 error-family -> HTTP status (default retry metadata lives on
 #: the `Error` contract's `retryable` field, not the status line alone).
 _HTTP_STATUS = {
+    # A client-supplied parameter that fails structural validation is a
+    # 400: the request itself is malformed, which is distinct from a
+    # well-formed request the policy layer refuses (403) and from a
+    # well-formed request that conflicts with current state (409).
+    "VALIDATION_FAILED": 400,
     "INVALID_CREDENTIALS": 401,
     "SESSION_EXPIRED": 401,
     "FORBIDDEN": 403,

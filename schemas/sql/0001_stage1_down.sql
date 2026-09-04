@@ -1,5 +1,9 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS frontend_coverage_snapshots CASCADE;
+DROP TABLE IF EXISTS pxg_edges CASCADE;
+DROP TABLE IF EXISTS pxg_nodes CASCADE;
+DROP TABLE IF EXISTS frontend_contracts CASCADE;
 DROP TABLE IF EXISTS audit_events CASCADE;
 DROP TABLE IF EXISTS command_idempotency CASCADE;
 DROP TABLE IF EXISTS outbox CASCADE;

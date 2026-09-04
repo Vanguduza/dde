@@ -134,10 +134,14 @@
         "OFFLINE",
         "CONFLICT"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "StudioSyncSnapshot distinguishes durable revision from accepted command, but pending-mutation counting needs the DDE-069 M7 mutation engine; until then the chip must not claim SYNCED on a 202 alone."
     },
     {
       "id": "TB-05",
@@ -168,9 +172,16 @@
       "failure_states": [
         "COVERAGE_UNASSESSED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/coverage/service.py",
+        "engine/studio/coverage/scoring.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_coverage_engine.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py",
+        "tests/unit/test_frontend_studio_characterization_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -242,9 +253,17 @@
         "BLOCKED",
         "PARTIAL"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/coverage/service.py",
+        "engine/studio/coverage/scoring.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_coverage_engine.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py",
+        "tests/unit/test_frontend_studio_characterization_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -278,9 +297,13 @@
       "failure_states": [
         "UNKNOWN_NOT_SHOWN_AS_COUNT"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -384,9 +407,14 @@
         "EMPTY",
         "LOAD_FAILED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -404,9 +432,14 @@
         "EMPTY",
         "LOAD_FAILED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -424,9 +457,14 @@
         "EMPTY",
         "LOAD_FAILED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -442,10 +480,14 @@
       "failure_states": [
         "PROVIDER_DEGRADED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "DesignSourceRegistry is DDE-069 M8. The explorer group is listed with an UNKNOWN count (Availability.NOT_IMPLEMENTED) rather than hidden or shown as zero."
     },
     {
       "id": "EX-08",
@@ -461,10 +503,14 @@
         "UNAVAILABLE",
         "EMPTY"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED."
     },
     {
       "id": "EX-09",
@@ -481,10 +527,14 @@
         "PROVIDER_OFFLINE",
         "NOT_ADMITTED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED."
     },
     {
       "id": "EX-10",
@@ -538,10 +588,14 @@
         "STALE",
         "ERROR"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number."
     },
     {
       "id": "EX-13",
@@ -557,10 +611,14 @@
         "EMPTY",
         "PROVIDER_DEGRADED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "TemplateRecommendationService is DDE-069 M8; the group reports NOT_IMPLEMENTED."
     },
     {
       "id": "EX-14",
@@ -593,10 +651,14 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "LockService is DDE-069 M7; the group reports NOT_IMPLEMENTED."
     },
     {
       "id": "EX-16",
@@ -737,10 +799,14 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "No orchestrator runtime is wired to the Studio; runtime_state is UNKNOWN rather than a decorative ACTIVE dot."
     },
     {
       "id": "OR-02",
@@ -755,10 +821,14 @@
       "failure_states": [
         "SERVING_UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Manager-chair identity has no backing projection yet; the card shows no name."
     },
     {
       "id": "OR-03",
@@ -773,10 +843,14 @@
       "failure_states": [
         "SERVING_UNATTESTED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Blueprint Rev 3 section 5.4 ModelServingEvidence is unimplemented, so serving_confidence is UNATTESTED and desired/configured/serving stay separate and empty."
     },
     {
       "id": "OR-04",
@@ -809,10 +883,14 @@
       "failure_states": [
         "NO_ACTIVITY"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "No frontend activity projection exists; the count is UNKNOWN, not a random waveform."
     },
     {
       "id": "OR-06",
@@ -827,10 +905,14 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Role health has no backing projection; the dot renders UNKNOWN."
     },
     {
       "id": "CT-01",
@@ -1022,9 +1104,15 @@
       "failure_states": [
         "ROUTE_UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1770,9 +1858,14 @@
       "failure_states": [
         "NO_SELECTION"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1788,9 +1881,16 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/coverage/service.py",
+        "engine/studio/coverage/scoring.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_coverage_engine.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {

@@ -314,3 +314,182 @@ async def test_replayed_canvas_insert_does_not_mutate_twice(tmp_path) -> None:
                     workspace=workspace
                 )
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_dde069_contract_pxg_coverage_through_the_command_boundary() -> None:
+    """DDE-069 M5/M6 vertical slice through the real Gateway.
+
+    Publishing a contract, applying a PXG revision and recomputing
+    coverage must all be ordinary `/v1/commands` writes -- same ledger,
+    same scope checks, same idempotency -- and the coverage payload must
+    carry `weighted_percent: null` while anything is unknown.
+    """
+    engine = new_engine()
+    app.state.engine = engine
+    try:
+        fixture = await seed_tenant(engine)
+        await _seed_grant(
+            engine,
+            tenant_id=fixture.tenant_id,
+            principal_id=fixture.principal_id,
+            project_id=fixture.project_id,
+        )
+        from engine.events.service import EventService
+        from engine.missions.service import MissionService
+
+        mission = await MissionService(engine, EventService(engine)).create_mission(
+            tenant_id=fixture.tenant_id,
+            project_id=fixture.project_id,
+            slug=f"MISSION-FS69-{uuid7().hex[:12]}",
+            title="Frontend Studio V2",
+            intent="Publish a contract and a graph",
+            success_definition="Coverage computed from real state",
+            scope=["engine"],
+            requirement_refs=[],
+            autonomy_ceiling=2,
+        )
+
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
+            sid = await _open_session(client, fixture.principal_id)
+            pid = fixture.principal_id
+            mid = mission.mission_id
+
+            published = await client.post(
+                "/v1/commands",
+                json=_command_body(
+                    key="fs69-contract-1",
+                    session_id=sid,
+                    principal_id=pid,
+                    target_id=mid,
+                    command_type="frontend.contract.publish",
+                    parameters={
+                        "obligations": [
+                            {
+                                "dimension": "screen",
+                                "pxg_key": "screens/checkout",
+                                "statement": "Checkout screen exists",
+                                "applicability": "REQUIRED",
+                            },
+                            {
+                                "dimension": "accessibility",
+                                "pxg_key": "screens/checkout",
+                                "statement": "Checkout meets AA",
+                                "applicability": "REQUIRED",
+                                "verification_kinds": ["visual_critique"],
+                            },
+                        ]
+                    },
+                ),
+            )
+            assert published.status_code == 202, published.text
+            assert published.json()["payload"]["contract_version"] == 1
+
+            # An obligation waived without a decision reference is refused
+            # at the command boundary, not quietly accepted.
+            silent = await client.post(
+                "/v1/commands",
+                json=_command_body(
+                    key="fs69-contract-silent",
+                    session_id=sid,
+                    principal_id=pid,
+                    target_id=mid,
+                    command_type="frontend.contract.publish",
+                    parameters={
+                        "obligations": [
+                            {
+                                "dimension": "screen",
+                                "pxg_key": "screens/x",
+                                "statement": "dropped",
+                                "applicability": "DEFERRED_APPROVED",
+                            }
+                        ]
+                    },
+                ),
+            )
+            assert silent.status_code == 403
+            assert silent.json()["error_code"] == "POLICY_DENIED"
+
+            applied = await client.post(
+                "/v1/commands",
+                json=_command_body(
+                    key="fs69-pxg-1",
+                    session_id=sid,
+                    principal_id=pid,
+                    target_id=mid,
+                    command_type="frontend.pxg.apply",
+                    parameters={
+                        "nodes": [
+                            {
+                                "pxg_key": "screens/checkout",
+                                "node_kind": "screen",
+                                "title": "Checkout",
+                                "attributes": {"route": "/checkout"},
+                            },
+                            {
+                                "pxg_key": "screens/checkout#summary",
+                                "node_kind": "region",
+                                "title": "Order summary",
+                                "parent_key": "screens/checkout",
+                            },
+                        ]
+                    },
+                ),
+            )
+            assert applied.status_code == 202, applied.text
+            assert applied.json()["payload"]["pxg_revision"] == 1
+
+            # A malformed key is refused rather than stored.
+            hostile = await client.post(
+                "/v1/commands",
+                json=_command_body(
+                    key="fs69-pxg-hostile",
+                    session_id=sid,
+                    principal_id=pid,
+                    target_id=mid,
+                    command_type="frontend.pxg.apply",
+                    parameters={
+                        "nodes": [
+                            {
+                                "pxg_key": "../../etc/passwd",
+                                "node_kind": "screen",
+                                "title": "x",
+                            }
+                        ]
+                    },
+                ),
+            )
+            assert hostile.status_code == 400
+            assert hostile.json()["error_code"] == "VALIDATION_FAILED"
+
+            covered = await client.post(
+                "/v1/commands",
+                json=_command_body(
+                    key="fs69-coverage-1",
+                    session_id=sid,
+                    principal_id=pid,
+                    target_id=mid,
+                    command_type="frontend.coverage.recompute",
+                    parameters={},
+                ),
+            )
+            assert covered.status_code == 202, covered.text
+            payload = covered.json()["payload"]
+
+            # The screen exists, so its dimension is fully assessed. The
+            # accessibility obligation requires a visual_critique that has
+            # not run, so that dimension is PARTIAL -- and the summary
+            # must therefore carry no number at all.
+            assert payload["summary_state"] == "PARTIAL"
+            assert payload["weighted_percent"] is None
+            by_dimension = {item["dimension"]: item for item in payload["dimensions"]}
+            assert by_dimension["screen"]["state"] == "ASSESSED"
+            assert by_dimension["screen"]["percent"] == 100.0
+            assert by_dimension["accessibility"]["state"] == "PARTIAL"
+            assert by_dimension["accessibility"]["unverified_count"] == 1
+            assert by_dimension["accessibility"]["percent"] is None
+    finally:
+        await engine.dispose()

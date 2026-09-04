@@ -41,6 +41,8 @@ from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
+from engine.contracts.frontend_contract import FrontendContract
+from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
@@ -59,6 +61,8 @@ from engine.contracts.product_constitution_version import ProductConstitutionVer
 from engine.contracts.product_environment import ProductEnvironment
 from engine.contracts.project import Project
 from engine.contracts.promotion_gate_run import PromotionGateRun
+from engine.contracts.pxg_edge import PxgEdge
+from engine.contracts.pxg_node import PxgNode
 from engine.contracts.readyz import Readyz
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
@@ -124,6 +128,8 @@ __all__ = [
     "ExternalEffect",
     "FailureAttribution",
     "FeatureDNA",
+    "FrontendContract",
+    "FrontendCoverageSnapshot",
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",
@@ -142,6 +148,8 @@ __all__ = [
     "ProductEnvironment",
     "Project",
     "PromotionGateRun",
+    "PxgEdge",
+    "PxgNode",
     "Readyz",
     "ReplanDecision",
     "Requirement",

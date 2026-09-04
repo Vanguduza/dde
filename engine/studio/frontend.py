@@ -1,9 +1,15 @@
-"""DDE-067 Frontend Studio Gateway mutations.
+"""Frontend Studio Gateway mutations.
 
 Production call sites for compile, donor pin/discovery/adoption, and
 canvas/manifest edits. Every public method is reached from
-`CommandDispatcher` after CommandLedger begin — callers must not invoke
+`CommandDispatcher` after CommandLedger begin -- callers must not invoke
 these as a second write path around `/v1/commands`.
+
+DDE-069 keeps this class a *compatibility command façade* rather than
+letting it grow into a second monolith (FS-GAP-031). The V2 domain lives
+in bounded services -- `engine.studio.contract`, `engine.studio.pxg`,
+`engine.studio.coverage`, `engine.studio.reads` -- and the methods below
+only map command parameters onto them.
 """
 
 from __future__ import annotations
@@ -12,9 +18,13 @@ from dataclasses import asdict
 from typing import Any
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.contracts.frontend_contract import Obligation
+from engine.contracts.pxg_node import SourceRef
 from engine.core.errors import DdeError
+from engine.core.ids import uuid7
 from engine.donor.discovery_service import DonorDiscoveryService, SearchQuery
 from engine.donor.grouping import FeatureCategory, grouped_results_as_dict
 from engine.donor.service import DonorLabService
@@ -32,7 +42,10 @@ from engine.studio.canvas import (
     screen_relative_path,
 )
 from engine.studio.compiler import compile_generation_prompt
+from engine.studio.contract.service import FrontendContractService
+from engine.studio.coverage.service import CoverageService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
+from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.truth.db import open_unit_of_work
 from engine.workers.repository import WorkerRunRepository
@@ -55,6 +68,9 @@ class FrontendStudioService:
         discovery: DonorDiscoveryService | None = None,
         approvals: ApprovalService | None = None,
         runs: WorkerRunRepository | None = None,
+        contracts: FrontendContractService | None = None,
+        pxg: PxgService | None = None,
+        coverage: CoverageService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -62,6 +78,11 @@ class FrontendStudioService:
         self._discovery = discovery or DonorDiscoveryService(engine)
         self._approvals = approvals or ApprovalService(engine)
         self._runs = runs or WorkerRunRepository()
+        self._contracts = contracts or FrontendContractService(engine)
+        self._pxg = pxg or PxgService(engine)
+        self._coverage = coverage or CoverageService(
+            engine, pxg=self._pxg, contracts=self._contracts
+        )
 
     async def compile_prompt(
         self, *, parameters: dict[str, object]
@@ -258,6 +279,96 @@ class FrontendStudioService:
             "screen_ref": screen_ref,
             "rubric_version": rubric_version,
             "failing_dimensions": sorted(failing),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def publish_contract(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.contract.publish`.
+
+        Publishing an identical obligation set returns the existing
+        version rather than inflating the counter, so this command is
+        naturally idempotent beyond the ledger's replay window.
+        """
+        contract = await self._contracts.publish(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            obligations=_obligations(parameters),
+        )
+        return {
+            "contract_id": str(contract.contract_id),
+            "contract_version": contract.contract_version,
+            "content_hash": contract.content_hash,
+            "status": contract.status,
+            "obligation_count": len(contract.obligations),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def apply_pxg(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.pxg.apply` -- one call is one revision."""
+        revision = await self._pxg.apply(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            nodes=_pxg_nodes(parameters),
+            edges=_pxg_edges(parameters),
+            remove_node_keys=_string_list(parameters, "remove_node_keys"),
+        )
+        return {
+            "pxg_revision": revision,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def recompute_coverage(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.coverage.recompute`.
+
+        `weighted_percent` is echoed exactly as computed, including
+        `None`. A caller must not substitute a number for an unassessed
+        project.
+        """
+        del parameters
+        snapshot = await self._coverage.recompute(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        return {
+            "snapshot_id": str(snapshot.snapshot_id),
+            "contract_version": snapshot.contract_version,
+            "pxg_revision": snapshot.pxg_revision,
+            "summary_state": snapshot.summary_state,
+            "weighted_percent": snapshot.weighted_percent,
+            "dimensions": [
+                {
+                    "dimension": item.dimension,
+                    "state": item.state,
+                    "required_count": item.required_count,
+                    "satisfied_count": item.satisfied_count,
+                    "missing_count": item.missing_count,
+                    "unverified_count": item.unverified_count,
+                    "blocked_count": item.blocked_count,
+                    "waived_count": item.waived_count,
+                    "percent": item.percent,
+                }
+                for item in snapshot.dimensions
+            ],
+            "finding_count": len(snapshot.findings),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -711,3 +822,109 @@ def _queries(parameters: dict[str, object]) -> tuple[SearchQuery, ...]:
             )
         )
     return tuple(out)
+
+
+def _string_list(parameters: dict[str, object], name: str) -> tuple[str, ...]:
+    raw = parameters.get(name) or []
+    if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
+        raise DdeError(
+            "FORBIDDEN",
+            f"'{name}' must be an array of strings",
+            details={"parameter": name},
+        )
+    return tuple(raw)
+
+
+def _rows(parameters: dict[str, object], name: str) -> tuple[dict[str, object], ...]:
+    raw = parameters.get(name) or []
+    if not isinstance(raw, list) or not all(isinstance(item, dict) for item in raw):
+        raise DdeError(
+            "FORBIDDEN",
+            f"'{name}' must be an array of objects",
+            details={"parameter": name},
+        )
+    return tuple(raw)
+
+
+def _obligations(parameters: dict[str, object]) -> tuple[Obligation, ...]:
+    """Parse contract obligations, letting the contract model validate.
+
+    Pydantic rejects an unknown applicability or dimension here, so an
+    invalid obligation never reaches the service's own policy checks.
+    """
+    rows = _rows(parameters, "obligations")
+    if not rows:
+        raise DdeError(
+            "FORBIDDEN",
+            "'obligations' must be a non-empty array of objects",
+            details={"parameter": "obligations"},
+        )
+    parsed: list[Obligation] = []
+    for row in rows:
+        payload = dict(row)
+        payload.setdefault("obligation_id", str(uuid7()))
+        payload.setdefault("requirement_refs", [])
+        payload.setdefault("verification_kinds", [])
+        try:
+            parsed.append(Obligation.model_validate(payload))
+        except ValidationError as exc:
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "invalid frontend contract obligation",
+                retryable=False,
+                details={"errors": exc.errors(include_url=False)},
+            ) from exc
+    return tuple(parsed)
+
+
+def _pxg_nodes(parameters: dict[str, object]) -> tuple[NodeInput, ...]:
+    out: list[NodeInput] = []
+    for row in _rows(parameters, "nodes"):
+        refs = row.get("source_refs") or []
+        if not isinstance(refs, list):
+            raise DdeError("FORBIDDEN", "source_refs must be an array")
+        try:
+            source_refs = tuple(SourceRef.model_validate(ref) for ref in refs)
+        except ValidationError as exc:
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "invalid PXG source reference",
+                retryable=False,
+                details={"errors": exc.errors(include_url=False)},
+            ) from exc
+        parent = row.get("parent_key")
+        out.append(
+            NodeInput(
+                pxg_key=_str(row, "pxg_key"),
+                node_kind=_str(row, "node_kind"),
+                title=_str(row, "title"),
+                parent_key=parent if isinstance(parent, str) and parent else None,
+                source_refs=source_refs,
+                attributes=_mapping(row, "attributes"),
+                provenance=_mapping(row, "provenance"),
+            )
+        )
+    return tuple(out)
+
+
+def _pxg_edges(parameters: dict[str, object]) -> tuple[EdgeInput, ...]:
+    return tuple(
+        EdgeInput(
+            from_key=_str(row, "from_key"),
+            to_key=_str(row, "to_key"),
+            edge_kind=_str(row, "edge_kind"),
+            attributes=_mapping(row, "attributes"),
+        )
+        for row in _rows(parameters, "edges")
+    )
+
+
+def _mapping(row: dict[str, object], name: str) -> dict[str, object]:
+    value = row.get(name) or {}
+    if not isinstance(value, dict):
+        raise DdeError(
+            "FORBIDDEN",
+            f"'{name}' must be an object",
+            details={"parameter": name},
+        )
+    return value

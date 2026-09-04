@@ -561,3 +561,35 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: false
 - lock_version: false
+
+## FrontendContract
+
+- table: `frontend_contracts`
+- primary key: contract_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## PxgNode
+
+- table: `pxg_nodes`
+- primary key: node_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## PxgEdge
+
+- table: `pxg_edges`
+- primary key: edge_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendCoverageSnapshot
+
+- table: `frontend_coverage_snapshots`
+- primary key: snapshot_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

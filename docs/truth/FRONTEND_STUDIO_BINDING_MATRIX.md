@@ -10,10 +10,10 @@
 
 | Status | Rows |
 |---|---:|
-| `UNBOUND` | 99 |
-| `TYPED_UNAVAILABLE` | 0 |
+| `UNBOUND` | 78 |
+| `TYPED_UNAVAILABLE` | 12 |
 | `BOUND` | 0 |
-| `VERIFIED` | 0 |
+| `VERIFIED` | 9 |
 | **total** | **99** |
 
 ## Global top bar
@@ -25,17 +25,21 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 | TB-01 | Product title / module identity | Left of top bar, 58px band, 15-16px 600 weight | `shell.module_registry` | — | — | — | any authenticated principal | `MODULE_UNKNOWN` | — | — | `UNBOUND` |
 | TB-02 | Project selector | Active ProjectIdentity chip beside title | `FrontendStudioSnapshot.project` | `frontend.project.switch` | active project changes | — | principal grant on target project | `NO_PROJECT` `PROJECT_UNAVAILABLE` `SCOPE_DENIED` | — | — | `UNBOUND` |
 | TB-03 | Saved timestamp | 12px tertiary text next to sync chip | `StudioSyncSnapshot.durable_revision_at` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
-| TB-04 | Sync status chip | Pill; colour by state | `StudioSyncSnapshot.state` | — | LOCAL_PENDING->COMMAND_ACCEPTED->PERSISTING->DURABLE->PROJECTING->SYNCED | — | project read | `FAILED` `STALE` `OFFLINE` `CONFLICT` | — | — | `UNBOUND` |
+| TB-04 | Sync status chip | Pill; colour by state | `StudioSyncSnapshot.state` | — | LOCAL_PENDING->COMMAND_ACCEPTED->PERSISTING->DURABLE->PROJECTING->SYNCED | — | project read | `FAILED` `STALE` `OFFLINE` `CONFLICT` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | TB-05 | Design mode tab | Centre tab row, selected tab tinted | `FrontendStudioSnapshot.mode` | `frontend.mode.select` | studio mode transition | — | project read | — | — | — | `UNBOUND` |
-| TB-06 | Coverage mode tab | Same tab row | `CoverageSummary` | `frontend.mode.select` | studio mode transition | — | project read | `COVERAGE_UNASSESSED` | — | — | `UNBOUND` |
+| TB-06 | Coverage mode tab | Same tab row | `CoverageSummary` | `frontend.mode.select` | studio mode transition | — | project read | `COVERAGE_UNASSESSED` | `engine/studio/coverage/service.py` `engine/studio/coverage/scoring.py` | `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` `tests/unit/test_frontend_studio_characterization_postgres.py` | `VERIFIED` |
 | TB-07 | Architecture mode tab | Same tab row | `PxgGraphSnapshot` | `frontend.mode.select` | studio mode transition | — | project read | `PXG_EMPTY` | — | — | `UNBOUND` |
 | TB-08 | QA mode tab | Same tab row | `QaFindingInventory` | `frontend.mode.select` | studio mode transition | — | project read | `VERIFICATION_UNAVAILABLE` | — | — | `UNBOUND` |
 | TB-09 | Source mode tab | Same tab row | `DesignSourceInventory` | `frontend.mode.select` | studio mode transition | — | project read | `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
-| TB-10 | Coverage ring | Right-aligned ring + percentage | `CoverageSummary.weighted_percent` | — | — | — | project read | `UNASSESSED` `BLOCKED` `PARTIAL` | — | — | `UNBOUND` |
+| TB-10 | Coverage ring | Right-aligned ring + percentage | `CoverageSummary.weighted_percent` | — | — | — | project read | `UNASSESSED` `BLOCKED` `PARTIAL` | `engine/studio/coverage/service.py` `engine/studio/coverage/scoring.py` `engine/studio/reads.py` | `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` `tests/unit/test_frontend_studio_characterization_postgres.py` | `VERIFIED` |
 | TB-11 | Activity / metrics icon | Icon button | `FrontendActivityProjection` | — | — | — | project read | `NOT_ADMITTED` | — | — | `UNBOUND` |
-| TB-12 | Attention notification badge | Count badge on bell icon | `AttentionCenterSnapshot` | `frontend.attention.acknowledge` | attention item acknowledged | — | project read | `UNKNOWN_NOT_SHOWN_AS_COUNT` | — | — | `UNBOUND` |
+| TB-12 | Attention notification badge | Count badge on bell icon | `AttentionCenterSnapshot` | `frontend.attention.acknowledge` | attention item acknowledged | — | project read | `UNKNOWN_NOT_SHOWN_AS_COUNT` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | TB-13 | Help | Icon button | `shell.help_registry` | — | — | — | any authenticated principal | — | — | — | `UNBOUND` |
 | TB-14 | User avatar / principal | Circular avatar at far right | `session.principal` | — | — | — | own session | `UNAUTHENTICATED` | — | — | `UNBOUND` |
+
+Notes:
+
+- **TB-04** — StudioSyncSnapshot distinguishes durable revision from accepted command, but pending-mutation counting needs the DDE-069 M7 mutation engine; until then the chip must not claim SYNCED on a 202 alone.
 
 ## App rail and project explorer
 
@@ -46,18 +50,18 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | EX-01 | App rail module icons | 44-48px rail, tinted rounded square on selected | `shell.module_registry` | `shell.module.select` | active module changes | — | module grant | `MODULE_UNAVAILABLE` | — | — | `UNBOUND` |
 | EX-02 | Project heading + menu | 215-225px panel header row | `ProjectExplorerSnapshot.project` | — | — | — | project read | — | — | — | `UNBOUND` |
 | EX-03 | Explorer search | Search icon in header row | `ProjectExplorerSnapshot (filtered)` | — | — | — | project read | `INDEX_UNAVAILABLE` | — | — | `UNBOUND` |
-| EX-04 | Screens group + count | Collapsible group, 11px numeric counter | `ScreenTreeSnapshot` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | — | — | `UNBOUND` |
-| EX-05 | Journeys group + count | Same | `JourneyInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | — | — | `UNBOUND` |
-| EX-06 | Components group + count | Same | `ComponentInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | — | — | `UNBOUND` |
-| EX-07 | Sources group | Collapsible group | `DesignSourceInventory` | — | — | — | project read | `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
-| EX-08 | DDE Library source | Nested item + status dot | `DesignSourceInventory[internal]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read | `UNAVAILABLE` `EMPTY` | — | — | `UNBOUND` |
-| EX-09 | 21st MCP source | Nested item + status dot | `DesignSourceInventory[twentyfirst]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read + external egress admission | `AUTH_REQUIRED` `PROVIDER_OFFLINE` `NOT_ADMITTED` | — | — | `UNBOUND` |
+| EX-04 | Screens group + count | Collapsible group, 11px numeric counter | `ScreenTreeSnapshot` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| EX-05 | Journeys group + count | Same | `JourneyInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| EX-06 | Components group + count | Same | `ComponentInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| EX-07 | Sources group | Collapsible group | `DesignSourceInventory` | — | — | — | project read | `PROVIDER_DEGRADED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-08 | DDE Library source | Nested item + status dot | `DesignSourceInventory[internal]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read | `UNAVAILABLE` `EMPTY` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-09 | 21st MCP source | Nested item + status dot | `DesignSourceInventory[twentyfirst]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read + external egress admission | `AUTH_REQUIRED` `PROVIDER_OFFLINE` `NOT_ADMITTED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | EX-10 | Donor Sources | Nested item + status dot | `DesignSourceInventory[donor]` | `frontend.donors.run_discovery` | donor discovery run | `capability.donor_search` | donor_reuse approval for adoption | `APPROVAL_REQUIRED` `SOURCE_CLASS_FORBIDS` | — | — | `UNBOUND` |
 | EX-11 | Internal Components | Nested item + count | `ComponentInventory[project_native]` | — | — | — | project read | `EMPTY` | — | — | `UNBOUND` |
-| EX-12 | Source numeric badges | 11px counter or em-dash | `DesignSourceInventory[*].indexed_count` | — | — | — | project read | `UNKNOWN` `STALE` `ERROR` | — | — | `UNBOUND` |
-| EX-13 | Templates group | Collapsible group | `TemplateInventory` | `frontend.source.import_candidate` | foundation candidate created | — | project read | `EMPTY` `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
+| EX-12 | Source numeric badges | 11px counter or em-dash | `DesignSourceInventory[*].indexed_count` | — | — | — | project read | `UNKNOWN` `STALE` `ERROR` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| EX-13 | Templates group | Collapsible group | `TemplateInventory` | `frontend.source.import_candidate` | foundation candidate created | — | project read | `EMPTY` `PROVIDER_DEGRADED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | EX-14 | Template entries | Nested neutral-identity items | `TemplateInventory.entries` | — | — | — | project read | `EMPTY` | — | — | `UNBOUND` |
-| EX-15 | Locks group + count | Collapsible group + counter | `LockInventory` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| EX-15 | Locks group + count | Collapsible group + counter | `LockInventory` | — | — | — | project read | `UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | EX-16 | Style Locks | Nested item + count | `LockInventory[STYLE]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
 | EX-17 | Section Locks | Nested item + count | `LockInventory[SECTION]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
 | EX-18 | Component Locks | Nested item + count | `LockInventory[COMPONENT]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
@@ -66,18 +70,35 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | EX-21 | QA Issues count | Nested item + count | `QaFindingInventory.unresolved` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
 | EX-22 | Accessibility count | Nested item + count | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | — | — | `UNBOUND` |
 
+Notes:
+
+- **EX-07** — DesignSourceRegistry is DDE-069 M8. The explorer group is listed with an UNKNOWN count (Availability.NOT_IMPLEMENTED) rather than hidden or shown as zero.
+- **EX-08** — Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.
+- **EX-09** — 21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.
+- **EX-12** — Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number.
+- **EX-13** — TemplateRecommendationService is DDE-069 M8; the group reports NOT_IMPLEMENTED.
+- **EX-15** — LockService is DDE-069 M7; the group reports NOT_IMPLEMENTED.
+
 ## Orchestrator card
 
 Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| OR-01 | Orchestrator status | Bottom card of explorer, status dot | `OrchestratorFrontendStatus.runtime_state` | — | ACTIVE\|PAUSED\|WAITING\|DEGRADED\|UNKNOWN | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
-| OR-02 | Manager Chair identity | Name row inside card | `OrchestratorFrontendStatus.manager_chair` | — | — | — | project read | `SERVING_UNKNOWN` | — | — | `UNBOUND` |
-| OR-03 | Desired/Configured/Serving split | Three distinct labelled values | `OrchestratorFrontendStatus.model_roles` | — | — | — | project read | `SERVING_UNATTESTED` | — | — | `UNBOUND` |
+| OR-01 | Orchestrator status | Bottom card of explorer, status dot | `OrchestratorFrontendStatus.runtime_state` | — | ACTIVE\|PAUSED\|WAITING\|DEGRADED\|UNKNOWN | — | project read | `UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-02 | Manager Chair identity | Name row inside card | `OrchestratorFrontendStatus.manager_chair` | — | — | — | project read | `SERVING_UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-03 | Desired/Configured/Serving split | Three distinct labelled values | `OrchestratorFrontendStatus.model_roles` | — | — | — | project read | `SERVING_UNATTESTED` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
 | OR-04 | Design Director role | Subordinate role row | `OrchestratorFrontendStatus.design_director` | — | — | — | project read | `UNASSIGNED` | — | — | `UNBOUND` |
-| OR-05 | Activity visualisation | Compact waveform of real events | `OrchestratorFrontendStatus.activity_window` | — | — | — | project read | `NO_ACTIVITY` | — | — | `UNBOUND` |
-| OR-06 | Status dot | Colour by typed health | `OrchestratorFrontendStatus.health` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| OR-05 | Activity visualisation | Compact waveform of real events | `OrchestratorFrontendStatus.activity_window` | — | — | — | project read | `NO_ACTIVITY` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+| OR-06 | Status dot | Colour by typed health | `OrchestratorFrontendStatus.health` | — | — | — | project read | `UNKNOWN` | `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `TYPED_UNAVAILABLE` |
+
+Notes:
+
+- **OR-01** — No orchestrator runtime is wired to the Studio; runtime_state is UNKNOWN rather than a decorative ACTIVE dot.
+- **OR-02** — Manager-chair identity has no backing projection yet; the card shows no name.
+- **OR-03** — Blueprint Rev 3 section 5.4 ModelServingEvidence is unimplemented, so serving_confidence is UNATTESTED and desired/configured/serving stay separate and empty.
+- **OR-05** — No frontend activity projection exists; the count is UNKNOWN, not a random waveform.
+- **OR-06** — Role health has no backing projection; the dot renders UNKNOWN.
 
 ## Canvas toolbar
 
@@ -102,7 +123,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | CV-01 | Live preview surface | Dominant central area, code-backed | `FrontendCanvasSnapshot` | `frontend.preview.start|stop` | DESIGN\|BUILDING\|LIVE\|PROMOTED\|VERIFIED\|DISCARDED | `capability.frontend_preview` | project read | `RENDER_FAILED` `BUILD_FAILED` `RUNTIME_UNAVAILABLE` | — | — | `UNBOUND` |
 | CV-02 | LIVE badge | Small pill on canvas chrome | `FrontendCanvasSnapshot.preview_badge` | — | LIVE only with revision+build+runtime+route | — | project read | `DESIGN_ONLY` `BUILDING` `UNHEALTHY` | — | — | `UNBOUND` |
-| CV-03 | Route / screen navigation | Breadcrumb + in-preview routing | `ScreenTreeSnapshot + PreviewRuntime route` | `frontend.preview.set_state` | route change | — | project read | `ROUTE_UNKNOWN` | — | — | `UNBOUND` |
+| CV-03 | Route / screen navigation | Breadcrumb + in-preview routing | `ScreenTreeSnapshot + PreviewRuntime route` | `frontend.preview.set_state` | route change | — | project read | `ROUTE_UNKNOWN` | `engine/studio/pxg/service.py` `engine/studio/reads.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | CV-04 | Selection outline | Indigo outline on selected node | `PreviewSelectionAnchor` | — | selection changes | — | project read | `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
 | CV-05 | Resize handles | Corner/edge handles on selection | `InspectorDescriptor (layout group)` | `frontend.mutation.plan|apply` | mutation planned then applied to candidate | — | mutation authority | `LOCK_DENIED` `STALE_REVISION` `MUTATION_INVALID` | — | — | `UNBOUND` |
 | CV-06 | Section lock chip | Chip on locked region | `LockInventory (effective)` | — | — | — | project read | — | — | — | `UNBOUND` |
@@ -178,8 +199,8 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| ST-01 | Breadcrumb | 32-36px bar, selected path from PXG | `PxgGraphSnapshot path` | — | — | — | project read | `NO_SELECTION` | — | — | `UNBOUND` |
-| ST-02 | Error count | 'No errors' / count | `QaFindingInventory.blocking` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| ST-01 | Breadcrumb | 32-36px bar, selected path from PXG | `PxgGraphSnapshot path` | — | — | — | project read | `NO_SELECTION` | `engine/studio/pxg/service.py` `engine/studio/reads.py` | `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
+| ST-02 | Error count | 'No errors' / count | `QaFindingInventory.blocking` | — | — | — | project read | `UNKNOWN` | `engine/studio/coverage/service.py` `engine/studio/coverage/scoring.py` `engine/studio/reads.py` | `tests/unit/test_frontend_coverage_engine.py` `tests/unit/test_frontend_studio_domain_postgres.py` | `VERIFIED` |
 | ST-03 | Warning count | 'N warnings' | `QaFindingInventory.warnings` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
 | ST-04 | Auto Layout state | ON/OFF toggle | `EditorAssistState.auto_layout` | `frontend.editor.set_assist` | assist toggled | — | project read | — | — | — | `UNBOUND` |
 | ST-05 | AI Suggest state | ON/OFF toggle | `EditorAssistState.ai_suggest` | `frontend.editor.set_assist` | assist toggled; suggestions never auto-mutate accepted design | — | project read | `PROVIDER_UNAVAILABLE` | — | — | `UNBOUND` |

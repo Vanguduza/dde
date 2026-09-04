@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/pxg_node.json",
+  "title": "PxgNode",
+  "description": "DDE-069 Project Experience Graph node -- the semantic model of what a project's frontend actually is, above raw DOM. Owned by engine.studio.pxg (PxgService is the sole writer). A node's `pxg_key` is the stable identity every other subsystem addresses it by: Frontend Contract obligations, canvas selection anchors, inspector descriptors, chat references, provenance and coverage all resolve through it, so a DOM reflow cannot silently repoint a selection at a different component. `pxg_revision` is the project-wide monotonic revision at which this node was last written; the project's current revision is the maximum over its nodes, and a mutation precondition carrying an older revision is stale rather than blindly applied.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "pxg_nodes",
+    "order": 301,
+    "pk": ["node_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [["tenant_id", "project_id", "pxg_key"]],
+    "checks": [
+      {
+        "name": "pxg_nodes_revision_positive",
+        "expression": "pxg_revision >= 1"
+      },
+      {
+        "name": "pxg_nodes_kind_known",
+        "expression": "node_kind IN ('journey', 'screen', 'region', 'component', 'interaction', 'state', 'data_binding', 'navigation', 'responsive_state', 'accessibility_contract')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "pxg_nodes_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "pxg_nodes_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where this node's implementation lives. Absent means the node is contract-derived and not yet implemented; that is a real state, not a defect to hide.",
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string" },
+        "symbol": { "type": "string" },
+        "line": { "type": "integer" }
+      }
+    }
+  },
+  "required": [
+    "node_id",
+    "tenant_id",
+    "project_id",
+    "pxg_key",
+    "node_kind",
+    "title",
+    "pxg_revision",
+    "source_refs",
+    "attributes",
+    "provenance",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "node_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "pxg_key": {
+      "type": "string",
+      "description": "Stable project-unique identity, e.g. 'screens/checkout' or 'screens/checkout#hero'."
+    },
+    "node_kind": {
+      "type": "string",
+      "enum": [
+        "journey",
+        "screen",
+        "region",
+        "component",
+        "interaction",
+        "state",
+        "data_binding",
+        "navigation",
+        "responsive_state",
+        "accessibility_contract"
+      ]
+    },
+    "title": { "type": "string" },
+    "parent_key": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Containment parent's pxg_key. Edges carry every other relationship; this is denormalised because tree reads dominate."
+    },
+    "pxg_revision": { "type": "integer" },
+    "source_refs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SourceRef" }
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Kind-specific semantics -- route for a screen, trigger for an interaction, breakpoint for a responsive_state."
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Where this node came from: provider, source artifact, licence, retrieved_at, content hash, transformation lineage."
+    },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
