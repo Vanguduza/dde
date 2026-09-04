@@ -65,6 +65,60 @@ for (const relPath of SCREENS) {
         maxDiffPixelRatio: 0.02,
       });
     });
+
+    // DDE-068 residual (gap-closure-record.md §6.5): "reduced-motion
+    // blocking assertions" -- the screenshot test above only proves a
+    // pixel golden is stable; Playwright's own `animations: "disabled"`
+    // screenshot option force-freezes every golden regardless of
+    // prefers-reduced-motion, so it cannot tell a real fix from no fix at
+    // all. This test instead reads the browser's actually-computed
+    // animation-duration on every animated element, with the emulated
+    // media feature as the only variable, so it fails if the product's
+    // CSS ever stops truly degrading motion.
+    test(`reduced motion semantics ${relPath}`, async ({ page }) => {
+      await page.setViewportSize({ width: 900, height: 720 });
+
+      const animationDurations = async (): Promise<string[]> =>
+        page.evaluate(() => {
+          const durations: string[] = [];
+          for (const el of Array.from(document.querySelectorAll("*"))) {
+            const style = getComputedStyle(el);
+            if (style.animationName !== "none") {
+              durations.push(style.animationDuration);
+            }
+          }
+          return durations;
+        });
+
+      await page.goto(`/screen/${encodeURI(relPath)}`);
+      const normal = await animationDurations();
+      expect(
+        normal.length,
+        `${relPath} is on the animated-screens manifest but no element ` +
+          `has a computed animation-name`,
+      ).toBeGreaterThan(0);
+      expect(
+        normal.some((duration) => duration !== "0s"),
+        `${relPath}: expected a nonzero animation-duration without ` +
+          `reduced motion (got ${JSON.stringify(normal)}) -- otherwise ` +
+          `this screen has nothing for reduced motion to degrade`,
+      ).toBe(true);
+
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.reload();
+      const reduced = await animationDurations();
+      expect(
+        reduced.length,
+        `${relPath}: animated elements disappeared under reduced motion`,
+      ).toBe(normal.length);
+      for (const duration of reduced) {
+        expect(
+          duration,
+          `${relPath}: animation-duration did not degrade to 0s under ` +
+            `prefers-reduced-motion: reduce (got ${duration})`,
+        ).toBe("0s");
+      }
+    });
   }
 
   for (const scheme of ["light", "dark"] as const) {

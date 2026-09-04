@@ -11,6 +11,7 @@
 
 import { escapeHtml, messageBridgeScript, sharedStyles } from "./base";
 import { ICONS, overviewStyles } from "./overview";
+import { tokenCssRoot } from "./tokens";
 
 /** Exact §5.3 sandbox policy: scripts only, no same-origin, ever. */
 export const GALLERY_IFRAME_SANDBOX = "allow-scripts";
@@ -247,9 +248,23 @@ export function previewGalleryPage(
  * Wraps raw prototype HTML for embedding as the iframe's srcdoc value.
  * Guarantees the §5.3 CSP even when the source page omits it; the sandbox
  * attribute lives on the iframe element and cannot be overridden here.
+ *
+ * DDE-068 fix (gap-closure-record.md §6.5): prototype screens are authored
+ * against DDE's `--bg`/`--fg`/`--space-*`/`--motion-duration-*`/etc. custom
+ * properties (schemas/design/tokens.json), but nothing previously defined
+ * those properties inside the sandboxed srcdoc document -- every `var(...)`
+ * reference in a fixture was silently unresolved (invalid at computed-value
+ * time), so screens rendered with browser-default colors/spacing/motion
+ * instead of DDE's tokens. This affected both the real Prototype Gallery
+ * webview and the visual regression harness (visual/server.cjs reuses this
+ * same function), which is why the "dark" golden screenshots under
+ * visual/__screenshots__/ show a white (#ffffff) background rather than the
+ * token palette's #1e1e1e. Injecting the token :root block here, once, at
+ * the single shared wrap point, fixes both call sites at once.
  */
 export function wrapScreenSrcdoc(rawHtml: string): string {
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${GALLERY_PREVIEW_CSP}" />`;
+  const tokenStyle = `<style id="dde-token-root">${tokenCssRoot()}</style>`;
   if (/<html[\s>]/i.test(rawHtml)) {
     let out = rawHtml;
     if (!/http-equiv=["']?Content-Security-Policy/i.test(out)) {
@@ -259,6 +274,13 @@ export function wrapScreenSrcdoc(rawHtml: string): string {
         out = `${cspMeta}\n${out}`;
       }
     }
+    if (!/id=["']?dde-token-root["']?/i.test(out)) {
+      if (/<head[^>]*>/i.test(out)) {
+        out = out.replace(/<head([^>]*)>/i, `<head$1>\n  ${tokenStyle}`);
+      } else {
+        out = `${tokenStyle}\n${out}`;
+      }
+    }
     return out;
   }
   return `<!DOCTYPE html>
@@ -266,6 +288,7 @@ export function wrapScreenSrcdoc(rawHtml: string): string {
 <head>
 <meta charset="UTF-8" />
 ${cspMeta}
+${tokenStyle}
 </head>
 <body>
 ${rawHtml}

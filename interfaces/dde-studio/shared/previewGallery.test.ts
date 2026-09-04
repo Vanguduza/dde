@@ -154,6 +154,29 @@ describe("sandbox law", () => {
     assert.match(out, /<p>fragment<\/p>/);
     assert.match(out, /Content-Security-Policy/);
   });
+
+  // DDE-068 (gap-closure-record.md §6.5): prototype screens are authored
+  // against DDE's --bg/--fg/--space-*/--motion-duration-* custom
+  // properties, so the srcdoc document must define them or every var(...)
+  // reference in the fixture silently resolves to nothing.
+  it("wrapScreenSrcdoc injects the DDE token :root block", () => {
+    const out = wrapScreenSrcdoc("<html><head></head><body>hi</body></html>");
+    assert.match(out, /id="dde-token-root"/);
+    assert.match(out, /--bg: #1e1e1e/);
+    assert.match(out, /--motion-duration-slow: 240ms/);
+  });
+
+  it("wrapScreenSrcdoc does not duplicate the token block on repeat wraps", () => {
+    const once = wrapScreenSrcdoc("<html><head></head><body>hi</body></html>");
+    const twice = wrapScreenSrcdoc(once);
+    assert.equal(twice.match(/id="dde-token-root"/g)?.length, 1);
+  });
+
+  it("wraps fragment input with the token block available for var()", () => {
+    const out = wrapScreenSrcdoc('<div style="background:var(--bg)">x</div>');
+    assert.match(out, /id="dde-token-root"/);
+    assert.match(out, /<!DOCTYPE html>/);
+  });
 });
 
 describe("gallery chrome copy and structure", () => {
