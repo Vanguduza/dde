@@ -43,10 +43,20 @@ _HTTP_STATUS = {
     "FORBIDDEN": 403,
     "POLICY_DENIED": 403,
     "TENANT_SCOPE_VIOLATION": 403,
+    # A required capability is not available to this build or principal.
+    # A refusal, not an outage: the contract's `retryable` field carries
+    # whether waiting would help, so the status line does not have to.
+    "CAPABILITY_UNAVAILABLE": 403,
+    # An external design/source artifact failed provenance, licence or
+    # structural validation and may not be adopted.
+    "DESIGN_SOURCE_REJECTED": 403,
     "VERSION_CONFLICT": 409,
     "RESOURCE_LOCKED": 409,
     "WRITE_SCOPE_CONFLICT": 409,
     "CONTEXT_INCOMPLETE": 409,
+    # The caller's view of state is behind: same family as
+    # VERSION_CONFLICT, and the fix is to re-read and replan.
+    "STALE_REVISION": 409,
     "BUDGET_EXCEEDED": 409,
 }
 

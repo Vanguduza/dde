@@ -10,10 +10,10 @@
 
 | Status | Rows |
 |---|---:|
-| `UNBOUND` | 39 |
-| `TYPED_UNAVAILABLE` | 22 |
+| `UNBOUND` | 31 |
+| `TYPED_UNAVAILABLE` | 24 |
 | `BOUND` | 0 |
-| `VERIFIED` | 38 |
+| `VERIFIED` | 44 |
 | **total** | **99** |
 
 ## Global top bar
@@ -111,13 +111,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar`
 | CT-03 | Hand / pan tool | Icon toggle | `editor.interaction_mode` | — | PAN mode | — | project read | — | — | — | `UNBOUND` |
 | CT-04 | Comment tool | Icon toggle | `DesignCommentInventory` | `frontend.comment.create|resolve` | comment lifecycle | — | project read | `ANCHOR_LOST` | — | — | `UNBOUND` |
 | CT-05 | Grid / overlay options | Icon toggle + menu | `PreviewOverlayState` | `frontend.preview.set_state` | overlay toggles | — | project read | — | — | — | `UNBOUND` |
-| CT-06 | Claude /design button | Accent AI-action button in toolbar | `DesignProviderStatus` | `frontend.design.request` | DesignSession + DesignArtifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_AUTH_REQUIRED` `PROVIDER_UNAVAILABLE` `CAPABILITY_UNAVAILABLE` `ARTIFACT_REJECTED` | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `TYPED_UNAVAILABLE` |
+| CT-06 | Claude /design button | Accent AI-action button in toolbar | `DesignProviderStatus` | `frontend.design.request` | DesignSession + DesignArtifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_AUTH_REQUIRED` `PROVIDER_UNAVAILABLE` `CAPABILITY_UNAVAILABLE` `ARTIFACT_REJECTED` | `engine/studio/design/context.py` `engine/studio/design/gateway.py` `engine/studio/design/providers.py` `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `TYPED_UNAVAILABLE` |
 | CT-07 | Zoom control | Percentage stepper | `editor.canvas_transform` | — | — | — | project read | — | `interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx` | `interfaces/dde-studio/ui/visual/shell.spec.ts` | `VERIFIED` |
 | CT-08 | Fullscreen / fit | Icon buttons | `editor.presentation_state` | — | — | — | project read | `HOST_UNSUPPORTED` | — | — | `UNBOUND` |
 
 Notes:
 
-- **CT-06** — The control is present in the canvas toolbar exactly where the golden composition puts it, rendered disabled with the reason on the element. DesignGateway and a certified provider are DDE-069 M10; a button that opened a generic chat would be the theatre the mission forbids.
+- **CT-06** — The control is present where the golden composition puts it and the DesignGateway behind it is real: it compiles an allowlisted DesignEditContext, records the design-system hash, quarantines malformed artifacts and creates isolated candidates through Try live. What is absent is a certified Claude Design transport, so the provider reports NOT_CERTIFIED and the gateway refuses with no fallback. Driving it through capability.claude_code_invoke would be a generic code-generation prompt labelled /design, which section 23 forbids by name.
 
 ## Real canvas and selection
 
@@ -145,14 +145,18 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#86-frontend-chat-composer`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| CH-01 | Chat composer | Permanent floating composer, 10-12px radius | `FrontendConversation` | `frontend.chat.send` | conversation turn appended | — | project read | `PROVIDER_UNAVAILABLE` `APPROVAL_REQUIRED` | — | — | `UNBOUND` |
-| CH-02 | Selection-aware context chips | Removable chips above composer | `DesignEditContext` | — | planned scope changes | — | project read | `REFERENCE_UNRESOLVED` | — | — | `UNBOUND` |
-| CH-03 | Context/scope settings | Slider/settings icon | `FrontendConversation.context_policy` | — | — | — | project read | — | — | — | `UNBOUND` |
-| CH-04 | Send | Primary action button | `IntentRouterDecision` | `frontend.chat.send` | intent routed | — | project read | `INTENT_AMBIGUOUS` | — | — | `UNBOUND` |
-| CH-05 | Reference resolution (this/Candidate B) | Inline resolved reference | `FrontendConversation.selected_node_ids` | — | — | — | project read | `AMBIGUOUS_REFERENCE` | — | — | `UNBOUND` |
-| CH-06 | Design-class intent routing | Routed to DesignGateway | `DesignSessionReadModel` | `frontend.design.request|refine` | design artifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_UNAVAILABLE` `AUTH_REQUIRED` | — | — | `UNBOUND` |
-| CH-07 | Deterministic edit routing | Routed to MutationPlanner, no model call | `MutationPlan` | `frontend.mutation.plan|apply` | candidate mutated | — | mutation authority | `LOCK_DENIED` `STALE_REVISION` | `engine/studio/mutations/planner.py` `engine/studio/mutations/executor.py` | `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| CH-01 | Chat composer | Permanent floating composer, 10-12px radius | `FrontendConversation` | `frontend.chat.send` | conversation turn appended | — | project read | `PROVIDER_UNAVAILABLE` `APPROVAL_REQUIRED` | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| CH-02 | Selection-aware context chips | Removable chips above composer | `DesignEditContext` | — | planned scope changes | — | project read | `REFERENCE_UNRESOLVED` | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| CH-03 | Context/scope settings | Slider/settings icon | `FrontendConversation.context_policy` | — | — | — | project read | — | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `TYPED_UNAVAILABLE` |
+| CH-04 | Send | Primary action button | `IntentRouterDecision` | `frontend.chat.send` | intent routed | — | project read | `INTENT_AMBIGUOUS` | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| CH-05 | Reference resolution (this/Candidate B) | Inline resolved reference | `FrontendConversation.selected_node_ids` | — | — | — | project read | `AMBIGUOUS_REFERENCE` | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| CH-06 | Design-class intent routing | Routed to DesignGateway | `DesignSessionReadModel` | `frontend.design.request|refine` | design artifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_UNAVAILABLE` `AUTH_REQUIRED` | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` `engine/studio/design/context.py` `engine/studio/design/gateway.py` `engine/studio/design/providers.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
+| CH-07 | Deterministic edit routing | Routed to MutationPlanner, no model call | `MutationPlan` | `frontend.mutation.plan|apply` | candidate mutated | — | mutation authority | `LOCK_DENIED` `STALE_REVISION` | `engine/studio/chat/intent.py` `engine/studio/chat/service.py` `engine/studio/mutations/executor.py` `engine/studio/mutations/planner.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_mutation_engine.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
 | CH-08 | Undo / revert | Chat command + inspector action | `MutationHistory` | `frontend.mutation.revert` | candidate rolled back | — | mutation authority | `NOT_REVERTIBLE` | `engine/studio/mutations/planner.py` `engine/studio/mutations/executor.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
+
+Notes:
+
+- **CH-03** — Context scope is held on the FrontendConversation and set through frontend.chat.set_context; a per-turn provider/policy inspector UI is M17.
 
 ## Candidate / Directions dock
 
@@ -166,7 +170,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 | CA-04 | Score classification | Good/Medium chip, clickable explanation | `CandidateScorecard.classification` | — | — | — | project read | `UNSCORED` | `engine/studio/candidates/service.py` `engine/studio/candidates/lifecycle.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` | `TYPED_UNAVAILABLE` |
 | CA-05 | Change count | 'N changes' from real structural diff | `MutationPlan delta` | — | — | — | project read | `UNKNOWN` | `engine/studio/mutations/projection.py` `engine/studio/mutations/planner.py` `engine/studio/mutations/executor.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
 | CA-06 | Current (Locked) card | Accepted revision card with lock chip | `AcceptedDesignRevision` | — | — | — | project read | — | `engine/studio/candidates/service.py` `engine/studio/candidates/lifecycle.py` `engine/studio/mutations/projection.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` | `VERIFIED` |
-| CA-07 | Try live | Card action button | `CandidateWorkspace` | `frontend.design.try_live` | artifact -> isolated candidate workspace | `capability.frontend_candidate` | mutation authority | `BUILD_FAILED` `WORKTREE_CONFLICT` | `engine/studio/candidates/service.py` `engine/studio/candidates/lifecycle.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` | `TYPED_UNAVAILABLE` |
+| CA-07 | Try live | Card action button | `CandidateWorkspace` | `frontend.design.try_live` | artifact -> isolated candidate workspace | `capability.frontend_candidate` | mutation authority | `BUILD_FAILED` `WORKTREE_CONFLICT` | `engine/studio/candidates/lifecycle.py` `engine/studio/candidates/service.py` `engine/studio/design/context.py` `engine/studio/design/gateway.py` `engine/studio/design/providers.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
 | CA-08 | Compare | Card action; side-by-side real renders | `CandidateBoardSnapshot (compare mode)` | — | — | — | project read | `NOT_RENDERED` | `engine/studio/candidates/service.py` `engine/studio/candidates/lifecycle.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` | `TYPED_UNAVAILABLE` |
 | CA-09 | Promote / accept | Card action; governed gate | `FrontendAcceptanceRecord` | `frontend.candidate.promote` | candidate -> accepted revision | `capability.frontend_candidate` | manager acceptance authority | `PROMOTION_DENIED` `VERIFICATION_FAILED` `CRITIC_UNAVAILABLE` `STALE_REVISION` `LOCK_DENIED` | `engine/studio/candidates/promotion.py` | `tests/unit/test_frontend_mutation_engine_postgres.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `VERIFIED` |
 
@@ -175,7 +179,6 @@ Notes:
 - **CA-02** — Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state.
 - **CA-03** — No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92).
 - **CA-04** — Classification derives from a score that does not exist yet; the chip renders 'Not scored'.
-- **CA-07** — Try live requires the candidate preview runtime (DDE-069 M9); the action is disabled with a typed reason.
 - **CA-08** — Compare requires two rendered candidates (DDE-069 M9).
 
 ## Source Blend
@@ -184,8 +187,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#88-source-blend`
 
 | ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| SB-01 | Actual attribution | Named sources with computed percentages | `SourceBlendSnapshot.attribution` | — | — | — | project read | `ATTRIBUTION_UNCOMPUTABLE` | — | — | `UNBOUND` |
-| SB-02 | Target blend slider | Generation preference control | `SourceBlendTarget` | `frontend.design.request (blend target)` | next generation preference recorded | — | project read | — | — | — | `UNBOUND` |
+| SB-01 | Actual attribution | Named sources with computed percentages | `SourceBlendSnapshot.attribution` | — | — | — | project read | `ATTRIBUTION_UNCOMPUTABLE` | `engine/studio/design/context.py` `engine/studio/design/gateway.py` `engine/studio/design/providers.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `TYPED_UNAVAILABLE` |
+| SB-02 | Target blend slider | Generation preference control | `SourceBlendTarget` | `frontend.design.request (blend target)` | next generation preference recorded | — | project read | — | `engine/studio/design/context.py` `engine/studio/design/gateway.py` `engine/studio/design/providers.py` | `tests/unit/test_design_gateway_postgres.py` `tests/unit/test_frontend_chat_intent.py` `tests/unit/test_frontend_studio_e2e_postgres.py` | `TYPED_UNAVAILABLE` |
+
+Notes:
+
+- **SB-01** — SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8.
+- **SB-02** — The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend.
 
 ## Inspector
 

@@ -617,3 +617,35 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## DesignSession
+
+- table: `design_sessions`
+- primary key: session_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## DesignArtifact
+
+- table: `design_artifacts`
+- primary key: artifact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendConversation
+
+- table: `frontend_conversations`
+- primary key: conversation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendConversationTurn
+
+- table: `frontend_conversation_turns`
+- primary key: turn_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

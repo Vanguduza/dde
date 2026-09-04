@@ -49,9 +49,11 @@ from engine.studio.canvas import (
     parse_manifest,
     screen_relative_path,
 )
+from engine.studio.chat.service import FrontendChatService
 from engine.studio.compiler import compile_generation_prompt
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageService
+from engine.studio.design.gateway import DesignGateway
 from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
 from engine.studio.mutations.executor import MutationExecutor
@@ -113,6 +115,21 @@ class FrontendStudioService:
             pxg=self._pxg,
             locks=self._lock_service(),
             candidates=self._candidate_service(),
+        )
+
+    def _design_gateway(self) -> DesignGateway:
+        return DesignGateway(
+            self._engine,
+            pxg=self._pxg,
+            contracts=self._contracts,
+            candidates=self._candidate_service(),
+        )
+
+    def _chat_service(self) -> FrontendChatService:
+        return FrontendChatService(
+            self._engine,
+            mutations=self._mutation_executor(),
+            design=self._design_gateway(),
         )
 
     def _promotion_service(self) -> PromotionService:
@@ -325,6 +342,187 @@ class FrontendStudioService:
             "screen_ref": screen_ref,
             "rubric_version": rubric_version,
             "failing_dimensions": sorted(failing),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def design_provider_status(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.design.provider_status`.
+
+        What the `/design` control renders itself from. Never fabricated:
+        an uncertified provider reports that, with the reason.
+        """
+        del tenant_id, project_id, parameters
+        statuses = await self._design_gateway().provider_statuses()
+        return {
+            "providers": [
+                {
+                    "provider_id": item.provider_id,
+                    "display_name": item.display_name,
+                    "state": item.state.value,
+                    "detail": item.detail,
+                    "version": item.version,
+                    "usable": item.usable,
+                }
+                for item in statuses
+            ],
+            "side_effect_class": "PURE_READ",
+        }
+
+    async def request_design(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.design.request`.
+
+        Refuses when no certified provider exists rather than substituting
+        a generic code-generation prompt (FRONTEND_STUDIO_REV3 section 23).
+        """
+        raw_count = parameters.get("direction_count")
+        outcome = await self._design_gateway().request(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            conversation_id=_optional_uuid(parameters, "conversation_id"),
+            scope_keys=list(_string_list(parameters, "scope_keys")),
+            instruction=_str(parameters, "instruction"),
+            provider_id=str(parameters.get("provider_id") or "claude-design"),
+            direction_count=raw_count if isinstance(raw_count, int) else 3,
+        )
+        return {
+            "design_session_id": str(outcome.session.session_id),
+            "design_system_hash": outcome.session.design_system_hash,
+            "context_manifest": outcome.session.context_manifest,
+            "artifacts": [
+                {
+                    "artifact_id": str(item.artifact_id),
+                    "direction_label": item.direction_label,
+                    "status": item.status,
+                    "content_hash": item.content_hash,
+                    "quarantine_reason": item.quarantine_reason,
+                }
+                for item in outcome.artifacts
+            ],
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def try_design_live(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.design.try_live` -- artifact to isolated
+        candidate. Never to accepted code."""
+        artifact, candidate_id = await self._design_gateway().try_live(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+        )
+        return {
+            "artifact_id": str(artifact.artifact_id),
+            "direction_label": artifact.direction_label,
+            "candidate_id": str(candidate_id),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def open_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.chat.open`."""
+        conversation = await self._chat_service().open(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            viewport=str(parameters.get("viewport") or "desktop-1440"),
+        )
+        return {
+            "conversation_id": str(conversation.conversation_id),
+            "viewport": conversation.viewport,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_conversation_context(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.chat.set_context`.
+
+        The selection lives on the conversation so a later "this" resolves
+        to what the user had selected, not to whatever a client sent.
+        """
+        raw_keys = parameters.get("selected_node_keys")
+        conversation = await self._chat_service().set_context(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            selected_node_keys=(
+                list(_string_list(parameters, "selected_node_keys"))
+                if raw_keys is not None
+                else None
+            ),
+            active_candidate_id=_optional_uuid(parameters, "active_candidate_id"),
+        )
+        return {
+            "conversation_id": str(conversation.conversation_id),
+            "selected_node_keys": list(conversation.selected_node_keys),
+            "active_candidate_id": (
+                str(conversation.active_candidate_id)
+                if conversation.active_candidate_id
+                else None
+            ),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def send_chat_turn(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.chat.send`.
+
+        A refused turn is a 202 with a typed refusal in the payload, not an
+        error: the turn really was recorded, and the user needs to see
+        which refusal they got.
+        """
+        result = await self._chat_service().send(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            text=_str(parameters, "text"),
+        )
+        return {
+            "turn_id": str(result.turn.turn_id),
+            "sequence": result.turn.sequence,
+            "intent": result.turn.intent,
+            "outcome": result.turn.outcome,
+            "refusal_code": result.turn.refusal_code,
+            "refusal_detail": result.turn.refusal_detail,
+            "resolved_context": result.turn.resolved_context,
+            "produced_refs": list(result.produced_refs),
+            "message": result.message,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -1263,3 +1461,10 @@ def _mutation_requests(parameters: dict[str, object]) -> list[MutationRequest]:
         )
         for row in rows
     ]
+
+
+def _optional_uuid(parameters: dict[str, object], name: str) -> UUID | None:
+    value = parameters.get(name)
+    if value is None or value == "":
+        return None
+    return _as_uuid(value, name)

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_session.json",
+  "title": "DesignSession",
+  "description": "DDE-069 one design conversation's lifetime. Owned by engine.studio.design. A DesignSession is the lineage that lets `Claude /design` and Frontend Chat be the same control plane rather than two: the toolbar button and a chat instruction join the *same* session, so a user can say \"take Candidate B's sidebar, keep the locked nav, and ask /design for three hero alternatives\" without losing candidate, selection or source context. It records the exact design-system snapshot hash and PXG revision its artifacts were generated against, so an artifact produced under an older design system is detectably stale rather than silently applied.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_sessions",
+    "order": 307,
+    "pk": ["session_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "design_sessions_status_known",
+        "expression": "status IN ('OPEN', 'CLOSED', 'ABANDONED')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "design_sessions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "design_sessions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "design_sessions_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "required": [
+    "session_id",
+    "tenant_id",
+    "project_id",
+    "status",
+    "scope_keys",
+    "design_system_hash",
+    "base_pxg_revision",
+    "context_manifest",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "session_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "conversation_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }],
+      "description": "The FrontendConversation this session belongs to. Shared deliberately: `/design` is a capability within the chat control plane, not a second conversation."
+    },
+    "candidate_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "status": { "type": "string", "enum": ["OPEN", "CLOSED", "ABANDONED"] },
+    "scope_keys": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "PXG keys this session is designing. Its DesignEditContext is compiled from these and nothing wider."
+    },
+    "design_system_hash": {
+      "type": "string",
+      "description": "Hash of the allowlisted design-system snapshot the provider was given. When the project's design system changes this no longer matches and the session's artifacts are stale."
+    },
+    "base_pxg_revision": { "type": "integer" },
+    "context_manifest": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "What was actually sent to the provider, by content hash and field name. Recorded so an egress question has an answer that is not a guess."
+    },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

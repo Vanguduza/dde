@@ -302,3 +302,144 @@ async def test_the_full_governed_frontend_workflow(tmp_path) -> None:
                     workspace=workspace
                 )
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_chat_and_design_through_the_command_boundary(tmp_path) -> None:
+    """M9/M10 through the real Gateway.
+
+    The valuable assertion is the refusal: with no certified design
+    provider, `/design` must come back as a typed unavailable state and
+    never as a generic code-generation substitute.
+    """
+    engine = new_engine()
+    app.state.engine = engine
+    workspace = None
+    try:
+        worker = await build_worker_fixture(
+            engine, tmp_path, mission_slug="MISSION-FS69-CHAT"
+        )
+        workspace = worker.workspace
+        tenant = worker.tenant
+        await _grant(
+            engine,
+            tenant_id=tenant.tenant_id,
+            project_id=tenant.project_id,
+            principal_id=tenant.principal_id,
+        )
+
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
+            opened = await client.post(
+                "/v1/sessions",
+                json={
+                    "principal_id": str(tenant.principal_id),
+                    "client_type": "human",
+                    "scopes": ["mission.read", "mission.control"],
+                    "subscriptions": ["mission"],
+                },
+            )
+            assert opened.status_code == 201, opened.text
+            session_id = opened.json()["session_id"]
+            counter = {"n": 0}
+
+            async def send(command_type: str, parameters: dict) -> httpx.Response:
+                counter["n"] += 1
+                return await client.post(
+                    "/v1/commands",
+                    json={
+                        "command_id": str(uuid7()),
+                        "idempotency_key": f"chat-{counter['n']}",
+                        "principal_id": str(tenant.principal_id),
+                        "client_session_id": str(session_id),
+                        "target_type": "mission",
+                        "target_id": str(worker.mission.mission_id),
+                        "command_type": command_type,
+                        "parameters": parameters,
+                        "requested_at": datetime.now(UTC).isoformat(),
+                        "protocol_version": "1",
+                    },
+                )
+
+            await send(
+                "frontend.pxg.apply",
+                {
+                    "nodes": [
+                        {
+                            "pxg_key": "screens/checkout",
+                            "node_kind": "screen",
+                            "title": "Checkout",
+                        }
+                    ]
+                },
+            )
+
+            # The /design control's own state, read from the registry.
+            status = await send("frontend.design.provider_status", {})
+            assert status.status_code == 202, status.text
+            providers = status.json()["payload"]["providers"]
+            claude = next(
+                item for item in providers if item["provider_id"] == "claude-design"
+            )
+            assert claude["usable"] is False
+            assert claude["state"] == "NOT_CERTIFIED"
+            assert "section 23" in claude["detail"]
+
+            # A direct /design request is refused with a typed code.
+            refused = await send(
+                "frontend.design.request",
+                {
+                    "scope_keys": ["screens/checkout"],
+                    "instruction": "three hero alternatives",
+                },
+            )
+            assert refused.status_code == 403, refused.text
+            assert refused.json()["error_code"] == "CAPABILITY_UNAVAILABLE"
+
+            # The same ask through chat records a turn carrying the same
+            # refusal, rather than failing silently or inventing an answer.
+            conversation = await send("frontend.chat.open", {})
+            assert conversation.status_code == 202, conversation.text
+            conversation_id = conversation.json()["payload"]["conversation_id"]
+
+            await send(
+                "frontend.chat.set_context",
+                {
+                    "conversation_id": conversation_id,
+                    "selected_node_keys": ["screens/checkout"],
+                },
+            )
+            turn = await send(
+                "frontend.chat.send",
+                {
+                    "conversation_id": conversation_id,
+                    "text": "/design three hero alternatives",
+                },
+            )
+            assert turn.status_code == 202, turn.text
+            payload = turn.json()["payload"]
+            assert payload["intent"] == "DESIGN_DIVERGENT"
+            assert payload["outcome"] == "REFUSED"
+            assert payload["refusal_code"] == "CAPABILITY_UNAVAILABLE"
+            assert payload["produced_refs"] == []
+
+            # An edit with no active candidate is refused for the right
+            # reason: the accepted design is never edited in place.
+            edit = await send(
+                "frontend.chat.send",
+                {
+                    "conversation_id": conversation_id,
+                    "text": "set the spacing to space6",
+                },
+            )
+            assert edit.status_code == 202, edit.text
+            assert edit.json()["payload"]["refusal_code"] == "NO_ACTIVE_CANDIDATE"
+    finally:
+        if workspace is not None:
+            with suppress(Exception):
+                await WorkspaceService(engine, root=repo_root()).cleanup(
+                    workspace=workspace
+                )
+        await engine.dispose()

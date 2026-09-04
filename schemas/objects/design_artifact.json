@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_artifact.json",
+  "title": "DesignArtifact",
+  "description": "DDE-069 one versioned design direction produced by a design provider. Owned by engine.studio.design. An artifact is *not* an implementation and is never LIVE: it becomes code only through Try live, which creates an isolated candidate, and it reaches accepted state only through the ordinary promotion gate with DDE-068 verification. `provenance` records the provider, its version, the request and the design-system hash, so \"where did this come from?\" is answerable after the fact. Artifacts are neutral directions -- a card may not imply a quality score before real scoring evidence exists (FRONTEND_STUDIO_REV3 section 17.2).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_artifacts",
+    "order": 308,
+    "pk": ["artifact_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["session_id", "direction_label", "revision"]],
+    "checks": [
+      {
+        "name": "design_artifacts_status_known",
+        "expression": "status IN ('GENERATED', 'QUARANTINED', 'SELECTED', 'TRIED_LIVE', 'DISCARDED')"
+      },
+      {
+        "name": "design_artifacts_revision_positive",
+        "expression": "revision >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "design_artifacts_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "design_artifacts_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "design_artifacts_session_id_fkey",
+        "columns": ["session_id"],
+        "ref_table": "design_sessions",
+        "ref_columns": ["session_id"]
+      }
+    ]
+  },
+  "required": [
+    "artifact_id",
+    "tenant_id",
+    "project_id",
+    "session_id",
+    "direction_label",
+    "revision",
+    "status",
+    "provider_id",
+    "content_hash",
+    "content",
+    "provenance",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "artifact_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "session_id": { "type": "string", "format": "uuid" },
+    "direction_label": {
+      "type": "string",
+      "description": "A neutral identity such as 'A'. Neutral on purpose: a label implying rank would be a score without evidence."
+    },
+    "revision": { "type": "integer" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "GENERATED",
+        "QUARANTINED",
+        "SELECTED",
+        "TRIED_LIVE",
+        "DISCARDED"
+      ]
+    },
+    "provider_id": { "type": "string" },
+    "content_hash": { "type": "string" },
+    "content": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "The normalized artifact. Provider-specific shapes are adapted before they land here, so the studio never depends on one provider's format."
+    },
+    "provenance": { "type": "object", "additionalProperties": true },
+    "quarantine_reason": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Why a malformed or policy-failing artifact was quarantined rather than accepted. A provider returning nonsense must not become a candidate."
+    },
+    "candidate_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

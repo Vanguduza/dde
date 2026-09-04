@@ -1,5 +1,9 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS frontend_conversation_turns CASCADE;
+DROP TABLE IF EXISTS frontend_conversations CASCADE;
+DROP TABLE IF EXISTS design_artifacts CASCADE;
+DROP TABLE IF EXISTS design_sessions CASCADE;
 DROP TABLE IF EXISTS frontend_mutations CASCADE;
 DROP TABLE IF EXISTS frontend_candidates CASCADE;
 DROP TABLE IF EXISTS frontend_locks CASCADE;

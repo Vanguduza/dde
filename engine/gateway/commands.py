@@ -550,6 +550,45 @@ class CommandDispatcher:
                 idempotency_key=key,
                 parameters=params,
             )
+        elif command_type == "frontend.design.provider_status":
+            payload = await studio.design_provider_status(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.design.request":
+            payload = await studio.request_design(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.design.try_live":
+            payload = await studio.try_design_live(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.open":
+            payload = await studio.open_conversation(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.set_context":
+            payload = await studio.set_conversation_context(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.send":
+            payload = await studio.send_chat_turn(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
         elif command_type == "frontend.candidate.create":
             payload = await studio.create_candidate(
                 tenant_id=tenant_id,

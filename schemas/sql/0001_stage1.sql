@@ -1603,6 +1603,85 @@ CREATE TABLE frontend_mutations (
     CHECK (sequence >= 1)
 );
 
+CREATE TABLE design_sessions (
+    session_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    conversation_id uuid,
+    candidate_id uuid,
+    status text NOT NULL,
+    scope_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    design_system_hash text NOT NULL,
+    base_pxg_revision integer NOT NULL,
+    context_manifest jsonb NOT NULL DEFAULT '{}'::jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (session_id),
+    CHECK (status IN ('OPEN', 'CLOSED', 'ABANDONED'))
+);
+
+CREATE TABLE design_artifacts (
+    artifact_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    session_id uuid NOT NULL,
+    direction_label text NOT NULL,
+    revision integer NOT NULL,
+    status text NOT NULL,
+    provider_id text NOT NULL,
+    content_hash text NOT NULL,
+    content jsonb NOT NULL DEFAULT '{}'::jsonb,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    quarantine_reason text,
+    candidate_id uuid,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (artifact_id),
+    UNIQUE (session_id, direction_label, revision),
+    CHECK (status IN ('GENERATED', 'QUARANTINED', 'SELECTED', 'TRIED_LIVE', 'DISCARDED')),
+    CHECK (revision >= 1)
+);
+
+CREATE TABLE frontend_conversations (
+    conversation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    active_candidate_id uuid,
+    design_session_id uuid,
+    selected_node_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    viewport text NOT NULL,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (conversation_id)
+);
+
+CREATE TABLE frontend_conversation_turns (
+    turn_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    sequence integer NOT NULL,
+    role text NOT NULL,
+    text text NOT NULL,
+    intent text NOT NULL,
+    outcome text NOT NULL,
+    refusal_code text,
+    refusal_detail text,
+    resolved_context jsonb NOT NULL DEFAULT '{}'::jsonb,
+    produced_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (turn_id),
+    UNIQUE (conversation_id, sequence),
+    CHECK (sequence >= 1),
+    CHECK (role IN ('user', 'studio')),
+    CHECK (outcome IN ('ROUTED', 'REFUSED', 'ANSWERED'))
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -1955,6 +2034,22 @@ ALTER TABLE frontend_mutations ADD CONSTRAINT frontend_mutations_tenant_id_fkey 
 ALTER TABLE frontend_mutations ADD CONSTRAINT frontend_mutations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_mutations ADD CONSTRAINT frontend_mutations_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
 
+ALTER TABLE design_sessions ADD CONSTRAINT design_sessions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_sessions ADD CONSTRAINT design_sessions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE design_sessions ADD CONSTRAINT design_sessions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE design_artifacts ADD CONSTRAINT design_artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_artifacts ADD CONSTRAINT design_artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE design_artifacts ADD CONSTRAINT design_artifacts_session_id_fkey FOREIGN KEY (session_id) REFERENCES design_sessions (session_id);
+
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -2262,3 +2357,19 @@ CREATE POLICY frontend_candidates_tenant_isolation ON frontend_candidates USING 
 ALTER TABLE frontend_mutations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_mutations FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_mutations_tenant_isolation ON frontend_mutations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_sessions FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_sessions_tenant_isolation ON design_sessions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_artifacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_artifacts_tenant_isolation ON design_artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_conversations FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_conversations_tenant_isolation ON frontend_conversations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_conversation_turns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_conversation_turns FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_conversation_turns_tenant_isolation ON frontend_conversation_turns USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

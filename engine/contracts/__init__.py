@@ -26,6 +26,8 @@ from engine.contracts.core_event import CoreEvent
 from engine.contracts.credential_handle import CredentialHandle
 from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.derived_edge import DerivedEdge
+from engine.contracts.design_artifact import DesignArtifact
+from engine.contracts.design_session import DesignSession
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.domain_invariant import DomainInvariant
 from engine.contracts.donor_artifact import DonorArtifact
@@ -43,6 +45,8 @@ from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
 from engine.contracts.frontend_candidate import FrontendCandidate
 from engine.contracts.frontend_contract import FrontendContract
+from engine.contracts.frontend_conversation import FrontendConversation
+from engine.contracts.frontend_conversation_turn import FrontendConversationTurn
 from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
 from engine.contracts.frontend_lock import FrontendLock
 from engine.contracts.frontend_mutation import FrontendMutation
@@ -116,6 +120,8 @@ __all__ = [
     "CredentialHandle",
     "DependencyAdmission",
     "DerivedEdge",
+    "DesignArtifact",
+    "DesignSession",
     "DiffGateReport",
     "DomainInvariant",
     "DonorArtifact",
@@ -133,6 +139,8 @@ __all__ = [
     "FeatureDNA",
     "FrontendCandidate",
     "FrontendContract",
+    "FrontendConversation",
+    "FrontendConversationTurn",
     "FrontendCoverageSnapshot",
     "FrontendLock",
     "FrontendMutation",

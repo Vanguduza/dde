@@ -59,21 +59,33 @@ may not claim `BOUND` without naming production files that exist, nor
 
 Highest-value unbound work at this snapshot, dependency-first:
 
-1. **M3/M4** — host-neutral React/TS/Vite runtime behind `DdeHostBridge`
-   plus the canonical shell. Held to *structural* conformance against
-   `FRONTEND_STUDIO_REV3.md` Part I sections 2-5, because the AD-035 image
-   is missing (AD-039).
-2. **M7** — unified mutation planner, lock engine and candidate isolation.
-   Unblocks the inspector, canvas editing and the sync chip (TB-04).
-3. **M8-M10** — source adapters, Frontend Chat, DesignGateway and
-   `Claude /design`.
+1. **M9 preview runtime** — the largest remaining gap and what unblocks
+   the most ledger rows at once: candidate rendering on the canvas, stable
+   selection instrumentation, the inspector's descriptor-driven controls,
+   candidate thumbnails, Try-live preview and the LIVE badge. The mutation
+   path they would drive is already real and governed.
+2. **M8** — design source adapters (internal library, donor, 21st),
+   template recommendation, the Design System Compiler, provenance and
+   `CandidateScorecard`. Unblocks the Sources and Templates explorer
+   groups, Source Blend and candidate scores.
+3. **M12** — migrate the remaining DDE windows onto the shared shell.
 
-**One owner-action blocker.** The AD-035 golden 1672x941 mockup is not in
-the repository and never has been (AD-039). Structural conformance is
-verifiable; pixel-reference conformance fails closed until the image is
-committed at `docs/truth/golden/frontend-studio-shell.png` with its sha256
-recorded in `docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. Do not
-fabricate the artifact, and do not claim pixel conformance without it.
+**Two owner-action blockers.**
+
+*The golden image.* The AD-035 1672x941 mockup is not in the repository
+and never has been (AD-039). Structural conformance is verified;
+pixel-reference conformance fails closed until the image is committed at
+`docs/truth/golden/frontend-studio-shell.png` with its sha256 recorded in
+`docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. Do not fabricate the
+artifact, and do not claim pixel conformance without it.
+
+*A certified design transport.* The DesignGateway is built and proven, but
+no certified Claude Design transport exists, so `/design` refuses with a
+typed state. Register one implementing the `DesignProvider` protocol in
+`engine/studio/design/providers.py`. Do **not** route it through
+`capability.claude_code_invoke` — that is the substitution
+`FRONTEND_STUDIO_REV3.md` section 23 forbids by name, and it would weaken
+EDR-0001/EDR-0017's per-invocation approval.
 
 The DDE-068 material below is retained because DDE-069's promotion path
 must consume its verification, and because its guardrails remain binding.

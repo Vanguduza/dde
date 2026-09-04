@@ -1140,13 +1140,19 @@
         "ARTIFACT_REJECTED"
       ],
       "implementation_refs": [
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py",
         "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
       ],
       "tests": [
-        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
       ],
       "status": "TYPED_UNAVAILABLE",
-      "note": "The control is present in the canvas toolbar exactly where the golden composition puts it, rendered disabled with the reason on the element. DesignGateway and a certified provider are DDE-069 M10; a button that opened a generic chat would be the theatre the mission forbids."
+      "note": "The control is present where the golden composition puts it and the DesignGateway behind it is real: it compiles an allowlisted DesignEditContext, records the design-system hash, quarantines malformed artifacts and creates isolated candidates through Try live. What is absent is a certified Claude Design transport, so the provider reports NOT_CERTIFIED and the gateway refuses with no fallback. Driving it through capability.claude_code_invoke would be a generic code-generation prompt labelled /design, which section 23 forbids by name."
     },
     {
       "id": "CT-07",
@@ -1379,9 +1385,16 @@
         "PROVIDER_UNAVAILABLE",
         "APPROVAL_REQUIRED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1397,9 +1410,16 @@
       "failure_states": [
         "REFERENCE_UNRESOLVED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1413,10 +1433,17 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Context scope is held on the FrontendConversation and set through frontend.chat.set_context; a per-turn provider/policy inspector UI is M17."
     },
     {
       "id": "CH-04",
@@ -1431,9 +1458,16 @@
       "failure_states": [
         "INTENT_AMBIGUOUS"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1449,9 +1483,16 @@
       "failure_states": [
         "AMBIGUOUS_REFERENCE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1468,9 +1509,19 @@
         "PROVIDER_UNAVAILABLE",
         "AUTH_REQUIRED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py",
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1488,10 +1539,14 @@
         "STALE_REVISION"
       ],
       "implementation_refs": [
-        "engine/studio/mutations/planner.py",
-        "engine/studio/mutations/executor.py"
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py",
+        "engine/studio/mutations/executor.py",
+        "engine/studio/mutations/planner.py"
       ],
       "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
         "tests/unit/test_frontend_mutation_engine.py",
         "tests/unit/test_frontend_mutation_engine_postgres.py",
         "tests/unit/test_frontend_studio_e2e_postgres.py"
@@ -1680,14 +1735,20 @@
         "WORKTREE_CONFLICT"
       ],
       "implementation_refs": [
+        "engine/studio/candidates/lifecycle.py",
         "engine/studio/candidates/service.py",
-        "engine/studio/candidates/lifecycle.py"
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
       ],
       "tests": [
-        "tests/unit/test_frontend_mutation_engine_postgres.py"
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
       ],
-      "status": "TYPED_UNAVAILABLE",
-      "note": "Try live requires the candidate preview runtime (DDE-069 M9); the action is disabled with a typed reason."
+      "status": "VERIFIED",
+      "note": ""
     },
     {
       "id": "CA-08",
@@ -1752,10 +1813,18 @@
       "failure_states": [
         "ATTRIBUTION_UNCOMPUTABLE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8."
     },
     {
       "id": "SB-02",
@@ -1768,10 +1837,18 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend."
     },
     {
       "id": "IN-01",

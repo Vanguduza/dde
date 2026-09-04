@@ -26,6 +26,12 @@ FRONTEND_COMMANDS = (
 
 DDE_069_COMMANDS = (
     "frontend.screen.register",
+    "frontend.design.provider_status",
+    "frontend.design.request",
+    "frontend.design.try_live",
+    "frontend.chat.open",
+    "frontend.chat.set_context",
+    "frontend.chat.send",
     "frontend.candidate.create",
     "frontend.candidate.transition",
     "frontend.candidate.promote",
@@ -73,3 +79,27 @@ def test_every_dispatched_frontend_command_declares_a_scope() -> None:
     for command_type in dispatched:
         assert command_type in COMMAND_SCOPES, command_type
         assert command_type in COMMAND_TARGET_TYPE, command_type
+
+
+def test_every_error_code_the_studio_raises_has_an_http_status() -> None:
+    """An unmapped code returns 500, which turns a precise refusal into an
+    apparent DDE bug. This caught `VALIDATION_FAILED`, then
+    `CAPABILITY_UNAVAILABLE`, `DESIGN_SOURCE_REJECTED` and
+    `STALE_REVISION`; it exists so the next one is caught before a client
+    ever sees it."""
+    import re
+
+    from engine.context.repo import repo_root
+    from engine.gateway.api import _HTTP_STATUS
+
+    raised: set[str] = set()
+    for path in (repo_root() / "engine" / "studio").rglob("*.py"):
+        raised |= set(
+            re.findall(r'DdeError\(\s*"([A-Z_]+)"', path.read_text(encoding="utf-8"))
+        )
+    assert raised, "no DdeError codes found; the parser is stale"
+    unmapped = sorted(raised - set(_HTTP_STATUS))
+    assert unmapped == [], (
+        f"these codes would surface as HTTP 500: {unmapped}. Add them to "
+        "engine/gateway/api.py::_HTTP_STATUS."
+    )

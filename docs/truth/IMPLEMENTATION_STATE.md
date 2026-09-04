@@ -382,11 +382,51 @@ tests that exist). At this snapshot: **9 VERIFIED, 14 TYPED_UNAVAILABLE,
   visible but disabled; the candidate strip carries no invented cards).
   Run with `just studio-visual`. Screenshot:
   `docs/evidence/dde-069/frontend-studio-shell-actual.png`.
+- **M9/M10 Frontend Chat and the DesignGateway** — `engine/studio/chat/`,
+  `engine/studio/design/`, migration `0026`. Chat is a control plane, not
+  a chatbot: intent classification is deterministic, so "set the spacing
+  to space6" compiles to the same `MutationRequest` the inspector produces
+  and spends no model call, while an ambiguous instruction is refused
+  rather than guessed. `/design` is a capability inside that same
+  conversation, sharing one `DesignSession`. The gateway compiles an
+  allowlisted `DesignEditContext` (out-of-scope nodes and internal
+  attributes stay behind, tokens export as names not literals), records
+  the design-system hash so an artifact generated under an older system is
+  detectably stale, quarantines malformed provider output rather than
+  accepting it, and reaches code only through Try live's isolated
+  candidate. Commands: `frontend.design.provider_status|request|try_live`,
+  `frontend.chat.open|set_context|send`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
-**Not started:** source adapters and candidate scoring (M8),
-Frontend Chat and the preview/render runtime (M9), DesignGateway and
-`Claude /design` (M10), cross-DDE migration (M12), mobile adapters (M13).
+**Not started:** source adapters and candidate scoring (M8), the candidate
+preview/render runtime (part of M9 — the conversational half is done),
+cross-DDE migration (M12), mobile adapters (M13).
+
+#### `Claude /design` — BLOCKED_EXTERNAL on a certified transport
+
+The DesignGateway, `DesignEditContext` compiler, provider registry,
+artifact lifecycle and Try-live path are implemented and tested. What does
+not exist is a **certified design transport**. `FRONTEND_STUDIO_REV3.md`
+section 23 requires a structured one — a direct Claude Design MCP/OAuth
+transport preferred, a certified Claude Code `/design` WorkerSession
+transport allowed — and forbids by name substituting a generic
+code-generation prompt.
+
+`ClaudeDesignProvider` therefore reports `NOT_CERTIFIED` with that reason,
+and `DesignProviderRegistry.resolve` refuses with no fallback path in the
+code at all. Deliberately **not** routed through
+`capability.claude_code_invoke`: that capability grants arbitrary
+development execution against a human's own rate-limited seat and keeps
+its mandatory per-invocation approval for that reason (EDR-0001 Path A,
+EDR-0017), and using it here would be exactly the substitution section 23
+forbids.
+
+**To unblock:** register a certified transport implementing the
+`DesignProvider` protocol (`engine/studio/design/providers.py`). Everything
+downstream — session, context allowlist, artifacts, quarantine, Try live,
+candidate isolation, DDE-068 verification, promotion — is already wired and
+proven against a stub transport in
+`tests/unit/test_design_gateway_postgres.py`.
 
 **Deliberately honest gaps at this snapshot.** Candidate thumbnails,
 scores, Try-live and compare are `TYPED_UNAVAILABLE`: no preview runtime
