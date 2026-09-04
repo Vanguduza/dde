@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
 
 /**
@@ -9,6 +10,7 @@ import { defineConfig } from "@playwright/test";
  * default resolution.
  */
 const executablePath = process.env.DDE_CHROMIUM;
+const uiRoot = fileURLToPath(new URL("..", import.meta.url));
 
 /**
  * The canonical viewport is 1672x941 (FRONTEND_STUDIO_REV3 Part I section
@@ -27,6 +29,7 @@ export default defineConfig({
   },
   webServer: {
     command: "npx vite --port 4319 --strictPort",
+    cwd: uiRoot,
     url: "http://127.0.0.1:4319/visual/fixture.html",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

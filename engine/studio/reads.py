@@ -224,7 +224,12 @@ _UNIMPLEMENTED_GROUPS: tuple[tuple[str, str, str], ...] = (
         "Templates",
         "TemplateRecommendationService is DDE-069 M8; not wired yet",
     ),
-    ("locks", "Locks", "LockService is DDE-069 M7; not wired yet"),
+    (
+        "locks",
+        "Locks",
+        "LockService is implemented, but LockInventory is not yet "
+        "projected by FrontendReadService",
+    ),
 )
 
 

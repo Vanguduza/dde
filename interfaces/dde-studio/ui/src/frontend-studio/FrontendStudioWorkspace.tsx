@@ -64,8 +64,8 @@ function CanvasToolbar({ mode }: { readonly mode: StudioMode }) {
         className="dde-action dde-action-ai"
         data-testid="claude-design"
         disabled
-        title="DesignGateway is DDE-069 M10; no certified design provider is wired, so this cannot open a design session."
-        aria-label="Claude /design — unavailable: no design provider is certified in this build"
+        title="Claude /design — unavailable: no certified design provider transport. DesignGateway is implemented; generic Claude Code invocation is not an allowed fallback."
+        aria-label="Claude /design — unavailable: no certified design provider transport"
       >
         Claude /design
       </button>

@@ -126,6 +126,16 @@ test.describe("golden shell structure", () => {
     }
   });
 
+  test("mode switching changes real local workspace state", async ({ page }) => {
+    for (const mode of ["coverage", "architecture", "qa", "source", "design"]) {
+      await page.getByTestId(`mode-${mode}`).click();
+      await expect(page.locator(".dde-workspace-inner")).toHaveAttribute(
+        "data-mode",
+        mode,
+      );
+    }
+  });
+
   test("the canonical tokens are the ones actually applied", async ({
     page,
   }) => {
@@ -206,7 +216,8 @@ test.describe("honest state rendering", () => {
     await expect(button).toBeVisible();
     await expect(button).toBeDisabled();
     const reason = await button.getAttribute("title");
-    expect(reason).toContain("M10");
+    expect(reason).toContain("no certified design provider transport");
+    expect(reason).not.toContain("M10");
   });
 
   test("the candidate strip shows no invented cards", async ({ page }) => {

@@ -150,7 +150,7 @@ Verify the following known gaps before deciding they still exist:
 5. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
 6. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
 7. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
-8. **The binding ledger semantics need hardening** because a visible golden control can currently reach `VERIFIED` from backend production files/tests even when its actual React UI surface is absent.
+8. **The binding ledger has been hardened to v2.** Verify that current HEAD still derives final state from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence. At the 2026-09-05 recovery tranche the projection was 5 VERIFIED / 8 BOUND / 5 TYPED_UNAVAILABLE / 81 UNBOUND; treat newer evidence as authoritative if it has landed.
 
 Do not declare M7/M9/M10 or DDE-069 complete from domain implementation alone.
 
@@ -197,46 +197,29 @@ A provider implementation must implement the accepted `DesignProvider` contract 
 
 ---
 
-# 7. Mandatory first correction — harden the golden binding ledger
+# 7. Binding-ledger semantic hardening — COMPLETED, verify before reuse
 
-Before allowing the binding matrix to drive claims of Frontend Studio completion, fix its semantic weakness.
+The v2 ledger must remain the completion oracle unless newer canonical change
+control supersedes it.
 
-Current problem class:
+Required invariant:
 
-```text
-backend/domain for "Chat composer" exists
-+
-backend tests exist
-+
-actual React composer absent
-→ row can still be called VERIFIED
-```
+> A visible golden-control row cannot reach final VERIFIED unless every
+> applicable DOMAIN / READ / COMMAND / STATE / UI / WIRED / E2E / VISUAL
+> layer is evidenced, including real React UI, production wiring and E2E.
 
-That is not acceptable.
+Current implementation is in:
 
-The ledger must distinguish applicable dimensions such as:
+- `schemas/design/frontend_binding_matrix.schema.json`;
+- `engine/studio/binding_matrix.py`;
+- `docs/truth/golden/frontend_binding_matrix.json`;
+- generated `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`;
+- `tests/unit/test_frontend_binding_matrix.py`;
+- `docs/evidence/dde-069/BINDING_LEDGER_V2.md`.
 
-```text
-DOMAIN
-READ
-COMMAND
-UI
-WIRED
-E2E
-VISUAL
-```
-
-or implement an equivalent contract proving the same thing.
-
-Minimum invariant:
-
-> A visible golden-control row cannot reach final VERIFIED unless every applicable layer required by its own contract is evidenced, including the real UI and real production wiring.
-
-Implement this in the binding-matrix schema/validator and tests, not merely in prose.
-
-Then reclassify the 99 rows from repository evidence.
-
-Do not delete or weaken requirements to improve the verified count.
+Backend-only Chat/candidate/Inspector rows must stay non-verified until their
+UI/WIRED/E2E evidence exists. Do not collapse the ledger back to one status
+axis or delete requirements to improve the count.
 
 ---
 
@@ -765,7 +748,7 @@ Begin by reporting only evidence-backed facts:
 
 ## First packet
 
-Default first packet is **binding-ledger semantic hardening**, followed immediately by the **live preview / stable selection / Inspector vertical slice**, unless repository evidence proves those have already been completed by a newer commit.
+Default first packet is the **live preview / stable selection / Inspector vertical slice**. The binding-ledger semantic hardening is already implemented in v2 and should only be revisited if repository evidence shows regression or superseding canonical change control.
 
 Then execute automatically.
 

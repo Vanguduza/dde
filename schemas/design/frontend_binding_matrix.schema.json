@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.local/schemas/design/frontend_binding_matrix.schema.json",
+  "title": "DDE Frontend Studio Golden Binding Matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "matrix_version", "schema_ref", "purpose", "authority",
+    "status_vocabulary", "layer_vocabulary", "evidence_status_vocabulary",
+    "closure_rule", "regions", "rows"
+  ],
+  "properties": {
+    "matrix_version": { "const": 2 },
+    "schema_ref": { "const": "schemas/design/frontend_binding_matrix.schema.json" },
+    "purpose": { "type": "string", "minLength": 1 },
+    "authority": { "type": "string", "minLength": 1 },
+    "closure_rule": { "type": "string", "minLength": 1 },
+    "status_vocabulary": {
+      "type": "array", "uniqueItems": true,
+      "items": { "enum": ["UNBOUND", "TYPED_UNAVAILABLE", "BOUND", "VERIFIED"] }
+    },
+    "layer_vocabulary": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/layerName" }
+    },
+    "evidence_status_vocabulary": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/evidenceStatus" }
+    },
+    "regions": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/region" }
+    },
+    "rows": {
+      "type": "array", "minItems": 1,
+      "items": { "$ref": "#/$defs/row" }
+    }
+  },
+  "$defs": {
+    "layerName": {
+      "enum": ["DOMAIN", "READ", "COMMAND", "STATE", "UI", "WIRED", "E2E", "VISUAL"]
+    },
+    "evidenceStatus": {
+      "enum": [
+        "NOT_APPLICABLE", "UNBOUND", "TYPED_UNAVAILABLE",
+        "BOUND", "VERIFIED", "BLOCKED_EXTERNAL"
+      ]
+    },
+    "stringArray": {
+      "type": "array", "items": { "type": "string", "minLength": 1 }
+    },
+    "region": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "specification"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "specification": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "applicable", "status", "implementation_refs",
+        "test_refs", "evidence_refs", "note"
+      ],
+      "properties": {
+        "applicable": { "type": "boolean" },
+        "status": { "$ref": "#/$defs/evidenceStatus" },
+        "implementation_refs": { "$ref": "#/$defs/stringArray" },
+        "test_refs": { "$ref": "#/$defs/stringArray" },
+        "evidence_refs": { "$ref": "#/$defs/stringArray" },
+        "note": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "applicable": { "const": false } } },
+          "then": {
+            "properties": {
+              "status": { "const": "NOT_APPLICABLE" },
+              "note": { "minLength": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "applicable": { "const": true } } },
+          "then": { "not": { "properties": { "status": { "const": "NOT_APPLICABLE" } } } }
+        }
+      ]
+    },
+    "row": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "id", "region", "feature", "visual_contract", "read_model",
+        "command", "state_transition", "capability", "permission",
+        "failure_states", "note", "layers"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]{2}$" },
+        "region": { "type": "string", "minLength": 1 },
+        "feature": { "type": "string", "minLength": 1 },
+        "visual_contract": { "type": "string", "minLength": 1 },
+        "read_model": { "type": ["string", "null"] },
+        "command": { "type": ["string", "null"] },
+        "state_transition": { "type": ["string", "null"] },
+        "capability": { "type": ["string", "null"] },
+        "permission": { "type": ["string", "null"] },
+        "failure_states": { "$ref": "#/$defs/stringArray" },
+        "note": { "type": "string" },
+        "layers": {
+          "type": "object", "additionalProperties": false,
+          "required": ["DOMAIN", "READ", "COMMAND", "STATE", "UI", "WIRED", "E2E", "VISUAL"],
+          "properties": {
+            "DOMAIN": { "$ref": "#/$defs/evidence" },
+            "READ": { "$ref": "#/$defs/evidence" },
+            "COMMAND": { "$ref": "#/$defs/evidence" },
+            "STATE": { "$ref": "#/$defs/evidence" },
+            "UI": { "$ref": "#/$defs/evidence" },
+            "WIRED": { "$ref": "#/$defs/evidence" },
+            "E2E": { "$ref": "#/$defs/evidence" },
+            "VISUAL": { "$ref": "#/$defs/evidence" }
+          }
+        }
+      }
+    }
+  }
+}

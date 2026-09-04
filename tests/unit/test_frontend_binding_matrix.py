@@ -1,9 +1,7 @@
-"""DDE-069 — the binding ledger must stay honest and in sync.
+"""DDE-069 binding-ledger honesty and drift tests.
 
-The matrix is only worth having if a row cannot claim more than the code
-delivers. These tests enforce that mechanically: a `BOUND` row must name
-production files that exist, a `VERIFIED` row must additionally name
-tests that exist, and the rendered markdown must match the registry.
+The golden ledger is multidimensional: backend implementation evidence cannot
+certify a missing React control, production binding or workbench E2E flow.
 """
 
 from __future__ import annotations
@@ -12,6 +10,7 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from engine.context.repo import repo_root
 from engine.core.errors import DdeError
@@ -19,21 +18,32 @@ from engine.studio.binding_matrix import (
     MATRIX_RELATIVE,
     RENDERED_RELATIVE,
     BindingStatus,
+    EvidenceLayerName,
+    EvidenceStatus,
     integrity_findings,
     load_matrix,
     render_markdown,
 )
 
+SCHEMA_RELATIVE = "schemas/design/frontend_binding_matrix.schema.json"
 
-def test_registry_loads_and_satisfies_its_integrity_rules() -> None:
+
+def test_registry_matches_json_schema() -> None:
+    root = repo_root()
+    document = json.loads((root / MATRIX_RELATIVE).read_text(encoding="utf-8"))
+    schema = json.loads((root / SCHEMA_RELATIVE).read_text(encoding="utf-8"))
+    Draft202012Validator(schema).validate(document)
+
+
+def test_registry_loads_and_satisfies_integrity_rules() -> None:
     root = repo_root()
     matrix = load_matrix(root)
-    assert matrix.rows, "the ledger must not be empty"
-    findings = integrity_findings(matrix, root)
-    assert findings == (), "\n".join(findings)
+    assert len(matrix.rows) == 99
+    assert matrix.version == 2
+    assert integrity_findings(matrix, root) == ()
 
 
-def test_rendered_markdown_is_in_sync_with_the_registry() -> None:
+def test_rendered_markdown_is_in_sync_with_registry() -> None:
     root = repo_root()
     rendered = render_markdown(load_matrix(root))
     current = (root / RENDERED_RELATIVE).read_text(encoding="utf-8")
@@ -43,11 +53,9 @@ def test_rendered_markdown_is_in_sync_with_the_registry() -> None:
     )
 
 
-def test_every_golden_region_of_the_specification_has_rows() -> None:
-    """Section 8 of FRONTEND_STUDIO_REV3 names ten binding regions. A
-    region silently losing all its rows would hide missing work."""
+def test_every_golden_region_and_layer_is_present() -> None:
     matrix = load_matrix(repo_root())
-    expected = {
+    expected_regions = {
         "global_top_bar",
         "app_rail_and_explorer",
         "orchestrator_card",
@@ -59,102 +67,114 @@ def test_every_golden_region_of_the_specification_has_rows() -> None:
         "inspector",
         "status_bar",
     }
-    assert {region.id for region in matrix.regions} == expected
+    assert {region.id for region in matrix.regions} == expected_regions
     for region in matrix.regions:
-        assert matrix.rows_for(region.id), f"region {region.id} has no rows"
+        assert matrix.rows_for(region.id)
+    for row in matrix.rows:
+        assert set(row.layers) == set(EvidenceLayerName)
 
 
-def test_row_ids_are_unique_and_every_row_declares_a_visual_contract() -> None:
+def test_backend_only_chat_cannot_claim_final_verified() -> None:
+    matrix = load_matrix(repo_root())
+    row = next(item for item in matrix.rows if item.id == "CH-01")
+    assert row.layer(EvidenceLayerName.DOMAIN).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.COMMAND).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.UNBOUND
+    assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.UNBOUND
+    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.UNBOUND
+    assert row.status is BindingStatus.UNBOUND
+
+
+def test_backend_only_inspector_mutation_cannot_claim_final_verified() -> None:
+    matrix = load_matrix(repo_root())
+    row = next(item for item in matrix.rows if item.id == "IN-10")
+    assert row.layer(EvidenceLayerName.COMMAND).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.UNBOUND
+    assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.UNBOUND
+    assert row.status is BindingStatus.UNBOUND
+
+
+def test_design_gateway_is_distinct_from_certified_design_transport() -> None:
+    matrix = load_matrix(repo_root())
+    row = next(item for item in matrix.rows if item.id == "CT-06")
+    assert row.layer(EvidenceLayerName.DOMAIN).status is EvidenceStatus.VERIFIED
+    assert (
+        row.layer(EvidenceLayerName.COMMAND).status is EvidenceStatus.TYPED_UNAVAILABLE
+    )
+    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.BLOCKED_EXTERNAL
+    assert (
+        row.status is BindingStatus.UNBOUND
+    )  # UI is not wired to provider status/Gateway.
+
+
+def test_final_verified_is_derived_from_every_applicable_layer() -> None:
+    matrix = load_matrix(repo_root())
+    verified = [row for row in matrix.rows if row.status is BindingStatus.VERIFIED]
+    assert verified, (
+        "the ledger should still be capable of proving bounded local UI facts"
+    )
+    for row in verified:
+        assert all(
+            layer.status is EvidenceStatus.VERIFIED
+            for layer in row.layers.values()
+            if layer.applicable
+        ), row.id
+
+
+def test_visible_control_layers_are_never_declared_not_applicable() -> None:
+    matrix = load_matrix(repo_root())
+    mandatory = {
+        EvidenceLayerName.UI,
+        EvidenceLayerName.WIRED,
+        EvidenceLayerName.E2E,
+        EvidenceLayerName.VISUAL,
+    }
+    for row in matrix.rows:
+        for name in mandatory:
+            assert row.layer(name).applicable, f"{row.id}/{name.value}"
+
+
+def test_non_applicability_is_explicit_and_explained() -> None:
+    matrix = load_matrix(repo_root())
+    for row in matrix.rows:
+        for layer in row.layers.values():
+            if not layer.applicable:
+                assert layer.status is EvidenceStatus.NOT_APPLICABLE
+                assert layer.note.strip(), f"{row.id}/{layer.layer.value}"
+
+
+def test_verified_layers_name_real_implementation_and_test_or_evidence() -> None:
+    root = repo_root()
+    matrix = load_matrix(root)
+    for row in matrix.rows:
+        for layer in row.layers.values():
+            if layer.status is not EvidenceStatus.VERIFIED:
+                continue
+            assert layer.implementation_refs, f"{row.id}/{layer.layer.value}"
+            assert layer.test_refs or layer.evidence_refs, (
+                f"{row.id}/{layer.layer.value}"
+            )
+            for ref in (
+                *layer.implementation_refs,
+                *layer.test_refs,
+                *layer.evidence_refs,
+            ):
+                assert (root / ref.split("::", 1)[0]).exists(), f"{row.id}: {ref}"
+
+
+def test_final_status_is_not_authored_in_canonical_rows() -> None:
+    document = json.loads((repo_root() / MATRIX_RELATIVE).read_text(encoding="utf-8"))
+    assert all("status" not in row for row in document["rows"])
+
+
+def test_row_ids_are_unique_and_every_row_has_visual_contract() -> None:
     matrix = load_matrix(repo_root())
     ids = [row.id for row in matrix.rows]
-    assert len(ids) == len(set(ids))
-    for row in matrix.rows:
-        assert row.visual_contract.strip(), row.id
-
-
-def test_claims_beyond_the_code_are_rejected(tmp_path) -> None:
-    """Prove the integrity check bites, rather than only ever passing on a
-    ledger whose rows all still read UNBOUND."""
-    base = {
-        "matrix_version": 1,
-        "authority": "a",
-        "closure_rule": "c",
-        "regions": [{"id": "r", "title": "R", "specification": "s"}],
-        "rows": [],
-    }
-
-    def findings_for(row: dict[str, object]) -> tuple[str, ...]:
-        (tmp_path / "docs" / "truth" / "golden").mkdir(parents=True, exist_ok=True)
-        (tmp_path / MATRIX_RELATIVE).write_text(
-            json.dumps({**base, "rows": [row]}), encoding="utf-8"
-        )
-        return integrity_findings(load_matrix(tmp_path), tmp_path)
-
-    template: dict[str, object] = {
-        "id": "X-01",
-        "region": "r",
-        "feature": "f",
-        "visual_contract": "v",
-        "read_model": "SomeSnapshot",
-        "command": None,
-        "state_transition": None,
-        "capability": None,
-        "permission": "p",
-        "failure_states": [],
-        "implementation_refs": [],
-        "tests": [],
-        "status": "UNBOUND",
-        "note": "",
-    }
-
-    assert findings_for(template) == ()
-
-    bound_without_refs = {**template, "status": "BOUND"}
-    assert any(
-        "implementation_refs" in item for item in findings_for(bound_without_refs)
-    )
-
-    bound_with_ghost_ref = {
-        **template,
-        "status": "BOUND",
-        "implementation_refs": ["engine/studio/does_not_exist.py"],
-    }
-    assert any("not found" in item for item in findings_for(bound_with_ghost_ref))
-
-    verified_without_tests = {
-        **template,
-        "status": "VERIFIED",
-        "implementation_refs": ["docs/truth/golden/frontend_binding_matrix.json"],
-    }
-    assert any(
-        "names no tests" in item for item in findings_for(verified_without_tests)
-    )
-
-    unavailable_without_note = {**template, "status": "TYPED_UNAVAILABLE"}
-    assert any(
-        "without a note" in item for item in findings_for(unavailable_without_note)
-    )
-
-    bound_without_binding = {
-        **template,
-        "status": "BOUND",
-        "read_model": None,
-        "command": None,
-        "implementation_refs": ["docs/truth/golden/frontend_binding_matrix.json"],
-    }
-    assert any(
-        "neither a read model nor a command" in item
-        for item in findings_for(bound_without_binding)
-    )
+    assert len(ids) == len(set(ids)) == 99
+    assert all(row.visual_contract.strip() for row in matrix.rows)
 
 
 def test_missing_registry_is_refused_not_defaulted(tmp_path: Path) -> None:
     with pytest.raises(DdeError) as excinfo:
         load_matrix(tmp_path)
     assert excinfo.value.error_code == "CONTEXT_INCOMPLETE"
-
-
-def test_status_vocabulary_is_closed() -> None:
-    matrix = load_matrix(repo_root())
-    for row in matrix.rows:
-        assert isinstance(row.status, BindingStatus)
