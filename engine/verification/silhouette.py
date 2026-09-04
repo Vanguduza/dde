@@ -196,6 +196,76 @@ def compute_fingerprint(
     )
 
 
+@dataclass(frozen=True)
+class DensityEvidence:
+    """Deterministic, measurable density facts about a rendered screen.
+
+    DDE-068 keeps two density layers strictly apart (they must never
+    impersonate each other):
+
+    - **this** -- deterministic *evidence*: what fraction of the canvas
+      carries content, how it is distributed, how much dead space runs
+      unbroken. Reproducible, model-free, cheap.
+    - the playbook section 8.3 *believable-density judgment* -- whether the
+      sample data is realistic enough that hierarchy, rhythm and states can
+      be judged at all. That is perceptual, scored 1-5 by the rubric critic
+      (`engine.verification.visual_critique`), and no arithmetic here
+      substitutes for it.
+
+    These numbers are supplied to the critic as context, never as its
+    verdict.
+    """
+
+    occupied_cells: int
+    total_cells: int
+    occupancy_ratio: float
+    occupied_rows: int
+    occupied_columns: int
+    largest_empty_row_run: int
+    top_half_ratio: float
+    bottom_half_ratio: float
+
+
+def compute_density_evidence(fingerprint: SilhouetteFingerprint) -> DensityEvidence:
+    """Derive deterministic density evidence from an already-computed
+    occupancy grid -- no second render, no model call."""
+    cols = fingerprint.grid_cols
+    rows = fingerprint.grid_rows
+    grid = [fingerprint.occupancy[row * cols : (row + 1) * cols] for row in range(rows)]
+    occupied_cells = sum(1 for cell in fingerprint.occupancy if cell)
+    total_cells = cols * rows
+    occupied_rows = sum(1 for row in grid if any(row))
+    occupied_columns = sum(
+        1 for col in range(cols) if any(grid[row][col] for row in range(rows))
+    )
+
+    largest_empty_run = 0
+    current_run = 0
+    for row in grid:
+        if any(row):
+            current_run = 0
+        else:
+            current_run += 1
+            largest_empty_run = max(largest_empty_run, current_run)
+
+    split = rows // 2
+    top_cells = sum(1 for row in grid[:split] for cell in row if cell)
+    bottom_cells = sum(1 for row in grid[split:] for cell in row if cell)
+    top_total = max(1, split * cols)
+    bottom_total = max(1, (rows - split) * cols)
+
+    return DensityEvidence(
+        occupied_cells=occupied_cells,
+        total_cells=total_cells,
+        occupancy_ratio=occupied_cells / total_cells if total_cells else 0.0,
+        occupied_rows=occupied_rows,
+        occupied_columns=occupied_columns,
+        largest_empty_row_run=largest_empty_run,
+        top_half_ratio=top_cells / top_total,
+        bottom_half_ratio=bottom_cells / bottom_total,
+    )
+
+
 def _jaccard_similarity(a: tuple[bool, ...], b: tuple[bool, ...]) -> float:
     intersection = sum(1 for x, y in zip(a, b, strict=True) if x and y)
     union = sum(1 for x, y in zip(a, b, strict=True) if x or y)

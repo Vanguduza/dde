@@ -106,6 +106,7 @@ from engine.capabilities.android import AndroidCapability
 from engine.capabilities.browser import BrowserCapability
 from engine.capabilities.database import DatabaseCapability
 from engine.capabilities.security import SecurityCapability
+from engine.capabilities.visual_critic import VisualCriticCapability
 from engine.contracts.acceptance_oracle import AcceptanceOracle, ObservableOutcome
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.evidence import Evidence
@@ -299,6 +300,7 @@ class VerificationRunnerService:
         security: SecurityCapability | None = None,
         android: AndroidCapability | None = None,
         database: DatabaseCapability | None = None,
+        visual_critic: VisualCriticCapability | None = None,
         donor_taints: DonorTaintService | None = None,
     ) -> None:
         self._engine = engine
@@ -342,6 +344,9 @@ class VerificationRunnerService:
         self._security = security
         self._android = android
         self._database = database
+        # DDE-068 / EDR-0017: the narrow visual critic, injected like every
+        # other capability so this module never imports a model runtime.
+        self._visual_critic = visual_critic
         self._donor_taints = donor_taints or DonorTaintService(engine)
 
     async def _run_uow(
@@ -993,6 +998,7 @@ class VerificationRunnerService:
             security=self._security,
             android=self._android,
             database=self._database,
+            visual_critic=self._visual_critic,
         )
         evaluated_at = self._clock.now()
         outcome_status = _outcome_status(

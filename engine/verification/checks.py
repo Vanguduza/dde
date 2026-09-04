@@ -30,12 +30,25 @@ from engine.capabilities.database import (
     DatabaseCapability,
 )
 from engine.capabilities.security import SecurityCapability, SecurityScanSpec
+from engine.capabilities.visual_critic import (
+    VisualCriticCapability,
+    VisualCritiqueRequest,
+)
 from engine.contracts.verification_run import CheckResult
 from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
 from engine.truth.db import PostgresUnitOfWork
 from engine.verification.pixel_compare import compare_pngs
-from engine.verification.silhouette import evaluate_silhouette
+from engine.verification.silhouette import (
+    compute_density_evidence,
+    compute_fingerprint,
+    evaluate_silhouette,
+)
+from engine.verification.visual_critique import (
+    evaluate_verdict,
+    load_rubric,
+    parse_verdict,
+)
 from engine.verification.visual_spec import load_visual_diff_spec
 from engine.workspaces.service import WorkspaceService
 
@@ -93,6 +106,7 @@ async def run_check(
     security: SecurityCapability | None = None,
     android: AndroidCapability | None = None,
     database: DatabaseCapability | None = None,
+    visual_critic: VisualCriticCapability | None = None,
 ) -> CheckResult:
     """Execute one real check. `test`/`invariant` run via
     `WorkspaceService.execute()`. `api_probe`/`visual_diff`/`silhouette` run
@@ -106,6 +120,10 @@ async def run_check(
         return await _run_visual_diff(workspace, spec, browser=browser)
     if spec.kind == "silhouette":
         return await _run_silhouette(spec, browser=browser)
+    if spec.kind == "visual_critique":
+        return await _run_visual_critique(
+            spec, browser=browser, visual_critic=visual_critic
+        )
     if spec.kind == "security_scan":
         return await _run_security_scan(workspace, spec, security=security)
     if spec.kind == "android_scan":
@@ -222,6 +240,176 @@ async def _run_silhouette(
         stdout=json.dumps(evidence, sort_keys=True),
         stderr="" if not verdict.blocked else verdict.detail,
         duration_ms=capture.duration_ms,
+        timed_out=False,
+        status=_check_status(exit_code=exit_code, timed_out=False),
+    )
+
+
+async def _run_visual_critique(
+    spec: CheckSpec,
+    *,
+    browser: BrowserCapability | None,
+    visual_critic: VisualCriticCapability | None,
+) -> CheckResult:
+    """DDE-068's rubric-scored multimodal judgment (EDR-0016 policy, run
+    through EDR-0017 Option C's narrow `capability.visual_critique`).
+
+    Renders through the same brokered `BrowserCapability` as the other
+    visual kinds, computes the deterministic layer first (silhouette +
+    density evidence) and hands that to the critic as context, then applies
+    `evaluate_verdict`'s deterministic policy -- playbook section 8's "any
+    dimension <4 blocks" -- to the validated structured response.
+
+    Fail-closed, with the failure classes kept distinct rather than
+    collapsed: a missing capability or an unusable/malformed critic
+    response is `ERRORED` (Chapter 11.1: a check that could not run proves
+    nothing, in either direction), while a genuine sub-threshold rubric
+    score is `FAILED`. Neither is ever a pass.
+    """
+    if browser is None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "visual_critique requires a BrowserCapability (capability.browser) "
+            "to render the candidate; none was injected on the verification "
+            "runner",
+            details={"check_ref": spec.ref},
+        )
+    if visual_critic is None:
+        raise DdeError(
+            "POLICY_DENIED",
+            "visual_critique requires a VisualCriticCapability "
+            "(capability.visual_critique); none was injected on the "
+            "verification runner",
+            details={"check_ref": spec.ref},
+        )
+    if not spec.command:
+        raise DdeError(
+            "POLICY_DENIED",
+            "visual_critique command[0] must be the URL to render",
+            details={"check_ref": spec.ref},
+        )
+    url = spec.command[0]
+    expect_text = spec.command[1] if len(spec.command) > 1 else None
+    capture = await browser.screenshot(
+        BrowserCaptureSpec(
+            url=url,
+            viewport_width=1280,
+            viewport_height=720,
+            expect_text=expect_text,
+        )
+    )
+    if capture.exit_code != 0 or capture.timed_out:
+        status = _check_status(exit_code=capture.exit_code, timed_out=capture.timed_out)
+        return CheckResult(
+            check_ref=spec.ref,
+            kind=spec.kind,
+            command=list(spec.command),
+            exit_code=capture.exit_code,
+            stdout="",
+            stderr=capture.stderr,
+            duration_ms=capture.duration_ms,
+            timed_out=capture.timed_out,
+            status=status,
+        )
+
+    silhouette = evaluate_silhouette(capture.png_bytes)
+    density = compute_density_evidence(compute_fingerprint(capture.png_bytes))
+    rubric_version = str(load_rubric().get("rubric_version", ""))
+    critique = await visual_critic.critique(
+        VisualCritiqueRequest(
+            screenshot_png=capture.png_bytes,
+            rubric_version=rubric_version,
+            candidate_ref=spec.ref,
+            viewport_width=1280,
+            viewport_height=720,
+            deterministic_evidence={
+                "silhouette": {
+                    "fingerprint_hash": silhouette.fingerprint.fingerprint_hash,
+                    "matched_template": silhouette.matched_template,
+                    "similarity": silhouette.similarity,
+                    "blocked": silhouette.blocked,
+                },
+                "density": {
+                    "occupancy_ratio": density.occupancy_ratio,
+                    "occupied_rows": density.occupied_rows,
+                    "occupied_columns": density.occupied_columns,
+                    "largest_empty_row_run": density.largest_empty_row_run,
+                    "top_half_ratio": density.top_half_ratio,
+                    "bottom_half_ratio": density.bottom_half_ratio,
+                },
+            },
+        )
+    )
+    if critique.timed_out or critique.exit_code != 0:
+        return CheckResult(
+            check_ref=spec.ref,
+            kind=spec.kind,
+            command=list(spec.command),
+            # Negative exit code / timeout -> ERRORED: the critic could not
+            # render a judgment, which is not the same as a visual failure.
+            exit_code=-1,
+            stdout="",
+            stderr=critique.stderr or "visual critique runtime failed",
+            duration_ms=critique.duration_ms,
+            timed_out=critique.timed_out,
+            status="ERRORED",
+        )
+    try:
+        verdict = parse_verdict(
+            critique.verdict_json,
+            rubric_version=rubric_version,
+            model=critique.model,
+            cost_usd=critique.cost_usd,
+        )
+    except DdeError as exc:
+        # A malformed verdict is unusable evidence, never an approval.
+        return CheckResult(
+            check_ref=spec.ref,
+            kind=spec.kind,
+            command=list(spec.command),
+            exit_code=-1,
+            stdout="",
+            stderr=f"malformed visual critique verdict: {exc}",
+            duration_ms=critique.duration_ms,
+            timed_out=False,
+            status="ERRORED",
+        )
+
+    assessment = evaluate_verdict(verdict)
+    evidence = {
+        "rubric_version": verdict.rubric_version,
+        "model": verdict.model,
+        "cost_usd": verdict.cost_usd,
+        "critic_verdict": verdict.verdict,
+        "confidence": verdict.confidence,
+        "dimension_scores": verdict.dimension_scores,
+        "failing_dimensions": list(assessment.failing_dimensions),
+        "blocking_defects": [
+            {"dimension": item.dimension, "detail": item.detail}
+            for item in verdict.blocking_defects
+        ],
+        "non_blocking_defects": [
+            {"dimension": item.dimension, "detail": item.detail}
+            for item in verdict.non_blocking_defects
+        ],
+        "repair_instructions": list(verdict.repair_instructions),
+        "summary": verdict.summary,
+        "deterministic_silhouette_blocked": silhouette.blocked,
+        "deterministic_density": {
+            "occupancy_ratio": density.occupancy_ratio,
+            "largest_empty_row_run": density.largest_empty_row_run,
+        },
+        "detail": assessment.detail,
+    }
+    exit_code = 0 if assessment.passed else 1
+    return CheckResult(
+        check_ref=spec.ref,
+        kind=spec.kind,
+        command=list(spec.command),
+        exit_code=exit_code,
+        stdout=json.dumps(evidence, sort_keys=True),
+        stderr="" if assessment.passed else assessment.detail,
+        duration_ms=critique.duration_ms,
         timed_out=False,
         status=_check_status(exit_code=exit_code, timed_out=False),
     )

@@ -53,6 +53,9 @@ from engine.verification.repository import AcceptanceOracleRepository
 #: enum members but have no executor here (DDE-068 for VLM critique).
 #: `api_probe` is DDE-043; `visual_diff` is DDE-044 (pixel goldens);
 #: `silhouette` is DDE-068 (layout-fingerprint gate, playbook §10.3);
+#: `visual_critique` is DDE-068's rubric-scored multimodal judgment behind
+#: the narrow `capability.visual_critique` (EDR-0016 policy, EDR-0017
+#: Option C execution route);
 #: `android_scan` is DDE-048; `db_assertion` is DDE-049.
 EXECUTABLE_KINDS: frozenset[str] = frozenset(
     {
@@ -61,6 +64,7 @@ EXECUTABLE_KINDS: frozenset[str] = frozenset(
         "api_probe",
         "visual_diff",
         "silhouette",
+        "visual_critique",
         "security_scan",
         "android_scan",
         "db_assertion",
