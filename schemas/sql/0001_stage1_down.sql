@@ -1,5 +1,6 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS frontend_preview_sessions CASCADE;
 DROP TABLE IF EXISTS frontend_conversation_turns CASCADE;
 DROP TABLE IF EXISTS frontend_conversations CASCADE;
 DROP TABLE IF EXISTS design_artifacts CASCADE;
