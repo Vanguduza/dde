@@ -26,6 +26,14 @@ APPROVAL_TYPES: Final[frozenset[str]] = frozenset(
         # DDE-mintable/brokerable capabilities; this one covers spend
         # against a human's own account that DDE cannot mint or revoke.
         "external_model_invocation",
+        # DDE-068 / GUI-spec open item D2, closed: the human pixel sign-off
+        # a screen needs when the bounded visual-revision loop cannot clear
+        # it. `decide_revision_action` returns `ESCALATE_HUMAN` once the
+        # <=3-cycle bound is spent (EDR-0016 decision 5), and this is the
+        # class that escalation lands on. Distinct from `oracle_approval`:
+        # that admits a machine oracle's definition, this records a human
+        # judging rendered pixels the rubric critic could not clear.
+        "prototype_pixel_signoff",
         # Human-facing budget-request flow: when a dispatch is refused by a
         # budget ceiling (`failure_class="BUDGET_EXCEEDED"` -> recovery
         # matrix RESOURCE_EXHAUSTION row, `requires_human=True`), the human
@@ -52,6 +60,12 @@ STANDING_FORBIDDEN_TYPES: Final[frozenset[str]] = frozenset(
         # rejecting it outright; it must never be removed to make a
         # standing-approval caller's life easier.
         "external_model_invocation",
+        # DDE-068: a pixel sign-off is a human looking at one specific
+        # rendered screen the automated loop could not clear. A standing
+        # "approve all future pixel sign-offs" would defeat the entire
+        # purpose of the escalation -- the bound exists precisely so a
+        # human sees the ones the rubric could not pass.
+        "prototype_pixel_signoff",
     }
 )
 

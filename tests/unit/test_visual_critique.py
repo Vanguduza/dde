@@ -38,6 +38,7 @@ from engine.capabilities.visual_critic import (
 )
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
+from engine.governance.types import APPROVAL_TYPES, STANDING_FORBIDDEN_TYPES
 from engine.verification.checks import CheckSpec, run_check
 from engine.verification.oracle import EXECUTABLE_KINDS
 from engine.verification.visual_critique import (
@@ -163,6 +164,15 @@ def test_visual_critique_is_a_seeded_capability_distinct_from_claude_code_invoke
 
 def test_visual_critique_is_an_executable_oracle_kind() -> None:
     assert "visual_critique" in EXECUTABLE_KINDS
+
+
+def test_pixel_signoff_escalation_type_exists_and_is_standing_forbidden() -> None:
+    """DDE-068 closes GUI-spec item D2: `ESCALATE_HUMAN` has a real approval
+    class to land on. It must never be standing-approvable -- a blanket
+    "approve all future pixel sign-offs" would defeat the bound that exists
+    precisely so a human sees what the rubric could not pass."""
+    assert "prototype_pixel_signoff" in APPROVAL_TYPES
+    assert "prototype_pixel_signoff" in STANDING_FORBIDDEN_TYPES
 
 
 def test_rubric_is_versioned_and_covers_every_scored_dimension() -> None:

@@ -197,18 +197,69 @@ class FrontendStudioService:
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
-    async def request_pixel_signoff(self) -> dict[str, object]:
-        """D2: prototype_pixel_signoff is not in APPROVAL_TYPES. DDE-068 adds it."""
-        raise DdeError(
-            "POLICY_DENIED",
-            "prototype_pixel_signoff is not an admitted approval type",
-            retryable=False,
-            details={
-                "open_item": "D2",
-                "deferred": "DDE-068",
-                "missing_approval_type": "prototype_pixel_signoff",
+    async def request_pixel_signoff(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        principal_id: UUID,
+        idempotency_key: str,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-068 human escalation, closing GUI-spec open item D2.
+
+        Where the bounded visual-revision loop lands when it cannot clear a
+        screen: `decide_revision_action` returns `ESCALATE_HUMAN` once the
+        <=3-cycle bound is spent, and auto-progression stops until a human
+        decides on the ordinary Chapter 13.1 approval surface.
+
+        The scope hash binds the request to the exact screen, its rubric
+        version and the critique that blocked it, so approving one screen's
+        pixels can never silently authorise another's -- and
+        `prototype_pixel_signoff` is in `STANDING_FORBIDDEN_TYPES`, so no
+        standing grant can pre-authorise a batch of them.
+        """
+        screen_ref = _str(parameters, "screen_ref")
+        rubric_version = _str(parameters, "rubric_version")
+        failing = parameters.get("failing_dimensions", [])
+        if not isinstance(failing, list) or not all(
+            isinstance(item, str) for item in failing
+        ):
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "failing_dimensions must be an array of rubric dimension names",
+                retryable=False,
+                details={"screen_ref": screen_ref},
+            )
+        digest = approval_scope_hash(
+            approval_type="prototype_pixel_signoff",
+            mission_id=mission_id,
+            payload={
+                "screen_ref": screen_ref,
+                "rubric_version": rubric_version,
+                "failing_dimensions": sorted(failing),
             },
         )
+        approval = await self._approvals.request(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            approval_type="prototype_pixel_signoff",
+            scope_hash=digest,
+            requested_by=principal_id,
+            idempotency_key=f"{idempotency_key}:request_pixel_signoff",
+        )
+        return {
+            "approval_id": str(approval.approval_id),
+            "approval_type": approval.approval_type,
+            "status": approval.status,
+            "scope_hash": approval.scope_hash,
+            "screen_ref": screen_ref,
+            "rubric_version": rubric_version,
+            "failing_dimensions": sorted(failing),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
 
     async def insert_component(
         self,

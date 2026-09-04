@@ -225,6 +225,10 @@ async def test_compile_prompt_round_trip_and_replay() -> None:
             assert error["error_code"] == "CONTEXT_INCOMPLETE"
             assert error["details"]["missing_artifact"] == "art_direction"
 
+            # DDE-068 closed GUI-spec open item D2: pixel sign-off is now a
+            # real admitted approval type, so the escalation the bounded
+            # visual-revision loop lands on creates a real Approval row
+            # instead of refusing.
             signoff = await client.post(
                 "/v1/commands",
                 json=_command_body(
@@ -233,11 +237,20 @@ async def test_compile_prompt_round_trip_and_replay() -> None:
                     principal_id=fixture.principal_id,
                     target_id=mission.mission_id,
                     command_type="frontend.prototype.request_pixel_signoff",
-                    parameters={},
+                    parameters={
+                        "screen_ref": "screens/overview",
+                        "rubric_version": "1",
+                        "failing_dimensions": ["accessibility"],
+                    },
                 ),
             )
-            assert signoff.status_code == 403
-            assert signoff.json()["details"]["deferred"] == "DDE-068"
+            assert signoff.status_code == 202, signoff.text
+            payload = signoff.json()["payload"]
+            assert payload["approval_type"] == "prototype_pixel_signoff"
+            assert payload["status"] == "REQUESTED"
+            assert payload["screen_ref"] == "screens/overview"
+            assert payload["failing_dimensions"] == ["accessibility"]
+            assert payload["scope_hash"]
     finally:
         await engine.dispose()
 
