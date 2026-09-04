@@ -42,9 +42,19 @@ If the repo has advanced beyond `IMPLEMENTATION_STATE.md`, update the state from
 
 ### 3. Default next mission
 
-If repository evidence does not show later completed work, the next sequential product mission is:
+**DDE-068 closed 2026-09-04 (`COMPLETE_EVIDENCED`). The next sequential
+product mission is now DDE-069 — DDE Code / Frontend Studio V2 + Live
+Design Foundation.** Start from `IMPLEMENTATION_STATE.md`'s DDE-069
+cold-start entry packet, which names the inherited dependencies, the first
+executable packet and the verification gates, then read
+`docs/truth/FRONTEND_STUDIO_REV3.md` as domain authority. Verify that
+closure from the repository (`docs/evidence/dde-068/CLOSURE_MATRIX.md`)
+rather than trusting this line.
 
-**DDE-068 — Visual Verification & Critique Loop**.
+The DDE-068 material below is retained because DDE-069's promotion path
+must consume its verification, and because its guardrails remain binding.
+
+**DDE-068 — Visual Verification & Critique Loop** (closed; reference).
 
 Read:
 
@@ -84,15 +94,20 @@ Required outcome includes:
 
 Do not call a schema enum, fixture, mock, CI-only screenshot or UI badge an implementation of these features unless the real production path invokes it.
 
-**Status note (2026-09-04).** DDE-068 is `COMPLETE_EVIDENCED`. All ten
-elements are implemented and evidenced, including a live end-to-end run on
+**Status note (2026-09-04).** DDE-068 is `COMPLETE_EVIDENCED` and durably
+closed. All ten elements are evidenced, including a live end-to-end run on
 real pixels (`docs/evidence/dde-068/`): a poor candidate rejected, a good
-candidate blocked on a real accessibility defect, repaired from the
-critique's own instructions, and passed on cycle 1. The critic runs behind
-the narrow `capability.visual_critique` per accepted `EDR-0017` (Option C);
-the broad `capability.claude_code_invoke` is unchanged. GUI-spec item D2 is
-closed. DDE-069 is therefore unblocked — see `IMPLEMENTATION_STATE.md` for
-per-item evidence and the two follow-ons it inherits.
+candidate blocked on a real accessibility defect the deterministic layer had
+passed, repaired from the critique's own instructions, and passed on cycle 1
+— promotion ELIGIBLE. Row-by-row proof:
+`docs/evidence/dde-068/CLOSURE_MATRIX.md`. The critic runs behind the narrow
+`capability.visual_critique` per accepted `EDR-0017` (Option C, an accepted
+Project Truth row, not just a markdown pre-image); the broad
+`capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES`
+was neither bypassed nor weakened. GUI-spec item D2 is closed. Do not
+re-open DDE-068 to add default oracle bindings for generated screens — that
+is explicitly DDE-069's, per `FRONTEND_STUDIO_REV3.md`'s own DDE-068
+DEPENDENCY clause.
 
 ### 5. Work in vertical slices
 

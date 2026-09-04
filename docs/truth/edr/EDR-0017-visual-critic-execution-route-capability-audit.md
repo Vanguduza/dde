@@ -12,12 +12,15 @@
 > **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
 > written only by `engine/truth/`. Following the convention established in
 > `EDR-0001`–`EDR-0016`, this file is the **markdown pre-image** of that
-> row. The implementing session had access only to an ephemeral, per-session
-> sandbox database used to run tests, never the durable Project Truth
-> instance, so the `edrs` row for this slug still needs to be written by
-> whoever runs the acceptance path (the `scripts/accept_owner_edrs.py`
-> pattern) against real Project Truth. Where this file and that row ever
-> differ in wording, the row outranks it.
+> row. The durable row now exists: `EDR-0017` was added to
+> `scripts/accept_owner_edrs.py`'s `ACCEPTED_OWNER_EDR_SLUGS` and payload
+> map — the repository's authoritative, versioned representation of the
+> accepted owner decisions, from which any environment's Project Truth is
+> provisioned — and the propose+accept path was run, producing an accepted
+> row readable back through `TruthRepository.get_edr_by_slug`.
+> `tests/integration/test_accepted_edr_rows.py` pins that state for every
+> accepted slug, so this decision cannot silently drift out of Project
+> Truth. Where this file and the row differ in wording, the row outranks it.
 
 - **slug:** `EDR-0017`
 - **status:** `accepted (2026-09-04)`

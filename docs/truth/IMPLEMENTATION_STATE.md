@@ -65,7 +65,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Landed in commit `9a8bb86...`; chapter-gate document exists. Treat later regressions separately. |
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
-| DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1272 tests pass, full suite green. |
+| DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
 | DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `PLANNED` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Hard-blocked on DDE-068 evidence per FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause; no implementation commit exists yet. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
@@ -317,10 +317,18 @@ screen's `AcceptanceOracle` by default. The gate refuses correctly whenever
 such a check is bound; binding one automatically for every generated-screen
 task is DDE-065/067 authoring-surface territory and is carried into DDE-069.
 
-**Housekeeping:** write the accepted `EDR-0017` row into real Project Truth
-via the `scripts/accept_owner_edrs.py` path — only its markdown pre-image
-exists so far, because implementation ran against an ephemeral sandbox
-database.
+**Durable ratification (done):** `EDR-0017` is persisted as an accepted
+Project Truth row, not just a markdown pre-image. It was added to
+`scripts/accept_owner_edrs.py` — the repository's authoritative versioned
+representation of accepted owner decisions, from which any environment's
+`edrs` table is provisioned — and the propose+accept path was run and the
+row read back through `TruthRepository.get_edr_by_slug` (status `accepted`,
+decided by the owner principal, four alternatives recorded, decision text
+covering the rejection of the broad capability, the refusal to weaken
+`STANDING_FORBIDDEN_TYPES`, the narrow capability's authority boundary, its
+relationship to EDR-0016, its fail-closed classes and its bounded
+unattended-use semantics). `tests/integration/test_accepted_edr_rows.py`
+covers it automatically.
 
 ### DDE-069 — DDE Code / Frontend Studio V2 + Live Design Foundation
 
@@ -333,6 +341,62 @@ database.
 **Required before completion** (from `FRONTEND_STUDIO_REV3.md` Part XVIII "Definition of Done," summarized): host-neutral React/TS/Vite workbench behind `DdeHostBridge`; production PXG/Frontend Contract/Coverage Engine; one unified mutation/lock/candidate-isolation path across chat, direct edit, templates and agents; governed source adapters (internal, 21st, donor, mobile) through the Design System Compiler; `Claude /design` as a first-class control sharing one DesignSession with Frontend Chat; DDE-068 visual verification gating promotion (not optional — see FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause); every visible golden-mockup control bound to a real capability or an explicit honest unavailable state; cross-DDE shell migration for all other DDE windows.
 
 Do not expand targets, and do not begin DDE-069 implementation proper, before the DDE-068 quality loop is stable enough to avoid multiplying an immature pipeline.
+
+**Entry gate: OPEN (2026-09-04).** DDE-068 is `COMPLETE_EVIDENCED` with a
+live end-to-end run, and `EDR-0017` is an accepted Project Truth row. The
+"do not begin before the quality loop is stable" condition above is
+satisfied: the loop is built, enforced, and exercised on real pixels.
+
+**Cold-start entry packet for DDE-069.** A fresh session needs no
+conversation history; everything below is reconstructable from the
+repository.
+
+- **Base commit:** DDE-068 closure lands on `main`; read
+  `docs/evidence/dde-068/README.md` plus this file's DDE-068 section for
+  what was proven and how.
+- **Governing decisions:** `EDR-0016` (what visual verification requires)
+  and `EDR-0017` (how DDE safely obtains machine multimodal critique —
+  accepted Option C). Both are accepted rows; `EDR-0017`'s guardrails are
+  binding on any further critic work: `capability.claude_code_invoke` is
+  never weakened, `STANDING_FORBIDDEN_TYPES` is never bypassed, no generic
+  "narrowness" exemption is created, provider abstraction stays behind
+  `adapters/**`, and `Claude /design` stays architecturally distinct from
+  the independent visual critic even where one model family serves both.
+- **Inherited dependency #1 — visual bindings on generated screens.**
+  DDE-068 delivered the capability *and* its enforcement: any oracle
+  carrying a `visual_diff`/`silhouette`/`visual_critique` binding is
+  machine-gated at promotion (proven in
+  `tests/unit/test_silhouette_promotion_gate_postgres.py` and
+  `tests/unit/test_visual_critique_promotion_gate_postgres.py`). What does
+  not yet exist is anything that *authors* such a binding onto a generated
+  screen's `AcceptanceOracle` by default. This is deliberately DDE-069's,
+  not a reopened DDE-068 item: `FRONTEND_STUDIO_REV3.md`'s "DDE-068
+  DEPENDENCY" clause assigns "the final DDE-069/Frontend Studio V2
+  promotion must consume real rendered visual verification" to this
+  mission, and its implementation order step 3 is "close/consume DDE-068
+  prerequisites needed by V2". Until it is done, the guarantee is
+  conditional ("a bound check refuses") rather than universal ("every
+  generated screen is checked") — DDE-069 is what closes that gap. The
+  authoring surfaces to wire it through are DDE-065's generation-prompt
+  compiler and DDE-067's Frontend Studio authoring path.
+- **Inherited dependency #2 — approvals surface for escalation.**
+  `prototype_pixel_signoff` exists, is standing-forbidden, and
+  `StudioFrontendService.request_pixel_signoff` creates a real scope-bound
+  `Approval`. DDE-069 should surface that request and its decision in the
+  Frontend Studio UI rather than leaving it API-only.
+- **First executable packet** (per `FRONTEND_STUDIO_REV3.md` implementation
+  order steps 0–2, which precede any new runtime): preflight branch/HEAD
+  and focused baseline tests; reconcile any truth drift without creating
+  duplicate authority; preserve DDE-067 contract tests and add
+  characterization tests around the current Gateway/frontend mutation path.
+  Only then step 4's host-neutral React/TS/Vite runtime, behind dependency
+  admission.
+- **Verification gates for DDE-069 work:** the repo's full check suite
+  (`just check`: lint, format, typecheck, unit, contract, design-lints,
+  studio-check) plus `tests/integration/test_accepted_edr_rows.py` where
+  Project Truth changes, plus a live evidence run for anything claiming
+  visual verification of a real screen. `just check` green is necessary but
+  is not chapter sign-off.
 
 ---
 
