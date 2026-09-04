@@ -593,3 +593,27 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## FrontendLock
+
+- table: `frontend_locks`
+- primary key: lock_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendCandidate
+
+- table: `frontend_candidates`
+- primary key: candidate_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendMutation
+
+- table: `frontend_mutations`
+- primary key: mutation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

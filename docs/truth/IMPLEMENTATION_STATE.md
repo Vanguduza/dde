@@ -357,12 +357,29 @@ tests that exist). At this snapshot: **9 VERIFIED, 14 TYPED_UNAVAILABLE,
   `engine/studio/coverage/`, `engine/studio/reads.py`, migration `0024`.
   Commands `frontend.contract.publish`, `frontend.pxg.apply`,
   `frontend.coverage.recompute` on `mission.control`.
+- **M7 mutation/lock/candidate runtime** — `engine/studio/locks/`,
+  `engine/studio/candidates/`, `engine/studio/mutations/`, migration
+  `0025`. One governed write path: inspector, chat, drag/drop, `/design`,
+  template, source-import, agent and keyboard edits are the same
+  `MutationRequest` and get the same answer. Candidate isolation is
+  structural — the executor writes no accepted PXG nodes at all; a
+  candidate's changes live in its append-only mutation log and its
+  effective graph is that log projected over the accepted one
+  (`mutations/projection.py`), so promotion is the only writer of accepted
+  state. Commands: `frontend.candidate.create|transition|promote`,
+  `frontend.mutation.apply|revert`, `frontend.lock.create|release`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Not started:** host-neutral React/TS/Vite runtime and `DdeHostBridge`
-(M3), golden shell (M4), mutation/lock/candidate runtime (M7), source
-adapters (M8), Frontend Chat (M9), DesignGateway and `Claude /design`
-(M10), cross-DDE migration (M12), mobile adapters (M13).
+(M3), golden shell (M4), source adapters and candidate scoring (M8),
+Frontend Chat and the preview/render runtime (M9), DesignGateway and
+`Claude /design` (M10), cross-DDE migration (M12), mobile adapters (M13).
+
+**Deliberately honest gaps at this snapshot.** Candidate thumbnails,
+scores, Try-live and compare are `TYPED_UNAVAILABLE`: no preview runtime
+and no `CandidateScorecard` exist, so cards render "Not scored" and a
+disabled action with a typed reason rather than a fabricated percentage
+(FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92).
 
 #### Golden visual artifact — BLOCKED_EXTERNAL
 

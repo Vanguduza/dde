@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_mutation.json",
+  "title": "FrontendMutation",
+  "description": "DDE-069 one governed change to a candidate's frontend. Owned by engine.studio.mutations. This is the single write path: inspector edits, drag/drop, chat instructions, `/design` refinements, template blends, source imports, agent packets and keyboard operations all compile to a row of this shape, so lock, staleness and provenance rules cannot be bypassed by choosing a different UI affordance. Append-only: a reverted mutation keeps its row and gains a compensating one, so the edit history stays auditable rather than being rewritten. `preconditions` is what makes a stale edit detectable -- an apply whose recorded preconditions no longer hold is refused with CONFLICT_REPLAN_REQUIRED rather than applied against a base that moved.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_mutations",
+    "order": 306,
+    "pk": ["mutation_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["candidate_id", "sequence"]],
+    "checks": [
+      {
+        "name": "frontend_mutations_operation_known",
+        "expression": "operation IN ('ADD', 'REMOVE', 'MOVE', 'REORDER', 'REPLACE', 'RESTYLE', 'SET_PROPERTY', 'SET_BEHAVIOUR', 'SET_RESPONSIVE')"
+      },
+      {
+        "name": "frontend_mutations_status_known",
+        "expression": "status IN ('PLANNED', 'APPLIED', 'REVERTED', 'REFUSED')"
+      },
+      {
+        "name": "frontend_mutations_origin_known",
+        "expression": "origin IN ('INSPECTOR', 'CHAT', 'DIRECT_MANIPULATION', 'DESIGN_PROVIDER', 'TEMPLATE', 'SOURCE_IMPORT', 'AGENT', 'KEYBOARD', 'REPAIR')"
+      },
+      {
+        "name": "frontend_mutations_refusal_has_reason",
+        "expression": "(status <> 'REFUSED' OR refusal_code IS NOT NULL)"
+      },
+      {
+        "name": "frontend_mutations_sequence_positive",
+        "expression": "sequence >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_mutations_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_mutations_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "frontend_mutations_candidate_id_fkey",
+        "columns": ["candidate_id"],
+        "ref_table": "frontend_candidates",
+        "ref_columns": ["candidate_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "Preconditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The state this mutation was planned against. Every field is compared at apply time; any mismatch is a conflict, never a merge.",
+      "required": ["pxg_revision", "effective_lock_hash"],
+      "properties": {
+        "pxg_revision": { "type": "integer" },
+        "candidate_base_revision": {
+          "anyOf": [{ "type": "integer" }, { "type": "null" }]
+        },
+        "frontend_contract_version": {
+          "anyOf": [{ "type": "integer" }, { "type": "null" }]
+        },
+        "design_system_hash": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "effective_lock_hash": { "type": "string" }
+      }
+    }
+  },
+  "required": [
+    "mutation_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "sequence",
+    "operation",
+    "target_key",
+    "origin",
+    "status",
+    "payload",
+    "inverse",
+    "preconditions",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "mutation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "candidate_id": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer" },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "ADD",
+        "REMOVE",
+        "MOVE",
+        "REORDER",
+        "REPLACE",
+        "RESTYLE",
+        "SET_PROPERTY",
+        "SET_BEHAVIOUR",
+        "SET_RESPONSIVE"
+      ]
+    },
+    "target_key": { "type": "string" },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "INSPECTOR",
+        "CHAT",
+        "DIRECT_MANIPULATION",
+        "DESIGN_PROVIDER",
+        "TEMPLATE",
+        "SOURCE_IMPORT",
+        "AGENT",
+        "KEYBOARD",
+        "REPAIR"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PLANNED", "APPLIED", "REVERTED", "REFUSED"]
+    },
+    "payload": { "type": "object", "additionalProperties": true },
+    "inverse": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "What undoing this mutation requires. Recorded at plan time from observed state, because after application the prior value is gone."
+    },
+    "preconditions": { "$ref": "#/$defs/Preconditions" },
+    "refusal_code": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Typed refusal: LOCK_DENIED, STALE_REVISION, MUTATION_INVALID, OFF_TOKEN_REFUSED, SCOPE_DENIED."
+    },
+    "refusal_detail": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "reverted_by": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

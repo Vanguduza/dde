@@ -26,6 +26,13 @@ FRONTEND_COMMANDS = (
 
 DDE_069_COMMANDS = (
     "frontend.screen.register",
+    "frontend.candidate.create",
+    "frontend.candidate.transition",
+    "frontend.candidate.promote",
+    "frontend.mutation.apply",
+    "frontend.mutation.revert",
+    "frontend.lock.create",
+    "frontend.lock.release",
     "frontend.contract.publish",
     "frontend.pxg.apply",
     "frontend.coverage.recompute",

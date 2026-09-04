@@ -550,6 +550,51 @@ class CommandDispatcher:
                 idempotency_key=key,
                 parameters=params,
             )
+        elif command_type == "frontend.candidate.create":
+            payload = await studio.create_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.candidate.transition":
+            payload = await studio.transition_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.candidate.promote":
+            payload = await studio.promote_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.mutation.apply":
+            payload = await studio.apply_mutations(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.mutation.revert":
+            payload = await studio.revert_mutation(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.lock.create":
+            payload = await studio.create_lock(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.lock.release":
+            payload = await studio.release_lock(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
         elif command_type == "frontend.screen.register":
             payload = await studio.register_screen(
                 tenant_id=tenant_id,

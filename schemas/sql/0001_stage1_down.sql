@@ -1,5 +1,8 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS frontend_mutations CASCADE;
+DROP TABLE IF EXISTS frontend_candidates CASCADE;
+DROP TABLE IF EXISTS frontend_locks CASCADE;
 DROP TABLE IF EXISTS frontend_coverage_snapshots CASCADE;
 DROP TABLE IF EXISTS pxg_edges CASCADE;
 DROP TABLE IF EXISTS pxg_nodes CASCADE;

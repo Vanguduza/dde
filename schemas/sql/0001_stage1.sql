@@ -1531,6 +1531,78 @@ CREATE TABLE frontend_coverage_snapshots (
     CHECK ((weighted_percent IS NULL OR summary_state = 'ASSESSED'))
 );
 
+CREATE TABLE frontend_locks (
+    lock_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    lock_kind text NOT NULL,
+    scope_key text NOT NULL,
+    status text NOT NULL,
+    reason text NOT NULL,
+    created_by uuid NOT NULL,
+    released_by uuid,
+    released_at timestamptz,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (lock_id),
+    CHECK (lock_kind IN ('GLOBAL_DESIGN', 'SCREEN', 'SECTION', 'COMPONENT', 'STYLE', 'STRUCTURE', 'BEHAVIOUR', 'CONTENT', 'TOKEN')),
+    CHECK (status IN ('ACTIVE', 'RELEASED'))
+);
+
+CREATE TABLE frontend_candidates (
+    candidate_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    workspace_id uuid,
+    title text NOT NULL,
+    state text NOT NULL,
+    origin text NOT NULL,
+    base_pxg_revision integer NOT NULL,
+    base_contract_version integer,
+    scope_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    verification_run_id uuid,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    state_detail text,
+    superseded_by uuid,
+    promoted_at timestamptz,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (candidate_id),
+    CHECK (state IN ('REQUESTED', 'GENERATING', 'GENERATED', 'MATERIALIZING', 'RENDERING', 'READY', 'EDITING', 'DIRTY', 'VERIFYING', 'FAILED', 'REPAIRABLE', 'REPAIRING', 'VERIFIED', 'REJECTED', 'BLOCKED', 'PROMOTABLE', 'PROMOTING', 'PROMOTED', 'SUPERSEDED', 'ERRORED')),
+    CHECK (origin IN ('DESIGN_ARTIFACT', 'DIRECT_EDIT', 'TEMPLATE_BLEND', 'SOURCE_IMPORT', 'AGENT_PACKET', 'REPAIR_CYCLE')),
+    CHECK (base_pxg_revision >= 0)
+);
+
+CREATE TABLE frontend_mutations (
+    mutation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    sequence integer NOT NULL,
+    operation text NOT NULL,
+    target_key text NOT NULL,
+    origin text NOT NULL,
+    status text NOT NULL,
+    payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    inverse jsonb NOT NULL DEFAULT '{}'::jsonb,
+    preconditions jsonb NOT NULL,
+    refusal_code text,
+    refusal_detail text,
+    reverted_by uuid,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (mutation_id),
+    UNIQUE (candidate_id, sequence),
+    CHECK (operation IN ('ADD', 'REMOVE', 'MOVE', 'REORDER', 'REPLACE', 'RESTYLE', 'SET_PROPERTY', 'SET_BEHAVIOUR', 'SET_RESPONSIVE')),
+    CHECK (status IN ('PLANNED', 'APPLIED', 'REVERTED', 'REFUSED')),
+    CHECK (origin IN ('INSPECTOR', 'CHAT', 'DIRECT_MANIPULATION', 'DESIGN_PROVIDER', 'TEMPLATE', 'SOURCE_IMPORT', 'AGENT', 'KEYBOARD', 'REPAIR')),
+    CHECK ((status <> 'REFUSED' OR refusal_code IS NOT NULL)),
+    CHECK (sequence >= 1)
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -1871,6 +1943,18 @@ ALTER TABLE frontend_coverage_snapshots ADD CONSTRAINT frontend_coverage_snapsho
 ALTER TABLE frontend_coverage_snapshots ADD CONSTRAINT frontend_coverage_snapshots_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_coverage_snapshots ADD CONSTRAINT frontend_coverage_snapshots_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES frontend_contracts (contract_id);
 
+ALTER TABLE frontend_locks ADD CONSTRAINT frontend_locks_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_locks ADD CONSTRAINT frontend_locks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE frontend_candidates ADD CONSTRAINT frontend_candidates_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_candidates ADD CONSTRAINT frontend_candidates_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_candidates ADD CONSTRAINT frontend_candidates_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE frontend_candidates ADD CONSTRAINT frontend_candidates_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+
+ALTER TABLE frontend_mutations ADD CONSTRAINT frontend_mutations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_mutations ADD CONSTRAINT frontend_mutations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_mutations ADD CONSTRAINT frontend_mutations_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -2166,3 +2250,15 @@ CREATE POLICY pxg_edges_tenant_isolation ON pxg_edges USING (tenant_id = CAST(cu
 ALTER TABLE frontend_coverage_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_coverage_snapshots FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_coverage_snapshots_tenant_isolation ON frontend_coverage_snapshots USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_locks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_locks FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_locks_tenant_isolation ON frontend_locks USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_candidates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_candidates FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_candidates_tenant_isolation ON frontend_candidates USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_mutations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_mutations FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_mutations_tenant_isolation ON frontend_mutations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

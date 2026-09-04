@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.frontend_contract import Obligation
 from engine.contracts.pxg_node import SourceRef
+from engine.contracts.verification_run import VerificationRun
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.donor.discovery_service import DonorDiscoveryService, SearchQuery
@@ -34,6 +35,9 @@ from engine.governance.service import ApprovalService
 from engine.missions.service import MissionService
 from engine.studio.acceptance.defaults import GENERATED_SCREEN
 from engine.studio.acceptance.service import ScreenAcceptanceService
+from engine.studio.candidates.lifecycle import CandidateState
+from engine.studio.candidates.promotion import PromotionService
+from engine.studio.candidates.service import CandidateService
 from engine.studio.canvas import (
     apply_insert,
     apply_move,
@@ -48,10 +52,14 @@ from engine.studio.canvas import (
 from engine.studio.compiler import compile_generation_prompt
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageService
+from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
+from engine.studio.mutations.executor import MutationExecutor
+from engine.studio.mutations.planner import MutationRequest
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.truth.db import open_unit_of_work
+from engine.verification.repository import VerificationRunRepository
 from engine.workers.repository import WorkerRunRepository
 from engine.workspaces.service import WorkspaceService
 
@@ -92,6 +100,30 @@ class FrontendStudioService:
 
     def _missions(self) -> MissionService:
         return MissionService(self._engine, EventService(self._engine))
+
+    def _candidate_service(self) -> CandidateService:
+        return CandidateService(self._engine, pxg=self._pxg)
+
+    def _lock_service(self) -> LockService:
+        return LockService(self._engine)
+
+    def _mutation_executor(self) -> MutationExecutor:
+        return MutationExecutor(
+            self._engine,
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            candidates=self._candidate_service(),
+        )
+
+    def _promotion_service(self) -> PromotionService:
+        return PromotionService(
+            self._engine,
+            candidates=self._candidate_service(),
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            coverage=self._coverage,
+            mutations=self._mutation_executor(),
+        )
 
     def _screens(self) -> ScreenAcceptanceService:
         if self._screens_service is None:
@@ -295,6 +327,223 @@ class FrontendStudioService:
             "failing_dimensions": sorted(failing),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
+
+    async def create_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.candidate.create`."""
+        candidate = await self._candidate_service().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            title=_str(parameters, "title"),
+            origin=_str(parameters, "origin"),
+            scope_keys=_string_list(parameters, "scope_keys"),
+        )
+        return {
+            "candidate_id": str(candidate.candidate_id),
+            "state": candidate.state,
+            "base_pxg_revision": candidate.base_pxg_revision,
+            "scope_keys": list(candidate.scope_keys),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def transition_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.candidate.transition` -- governed by the
+        lifecycle table, so an illegal jump is refused here rather than
+        being expressible from the client."""
+        candidate = await self._candidate_service().transition(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            target=CandidateState(_str(parameters, "target")),
+            detail=_optional_str(parameters, "detail"),
+        )
+        return {
+            "candidate_id": str(candidate.candidate_id),
+            "state": candidate.state,
+            "state_detail": candidate.state_detail,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def apply_mutations(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.mutation.apply` -- the one governed write path.
+
+        Refusals are returned, not raised: the caller gets a typed code
+        per request so the studio can say what it declined and why.
+        """
+        outcome = await self._mutation_executor().apply(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            requests=_mutation_requests(parameters),
+        )
+        return {
+            "candidate_state": outcome.candidate_state.value,
+            "applied": [
+                {
+                    "mutation_id": str(item.mutation_id),
+                    "sequence": item.sequence,
+                    "operation": item.operation,
+                    "target_key": item.target_key,
+                }
+                for item in outcome.applied
+            ],
+            "refused": [
+                {
+                    "sequence": item.sequence,
+                    "operation": item.operation,
+                    "target_key": item.target_key,
+                    "refusal_code": item.refusal_code,
+                    "refusal_detail": item.refusal_detail,
+                }
+                for item in outcome.refused
+            ],
+            "fully_applied": outcome.fully_applied,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def revert_mutation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.mutation.revert`."""
+        compensating = await self._mutation_executor().revert(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            mutation_id=_uuid(parameters, "mutation_id"),
+        )
+        return {
+            "compensating_mutation_id": str(compensating.mutation_id),
+            "target_key": compensating.target_key,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def create_lock(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.lock.create`."""
+        lock = await self._lock_service().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            lock_kind=_str(parameters, "lock_kind"),
+            scope_key=_str(parameters, "scope_key"),
+            reason=_str(parameters, "reason"),
+            created_by=principal_id,
+        )
+        return {
+            "lock_id": str(lock.lock_id),
+            "lock_kind": lock.lock_kind,
+            "scope_key": lock.scope_key,
+            "status": lock.status,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def release_lock(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.lock.release`."""
+        lock = await self._lock_service().release(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            lock_id=_uuid(parameters, "lock_id"),
+            released_by=principal_id,
+        )
+        return {
+            "lock_id": str(lock.lock_id),
+            "status": lock.status,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def promote_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.candidate.promote`.
+
+        Every gate is evaluated; a denial carries all of them so the user
+        sees everything blocking rather than one condition per attempt.
+        """
+        candidate_id = _uuid(parameters, "candidate_id")
+        runs = await self._verification_runs_for(
+            tenant_id=tenant_id, project_id=project_id, parameters=parameters
+        )
+        promoted = await self._promotion_service().promote(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate_id,
+            verification_runs=runs,
+        )
+        return {
+            "candidate_id": str(promoted.candidate_id),
+            "state": promoted.state,
+            "promoted_at": promoted.promoted_at.isoformat()
+            if promoted.promoted_at
+            else None,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def _verification_runs_for(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> tuple[VerificationRun, ...]:
+        """Load the evidence the gate will judge.
+
+        Read from `verification_runs` rather than accepted from the
+        caller: a client that could supply its own verdicts would make the
+        gate decorative.
+        """
+        task_id = parameters.get("task_id")
+        if not isinstance(task_id, str):
+            return ()
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            runs = await VerificationRunRepository().list_for_task(
+                uow.connection, _as_uuid(task_id, "task_id")
+            )
+        return tuple(
+            run
+            for run in runs
+            if run.tenant_id == tenant_id and run.project_id == project_id
+        )
 
     async def register_screen(
         self,
@@ -995,3 +1244,22 @@ def _mapping(row: dict[str, object], name: str) -> dict[str, object]:
 def _optional_str(parameters: dict[str, object], name: str) -> str | None:
     value = parameters.get(name)
     return value if isinstance(value, str) and value else None
+
+
+def _mutation_requests(parameters: dict[str, object]) -> list[MutationRequest]:
+    rows = _rows(parameters, "mutations")
+    if not rows:
+        raise DdeError(
+            "FORBIDDEN",
+            "'mutations' must be a non-empty array of objects",
+            details={"parameter": "mutations"},
+        )
+    return [
+        MutationRequest(
+            operation=_str(row, "operation"),
+            target_key=_str(row, "target_key"),
+            origin=_str(row, "origin"),
+            payload=_mapping(row, "payload"),
+        )
+        for row in rows
+    ]

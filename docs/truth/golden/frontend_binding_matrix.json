@@ -652,13 +652,16 @@
         "UNKNOWN"
       ],
       "implementation_refs": [
-        "engine/studio/reads.py"
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
       ],
       "tests": [
-        "tests/unit/test_frontend_studio_domain_postgres.py"
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
       ],
-      "status": "TYPED_UNAVAILABLE",
-      "note": "LockService is DDE-069 M7; the group reports NOT_IMPLEMENTED."
+      "status": "VERIFIED",
+      "note": ""
     },
     {
       "id": "EX-16",
@@ -673,9 +676,15 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -691,9 +700,15 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -709,9 +724,15 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -727,9 +748,15 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1155,9 +1182,16 @@
         "STALE_REVISION",
         "MUTATION_INVALID"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1171,9 +1205,15 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1187,9 +1227,15 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1332,9 +1378,16 @@
         "LOCK_DENIED",
         "STALE_REVISION"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1350,9 +1403,14 @@
       "failure_states": [
         "NOT_REVERTIBLE"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1370,9 +1428,15 @@
         "GENERATING",
         "FAILED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1389,10 +1453,15 @@
         "NOT_RENDERED",
         "RENDER_FAILED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state."
     },
     {
       "id": "CA-03",
@@ -1408,10 +1477,15 @@
         "UNSCORED",
         "PARTIAL"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92)."
     },
     {
       "id": "CA-04",
@@ -1426,10 +1500,15 @@
       "failure_states": [
         "UNSCORED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Classification derives from a score that does not exist yet; the chip renders 'Not scored'."
     },
     {
       "id": "CA-05",
@@ -1444,9 +1523,15 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/projection.py",
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1460,9 +1545,15 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py",
+        "engine/studio/mutations/projection.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1479,10 +1570,15 @@
         "BUILD_FAILED",
         "WORKTREE_CONFLICT"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Try live requires the candidate preview runtime (DDE-069 M9); the action is disabled with a typed reason."
     },
     {
       "id": "CA-08",
@@ -1497,10 +1593,15 @@
       "failure_states": [
         "NOT_RENDERED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Compare requires two rendered candidates (DDE-069 M9)."
     },
     {
       "id": "CA-09",
@@ -1519,9 +1620,14 @@
         "STALE_REVISION",
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/candidates/promotion.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1591,9 +1697,15 @@
         "UNSUPPORTED_PROPERTY",
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1611,9 +1723,16 @@
         "LOCK_DENIED",
         "OFF_TOKEN_REFUSED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1666,9 +1785,16 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1739,9 +1865,16 @@
       "failure_states": [
         "OFF_TOKEN_REFUSED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {
@@ -1757,9 +1890,16 @@
       "failure_states": [
         "OFF_TOKEN_REFUSED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "VERIFIED",
       "note": ""
     },
     {

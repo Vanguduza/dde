@@ -41,8 +41,11 @@ from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
+from engine.contracts.frontend_candidate import FrontendCandidate
 from engine.contracts.frontend_contract import FrontendContract
 from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
+from engine.contracts.frontend_lock import FrontendLock
+from engine.contracts.frontend_mutation import FrontendMutation
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
@@ -128,8 +131,11 @@ __all__ = [
     "ExternalEffect",
     "FailureAttribution",
     "FeatureDNA",
+    "FrontendCandidate",
     "FrontendContract",
     "FrontendCoverageSnapshot",
+    "FrontendLock",
+    "FrontendMutation",
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",
