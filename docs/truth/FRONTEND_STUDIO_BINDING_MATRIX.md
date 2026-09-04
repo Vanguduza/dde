@@ -1,0 +1,186 @@
+# DDE Frontend Studio — functional binding matrix
+
+<!-- GENERATED FILE. Edit `docs/truth/golden/frontend_binding_matrix.json` and run `uv run python -m scripts.render_binding_matrix`. -->
+
+**Authority:** docs/truth/FRONTEND_STUDIO_REV3.md section 8 (Golden UI - quantum functional binding map); AD-035; AD-036
+
+**Closure rule:** At DDE-069 closure no row may be UI_ONLY, and no mandatory row may be UNBOUND. A row that is TYPED_UNAVAILABLE must carry a note naming why the capability is absent and what would close it.
+
+## Ledger state
+
+| Status | Rows |
+|---|---:|
+| `UNBOUND` | 99 |
+| `TYPED_UNAVAILABLE` | 0 |
+| `BOUND` | 0 |
+| `VERIFIED` | 0 |
+| **total** | **99** |
+
+## Global top bar
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TB-01 | Product title / module identity | Left of top bar, 58px band, 15-16px 600 weight | `shell.module_registry` | — | — | — | any authenticated principal | `MODULE_UNKNOWN` | — | — | `UNBOUND` |
+| TB-02 | Project selector | Active ProjectIdentity chip beside title | `FrontendStudioSnapshot.project` | `frontend.project.switch` | active project changes | — | principal grant on target project | `NO_PROJECT` `PROJECT_UNAVAILABLE` `SCOPE_DENIED` | — | — | `UNBOUND` |
+| TB-03 | Saved timestamp | 12px tertiary text next to sync chip | `StudioSyncSnapshot.durable_revision_at` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| TB-04 | Sync status chip | Pill; colour by state | `StudioSyncSnapshot.state` | — | LOCAL_PENDING->COMMAND_ACCEPTED->PERSISTING->DURABLE->PROJECTING->SYNCED | — | project read | `FAILED` `STALE` `OFFLINE` `CONFLICT` | — | — | `UNBOUND` |
+| TB-05 | Design mode tab | Centre tab row, selected tab tinted | `FrontendStudioSnapshot.mode` | `frontend.mode.select` | studio mode transition | — | project read | — | — | — | `UNBOUND` |
+| TB-06 | Coverage mode tab | Same tab row | `CoverageSummary` | `frontend.mode.select` | studio mode transition | — | project read | `COVERAGE_UNASSESSED` | — | — | `UNBOUND` |
+| TB-07 | Architecture mode tab | Same tab row | `PxgGraphSnapshot` | `frontend.mode.select` | studio mode transition | — | project read | `PXG_EMPTY` | — | — | `UNBOUND` |
+| TB-08 | QA mode tab | Same tab row | `QaFindingInventory` | `frontend.mode.select` | studio mode transition | — | project read | `VERIFICATION_UNAVAILABLE` | — | — | `UNBOUND` |
+| TB-09 | Source mode tab | Same tab row | `DesignSourceInventory` | `frontend.mode.select` | studio mode transition | — | project read | `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
+| TB-10 | Coverage ring | Right-aligned ring + percentage | `CoverageSummary.weighted_percent` | — | — | — | project read | `UNASSESSED` `BLOCKED` `PARTIAL` | — | — | `UNBOUND` |
+| TB-11 | Activity / metrics icon | Icon button | `FrontendActivityProjection` | — | — | — | project read | `NOT_ADMITTED` | — | — | `UNBOUND` |
+| TB-12 | Attention notification badge | Count badge on bell icon | `AttentionCenterSnapshot` | `frontend.attention.acknowledge` | attention item acknowledged | — | project read | `UNKNOWN_NOT_SHOWN_AS_COUNT` | — | — | `UNBOUND` |
+| TB-13 | Help | Icon button | `shell.help_registry` | — | — | — | any authenticated principal | — | — | — | `UNBOUND` |
+| TB-14 | User avatar / principal | Circular avatar at far right | `session.principal` | — | — | — | own session | `UNAUTHENTICATED` | — | — | `UNBOUND` |
+
+## App rail and project explorer
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explorer`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| EX-01 | App rail module icons | 44-48px rail, tinted rounded square on selected | `shell.module_registry` | `shell.module.select` | active module changes | — | module grant | `MODULE_UNAVAILABLE` | — | — | `UNBOUND` |
+| EX-02 | Project heading + menu | 215-225px panel header row | `ProjectExplorerSnapshot.project` | — | — | — | project read | — | — | — | `UNBOUND` |
+| EX-03 | Explorer search | Search icon in header row | `ProjectExplorerSnapshot (filtered)` | — | — | — | project read | `INDEX_UNAVAILABLE` | — | — | `UNBOUND` |
+| EX-04 | Screens group + count | Collapsible group, 11px numeric counter | `ScreenTreeSnapshot` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | — | — | `UNBOUND` |
+| EX-05 | Journeys group + count | Same | `JourneyInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | — | — | `UNBOUND` |
+| EX-06 | Components group + count | Same | `ComponentInventory` | — | — | — | project read | `UNKNOWN` `EMPTY` `LOAD_FAILED` | — | — | `UNBOUND` |
+| EX-07 | Sources group | Collapsible group | `DesignSourceInventory` | — | — | — | project read | `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
+| EX-08 | DDE Library source | Nested item + status dot | `DesignSourceInventory[internal]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read | `UNAVAILABLE` `EMPTY` | — | — | `UNBOUND` |
+| EX-09 | 21st MCP source | Nested item + status dot | `DesignSourceInventory[twentyfirst]` | `frontend.source.search` | source search run | `capability.frontend_source_search` | project read + external egress admission | `AUTH_REQUIRED` `PROVIDER_OFFLINE` `NOT_ADMITTED` | — | — | `UNBOUND` |
+| EX-10 | Donor Sources | Nested item + status dot | `DesignSourceInventory[donor]` | `frontend.donors.run_discovery` | donor discovery run | `capability.donor_search` | donor_reuse approval for adoption | `APPROVAL_REQUIRED` `SOURCE_CLASS_FORBIDS` | — | — | `UNBOUND` |
+| EX-11 | Internal Components | Nested item + count | `ComponentInventory[project_native]` | — | — | — | project read | `EMPTY` | — | — | `UNBOUND` |
+| EX-12 | Source numeric badges | 11px counter or em-dash | `DesignSourceInventory[*].indexed_count` | — | — | — | project read | `UNKNOWN` `STALE` `ERROR` | — | — | `UNBOUND` |
+| EX-13 | Templates group | Collapsible group | `TemplateInventory` | `frontend.source.import_candidate` | foundation candidate created | — | project read | `EMPTY` `PROVIDER_DEGRADED` | — | — | `UNBOUND` |
+| EX-14 | Template entries | Nested neutral-identity items | `TemplateInventory.entries` | — | — | — | project read | `EMPTY` | — | — | `UNBOUND` |
+| EX-15 | Locks group + count | Collapsible group + counter | `LockInventory` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| EX-16 | Style Locks | Nested item + count | `LockInventory[STYLE]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
+| EX-17 | Section Locks | Nested item + count | `LockInventory[SECTION]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
+| EX-18 | Component Locks | Nested item + count | `LockInventory[COMPONENT]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
+| EX-19 | Behaviour Locks | Nested item + count | `LockInventory[BEHAVIOUR]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
+| EX-20 | QA group | Collapsible group | `QaFindingInventory` | — | — | — | project read | `VERIFICATION_UNAVAILABLE` | — | — | `UNBOUND` |
+| EX-21 | QA Issues count | Nested item + count | `QaFindingInventory.unresolved` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| EX-22 | Accessibility count | Nested item + count | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | — | — | `UNBOUND` |
+
+## Orchestrator card
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| OR-01 | Orchestrator status | Bottom card of explorer, status dot | `OrchestratorFrontendStatus.runtime_state` | — | ACTIVE\|PAUSED\|WAITING\|DEGRADED\|UNKNOWN | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| OR-02 | Manager Chair identity | Name row inside card | `OrchestratorFrontendStatus.manager_chair` | — | — | — | project read | `SERVING_UNKNOWN` | — | — | `UNBOUND` |
+| OR-03 | Desired/Configured/Serving split | Three distinct labelled values | `OrchestratorFrontendStatus.model_roles` | — | — | — | project read | `SERVING_UNATTESTED` | — | — | `UNBOUND` |
+| OR-04 | Design Director role | Subordinate role row | `OrchestratorFrontendStatus.design_director` | — | — | — | project read | `UNASSIGNED` | — | — | `UNBOUND` |
+| OR-05 | Activity visualisation | Compact waveform of real events | `OrchestratorFrontendStatus.activity_window` | — | — | — | project read | `NO_ACTIVITY` | — | — | `UNBOUND` |
+| OR-06 | Status dot | Colour by typed health | `OrchestratorFrontendStatus.health` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+
+## Canvas toolbar
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| CT-01 | Viewport selector | Compact select, e.g. Desktop 1440 | `PreviewViewportState` | `frontend.preview.set_state` | viewport changes | — | project read | — | — | — | `UNBOUND` |
+| CT-02 | Select tool | Icon toggle | `editor.interaction_mode` | — | SELECT mode | — | project read | — | — | — | `UNBOUND` |
+| CT-03 | Hand / pan tool | Icon toggle | `editor.interaction_mode` | — | PAN mode | — | project read | — | — | — | `UNBOUND` |
+| CT-04 | Comment tool | Icon toggle | `DesignCommentInventory` | `frontend.comment.create|resolve` | comment lifecycle | — | project read | `ANCHOR_LOST` | — | — | `UNBOUND` |
+| CT-05 | Grid / overlay options | Icon toggle + menu | `PreviewOverlayState` | `frontend.preview.set_state` | overlay toggles | — | project read | — | — | — | `UNBOUND` |
+| CT-06 | Claude /design button | Accent AI-action button in toolbar | `DesignProviderStatus` | `frontend.design.request` | DesignSession + DesignArtifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_AUTH_REQUIRED` `PROVIDER_UNAVAILABLE` `CAPABILITY_UNAVAILABLE` `ARTIFACT_REJECTED` | — | — | `UNBOUND` |
+| CT-07 | Zoom control | Percentage stepper | `editor.canvas_transform` | — | — | — | project read | — | — | — | `UNBOUND` |
+| CT-08 | Fullscreen / fit | Icon buttons | `editor.presentation_state` | — | — | — | project read | `HOST_UNSUPPORTED` | — | — | `UNBOUND` |
+
+## Real canvas and selection
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| CV-01 | Live preview surface | Dominant central area, code-backed | `FrontendCanvasSnapshot` | `frontend.preview.start|stop` | DESIGN\|BUILDING\|LIVE\|PROMOTED\|VERIFIED\|DISCARDED | `capability.frontend_preview` | project read | `RENDER_FAILED` `BUILD_FAILED` `RUNTIME_UNAVAILABLE` | — | — | `UNBOUND` |
+| CV-02 | LIVE badge | Small pill on canvas chrome | `FrontendCanvasSnapshot.preview_badge` | — | LIVE only with revision+build+runtime+route | — | project read | `DESIGN_ONLY` `BUILDING` `UNHEALTHY` | — | — | `UNBOUND` |
+| CV-03 | Route / screen navigation | Breadcrumb + in-preview routing | `ScreenTreeSnapshot + PreviewRuntime route` | `frontend.preview.set_state` | route change | — | project read | `ROUTE_UNKNOWN` | — | — | `UNBOUND` |
+| CV-04 | Selection outline | Indigo outline on selected node | `PreviewSelectionAnchor` | — | selection changes | — | project read | `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
+| CV-05 | Resize handles | Corner/edge handles on selection | `InspectorDescriptor (layout group)` | `frontend.mutation.plan|apply` | mutation planned then applied to candidate | — | mutation authority | `LOCK_DENIED` `STALE_REVISION` `MUTATION_INVALID` | — | — | `UNBOUND` |
+| CV-06 | Section lock chip | Chip on locked region | `LockInventory (effective)` | — | — | — | project read | — | — | — | `UNBOUND` |
+| CV-07 | Style lock chip | Chip on style-locked node | `LockInventory (effective)` | — | — | — | project read | — | — | — | `UNBOUND` |
+| CV-08 | State simulation controls | Overlay control for loading/empty/error/role | `PreviewScenarioState` | `frontend.preview.set_state` | scenario change | — | project read | `SCENARIO_UNSUPPORTED` | — | — | `UNBOUND` |
+
+## Frontend Chat composer
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#86-frontend-chat-composer`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| CH-01 | Chat composer | Permanent floating composer, 10-12px radius | `FrontendConversation` | `frontend.chat.send` | conversation turn appended | — | project read | `PROVIDER_UNAVAILABLE` `APPROVAL_REQUIRED` | — | — | `UNBOUND` |
+| CH-02 | Selection-aware context chips | Removable chips above composer | `DesignEditContext` | — | planned scope changes | — | project read | `REFERENCE_UNRESOLVED` | — | — | `UNBOUND` |
+| CH-03 | Context/scope settings | Slider/settings icon | `FrontendConversation.context_policy` | — | — | — | project read | — | — | — | `UNBOUND` |
+| CH-04 | Send | Primary action button | `IntentRouterDecision` | `frontend.chat.send` | intent routed | — | project read | `INTENT_AMBIGUOUS` | — | — | `UNBOUND` |
+| CH-05 | Reference resolution (this/Candidate B) | Inline resolved reference | `FrontendConversation.selected_node_ids` | — | — | — | project read | `AMBIGUOUS_REFERENCE` | — | — | `UNBOUND` |
+| CH-06 | Design-class intent routing | Routed to DesignGateway | `DesignSessionReadModel` | `frontend.design.request|refine` | design artifacts created | `capability.frontend_design_request` | design provider admission | `PROVIDER_UNAVAILABLE` `AUTH_REQUIRED` | — | — | `UNBOUND` |
+| CH-07 | Deterministic edit routing | Routed to MutationPlanner, no model call | `MutationPlan` | `frontend.mutation.plan|apply` | candidate mutated | — | mutation authority | `LOCK_DENIED` `STALE_REVISION` | — | — | `UNBOUND` |
+| CH-08 | Undo / revert | Chat command + inspector action | `MutationHistory` | `frontend.mutation.revert` | candidate rolled back | — | mutation authority | `NOT_REVERTIBLE` | — | — | `UNBOUND` |
+
+## Candidate / Directions dock
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| CA-01 | Candidate cards | Bottom strip cards with thumbnails | `CandidateBoardSnapshot` | `frontend.candidate.create` | candidate lifecycle | — | project read | `EMPTY` `GENERATING` `FAILED` | — | — | `UNBOUND` |
+| CA-02 | Candidate thumbnail | Rendered candidate screenshot | `CandidateBoardSnapshot[].thumbnail_ref` | — | — | `capability.browser` | project read | `NOT_RENDERED` `RENDER_FAILED` | — | — | `UNBOUND` |
+| CA-03 | Candidate score | Numeric score or 'Not scored' | `CandidateScorecard` | — | — | — | project read | `UNSCORED` `PARTIAL` | — | — | `UNBOUND` |
+| CA-04 | Score classification | Good/Medium chip, clickable explanation | `CandidateScorecard.classification` | — | — | — | project read | `UNSCORED` | — | — | `UNBOUND` |
+| CA-05 | Change count | 'N changes' from real structural diff | `MutationPlan delta` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| CA-06 | Current (Locked) card | Accepted revision card with lock chip | `AcceptedDesignRevision` | — | — | — | project read | — | — | — | `UNBOUND` |
+| CA-07 | Try live | Card action button | `CandidateWorkspace` | `frontend.design.try_live` | artifact -> isolated candidate workspace | `capability.frontend_candidate` | mutation authority | `BUILD_FAILED` `WORKTREE_CONFLICT` | — | — | `UNBOUND` |
+| CA-08 | Compare | Card action; side-by-side real renders | `CandidateBoardSnapshot (compare mode)` | — | — | — | project read | `NOT_RENDERED` | — | — | `UNBOUND` |
+| CA-09 | Promote / accept | Card action; governed gate | `FrontendAcceptanceRecord` | `frontend.candidate.promote` | candidate -> accepted revision | `capability.frontend_candidate` | manager acceptance authority | `PROMOTION_DENIED` `VERIFICATION_FAILED` `CRITIC_UNAVAILABLE` `STALE_REVISION` `LOCK_DENIED` | — | — | `UNBOUND` |
+
+## Source Blend
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#88-source-blend`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| SB-01 | Actual attribution | Named sources with computed percentages | `SourceBlendSnapshot.attribution` | — | — | — | project read | `ATTRIBUTION_UNCOMPUTABLE` | — | — | `UNBOUND` |
+| SB-02 | Target blend slider | Generation preference control | `SourceBlendTarget` | `frontend.design.request (blend target)` | next generation preference recorded | — | project read | — | — | — | `UNBOUND` |
+
+## Inspector
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| IN-01 | Selected node header | 310-325px panel header, stable selection | `PreviewSelectionAnchor` | — | — | — | project read | `NO_SELECTION` `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
+| IN-02 | Layout tab | Descriptor group tab | `InspectorDescriptor[layout]` | `frontend.mutation.plan|apply` | layout mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` `LOCK_DENIED` | — | — | `UNBOUND` |
+| IN-03 | Style tab | Descriptor group tab | `InspectorDescriptor[style]` | `frontend.mutation.plan|apply` | style mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` `LOCK_DENIED` `OFF_TOKEN_REFUSED` | — | — | `UNBOUND` |
+| IN-04 | Behaviour tab | Descriptor group tab | `InspectorDescriptor[behavior]` | `frontend.mutation.plan|apply` | behaviour mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` `LOCK_DENIED` | — | — | `UNBOUND` |
+| IN-05 | Responsive tab | Descriptor group tab | `InspectorDescriptor[responsive]` | `frontend.mutation.plan|apply` | responsive rule mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` | — | — | `UNBOUND` |
+| IN-06 | Lock tab | Lock inventory + actions | `LockInventory (effective)` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
+| IN-07 | Source / code tab | Read-only source mapping + reveal | `SourceMappingSnapshot` | — | — | — | source read policy | `SOURCE_MAPPING_UNAVAILABLE` `ACCESS_DENIED` | — | — | `UNBOUND` |
+| IN-08 | Type: Stack | Enum descriptor control | `InspectorDescriptor[layout].type` | `frontend.mutation.apply` | layout type mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` | — | — | `UNBOUND` |
+| IN-09 | Direction | Enum descriptor control | `InspectorDescriptor[layout].direction` | `frontend.mutation.apply` | layout direction mutation | — | mutation authority | `UNSUPPORTED_PROPERTY` | — | — | `UNBOUND` |
+| IN-10 | Gap (px + token) | '24 px  space-6' dual display | `InspectorDescriptor[layout].gap` | `frontend.mutation.apply` | token-bound spacing mutation | — | mutation authority | `OFF_TOKEN_REFUSED` | — | — | `UNBOUND` |
+| IN-11 | Padding (px + token) | Same dual display | `InspectorDescriptor[layout].padding` | `frontend.mutation.apply` | token-bound spacing mutation | — | mutation authority | `OFF_TOKEN_REFUSED` | — | — | `UNBOUND` |
+| IN-12 | Behaviour: animation | Tokenised motion reference control | `InspectorDescriptor[behavior].animation` | `frontend.motion.set_animation` | motion mutation | — | mutation authority | `OFF_TOKEN_REFUSED` | — | — | `UNBOUND` |
+| IN-13 | Provenance section | Source artifact, licence, security state | `ProvenanceRecord` | — | — | — | provenance read | `UNKNOWN_PROVENANCE` `LICENCE_UNKNOWN` | — | — | `UNBOUND` |
+| IN-14 | View Source | Reveal-file action | `SourceFileRef` | — | — | — | source read policy | `ACCESS_DENIED` `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
+| IN-15 | Accessibility badge | AA / findings / Not evaluated | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | — | — | `UNBOUND` |
+| IN-16 | Responsive breakpoint buttons | Segmented control | `PreviewViewportState` | `frontend.preview.set_state` | viewport + responsive rule set change | — | project read | — | — | — | `UNBOUND` |
+
+## Status bar
+
+Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar`
+
+| ID | Feature | Visual contract | Read model | Command | State transition | Capability | Permission | Failure states | Implementation | Tests | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| ST-01 | Breadcrumb | 32-36px bar, selected path from PXG | `PxgGraphSnapshot path` | — | — | — | project read | `NO_SELECTION` | — | — | `UNBOUND` |
+| ST-02 | Error count | 'No errors' / count | `QaFindingInventory.blocking` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| ST-03 | Warning count | 'N warnings' | `QaFindingInventory.warnings` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
+| ST-04 | Auto Layout state | ON/OFF toggle | `EditorAssistState.auto_layout` | `frontend.editor.set_assist` | assist toggled | — | project read | — | — | — | `UNBOUND` |
+| ST-05 | AI Suggest state | ON/OFF toggle | `EditorAssistState.ai_suggest` | `frontend.editor.set_assist` | assist toggled; suggestions never auto-mutate accepted design | — | project read | `PROVIDER_UNAVAILABLE` | — | — | `UNBOUND` |
+| ST-06 | Build / version | Studio build + project revision | `StudioSyncSnapshot.build` | — | — | — | any authenticated principal | `UNKNOWN` | — | — | `UNBOUND` |

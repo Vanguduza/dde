@@ -20,6 +20,7 @@ test-unit:
 contract-test:
     uv run python -m scripts.generate_contracts --check
     uv run python -m scripts.generate_design_tokens --check
+    uv run python -m scripts.render_binding_matrix --check
     uv run pytest tests/contract
 
 db-upgrade:
