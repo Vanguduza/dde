@@ -258,9 +258,10 @@ export function previewGalleryPage(
  * instead of DDE's tokens. This affected both the real Prototype Gallery
  * webview and the visual regression harness (visual/server.cjs reuses this
  * same function), which is why the "dark" golden screenshots under
- * visual/__screenshots__/ show a white (#ffffff) background rather than the
- * token palette's #1e1e1e. Injecting the token :root block here, once, at
- * the single shared wrap point, fixes both call sites at once.
+ * visual/__screenshots__/ show a plain white browser-default background
+ * rather than the token palette's dark background. Injecting the token
+ * :root block here, once, at the single shared wrap point, fixes both
+ * call sites at once.
  */
 export function wrapScreenSrcdoc(rawHtml: string): string {
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${GALLERY_PREVIEW_CSP}" />`;
