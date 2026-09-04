@@ -230,3 +230,25 @@ frontend_conversation_turns = Table(
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
+
+frontend_preview_sessions = Table(
+    "frontend_preview_sessions",
+    metadata,
+    Column("preview_session_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("candidate_id", Uuid(as_uuid=True), nullable=False),
+    Column("workspace_id", Uuid(as_uuid=True), nullable=False),
+    Column("status", Text, nullable=False),
+    Column("candidate_pxg_revision", Integer, nullable=False),
+    Column("route_key", Text, nullable=False),
+    Column("document_path", Text, nullable=False),
+    Column("document_sha256", Text, nullable=False),
+    Column("selected_pxg_key", Text, nullable=True),
+    Column("error_code", Text, nullable=True),
+    Column("error_detail", Text, nullable=True),
+    Column("built_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)

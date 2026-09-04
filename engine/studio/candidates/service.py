@@ -184,6 +184,15 @@ class CandidateService:
                 values["workspace_id"] = workspace_id
             if verification_run_id is not None:
                 values["verification_run_id"] = verification_run_id
+            elif target in {
+                CandidateState.DIRTY,
+                CandidateState.RENDERING,
+                CandidateState.REPAIRING,
+            }:
+                # Verification describes an exact rendered candidate. Any
+                # mutation or rerender invalidates that evidence instead of
+                # leaving a stale run attached to a DIRTY card.
+                values["verification_run_id"] = None
             if superseded_by is not None:
                 values["superseded_by"] = superseded_by
             if target is CandidateState.PROMOTED:

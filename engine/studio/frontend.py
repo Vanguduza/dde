@@ -58,6 +58,7 @@ from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.mutations.planner import MutationRequest
+from engine.studio.preview.service import PreviewService
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.truth.db import open_unit_of_work
@@ -146,6 +147,21 @@ class FrontendStudioService:
         if self._screens_service is None:
             self._screens_service = ScreenAcceptanceService(self._engine, pxg=self._pxg)
         return self._screens_service
+
+    def _preview_service(self) -> PreviewService:
+        candidates = self._candidate_service()
+        mutations = MutationExecutor(
+            self._engine,
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            candidates=candidates,
+        )
+        return PreviewService(
+            self._engine,
+            candidates=candidates,
+            mutations=mutations,
+            workspaces=self._workspaces,
+        )
 
     async def compile_prompt(
         self, *, parameters: dict[str, object]
@@ -573,6 +589,79 @@ class FrontendStudioService:
             "state": candidate.state,
             "state_detail": candidate.state_detail,
             "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def start_preview(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Materialize or rerender a real isolated candidate."""
+        snapshot = await self._preview_service().start(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            route_key=_str(parameters, "route_key"),
+        )
+        return {
+            **snapshot.as_dict(),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def select_preview_node(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Resolve an instrumented selection to stable PXG identity."""
+        revision = parameters.get("candidate_pxg_revision")
+        if not isinstance(revision, int):
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "candidate_pxg_revision must be an integer",
+                retryable=False,
+            )
+        snapshot = await self._preview_service().select(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            preview_session_id=_uuid(parameters, "preview_session_id"),
+            pxg_key=_str(parameters, "pxg_key"),
+            candidate_pxg_revision=revision,
+        )
+        return {
+            **snapshot.as_dict(),
+            "side_effect_class": "PURE_READ",
+        }
+
+    async def read_preview(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        candidate_id: UUID,
+    ) -> dict[str, object]:
+        snapshot = await self._preview_service().latest(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate_id,
+        )
+        if snapshot is None:
+            return {
+                "session": None,
+                "document_html": None,
+                "inspector": None,
+                "live": False,
+                "availability": "EMPTY",
+            }
+        return {
+            **snapshot.as_dict(),
+            "availability": (
+                "AVAILABLE" if snapshot.session.status == "READY" else "DEGRADED"
+            ),
         }
 
     async def apply_mutations(
