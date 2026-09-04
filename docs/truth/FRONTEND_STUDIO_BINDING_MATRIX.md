@@ -10,8 +10,8 @@
 
 | Status | Rows |
 |---|---:|
-| `UNBOUND` | 78 |
-| `TYPED_UNAVAILABLE` | 12 |
+| `UNBOUND` | 76 |
+| `TYPED_UNAVAILABLE` | 14 |
 | `BOUND` | 0 |
 | `VERIFIED` | 9 |
 | **total** | **99** |
@@ -68,7 +68,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | EX-19 | Behaviour Locks | Nested item + count | `LockInventory[BEHAVIOUR]` | `frontend.lock.create|update|remove` | lock lifecycle | — | lock authority | `LOCK_DENIED` | — | — | `UNBOUND` |
 | EX-20 | QA group | Collapsible group | `QaFindingInventory` | — | — | — | project read | `VERIFICATION_UNAVAILABLE` | — | — | `UNBOUND` |
 | EX-21 | QA Issues count | Nested item + count | `QaFindingInventory.unresolved` | — | — | — | project read | `UNKNOWN` | — | — | `UNBOUND` |
-| EX-22 | Accessibility count | Nested item + count | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | — | — | `UNBOUND` |
+| EX-22 | Accessibility count | Nested item + count | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | `engine/studio/acceptance/defaults.py` `engine/studio/acceptance/service.py` `schemas/design/screen_acceptance_defaults.json` | `tests/unit/test_screen_acceptance_binding.py` `tests/unit/test_screen_acceptance_binding_postgres.py` | `TYPED_UNAVAILABLE` |
 
 Notes:
 
@@ -78,6 +78,7 @@ Notes:
 - **EX-12** — Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number.
 - **EX-13** — TemplateRecommendationService is DDE-069 M8; the group reports NOT_IMPLEMENTED.
 - **EX-15** — LockService is DDE-069 M7; the group reports NOT_IMPLEMENTED.
+- **EX-22** — Generated screens now carry mandatory visual_critique bindings whose rubric includes accessibility, so evidence has a real producer; the QaFindingInventory read that aggregates it is DDE-069 M17. Until then the badge renders Not evaluated rather than a fabricated AA.
 
 ## Orchestrator card
 
@@ -190,8 +191,12 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 | IN-12 | Behaviour: animation | Tokenised motion reference control | `InspectorDescriptor[behavior].animation` | `frontend.motion.set_animation` | motion mutation | — | mutation authority | `OFF_TOKEN_REFUSED` | — | — | `UNBOUND` |
 | IN-13 | Provenance section | Source artifact, licence, security state | `ProvenanceRecord` | — | — | — | provenance read | `UNKNOWN_PROVENANCE` `LICENCE_UNKNOWN` | — | — | `UNBOUND` |
 | IN-14 | View Source | Reveal-file action | `SourceFileRef` | — | — | — | source read policy | `ACCESS_DENIED` `SOURCE_MAPPING_UNAVAILABLE` | — | — | `UNBOUND` |
-| IN-15 | Accessibility badge | AA / findings / Not evaluated | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | — | — | `UNBOUND` |
+| IN-15 | Accessibility badge | AA / findings / Not evaluated | `QaFindingInventory[accessibility]` | — | — | — | project read | `NOT_EVALUATED` | `engine/studio/acceptance/defaults.py` `engine/studio/acceptance/service.py` `schemas/design/screen_acceptance_defaults.json` | `tests/unit/test_screen_acceptance_binding.py` `tests/unit/test_screen_acceptance_binding_postgres.py` | `TYPED_UNAVAILABLE` |
 | IN-16 | Responsive breakpoint buttons | Segmented control | `PreviewViewportState` | `frontend.preview.set_state` | viewport + responsive rule set change | — | project read | — | — | — | `UNBOUND` |
+
+Notes:
+
+- **IN-15** — Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated.
 
 ## Status bar
 

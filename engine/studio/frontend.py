@@ -28,8 +28,12 @@ from engine.core.ids import uuid7
 from engine.donor.discovery_service import DonorDiscoveryService, SearchQuery
 from engine.donor.grouping import FeatureCategory, grouped_results_as_dict
 from engine.donor.service import DonorLabService
+from engine.events.service import EventService
 from engine.governance.hashing import approval_scope_hash
 from engine.governance.service import ApprovalService
+from engine.missions.service import MissionService
+from engine.studio.acceptance.defaults import GENERATED_SCREEN
+from engine.studio.acceptance.service import ScreenAcceptanceService
 from engine.studio.canvas import (
     apply_insert,
     apply_move,
@@ -71,6 +75,7 @@ class FrontendStudioService:
         contracts: FrontendContractService | None = None,
         pxg: PxgService | None = None,
         coverage: CoverageService | None = None,
+        screens: ScreenAcceptanceService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -83,6 +88,15 @@ class FrontendStudioService:
         self._coverage = coverage or CoverageService(
             engine, pxg=self._pxg, contracts=self._contracts
         )
+        self._screens_service = screens
+
+    def _missions(self) -> MissionService:
+        return MissionService(self._engine, EventService(self._engine))
+
+    def _screens(self) -> ScreenAcceptanceService:
+        if self._screens_service is None:
+            self._screens_service = ScreenAcceptanceService(self._engine, pxg=self._pxg)
+        return self._screens_service
 
     async def compile_prompt(
         self, *, parameters: dict[str, object]
@@ -279,6 +293,54 @@ class FrontendStudioService:
             "screen_ref": screen_ref,
             "rubric_version": rubric_version,
             "failing_dimensions": sorted(failing),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def register_screen(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.screen.register`.
+
+        The production authoring path that closes DDE-068's carry-over: a
+        screen enters the Project Experience Graph and receives its
+        mandatory visual-verification bindings in the same governed step,
+        so nothing reaches promotion merely because someone forgot to
+        attach a check. A screen whose bindings are refused is not
+        registered at all.
+        """
+        task_id = _uuid(parameters, "task_id")
+        task = await self._missions().get_task(
+            tenant_id=tenant_id, project_id=project_id, task_id=task_id
+        )
+        if task.mission_id != mission_id:
+            raise DdeError(
+                "POLICY_DENIED",
+                "task_id is not bound to the command mission",
+                retryable=False,
+                details={"task_id": str(task_id), "mission_id": str(mission_id)},
+            )
+        registration = await self._screens().register_screen(
+            task=task,
+            screen_ref=_str(parameters, "screen_ref"),
+            title=_str(parameters, "title"),
+            preview_url=_str(parameters, "preview_url"),
+            profile=str(parameters.get("profile") or GENERATED_SCREEN),
+            route=_optional_str(parameters, "route"),
+            expect_text=_optional_str(parameters, "expect_text"),
+            visual_diff_spec_path=_optional_str(parameters, "visual_diff_spec_path"),
+        )
+        return {
+            "screen_ref": registration.screen_ref,
+            "pxg_revision": registration.pxg_revision,
+            "oracle_id": str(registration.oracle.oracle_id),
+            "oracle_version": registration.oracle.oracle_version,
+            "bound_verification_kinds": list(registration.bound_kinds),
+            "acceptance_policy_version": registration.policy_version,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -928,3 +990,8 @@ def _mapping(row: dict[str, object], name: str) -> dict[str, object]:
             details={"parameter": name},
         )
     return value
+
+
+def _optional_str(parameters: dict[str, object], name: str) -> str | None:
+    value = parameters.get(name)
+    return value if isinstance(value, str) and value else None

@@ -781,10 +781,17 @@
       "failure_states": [
         "NOT_EVALUATED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/acceptance/defaults.py",
+        "engine/studio/acceptance/service.py",
+        "schemas/design/screen_acceptance_defaults.json"
+      ],
+      "tests": [
+        "tests/unit/test_screen_acceptance_binding.py",
+        "tests/unit/test_screen_acceptance_binding_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Generated screens now carry mandatory visual_critique bindings whose rubric includes accessibility, so evidence has a real producer; the QaFindingInventory read that aggregates it is DDE-069 M17. Until then the badge renders Not evaluated rather than a fabricated AA."
     },
     {
       "id": "OR-01",
@@ -1824,10 +1831,17 @@
       "failure_states": [
         "NOT_EVALUATED"
       ],
-      "implementation_refs": [],
-      "tests": [],
-      "status": "UNBOUND",
-      "note": ""
+      "implementation_refs": [
+        "engine/studio/acceptance/defaults.py",
+        "engine/studio/acceptance/service.py",
+        "schemas/design/screen_acceptance_defaults.json"
+      ],
+      "tests": [
+        "tests/unit/test_screen_acceptance_binding.py",
+        "tests/unit/test_screen_acceptance_binding_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated."
     },
     {
       "id": "IN-16",

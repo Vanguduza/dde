@@ -25,6 +25,7 @@ FRONTEND_COMMANDS = (
 )
 
 DDE_069_COMMANDS = (
+    "frontend.screen.register",
     "frontend.contract.publish",
     "frontend.pxg.apply",
     "frontend.coverage.recompute",

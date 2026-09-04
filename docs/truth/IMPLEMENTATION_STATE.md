@@ -66,7 +66,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `PLANNED` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Hard-blocked on DDE-068 evidence per FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause; no implementation commit exists yet. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation landed (PXG, Frontend Contract, Coverage Engine, read projections, migration 0024) and the inherited DDE-068 binding carry-over is closed; host-neutral UI runtime not started. Per-control state: `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
@@ -332,7 +332,93 @@ covers it automatically.
 
 ### DDE-069 — DDE Code / Frontend Studio V2 + Live Design Foundation
 
-**State:** `PLANNED`. Not started; no implementation commit found.
+**State:** `IN_PROGRESS` (2026-09-04). Backend domain foundation landed;
+host-neutral UI runtime not started.
+
+**Progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is the
+authoritative per-control state, generated from
+`docs/truth/golden/frontend_binding_matrix.json` and machine-checked by
+`tests/unit/test_frontend_binding_matrix.py` (a row may not claim `BOUND`
+without naming production files that exist, nor `VERIFIED` without naming
+tests that exist). At this snapshot: **9 VERIFIED, 14 TYPED_UNAVAILABLE,
+76 UNBOUND** of 99 rows.
+
+**Landed so far:**
+
+- **M1 characterization** — `tests/unit/test_frontend_studio_characterization_postgres.py`
+  freezes the DDE-067 refusals through the real command boundary: unknown
+  `frontend.*` types refused rather than prefix-forwarded, `screen_file`
+  traversal refused, foreign workspace = scope violation, token discipline
+  on every writable style property, and replay-leaves-one-element.
+- **M2 golden authority + ledger** — `engine/studio/golden_visual.py`,
+  `engine/studio/binding_matrix.py`, `scripts/render_binding_matrix.py`
+  (`--check` in `just contract-test`).
+- **M5/M6 domain** — `engine/studio/pxg/`, `engine/studio/contract/`,
+  `engine/studio/coverage/`, `engine/studio/reads.py`, migration `0024`.
+  Commands `frontend.contract.publish`, `frontend.pxg.apply`,
+  `frontend.coverage.recompute` on `mission.control`.
+- **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
+
+**Not started:** host-neutral React/TS/Vite runtime and `DdeHostBridge`
+(M3), golden shell (M4), mutation/lock/candidate runtime (M7), source
+adapters (M8), Frontend Chat (M9), DesignGateway and `Claude /design`
+(M10), cross-DDE migration (M12), mobile adapters (M13).
+
+#### Golden visual artifact — BLOCKED_EXTERNAL
+
+AD-035 names a user-approved 1672x941 Frontend Studio mockup as the
+canonical visual baseline. **The image has never existed in this
+repository** — verified 2026-09-04 by `git log --all --name-only` across
+every ref and path; the only committed mockup is
+`interfaces/dde-studio/docs/dde-mission-overview-mockup.png` at 1536x1024,
+a different and earlier artifact.
+
+Prose describing an image is not the image, so DDE distinguishes two
+claims and refuses to conflate them (`engine/studio/golden_visual.py`):
+
+- `STRUCTURAL` conformance to the normative measurements in
+  `FRONTEND_STUDIO_REV3.md` Part I sections 2-5 (58px top bar, 44-48px
+  rail, 215-225px explorer, 310-325px inspector, 32-36px status bar, and
+  the palette/type/radius/shadow tokens) — checkable now, and what M4 will
+  be held to;
+- `PIXEL_REFERENCE` conformance to the approved image —
+  `require_pixel_reference()` raises `CONTEXT_INCOMPLETE` while the
+  artifact is absent, and no visual signoff may claim it.
+
+**To unblock:** commit the approved image at
+`docs/truth/golden/frontend-studio-shell.png` and record its sha256 in
+`docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. The state machine then
+reports `PINNED` with no code change.
+
+#### Inherited dependency #1 — visual bindings on generated screens: CLOSED
+
+DDE-068 recorded this as deliberately carried into DDE-069. It is now
+closed.
+
+`schemas/design/screen_acceptance_defaults.json` is the versioned,
+inspectable policy (FRONTEND_STUDIO_REV3 section 42) naming `silhouette`
+and `visual_critique` mandatory for both `generated_screen` and
+`imported_screen` profiles, each with a stated rationale. `visual_diff` is
+optional by design: binding it with no approved golden would fail closed
+on every run for the wrong reason.
+
+`engine/studio/acceptance/defaults.py` builds the bindings and
+`assert_mandatory_bindings` refuses an oracle missing one, so an authoring
+path that assembles its own spec list cannot quietly drop
+`visual_critique`. `ScreenAcceptanceService.register_screen` registers the
+screen in the PXG and authors its `AcceptanceOracle` in one step, failing
+closed before any write — a refused binding leaves no screen in the graph.
+
+The production call site is the Gateway command
+`frontend.screen.register`, proven end to end in
+`tests/unit/test_screen_acceptance_binding_postgres.py` (the oracle is read
+back from PostgreSQL carrying both visual bindings).
+
+Because the promotion gate DDE-068 built is kind-agnostic and already
+refuses on any bound visual check, authoring the binding by default
+converts that mission's conditional guarantee — *"a bound check refuses"* —
+into the universal one — *"every generated screen is checked"* — without
+modifying the gate.
 
 **Domain authority:** `docs/truth/FRONTEND_STUDIO_REV3.md` (adopted 2026-09-03, AD-036), reconciling and superseding `docs/planning/frontend-studio-gui-spec.md`'s never-formally-adopted mission definition. Golden visual authority (light-first) is recorded separately as AD-035.
 
@@ -363,6 +449,8 @@ repository.
   `adapters/**`, and `Claude /design` stays architecturally distinct from
   the independent visual critic even where one model family serves both.
 - **Inherited dependency #1 — visual bindings on generated screens.**
+  **RESOLVED 2026-09-04** — see the DDE-069 section above; retained here as
+  the historical statement of the gap.
   DDE-068 delivered the capability *and* its enforcement: any oracle
   carrying a `visual_diff`/`silhouette`/`visual_critique` binding is
   machine-gated at promotion (proven in

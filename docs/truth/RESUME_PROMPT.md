@@ -42,14 +42,38 @@ If the repo has advanced beyond `IMPLEMENTATION_STATE.md`, update the state from
 
 ### 3. Default next mission
 
-**DDE-068 closed 2026-09-04 (`COMPLETE_EVIDENCED`). The next sequential
-product mission is now DDE-069 — DDE Code / Frontend Studio V2 + Live
-Design Foundation.** Start from `IMPLEMENTATION_STATE.md`'s DDE-069
-cold-start entry packet, which names the inherited dependencies, the first
-executable packet and the verification gates, then read
-`docs/truth/FRONTEND_STUDIO_REV3.md` as domain authority. Verify that
-closure from the repository (`docs/evidence/dde-068/CLOSURE_MATRIX.md`)
-rather than trusting this line.
+**DDE-068 closed 2026-09-04 (`COMPLETE_EVIDENCED`). DDE-069 — DDE Code /
+Frontend Studio V2 + Live Design Foundation — is `IN_PROGRESS`.** Read
+`IMPLEMENTATION_STATE.md`'s DDE-069 section for what has landed, then
+`docs/truth/FRONTEND_STUDIO_REV3.md` as domain authority. Verify both from
+the repository rather than trusting this line.
+
+**Find the next packet in the ledger, not in this file.**
+`docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` carries one row per golden
+control with its current state. Work proceeds by turning `UNBOUND` rows
+into real bindings, not by completing M-numbers in order (AD-038). A row
+may not claim `BOUND` without naming production files that exist, nor
+`VERIFIED` without naming tests that exist —
+`tests/unit/test_frontend_binding_matrix.py` enforces that, and
+`scripts/render_binding_matrix.py --check` runs in `just contract-test`.
+
+Highest-value unbound work at this snapshot, dependency-first:
+
+1. **M3/M4** — host-neutral React/TS/Vite runtime behind `DdeHostBridge`
+   plus the canonical shell. Held to *structural* conformance against
+   `FRONTEND_STUDIO_REV3.md` Part I sections 2-5, because the AD-035 image
+   is missing (AD-039).
+2. **M7** — unified mutation planner, lock engine and candidate isolation.
+   Unblocks the inspector, canvas editing and the sync chip (TB-04).
+3. **M8-M10** — source adapters, Frontend Chat, DesignGateway and
+   `Claude /design`.
+
+**One owner-action blocker.** The AD-035 golden 1672x941 mockup is not in
+the repository and never has been (AD-039). Structural conformance is
+verifiable; pixel-reference conformance fails closed until the image is
+committed at `docs/truth/golden/frontend-studio-shell.png` with its sha256
+recorded in `docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. Do not
+fabricate the artifact, and do not claim pixel conformance without it.
 
 The DDE-068 material below is retained because DDE-069's promotion path
 must consume its verification, and because its guardrails remain binding.
@@ -107,7 +131,12 @@ Project Truth row, not just a markdown pre-image); the broad
 was neither bypassed nor weakened. GUI-spec item D2 is closed. Do not
 re-open DDE-068 to add default oracle bindings for generated screens — that
 is explicitly DDE-069's, per `FRONTEND_STUDIO_REV3.md`'s own DDE-068
-DEPENDENCY clause.
+DEPENDENCY clause. **That DDE-069 item is now done** (2026-09-04):
+`schemas/design/screen_acceptance_defaults.json` +
+`engine/studio/acceptance/` bind `silhouette` and `visual_critique` onto
+every generated screen through the `frontend.screen.register` command, so
+the guarantee is universal rather than conditional. Do not re-implement
+it.
 
 ### 5. Work in vertical slices
 

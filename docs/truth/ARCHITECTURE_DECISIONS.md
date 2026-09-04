@@ -390,6 +390,70 @@ Per explicit user direction to leave the project "with one source of truth" and 
 
 ---
 
+## AD-038 — DDE-069 sequencing: domain before UI runtime
+
+**Status:** IMPLEMENTATION-SEQUENCING (2026-09-04). Not a scope change; no
+target is added, removed or weakened.
+
+`FRONTEND_STUDIO_REV3.md` section 31 orders the migration M3 (UI runtime and
+host bridge) and M4 (golden shell) *before* M5 (read projections) and M6
+(PXG/Contract/Coverage). DDE-069 implementation instead built M5/M6 first,
+then the DDE-068 binding carry-over, and takes up M3/M4 after.
+
+**Why.** The same document's own governing rule is that no visible control may
+exist without a real backing capability, and that a control whose capability is
+absent must render a typed unavailable state. Building the shell first means
+either (a) building it against nothing and filling it in later — the
+"sophisticated mockup" failure mode the mission exists to avoid — or (b)
+building every panel twice. Building the domain first lets each golden control
+be bound once, against real state, with the binding ledger recording exactly
+which controls are real and which are honestly unavailable.
+
+**What this does not change.** M3 and M4 remain required, with the same gates:
+host-neutral React/TS/Vite behind `DdeHostBridge`, no `acquireVsCodeApi()` in
+feature code, and the canonical shell geometry. The golden-shell gate is
+unchanged except that it is now explicitly a *structural* conformance gate
+while the AD-035 artifact is missing (see below).
+
+**Consequence.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is the ordering
+record: work proceeds by making UNBOUND rows real, not by completing M-numbers
+in sequence.
+
+---
+
+## AD-039 — Golden visual authority: the approved artifact is absent from the repository
+
+**Status:** BLOCKED_EXTERNAL (2026-09-04). Owner action required.
+
+AD-035 makes a user-approved 1672x941 Frontend Studio mockup the canonical DDE
+visual baseline. During DDE-069 cold-start reconstruction the image was found
+to have **never existed in this repository**, verified by `git log --all
+--name-only` across every ref and path. `FRONTEND_STUDIO_REV3.md`,
+`DEV_PLAN_REV3.md` and AD-035 describe it in prose; prose is not pixels.
+
+**Decision.** Two conformance claims are separated and must never be collapsed:
+
+- `STRUCTURAL` — the implementation matches the normative measurements written
+  into `FRONTEND_STUDIO_REV3.md` Part I sections 2-5. Checkable today, and the
+  gate M4 is held to in the artifact's absence.
+- `PIXEL_REFERENCE` — the rendered implementation matches the approved image.
+  `engine.studio.golden_visual.require_pixel_reference` raises
+  `CONTEXT_INCOMPLETE` while the artifact is unpinned, so no signoff can claim
+  it.
+
+This does not weaken AD-035. The visual law stands; what is refused is the
+*claim* that DDE has verified against pixels it cannot read.
+
+**To resolve.** Commit the approved image at
+`docs/truth/golden/frontend-studio-shell.png` and record its sha256 in
+`docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. The manifest state machine
+then reports `PINNED` and pixel-reference verification unblocks with no code
+change. If the approved artifact cannot be recovered, that is a Project Truth
+decision for the owner — either re-approve a regenerated mockup as revision 2,
+or amend AD-035 to make the structural specification the sole visual authority.
+
+---
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.

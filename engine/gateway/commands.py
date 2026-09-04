@@ -550,6 +550,13 @@ class CommandDispatcher:
                 idempotency_key=key,
                 parameters=params,
             )
+        elif command_type == "frontend.screen.register":
+            payload = await studio.register_screen(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
         elif command_type == "frontend.contract.publish":
             payload = await studio.publish_contract(
                 tenant_id=tenant_id,
