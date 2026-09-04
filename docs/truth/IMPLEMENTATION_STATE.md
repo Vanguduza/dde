@@ -65,7 +65,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Landed in commit `9a8bb86...`; chapter-gate document exists. Treat later regressions separately. |
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
-| DDE-068 Visual Verification & Critique Loop | `IMPLEMENTED_PARTIAL` | See §3's dedicated DDE-068 entry below: silhouette-distinctiveness gate landed with a real production call site; token-injection golden fix landed; VLM critique and the density floor that depends on it remain `BLOCKED_EXTERNAL` (no real multimodal-model provider credential exists in any environment this project has run in to date). |
+| DDE-068 Visual Verification & Critique Loop | `IMPLEMENTED_PARTIAL` | See §3's dedicated DDE-068 entry below: silhouette-distinctiveness gate LANDED with a real, Postgres-proven production promotion gate (item 10 corrected from a prior wrong "not started" reading); token-injection golden fix and reduced-motion semantics LANDED. VLM critique and the density dimension it scores remain `BLOCKED_EXTERNAL` on a genuine architecture decision, not a missing credential per se — a real local execution route (`capability.claude_code_invoke`, EDR-0001) exists but structurally conflicts with EDR-0016's assumed brokered-API mechanism; `EDR-0017` is filed (proposed, not self-accepted) for a human to decide the route. DDE-068 is therefore NOT evidence-complete; do not begin substantive DDE-069 work. |
 | DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `PLANNED` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Hard-blocked on DDE-068 evidence per FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause; no implementation commit exists yet. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
@@ -180,62 +180,111 @@ Observed evidence:
    `pytest.importorskip("PIL")`-skips there rather than silently
    fabricating a pass; `ruff`/`mypy` are clean in the default (no-extra)
    environment, matching what CI actually runs.
-5. believable-density enforcement — `BLOCKED_EXTERNAL`. Per
-   `docs/planning/product-studio-charter.md` line 373 and playbook §8.3,
-   this is a *rubric-scored* dimension ("believable-density >= 4",
-   "hierarchy, rhythm, and states" judged from rendered pixels), not a
-   deterministic check — it is one scored dimension of the same VLM
-   critique call as item 7, so it shares that blocker. A deterministic
-   proxy (e.g. regex-detecting `"Item 1"`/lorem-style filler strings) was
-   considered and rejected: it would silently substitute a materially
-   weaker mechanism for the spec's rubric-scored gate and misrepresent
-   what "believable-density enforcement" means per the accepted EDR/plan.
+5. believable-density enforcement — `BLOCKED_EXTERNAL`, see item 7 (same
+   rubric call; playbook §8.3 scores it "hierarchy, rhythm, and states"
+   from rendered pixels, not a deterministic property). A deterministic
+   filler-string proxy was considered and rejected as a misrepresentation
+   of the spec's rubric-scored contract.
 6. reduced-motion semantic assertions — `LANDED` (recovered this session,
    commit `582e06a`'s parent `b35fb41`). `screens.spec.ts`'s
    reduced-motion-semantics test reads real computed
    `animation-duration`/`animation-name` under
    `prefers-reduced-motion: reduce`, distinct from the pre-existing
    snapshot-only reduced-motion golden.
-7. VLM screenshot critique as rank-9 evidence — `BLOCKED_EXTERNAL`.
-   Verified (not assumed) before writing this: no `ANTHROPIC_API_KEY` or
-   any multimodal-provider credential is present in this or any prior
-   session environment for this project; `engine/routing/rules.py`'s
-   Appendix A "vision and visual evidence" profile is a routing-eligibility
-   *description*, not a wired adapter; no `engine/**` module imports an
-   `anthropic`/`openai`/vision-provider SDK — the only sanctioned model
-   egress recorded anywhere in the repo is
-   `engine/capabilities/seed.py`'s `"external:anthropic (via local claude
-   CLI only)"`, which is not a callable production API surface this
-   codebase can invoke as a brokered capability. Per RESUME_PROMPT.md
-   §15's stop condition ("a provider/interface ... is unavailable and no
-   generic contract path can progress safely"), this is reported as a
-   genuine external blocker rather than stubbed with a fabricated verdict.
+7. VLM screenshot critique as rank-9 evidence — `BLOCKED_EXTERNAL`, but
+   **re-audited this tranche past the point of "no credential exists"**
+   on explicit instruction not to accept that shallow reading. Corrected
+   finding, evidence-checked 2026-09-04:
+   - No `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/any multimodal-provider
+     credential exists in any environment this project has run in; no
+     `engine/**` module imports a provider SDK; `engine/routing/rules.py`'s
+     Appendix A "vision" profile has no wired adapter or
+     `RouterService.model_mode="fixed"` pin anywhere in the repo. **This
+     is EDR-0016 decision 1's assumed brokered-API route, and it was
+     never provisioned.**
+   - **A different, real route DOES exist and is fully implemented and
+     tested**: `capability.claude_code_invoke`
+     (`engine/capabilities/seed.py`) backed by
+     `adapters/claude/adapter.py`'s `ClaudeCodeWorkerAdapter` (EDR-0001
+     Path A, accepted) — a real subprocess spawn of the human's own
+     already-authenticated local `claude` CLI, genuinely multimodal-
+     capable (it can read an image path in its prompt), covered by
+     `tests/unit/test_claude_adapter_requires_approval.py`.
+   - It is **not a drop-in substitute** for EDR-0016 decision 1, on two
+     structural points, not a naming detail: it never touches a brokered
+     credential (so EDR-0016's `$`-based cost ceiling has no referent),
+     and `external_model_invocation` is `STANDING_FORBIDDEN_TYPES`
+     (enforced at `engine/governance/service.py:1292`, not just
+     documented) — every invocation needs a fresh, individually human-
+     decided `Approval`, which conflicts with an unattended "automatic"
+     bounded-revision loop as EDR-0016 assumed it.
+   - **Filed `docs/truth/edr/EDR-0017-visual-critic-execution-route-capability-audit.md`**
+     (status: `proposed`, not self-accepted — this session has no access
+     to the durable Project Truth database to accept it even if that were
+     appropriate, and RESUME_PROMPT.md's own rule is to raise the
+     conflict through change control, not silently resolve it) recording
+     this finding and three alternatives for the deciding human: (a) wait
+     for a real brokered provider as EDR-0016 originally assumed, (b)
+     amend EDR-0016 to route the critic through
+     `capability.claude_code_invoke`, accepting per-invocation human
+     approval as this loop's real shape, or (c) admit a new, narrower,
+     possibly standing-approvable capability. No implementation in this
+     tranche invokes `capability.claude_code_invoke` live for DDE-068 —
+     doing so before a human decides which route DDE-068 should use would
+     spend the human's own subscription-seat quota on an architecture
+     decision they have not made, exactly what EDR-0001's approval gate
+     exists to prevent an agent from doing unilaterally.
 8. bounded revision <= 3 cycles — `BLOCKED_EXTERNAL`, downstream of 7 (the
-   revision loop has nothing to bound without a real critique call).
+   revision loop has nothing to bound without a decided critique route).
 9. human escalation after bound — `BLOCKED_EXTERNAL`, downstream of 7/8.
-10. real production promotion/merge gate consuming visual verdicts — `NOT
-    STARTED` this tranche. `FAILED` `CheckResult`s from `visual_diff`/
-    `silhouette` already flow into the generic verification-run
-    pass/fail signal, but no code path was found or built that makes a
-    DDE "merge"/task-completion decision actually refuse on that signal
-    (`engine/governance/` has no `promotion`/`merge_gate` module; the
-    `promotion_gate_run` contract that does exist belongs to a different
-    subsystem, Ch.5.13's eval-corpus promotion, DDE-031 — not this gate).
-    Next work packet's first item.
+10. real production promotion/merge gate consuming visual verdicts —
+    `LANDED`, and **this tranche corrects a wrong prior conclusion**: an
+    earlier snapshot of this file said item 10 was "NOT STARTED" because
+    no `engine/governance/promotion`/`merge_gate` module was found by
+    name. Tracing the actual call graph rather than searching for a
+    matching module name shows the real gate already exists and is
+    generic across every `EXECUTABLE_KINDS` member, silhouette included,
+    with no additional wiring: `VerificationRunnerService.run()` ->
+    `_execute_outcome()` (calls `checks.run_check`) -> `_evaluate()`
+    (`engine/verification/runner.py:1130`, reads only `CheckResult.status`,
+    kind-agnostic) -> `_finalise_passed_attempt()` /
+    `_fail_unverified_attempt()` -> `TaskAttemptService.finalize()` /
+    `.fail()`. A `FAILED` `silhouette`/`visual_diff` check makes
+    `_evaluate()` return `FAILED`, which routes to `_fail_unverified_attempt`
+    — the `TaskAttempt` never reaches `COMPLETED`.
+    **Test evidence (new this tranche, real Postgres, not a mock of the
+    gate):** `tests/unit/test_silhouette_promotion_gate_postgres.py`,
+    2 tests, both passing against a real `VerificationRunnerService.run()`
+    call: a screen whose rendered silhouette matches the generic-layout
+    corpus produces a real `FAILED` `VerificationRun` AND a real `FAILED`
+    `TaskAttempt` (never reaches `COMPLETED`); the converse distinctive
+    screen produces `PASSED`/`COMPLETED`. This is the charter's own
+    acceptance criterion ("A generated screen that fails the density floor
+    OR matches a generic-corpus silhouette CANNOT reach a merged state")
+    proven for the silhouette half, end-to-end.
+    **Residual:** nothing yet *authors* a `silhouette`/`visual_diff` binding
+    onto a generated screen's `AcceptanceOracle` by default — the gate
+    refuses correctly whenever such a check is bound, but no DDE-065/067
+    compiler/authoring call site was found that binds one automatically
+    for every generated screen task. That default-binding wiring is
+    DDE-065/067 authoring-surface territory, not this gate's.
 
 **Immediate next work packet:**
 
-- Wire item 10: find or build the real task/mission completion path that
-  consumes `VerificationRun` status and refuses to advance on a `FAILED`
-  `visual_diff`/`silhouette` result, with a contract test exercising the
-  refusal (not just the happy path), per the charter's own acceptance
-  criterion for this mission.
-- Items 5/7/8/9 stay `BLOCKED_EXTERNAL` until a real multimodal-model
-  provider credential is admitted through the brokered capability path
-  (Appendix A "vision" profile gets a real adapter under `adapters/**`,
-  `RouterService.model_mode="fixed"` pins it, EDR-0016's cost ceiling is
-  enforced). Do not stub a fake critique response to unblock these —
-  report the blocker at the next session's start per RESUME_PROMPT.md §16.
+- Human decision needed on `EDR-0017` (proposed, not accepted) before
+  items 5/7/8/9 can move past `BLOCKED_EXTERNAL`. Do not build a live
+  call site to `capability.claude_code_invoke` for DDE-068, and do not
+  stub a fake critique response, until that decision lands.
+- If/when EDR-0017 is decided, build the follow-on it names: a
+  `_run_visual_critique` executor, the structured critique schema under
+  `schemas/design/` (EDR-0016 decision 3, unaffected by EDR-0017), and the
+  bounded-revision state machine — all real, tested with the adapter's
+  own established fake-binary-double pattern for fast/no-live-cost tests.
+- Separately, unblocked regardless of EDR-0017: wire a default oracle
+  binding so generated-screen tasks actually carry a `silhouette`/
+  `visual_diff` check (item 10's residual above) — likely DDE-065's
+  generation-prompt compiler or DDE-067's authoring surface, not this
+  gate itself.
 
 ### DDE-069 — DDE Code / Frontend Studio V2 + Live Design Foundation
 
