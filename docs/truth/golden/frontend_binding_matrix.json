@@ -1,0 +1,6233 @@
+{
+  "matrix_version": 2,
+  "purpose": "The DDE-069 implementation ledger. Every meaningful control in the AD-035 golden Frontend Studio has exactly one row with independent DOMAIN, READ, COMMAND, UI, WIRED, E2E and VISUAL evidence. Final status is derived; backend-only evidence can never certify a missing UI.",
+  "authority": "docs/truth/FRONTEND_STUDIO_REV3.md section 8 (Golden UI - quantum functional binding map); AD-035; AD-036",
+  "status_vocabulary": {
+    "UNBOUND": "At least one applicable evidence layer has no binding.",
+    "TYPED_UNAVAILABLE": "No applicable layer is untracked, but at least one is explicitly unavailable with an honest product state.",
+    "BOUND": "Every applicable layer is at least bound, but one or more layers lack verification.",
+    "VERIFIED": "Every applicable evidence layer is independently VERIFIED."
+  },
+  "closure_rule": "A visible golden control is VERIFIED only when every applicable DOMAIN, READ, COMMAND, UI, WIRED, E2E and VISUAL layer is VERIFIED. UI and VISUAL are always applicable. TYPED_UNAVAILABLE is final only when no required layer is silently UNBOUND.",
+  "regions": [
+    {
+      "id": "global_top_bar",
+      "title": "Global top bar",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar"
+    },
+    {
+      "id": "app_rail_and_explorer",
+      "title": "App rail and project explorer",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explorer"
+    },
+    {
+      "id": "orchestrator_card",
+      "title": "Orchestrator card",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card"
+    },
+    {
+      "id": "canvas_toolbar",
+      "title": "Canvas toolbar",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar"
+    },
+    {
+      "id": "canvas",
+      "title": "Real canvas and selection",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection"
+    },
+    {
+      "id": "frontend_chat",
+      "title": "Frontend Chat composer",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#86-frontend-chat-composer"
+    },
+    {
+      "id": "candidate_dock",
+      "title": "Candidate / Directions dock",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock"
+    },
+    {
+      "id": "source_blend",
+      "title": "Source Blend",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#88-source-blend"
+    },
+    {
+      "id": "inspector",
+      "title": "Inspector",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector"
+    },
+    {
+      "id": "status_bar",
+      "title": "Status bar",
+      "specification": "docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar"
+    }
+  ],
+  "rows": [
+    {
+      "id": "TB-01",
+      "region": "global_top_bar",
+      "feature": "Product title / module identity",
+      "visual_contract": "Left of top bar, 58px band, 15-16px 600 weight",
+      "read_model": "shell.module_registry",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "any authenticated principal",
+      "failure_states": [
+        "MODULE_UNKNOWN"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/DdeShell.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+        "interfaces/dde-studio/ui/src/styles/global.css",
+        "interfaces/dde-studio/ui/src/styles/tokens.css"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "BOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/DdeShell.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "interfaces/dde-studio/ui/src/styles/tokens.css"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/DdeShell.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "interfaces/dde-studio/ui/src/styles/tokens.css"
+          ]
+        },
+        "WIRED": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "E2E": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-02",
+      "region": "global_top_bar",
+      "feature": "Project selector",
+      "visual_contract": "Active ProjectIdentity chip beside title",
+      "read_model": "FrontendStudioSnapshot.project",
+      "command": "frontend.project.switch",
+      "state_transition": "active project changes",
+      "capability": null,
+      "permission": "principal grant on target project",
+      "failure_states": [
+        "NO_PROJECT",
+        "PROJECT_UNAVAILABLE",
+        "SCOPE_DENIED"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-03",
+      "region": "global_top_bar",
+      "feature": "Saved timestamp",
+      "visual_contract": "12px tertiary text next to sync chip",
+      "read_model": "StudioSyncSnapshot.durable_revision_at",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "TB-04",
+      "region": "global_top_bar",
+      "feature": "Sync status chip",
+      "visual_contract": "Pill; colour by state",
+      "read_model": "StudioSyncSnapshot.state",
+      "command": null,
+      "state_transition": "LOCAL_PENDING->COMMAND_ACCEPTED->PERSISTING->DURABLE->PROJECTING->SYNCED",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "FAILED",
+        "STALE",
+        "OFFLINE",
+        "CONFLICT"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "StudioSyncSnapshot distinguishes durable revision from accepted command, but pending-mutation counting needs the DDE-069 M7 mutation engine; until then the chip must not claim SYNCED on a 202 alone.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-05",
+      "region": "global_top_bar",
+      "feature": "Design mode tab",
+      "visual_contract": "Centre tab row, selected tab tinted",
+      "read_model": "FrontendStudioSnapshot.mode",
+      "command": "frontend.mode.select",
+      "state_transition": "studio mode transition",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-06",
+      "region": "global_top_bar",
+      "feature": "Coverage mode tab",
+      "visual_contract": "Same tab row",
+      "read_model": "CoverageSummary",
+      "command": "frontend.mode.select",
+      "state_transition": "studio mode transition",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "COVERAGE_UNASSESSED"
+      ],
+      "implementation_refs": [
+        "engine/studio/coverage/scoring.py",
+        "engine/studio/coverage/service.py",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_coverage_engine.py",
+        "tests/unit/test_frontend_studio_characterization_postgres.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py",
+            "tests/unit/test_frontend_coverage_engine.py",
+            "tests/unit/test_frontend_studio_characterization_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py",
+            "tests/unit/test_frontend_coverage_engine.py",
+            "tests/unit/test_frontend_studio_characterization_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py"
+          ]
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-07",
+      "region": "global_top_bar",
+      "feature": "Architecture mode tab",
+      "visual_contract": "Same tab row",
+      "read_model": "PxgGraphSnapshot",
+      "command": "frontend.mode.select",
+      "state_transition": "studio mode transition",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "PXG_EMPTY"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-08",
+      "region": "global_top_bar",
+      "feature": "QA mode tab",
+      "visual_contract": "Same tab row",
+      "read_model": "QaFindingInventory",
+      "command": "frontend.mode.select",
+      "state_transition": "studio mode transition",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "VERIFICATION_UNAVAILABLE"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-09",
+      "region": "global_top_bar",
+      "feature": "Source mode tab",
+      "visual_contract": "Same tab row",
+      "read_model": "DesignSourceInventory",
+      "command": "frontend.mode.select",
+      "state_transition": "studio mode transition",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "PROVIDER_DEGRADED"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-10",
+      "region": "global_top_bar",
+      "feature": "Coverage ring",
+      "visual_contract": "Right-aligned ring + percentage",
+      "read_model": "CoverageSummary.weighted_percent",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNASSESSED",
+        "BLOCKED",
+        "PARTIAL"
+      ],
+      "implementation_refs": [
+        "engine/studio/coverage/scoring.py",
+        "engine/studio/coverage/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_coverage_engine.py",
+        "tests/unit/test_frontend_studio_characterization_postgres.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_coverage_engine.py",
+            "tests/unit/test_frontend_studio_characterization_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_coverage_engine.py",
+            "tests/unit/test_frontend_studio_characterization_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-11",
+      "region": "global_top_bar",
+      "feature": "Activity / metrics icon",
+      "visual_contract": "Icon button",
+      "read_model": "FrontendActivityProjection",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NOT_ADMITTED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "TB-12",
+      "region": "global_top_bar",
+      "feature": "Attention notification badge",
+      "visual_contract": "Count badge on bell icon",
+      "read_model": "AttentionCenterSnapshot",
+      "command": "frontend.attention.acknowledge",
+      "state_transition": "attention item acknowledged",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN_NOT_SHOWN_AS_COUNT"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/reads.py"
+          ]
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "TB-13",
+      "region": "global_top_bar",
+      "feature": "Help",
+      "visual_contract": "Icon button",
+      "read_model": "shell.help_registry",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "any authenticated principal",
+      "failure_states": [],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "TB-14",
+      "region": "global_top_bar",
+      "feature": "User avatar / principal",
+      "visual_contract": "Circular avatar at far right",
+      "read_model": "session.principal",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "own session",
+      "failure_states": [
+        "UNAUTHENTICATED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-01",
+      "region": "app_rail_and_explorer",
+      "feature": "App rail module icons",
+      "visual_contract": "44-48px rail, tinted rounded square on selected",
+      "read_model": "shell.module_registry",
+      "command": "shell.module.select",
+      "state_transition": "active module changes",
+      "capability": null,
+      "permission": "module grant",
+      "failure_states": [
+        "MODULE_UNAVAILABLE"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/AppRail.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-02",
+      "region": "app_rail_and_explorer",
+      "feature": "Project heading + menu",
+      "visual_contract": "215-225px panel header row",
+      "read_model": "ProjectExplorerSnapshot.project",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-03",
+      "region": "app_rail_and_explorer",
+      "feature": "Explorer search",
+      "visual_contract": "Search icon in header row",
+      "read_model": "ProjectExplorerSnapshot (filtered)",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "INDEX_UNAVAILABLE"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-04",
+      "region": "app_rail_and_explorer",
+      "feature": "Screens group + count",
+      "visual_contract": "Collapsible group, 11px numeric counter",
+      "read_model": "ScreenTreeSnapshot",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN",
+        "EMPTY",
+        "LOAD_FAILED"
+      ],
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-05",
+      "region": "app_rail_and_explorer",
+      "feature": "Journeys group + count",
+      "visual_contract": "Same",
+      "read_model": "JourneyInventory",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN",
+        "EMPTY",
+        "LOAD_FAILED"
+      ],
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-06",
+      "region": "app_rail_and_explorer",
+      "feature": "Components group + count",
+      "visual_contract": "Same",
+      "read_model": "ComponentInventory",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN",
+        "EMPTY",
+        "LOAD_FAILED"
+      ],
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-07",
+      "region": "app_rail_and_explorer",
+      "feature": "Sources group",
+      "visual_contract": "Collapsible group",
+      "read_model": "DesignSourceInventory",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "PROVIDER_DEGRADED"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "DesignSourceRegistry is DDE-069 M8. The explorer group is listed with an UNKNOWN count (Availability.NOT_IMPLEMENTED) rather than hidden or shown as zero.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-08",
+      "region": "app_rail_and_explorer",
+      "feature": "DDE Library source",
+      "visual_contract": "Nested item + status dot",
+      "read_model": "DesignSourceInventory[internal]",
+      "command": "frontend.source.search",
+      "state_transition": "source search run",
+      "capability": "capability.frontend_source_search",
+      "permission": "project read",
+      "failure_states": [
+        "UNAVAILABLE",
+        "EMPTY"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/reads.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-09",
+      "region": "app_rail_and_explorer",
+      "feature": "21st MCP source",
+      "visual_contract": "Nested item + status dot",
+      "read_model": "DesignSourceInventory[twentyfirst]",
+      "command": "frontend.source.search",
+      "state_transition": "source search run",
+      "capability": "capability.frontend_source_search",
+      "permission": "project read + external egress admission",
+      "failure_states": [
+        "AUTH_REQUIRED",
+        "PROVIDER_OFFLINE",
+        "NOT_ADMITTED"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/reads.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-10",
+      "region": "app_rail_and_explorer",
+      "feature": "Donor Sources",
+      "visual_contract": "Nested item + status dot",
+      "read_model": "DesignSourceInventory[donor]",
+      "command": "frontend.donors.run_discovery",
+      "state_transition": "donor discovery run",
+      "capability": "capability.donor_search",
+      "permission": "donor_reuse approval for adoption",
+      "failure_states": [
+        "APPROVAL_REQUIRED",
+        "SOURCE_CLASS_FORBIDS"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-11",
+      "region": "app_rail_and_explorer",
+      "feature": "Internal Components",
+      "visual_contract": "Nested item + count",
+      "read_model": "ComponentInventory[project_native]",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "EMPTY"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-12",
+      "region": "app_rail_and_explorer",
+      "feature": "Source numeric badges",
+      "visual_contract": "11px counter or em-dash",
+      "read_model": "DesignSourceInventory[*].indexed_count",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN",
+        "STALE",
+        "ERROR"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-13",
+      "region": "app_rail_and_explorer",
+      "feature": "Templates group",
+      "visual_contract": "Collapsible group",
+      "read_model": "TemplateInventory",
+      "command": "frontend.source.import_candidate",
+      "state_transition": "foundation candidate created",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "EMPTY",
+        "PROVIDER_DEGRADED"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "TemplateRecommendationService is DDE-069 M8; the group reports NOT_IMPLEMENTED.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/reads.py"
+          ]
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-14",
+      "region": "app_rail_and_explorer",
+      "feature": "Template entries",
+      "visual_contract": "Nested neutral-identity items",
+      "read_model": "TemplateInventory.entries",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "EMPTY"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-15",
+      "region": "app_rail_and_explorer",
+      "feature": "Locks group + count",
+      "visual_contract": "Collapsible group + counter",
+      "read_model": "LockInventory",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/locks/resolution.py",
+        "engine/studio/locks/service.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/resolution.py",
+            "engine/studio/locks/service.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/resolution.py",
+            "engine/studio/locks/service.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "EX-16",
+      "region": "app_rail_and_explorer",
+      "feature": "Style Locks",
+      "visual_contract": "Nested item + count",
+      "read_model": "LockInventory[STYLE]",
+      "command": "frontend.lock.create|update|remove",
+      "state_transition": "lock lifecycle",
+      "capability": null,
+      "permission": "lock authority",
+      "failure_states": [
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-17",
+      "region": "app_rail_and_explorer",
+      "feature": "Section Locks",
+      "visual_contract": "Nested item + count",
+      "read_model": "LockInventory[SECTION]",
+      "command": "frontend.lock.create|update|remove",
+      "state_transition": "lock lifecycle",
+      "capability": null,
+      "permission": "lock authority",
+      "failure_states": [
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-18",
+      "region": "app_rail_and_explorer",
+      "feature": "Component Locks",
+      "visual_contract": "Nested item + count",
+      "read_model": "LockInventory[COMPONENT]",
+      "command": "frontend.lock.create|update|remove",
+      "state_transition": "lock lifecycle",
+      "capability": null,
+      "permission": "lock authority",
+      "failure_states": [
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-19",
+      "region": "app_rail_and_explorer",
+      "feature": "Behaviour Locks",
+      "visual_contract": "Nested item + count",
+      "read_model": "LockInventory[BEHAVIOUR]",
+      "command": "frontend.lock.create|update|remove",
+      "state_transition": "lock lifecycle",
+      "capability": null,
+      "permission": "lock authority",
+      "failure_states": [
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-20",
+      "region": "app_rail_and_explorer",
+      "feature": "QA group",
+      "visual_contract": "Collapsible group",
+      "read_model": "QaFindingInventory",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "VERIFICATION_UNAVAILABLE"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-21",
+      "region": "app_rail_and_explorer",
+      "feature": "QA Issues count",
+      "visual_contract": "Nested item + count",
+      "read_model": "QaFindingInventory.unresolved",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "EX-22",
+      "region": "app_rail_and_explorer",
+      "feature": "Accessibility count",
+      "visual_contract": "Nested item + count",
+      "read_model": "QaFindingInventory[accessibility]",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NOT_EVALUATED"
+      ],
+      "implementation_refs": [
+        "engine/studio/acceptance/defaults.py",
+        "engine/studio/acceptance/service.py",
+        "schemas/design/screen_acceptance_defaults.json"
+      ],
+      "tests": [
+        "tests/unit/test_screen_acceptance_binding.py",
+        "tests/unit/test_screen_acceptance_binding_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Generated screens now carry mandatory visual_critique bindings whose rubric includes accessibility, so evidence has a real producer; the QaFindingInventory read that aggregates it is DDE-069 M17. Until then the badge renders Not evaluated rather than a fabricated AA.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/acceptance/defaults.py",
+            "engine/studio/acceptance/service.py",
+            "schemas/design/screen_acceptance_defaults.json",
+            "tests/unit/test_screen_acceptance_binding.py",
+            "tests/unit/test_screen_acceptance_binding_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/acceptance/defaults.py",
+            "engine/studio/acceptance/service.py",
+            "schemas/design/screen_acceptance_defaults.json",
+            "tests/unit/test_screen_acceptance_binding.py",
+            "tests/unit/test_screen_acceptance_binding_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "OR-01",
+      "region": "orchestrator_card",
+      "feature": "Orchestrator status",
+      "visual_contract": "Bottom card of explorer, status dot",
+      "read_model": "OrchestratorFrontendStatus.runtime_state",
+      "command": null,
+      "state_transition": "ACTIVE|PAUSED|WAITING|DEGRADED|UNKNOWN",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "No orchestrator runtime is wired to the Studio; runtime_state is UNKNOWN rather than a decorative ACTIVE dot.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "OR-02",
+      "region": "orchestrator_card",
+      "feature": "Manager Chair identity",
+      "visual_contract": "Name row inside card",
+      "read_model": "OrchestratorFrontendStatus.manager_chair",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "SERVING_UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Manager-chair identity has no backing projection yet; the card shows no name.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "OR-03",
+      "region": "orchestrator_card",
+      "feature": "Desired/Configured/Serving split",
+      "visual_contract": "Three distinct labelled values",
+      "read_model": "OrchestratorFrontendStatus.model_roles",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "SERVING_UNATTESTED"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Blueprint Rev 3 section 5.4 ModelServingEvidence is unimplemented, so serving_confidence is UNATTESTED and desired/configured/serving stay separate and empty.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "OR-04",
+      "region": "orchestrator_card",
+      "feature": "Design Director role",
+      "visual_contract": "Subordinate role row",
+      "read_model": "OrchestratorFrontendStatus.design_director",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNASSIGNED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "OR-05",
+      "region": "orchestrator_card",
+      "feature": "Activity visualisation",
+      "visual_contract": "Compact waveform of real events",
+      "read_model": "OrchestratorFrontendStatus.activity_window",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NO_ACTIVITY"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "No frontend activity projection exists; the count is UNKNOWN, not a random waveform.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "OR-06",
+      "region": "orchestrator_card",
+      "feature": "Status dot",
+      "visual_contract": "Colour by typed health",
+      "read_model": "OrchestratorFrontendStatus.health",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/components/Honest.tsx",
+        "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Role health has no backing projection; the dot renders UNKNOWN.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CT-01",
+      "region": "canvas_toolbar",
+      "feature": "Viewport selector",
+      "visual_contract": "Compact select, e.g. Desktop 1440",
+      "read_model": "PreviewViewportState",
+      "command": "frontend.preview.set_state",
+      "state_transition": "viewport changes",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CT-02",
+      "region": "canvas_toolbar",
+      "feature": "Select tool",
+      "visual_contract": "Icon toggle",
+      "read_model": "editor.interaction_mode",
+      "command": null,
+      "state_transition": "SELECT mode",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CT-03",
+      "region": "canvas_toolbar",
+      "feature": "Hand / pan tool",
+      "visual_contract": "Icon toggle",
+      "read_model": "editor.interaction_mode",
+      "command": null,
+      "state_transition": "PAN mode",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CT-04",
+      "region": "canvas_toolbar",
+      "feature": "Comment tool",
+      "visual_contract": "Icon toggle",
+      "read_model": "DesignCommentInventory",
+      "command": "frontend.comment.create|resolve",
+      "state_transition": "comment lifecycle",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "ANCHOR_LOST"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CT-05",
+      "region": "canvas_toolbar",
+      "feature": "Grid / overlay options",
+      "visual_contract": "Icon toggle + menu",
+      "read_model": "PreviewOverlayState",
+      "command": "frontend.preview.set_state",
+      "state_transition": "overlay toggles",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CT-06",
+      "region": "canvas_toolbar",
+      "feature": "Claude /design button",
+      "visual_contract": "Accent AI-action button in toolbar",
+      "read_model": "DesignProviderStatus",
+      "command": "frontend.design.request",
+      "state_transition": "DesignSession + DesignArtifacts created",
+      "capability": "capability.frontend_design_request",
+      "permission": "design provider admission",
+      "failure_states": [
+        "PROVIDER_AUTH_REQUIRED",
+        "PROVIDER_UNAVAILABLE",
+        "CAPABILITY_UNAVAILABLE",
+        "ARTIFACT_REJECTED"
+      ],
+      "implementation_refs": [
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py",
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The control is present where the golden composition puts it and the DesignGateway behind it is real: it compiles an allowlisted DesignEditContext, records the design-system hash, quarantines malformed artifacts and creates isolated candidates through Try live. What is absent is a certified Claude Design transport, so the provider reports NOT_CERTIFIED and the gateway refuses with no fallback. Driving it through capability.claude_code_invoke would be a generic code-generation prompt labelled /design, which section 23 forbids by name.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CT-07",
+      "region": "canvas_toolbar",
+      "feature": "Zoom control",
+      "visual_contract": "Percentage stepper",
+      "read_model": "editor.canvas_transform",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CT-08",
+      "region": "canvas_toolbar",
+      "feature": "Fullscreen / fit",
+      "visual_contract": "Icon buttons",
+      "read_model": "editor.presentation_state",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "HOST_UNSUPPORTED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CV-01",
+      "region": "canvas",
+      "feature": "Live preview surface",
+      "visual_contract": "Dominant central area, code-backed",
+      "read_model": "FrontendCanvasSnapshot",
+      "command": "frontend.preview.start|stop",
+      "state_transition": "DESIGN|BUILDING|LIVE|PROMOTED|VERIFIED|DISCARDED",
+      "capability": "capability.frontend_preview",
+      "permission": "project read",
+      "failure_states": [
+        "RENDER_FAILED",
+        "BUILD_FAILED",
+        "RUNTIME_UNAVAILABLE"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3).",
+      "evidence": {
+        "DOMAIN": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "READ": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CV-02",
+      "region": "canvas",
+      "feature": "LIVE badge",
+      "visual_contract": "Small pill on canvas chrome",
+      "read_model": "FrontendCanvasSnapshot.preview_badge",
+      "command": null,
+      "state_transition": "LIVE only with revision+build+runtime+route",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "DESIGN_ONLY",
+        "BUILDING",
+        "UNHEALTHY"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "READ": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CV-03",
+      "region": "canvas",
+      "feature": "Route / screen navigation",
+      "visual_contract": "Breadcrumb + in-preview routing",
+      "read_model": "ScreenTreeSnapshot + PreviewRuntime route",
+      "command": "frontend.preview.set_state",
+      "state_transition": "route change",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "ROUTE_UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py",
+        "engine/studio/reads.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CV-04",
+      "region": "canvas",
+      "feature": "Selection outline",
+      "visual_contract": "Indigo outline on selected node",
+      "read_model": "PreviewSelectionAnchor",
+      "command": null,
+      "state_transition": "selection changes",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "SOURCE_MAPPING_UNAVAILABLE"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CV-05",
+      "region": "canvas",
+      "feature": "Resize handles",
+      "visual_contract": "Corner/edge handles on selection",
+      "read_model": "InspectorDescriptor (layout group)",
+      "command": "frontend.mutation.plan|apply",
+      "state_transition": "mutation planned then applied to candidate",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "LOCK_DENIED",
+        "STALE_REVISION",
+        "MUTATION_INVALID"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CV-06",
+      "region": "canvas",
+      "feature": "Section lock chip",
+      "visual_contract": "Chip on locked region",
+      "read_model": "LockInventory (effective)",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CV-07",
+      "region": "canvas",
+      "feature": "Style lock chip",
+      "visual_contract": "Chip on style-locked node",
+      "read_model": "LockInventory (effective)",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CV-08",
+      "region": "canvas",
+      "feature": "State simulation controls",
+      "visual_contract": "Overlay control for loading/empty/error/role",
+      "read_model": "PreviewScenarioState",
+      "command": "frontend.preview.set_state",
+      "state_transition": "scenario change",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "SCENARIO_UNSUPPORTED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-01",
+      "region": "frontend_chat",
+      "feature": "Chat composer",
+      "visual_contract": "Permanent floating composer, 10-12px radius",
+      "read_model": "FrontendConversation",
+      "command": "frontend.chat.send",
+      "state_transition": "conversation turn appended",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "PROVIDER_UNAVAILABLE",
+        "APPROVAL_REQUIRED"
+      ],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-02",
+      "region": "frontend_chat",
+      "feature": "Selection-aware context chips",
+      "visual_contract": "Removable chips above composer",
+      "read_model": "DesignEditContext",
+      "command": null,
+      "state_transition": "planned scope changes",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "REFERENCE_UNRESOLVED"
+      ],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-03",
+      "region": "frontend_chat",
+      "feature": "Context/scope settings",
+      "visual_contract": "Slider/settings icon",
+      "read_model": "FrontendConversation.context_policy",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Context scope is held on the FrontendConversation and set through frontend.chat.set_context; a per-turn provider/policy inspector UI is M17.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-04",
+      "region": "frontend_chat",
+      "feature": "Send",
+      "visual_contract": "Primary action button",
+      "read_model": "IntentRouterDecision",
+      "command": "frontend.chat.send",
+      "state_transition": "intent routed",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "INTENT_AMBIGUOUS"
+      ],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-05",
+      "region": "frontend_chat",
+      "feature": "Reference resolution (this/Candidate B)",
+      "visual_contract": "Inline resolved reference",
+      "read_model": "FrontendConversation.selected_node_ids",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "AMBIGUOUS_REFERENCE"
+      ],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-06",
+      "region": "frontend_chat",
+      "feature": "Design-class intent routing",
+      "visual_contract": "Routed to DesignGateway",
+      "read_model": "DesignSessionReadModel",
+      "command": "frontend.design.request|refine",
+      "state_transition": "design artifacts created",
+      "capability": "capability.frontend_design_request",
+      "permission": "design provider admission",
+      "failure_states": [
+        "PROVIDER_UNAVAILABLE",
+        "AUTH_REQUIRED"
+      ],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py",
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-07",
+      "region": "frontend_chat",
+      "feature": "Deterministic edit routing",
+      "visual_contract": "Routed to MutationPlanner, no model call",
+      "read_model": "MutationPlan",
+      "command": "frontend.mutation.plan|apply",
+      "state_transition": "candidate mutated",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "LOCK_DENIED",
+        "STALE_REVISION"
+      ],
+      "implementation_refs": [
+        "engine/studio/chat/intent.py",
+        "engine/studio/chat/service.py",
+        "engine/studio/mutations/executor.py",
+        "engine/studio/mutations/planner.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/executor.py",
+            "engine/studio/mutations/planner.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/chat/intent.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/executor.py",
+            "engine/studio/mutations/planner.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CH-08",
+      "region": "frontend_chat",
+      "feature": "Undo / revert",
+      "visual_contract": "Chat command + inspector action",
+      "read_model": "MutationHistory",
+      "command": "frontend.mutation.revert",
+      "state_transition": "candidate rolled back",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "NOT_REVERTIBLE"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CA-01",
+      "region": "candidate_dock",
+      "feature": "Candidate cards",
+      "visual_contract": "Bottom strip cards with thumbnails",
+      "read_model": "CandidateBoardSnapshot",
+      "command": "frontend.candidate.create",
+      "state_transition": "candidate lifecycle",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "EMPTY",
+        "GENERATING",
+        "FAILED"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The candidate domain is implemented, but the React strip deliberately renders a typed unavailable state until the preview runtime can supply real thumbnails. No candidate card is fabricated.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CA-02",
+      "region": "candidate_dock",
+      "feature": "Candidate thumbnail",
+      "visual_contract": "Rendered candidate screenshot",
+      "read_model": "CandidateBoardSnapshot[].thumbnail_ref",
+      "command": null,
+      "state_transition": null,
+      "capability": "capability.browser",
+      "permission": "project read",
+      "failure_states": [
+        "NOT_RENDERED",
+        "RENDER_FAILED"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CA-03",
+      "region": "candidate_dock",
+      "feature": "Candidate score",
+      "visual_contract": "Numeric score or 'Not scored'",
+      "read_model": "CandidateScorecard",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNSCORED",
+        "PARTIAL"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92).",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CA-04",
+      "region": "candidate_dock",
+      "feature": "Score classification",
+      "visual_contract": "Good/Medium chip, clickable explanation",
+      "read_model": "CandidateScorecard.classification",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNSCORED"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Classification derives from a score that does not exist yet; the chip renders 'Not scored'.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CA-05",
+      "region": "candidate_dock",
+      "feature": "Change count",
+      "visual_contract": "'N changes' from real structural diff",
+      "read_model": "MutationPlan delta",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/projection.py",
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/projection.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/projection.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CA-06",
+      "region": "candidate_dock",
+      "feature": "Current (Locked) card",
+      "visual_contract": "Accepted revision card with lock chip",
+      "read_model": "AcceptedDesignRevision",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py",
+        "engine/studio/mutations/projection.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "engine/studio/mutations/projection.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "engine/studio/mutations/projection.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CA-07",
+      "region": "candidate_dock",
+      "feature": "Try live",
+      "visual_contract": "Card action button",
+      "read_model": "CandidateWorkspace",
+      "command": "frontend.design.try_live",
+      "state_transition": "artifact -> isolated candidate workspace",
+      "capability": "capability.frontend_candidate",
+      "permission": "mutation authority",
+      "failure_states": [
+        "BUILD_FAILED",
+        "WORKTREE_CONFLICT"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/lifecycle.py",
+        "engine/studio/candidates/service.py",
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/lifecycle.py",
+            "engine/studio/candidates/service.py",
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/lifecycle.py",
+            "engine/studio/candidates/service.py",
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "CA-08",
+      "region": "candidate_dock",
+      "feature": "Compare",
+      "visual_contract": "Card action; side-by-side real renders",
+      "read_model": "CandidateBoardSnapshot (compare mode)",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NOT_RENDERED"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/service.py",
+        "engine/studio/candidates/lifecycle.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "Compare requires two rendered candidates (DDE-069 M9).",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/candidates/service.py",
+            "engine/studio/candidates/lifecycle.py"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "CA-09",
+      "region": "candidate_dock",
+      "feature": "Promote / accept",
+      "visual_contract": "Card action; governed gate",
+      "read_model": "FrontendAcceptanceRecord",
+      "command": "frontend.candidate.promote",
+      "state_transition": "candidate -> accepted revision",
+      "capability": "capability.frontend_candidate",
+      "permission": "manager acceptance authority",
+      "failure_states": [
+        "PROMOTION_DENIED",
+        "VERIFICATION_FAILED",
+        "CRITIC_UNAVAILABLE",
+        "STALE_REVISION",
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/candidates/promotion.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/promotion.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/candidates/promotion.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "SB-01",
+      "region": "source_blend",
+      "feature": "Actual attribution",
+      "visual_contract": "Named sources with computed percentages",
+      "read_model": "SourceBlendSnapshot.attribution",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "ATTRIBUTION_UNCOMPUTABLE"
+      ],
+      "implementation_refs": [
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "SB-02",
+      "region": "source_blend",
+      "feature": "Target blend slider",
+      "visual_contract": "Generation preference control",
+      "read_model": "SourceBlendTarget",
+      "command": "frontend.design.request (blend target)",
+      "state_transition": "next generation preference recorded",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [
+        "engine/studio/design/context.py",
+        "engine/studio/design/gateway.py",
+        "engine/studio/design/providers.py"
+      ],
+      "tests": [
+        "tests/unit/test_design_gateway_postgres.py",
+        "tests/unit/test_frontend_chat_intent.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_chat_intent.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/design/context.py",
+            "engine/studio/design/gateway.py",
+            "engine/studio/design/providers.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-01",
+      "region": "inspector",
+      "feature": "Selected node header",
+      "visual_contract": "310-325px panel header, stable selection",
+      "read_model": "PreviewSelectionAnchor",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NO_SELECTION",
+        "SOURCE_MAPPING_UNAVAILABLE"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "TYPED_UNAVAILABLE",
+      "note": "The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "READ": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+          ]
+        },
+        "WIRED": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+          ]
+        },
+        "E2E": {
+          "status": "TYPED_UNAVAILABLE",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "IN-02",
+      "region": "inspector",
+      "feature": "Layout tab",
+      "visual_contract": "Descriptor group tab",
+      "read_model": "InspectorDescriptor[layout]",
+      "command": "frontend.mutation.plan|apply",
+      "state_transition": "layout mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "UNSUPPORTED_PROPERTY",
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-03",
+      "region": "inspector",
+      "feature": "Style tab",
+      "visual_contract": "Descriptor group tab",
+      "read_model": "InspectorDescriptor[style]",
+      "command": "frontend.mutation.plan|apply",
+      "state_transition": "style mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "UNSUPPORTED_PROPERTY",
+        "LOCK_DENIED",
+        "OFF_TOKEN_REFUSED"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-04",
+      "region": "inspector",
+      "feature": "Behaviour tab",
+      "visual_contract": "Descriptor group tab",
+      "read_model": "InspectorDescriptor[behavior]",
+      "command": "frontend.mutation.plan|apply",
+      "state_transition": "behaviour mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "UNSUPPORTED_PROPERTY",
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-05",
+      "region": "inspector",
+      "feature": "Responsive tab",
+      "visual_contract": "Descriptor group tab",
+      "read_model": "InspectorDescriptor[responsive]",
+      "command": "frontend.mutation.plan|apply",
+      "state_transition": "responsive rule mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "UNSUPPORTED_PROPERTY"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-06",
+      "region": "inspector",
+      "feature": "Lock tab",
+      "visual_contract": "Lock inventory + actions",
+      "read_model": "LockInventory (effective)",
+      "command": "frontend.lock.create|update|remove",
+      "state_transition": "lock lifecycle",
+      "capability": null,
+      "permission": "lock authority",
+      "failure_states": [
+        "LOCK_DENIED"
+      ],
+      "implementation_refs": [
+        "engine/studio/locks/service.py",
+        "engine/studio/locks/resolution.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "BOUND",
+          "refs": [
+            "engine/gateway/commands.py",
+            "engine/studio/locks/service.py",
+            "engine/studio/locks/resolution.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-07",
+      "region": "inspector",
+      "feature": "Source / code tab",
+      "visual_contract": "Read-only source mapping + reveal",
+      "read_model": "SourceMappingSnapshot",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "source read policy",
+      "failure_states": [
+        "SOURCE_MAPPING_UNAVAILABLE",
+        "ACCESS_DENIED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-08",
+      "region": "inspector",
+      "feature": "Type: Stack",
+      "visual_contract": "Enum descriptor control",
+      "read_model": "InspectorDescriptor[layout].type",
+      "command": "frontend.mutation.apply",
+      "state_transition": "layout type mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "UNSUPPORTED_PROPERTY"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-09",
+      "region": "inspector",
+      "feature": "Direction",
+      "visual_contract": "Enum descriptor control",
+      "read_model": "InspectorDescriptor[layout].direction",
+      "command": "frontend.mutation.apply",
+      "state_transition": "layout direction mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "UNSUPPORTED_PROPERTY"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-10",
+      "region": "inspector",
+      "feature": "Gap (px + token)",
+      "visual_contract": "'24 px  space-6' dual display",
+      "read_model": "InspectorDescriptor[layout].gap",
+      "command": "frontend.mutation.apply",
+      "state_transition": "token-bound spacing mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "OFF_TOKEN_REFUSED"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-11",
+      "region": "inspector",
+      "feature": "Padding (px + token)",
+      "visual_contract": "Same dual display",
+      "read_model": "InspectorDescriptor[layout].padding",
+      "command": "frontend.mutation.apply",
+      "state_transition": "token-bound spacing mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "OFF_TOKEN_REFUSED"
+      ],
+      "implementation_refs": [
+        "engine/studio/mutations/planner.py",
+        "engine/studio/mutations/executor.py"
+      ],
+      "tests": [
+        "tests/unit/test_frontend_mutation_engine.py",
+        "tests/unit/test_frontend_mutation_engine_postgres.py",
+        "tests/unit/test_frontend_studio_e2e_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/mutations/planner.py",
+            "engine/studio/mutations/executor.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/gateway/commands.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ]
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-12",
+      "region": "inspector",
+      "feature": "Behaviour: animation",
+      "visual_contract": "Tokenised motion reference control",
+      "read_model": "InspectorDescriptor[behavior].animation",
+      "command": "frontend.motion.set_animation",
+      "state_transition": "motion mutation",
+      "capability": null,
+      "permission": "mutation authority",
+      "failure_states": [
+        "OFF_TOKEN_REFUSED"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-13",
+      "region": "inspector",
+      "feature": "Provenance section",
+      "visual_contract": "Source artifact, licence, security state",
+      "read_model": "ProvenanceRecord",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "provenance read",
+      "failure_states": [
+        "UNKNOWN_PROVENANCE",
+        "LICENCE_UNKNOWN"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-14",
+      "region": "inspector",
+      "feature": "View Source",
+      "visual_contract": "Reveal-file action",
+      "read_model": "SourceFileRef",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "source read policy",
+      "failure_states": [
+        "ACCESS_DENIED",
+        "SOURCE_MAPPING_UNAVAILABLE"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-15",
+      "region": "inspector",
+      "feature": "Accessibility badge",
+      "visual_contract": "AA / findings / Not evaluated",
+      "read_model": "QaFindingInventory[accessibility]",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NOT_EVALUATED"
+      ],
+      "implementation_refs": [
+        "engine/studio/acceptance/defaults.py",
+        "engine/studio/acceptance/service.py",
+        "schemas/design/screen_acceptance_defaults.json"
+      ],
+      "tests": [
+        "tests/unit/test_screen_acceptance_binding.py",
+        "tests/unit/test_screen_acceptance_binding_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated.",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/acceptance/defaults.py",
+            "engine/studio/acceptance/service.py",
+            "schemas/design/screen_acceptance_defaults.json",
+            "tests/unit/test_screen_acceptance_binding.py",
+            "tests/unit/test_screen_acceptance_binding_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/acceptance/defaults.py",
+            "engine/studio/acceptance/service.py",
+            "schemas/design/screen_acceptance_defaults.json",
+            "tests/unit/test_screen_acceptance_binding.py",
+            "tests/unit/test_screen_acceptance_binding_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "IN-16",
+      "region": "inspector",
+      "feature": "Responsive breakpoint buttons",
+      "visual_contract": "Segmented control",
+      "read_model": "PreviewViewportState",
+      "command": "frontend.preview.set_state",
+      "state_transition": "viewport + responsive rule set change",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "ST-01",
+      "region": "status_bar",
+      "feature": "Breadcrumb",
+      "visual_contract": "32-36px bar, selected path from PXG",
+      "read_model": "PxgGraphSnapshot path",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "NO_SELECTION"
+      ],
+      "implementation_refs": [
+        "engine/studio/pxg/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/pxg/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ST-02",
+      "region": "status_bar",
+      "feature": "Error count",
+      "visual_contract": "'No errors' / count",
+      "read_model": "QaFindingInventory.blocking",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [
+        "engine/studio/coverage/scoring.py",
+        "engine/studio/coverage/service.py",
+        "engine/studio/reads.py",
+        "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts",
+        "tests/unit/test_frontend_coverage_engine.py",
+        "tests/unit/test_frontend_studio_domain_postgres.py"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_coverage_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "READ": {
+          "status": "VERIFIED",
+          "refs": [
+            "engine/studio/coverage/scoring.py",
+            "engine/studio/coverage/service.py",
+            "engine/studio/reads.py",
+            "tests/unit/test_frontend_coverage_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ST-03",
+      "region": "status_bar",
+      "feature": "Warning count",
+      "visual_contract": "'N warnings'",
+      "read_model": "QaFindingInventory.warnings",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "ST-04",
+      "region": "status_bar",
+      "feature": "Auto Layout state",
+      "visual_contract": "ON/OFF toggle",
+      "read_model": "EditorAssistState.auto_layout",
+      "command": "frontend.editor.set_assist",
+      "state_transition": "assist toggled",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "ST-05",
+      "region": "status_bar",
+      "feature": "AI Suggest state",
+      "visual_contract": "ON/OFF toggle",
+      "read_model": "EditorAssistState.ai_suggest",
+      "command": "frontend.editor.set_assist",
+      "state_transition": "assist toggled; suggestions never auto-mutate accepted design",
+      "capability": null,
+      "permission": "project read",
+      "failure_states": [
+        "PROVIDER_UNAVAILABLE"
+      ],
+      "implementation_refs": [],
+      "tests": [],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "COMMAND": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "UI": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "UNBOUND",
+          "refs": []
+        }
+      }
+    },
+    {
+      "id": "ST-06",
+      "region": "status_bar",
+      "feature": "Build / version",
+      "visual_contract": "Studio build + project revision",
+      "read_model": "StudioSyncSnapshot.build",
+      "command": null,
+      "state_transition": null,
+      "capability": null,
+      "permission": "any authenticated principal",
+      "failure_states": [
+        "UNKNOWN"
+      ],
+      "implementation_refs": [
+        "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+      ],
+      "tests": [
+        "interfaces/dde-studio/ui/visual/shell.spec.ts"
+      ],
+      "status": "UNBOUND",
+      "note": "",
+      "evidence": {
+        "DOMAIN": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "READ": {
+          "status": "BOUND",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ]
+        },
+        "COMMAND": {
+          "status": "NOT_APPLICABLE",
+          "refs": []
+        },
+        "UI": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        },
+        "WIRED": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "E2E": {
+          "status": "UNBOUND",
+          "refs": []
+        },
+        "VISUAL": {
+          "status": "VERIFIED",
+          "refs": [
+            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+          ]
+        }
+      }
+    }
+  ],
+  "evidence_layer_vocabulary": {
+    "DOMAIN": "Owning domain/service and state semantics.",
+    "READ": "Authoritative read model used by the control.",
+    "COMMAND": "Governed command path for mutations.",
+    "UI": "The named visible React control or honest unavailable state.",
+    "WIRED": "Production UI-to-read/command integration.",
+    "E2E": "Real boundary exercise through the workbench.",
+    "VISUAL": "Rendered structural/visual evidence for the named control."
+  },
+  "layer_status_vocabulary": {
+    "NOT_APPLICABLE": "The row's contract does not require this layer.",
+    "UNBOUND": "The required layer has no implementation evidence.",
+    "TYPED_UNAVAILABLE": "The layer is absent and surfaced honestly.",
+    "BOUND": "Implementation refs exist, but verification is incomplete.",
+    "VERIFIED": "Current evidence exercises this layer."
+  }
+}

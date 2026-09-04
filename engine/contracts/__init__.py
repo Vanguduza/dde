@@ -26,6 +26,8 @@ from engine.contracts.core_event import CoreEvent
 from engine.contracts.credential_handle import CredentialHandle
 from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.derived_edge import DerivedEdge
+from engine.contracts.design_artifact import DesignArtifact
+from engine.contracts.design_session import DesignSession
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.domain_invariant import DomainInvariant
 from engine.contracts.donor_artifact import DonorArtifact
@@ -41,6 +43,14 @@ from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
+from engine.contracts.frontend_candidate import FrontendCandidate
+from engine.contracts.frontend_contract import FrontendContract
+from engine.contracts.frontend_conversation import FrontendConversation
+from engine.contracts.frontend_conversation_turn import FrontendConversationTurn
+from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
+from engine.contracts.frontend_lock import FrontendLock
+from engine.contracts.frontend_mutation import FrontendMutation
+from engine.contracts.frontend_preview_session import FrontendPreviewSession
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
@@ -59,6 +69,8 @@ from engine.contracts.product_constitution_version import ProductConstitutionVer
 from engine.contracts.product_environment import ProductEnvironment
 from engine.contracts.project import Project
 from engine.contracts.promotion_gate_run import PromotionGateRun
+from engine.contracts.pxg_edge import PxgEdge
+from engine.contracts.pxg_node import PxgNode
 from engine.contracts.readyz import Readyz
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
@@ -109,6 +121,8 @@ __all__ = [
     "CredentialHandle",
     "DependencyAdmission",
     "DerivedEdge",
+    "DesignArtifact",
+    "DesignSession",
     "DiffGateReport",
     "DomainInvariant",
     "DonorArtifact",
@@ -124,6 +138,14 @@ __all__ = [
     "ExternalEffect",
     "FailureAttribution",
     "FeatureDNA",
+    "FrontendCandidate",
+    "FrontendContract",
+    "FrontendConversation",
+    "FrontendConversationTurn",
+    "FrontendCoverageSnapshot",
+    "FrontendLock",
+    "FrontendMutation",
+    "FrontendPreviewSession",
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",
@@ -142,6 +164,8 @@ __all__ = [
     "ProductEnvironment",
     "Project",
     "PromotionGateRun",
+    "PxgEdge",
+    "PxgNode",
     "Readyz",
     "ReplanDecision",
     "Requirement",

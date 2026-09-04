@@ -561,3 +561,99 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: false
 - lock_version: false
+
+## FrontendContract
+
+- table: `frontend_contracts`
+- primary key: contract_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## PxgNode
+
+- table: `pxg_nodes`
+- primary key: node_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## PxgEdge
+
+- table: `pxg_edges`
+- primary key: edge_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendCoverageSnapshot
+
+- table: `frontend_coverage_snapshots`
+- primary key: snapshot_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendLock
+
+- table: `frontend_locks`
+- primary key: lock_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendCandidate
+
+- table: `frontend_candidates`
+- primary key: candidate_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendMutation
+
+- table: `frontend_mutations`
+- primary key: mutation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DesignSession
+
+- table: `design_sessions`
+- primary key: session_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## DesignArtifact
+
+- table: `design_artifacts`
+- primary key: artifact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendConversation
+
+- table: `frontend_conversations`
+- primary key: conversation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendConversationTurn
+
+- table: `frontend_conversation_turns`
+- primary key: turn_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendPreviewSession
+
+- table: `frontend_preview_sessions`
+- primary key: preview_session_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true

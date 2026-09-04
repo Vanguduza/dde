@@ -33,15 +33,30 @@ router = APIRouter(prefix="/v1")
 #: Chapter 15.5 error-family -> HTTP status (default retry metadata lives on
 #: the `Error` contract's `retryable` field, not the status line alone).
 _HTTP_STATUS = {
+    # A client-supplied parameter that fails structural validation is a
+    # 400: the request itself is malformed, which is distinct from a
+    # well-formed request the policy layer refuses (403) and from a
+    # well-formed request that conflicts with current state (409).
+    "VALIDATION_FAILED": 400,
     "INVALID_CREDENTIALS": 401,
     "SESSION_EXPIRED": 401,
     "FORBIDDEN": 403,
     "POLICY_DENIED": 403,
     "TENANT_SCOPE_VIOLATION": 403,
+    # A required capability is not available to this build or principal.
+    # A refusal, not an outage: the contract's `retryable` field carries
+    # whether waiting would help, so the status line does not have to.
+    "CAPABILITY_UNAVAILABLE": 403,
+    # An external design/source artifact failed provenance, licence or
+    # structural validation and may not be adopted.
+    "DESIGN_SOURCE_REJECTED": 403,
     "VERSION_CONFLICT": 409,
     "RESOURCE_LOCKED": 409,
     "WRITE_SCOPE_CONFLICT": 409,
     "CONTEXT_INCOMPLETE": 409,
+    # The caller's view of state is behind: same family as
+    # VERSION_CONFLICT, and the fix is to re-read and replan.
+    "STALE_REVISION": 409,
     "BUDGET_EXCEEDED": 409,
 }
 

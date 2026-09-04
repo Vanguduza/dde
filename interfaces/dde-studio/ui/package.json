@@ -1,0 +1,29 @@
+{
+  "name": "dde-studio-ui",
+  "private": true,
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "DDE-069 host-neutral Frontend Studio workbench. React/TS/Vite behind DdeHostBridge; no VS Code API in feature code.",
+  "scripts": {
+    "check": "tsc -p ./ --noEmit",
+    "build": "tsc -p ./ --noEmit && vite build",
+    "dev": "vite",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "node --test --experimental-strip-types src/**/*.test.ts",
+    "test:visual": "playwright test --config visual/playwright.config.ts"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^20.11.30",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.4.5",
+    "vite": "^7.1.14"
+  }
+}

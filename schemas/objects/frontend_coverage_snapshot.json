@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_coverage_snapshot.json",
+  "title": "FrontendCoverageSnapshot",
+  "description": "DDE-069 computed comparison of a FrontendContract against the Project Experience Graph at a pinned revision. Owned by engine.studio.coverage (CoverageService is the sole writer). The golden UI's coverage ring reads `weighted_percent` from here and nowhere else. That field is deliberately nullable: it is populated only when every dimension is fully ASSESSED, so an unassessed or blocked project shows an explicit em-dash rather than a number that reads as certainty. MISSING, BLOCKED, WAIVED and UNVERIFIED are kept as separate counts throughout, because 'we did not check' and 'we checked and it failed' are different facts and collapsing them is the exact dishonesty this snapshot exists to prevent.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_coverage_snapshots",
+    "order": 303,
+    "pk": ["snapshot_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "checks": [
+      {
+        "name": "frontend_coverage_snapshots_percent_range",
+        "expression": "(weighted_percent IS NULL OR (weighted_percent >= 0 AND weighted_percent <= 100))"
+      },
+      {
+        "name": "frontend_coverage_snapshots_state_known",
+        "expression": "summary_state IN ('UNASSESSED', 'PARTIAL', 'ASSESSED', 'BLOCKED')"
+      },
+      {
+        "name": "frontend_coverage_snapshots_percent_requires_assessed",
+        "expression": "(weighted_percent IS NULL OR summary_state = 'ASSESSED')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_coverage_snapshots_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_coverage_snapshots_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "frontend_coverage_snapshots_contract_id_fkey",
+        "columns": ["contract_id"],
+        "ref_table": "frontend_contracts",
+        "ref_columns": ["contract_id"]
+      }
+    ]
+  },
+  "$defs": {
+    "DimensionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One coverage dimension. `percent` is satisfied over the assessable denominator and is null whenever anything is unknown, so a partially-assessed dimension cannot render as a confident number.",
+      "required": [
+        "dimension",
+        "state",
+        "required_count",
+        "satisfied_count",
+        "missing_count",
+        "unverified_count",
+        "blocked_count",
+        "waived_count"
+      ],
+      "properties": {
+        "dimension": { "type": "string" },
+        "state": {
+          "type": "string",
+          "enum": ["UNASSESSED", "PARTIAL", "ASSESSED", "BLOCKED"]
+        },
+        "required_count": { "type": "integer" },
+        "satisfied_count": { "type": "integer" },
+        "missing_count": { "type": "integer" },
+        "unverified_count": { "type": "integer" },
+        "blocked_count": { "type": "integer" },
+        "waived_count": { "type": "integer" },
+        "percent": {
+          "anyOf": [{ "type": "number" }, { "type": "null" }]
+        }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A specific unmet or unverifiable obligation, or a screen-thinness detection (FRONTEND_STUDIO_REV3 section 13.5). Findings are the drill-down behind every count.",
+      "required": ["finding_kind", "dimension", "pxg_key", "detail"],
+      "properties": {
+        "finding_kind": {
+          "type": "string",
+          "enum": [
+            "MISSING",
+            "UNVERIFIED",
+            "BLOCKED",
+            "WAIVED",
+            "THIN_SCREEN",
+            "ORPHAN_NODE",
+            "DANGLING_EDGE"
+          ]
+        },
+        "dimension": { "type": "string" },
+        "pxg_key": { "type": "string" },
+        "obligation_id": {
+          "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+        },
+        "detail": { "type": "string" }
+      }
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "tenant_id",
+    "project_id",
+    "contract_id",
+    "contract_version",
+    "pxg_revision",
+    "summary_state",
+    "dimensions",
+    "findings",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "snapshot_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "contract_id": { "type": "string", "format": "uuid" },
+    "contract_version": { "type": "integer" },
+    "pxg_revision": {
+      "type": "integer",
+      "description": "The PXG revision this snapshot was computed against. A snapshot older than the project's current revision is stale and must be recomputed, never displayed as current."
+    },
+    "summary_state": {
+      "type": "string",
+      "enum": ["UNASSESSED", "PARTIAL", "ASSESSED", "BLOCKED"]
+    },
+    "weighted_percent": {
+      "anyOf": [{ "type": "number" }, { "type": "null" }],
+      "description": "Populated only when summary_state is ASSESSED. Null is the honest value everywhere else and the golden coverage ring must render it as an em-dash."
+    },
+    "dimensions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DimensionResult" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Finding" }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

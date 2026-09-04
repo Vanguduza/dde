@@ -1,0 +1,22 @@
+{
+  "manifest_version": 1,
+  "purpose": "Pins the artifacts that are visual acceptance authority for DDE. Read by scripts/golden_visual.py and tests/unit/test_golden_visual_manifest.py. An entry whose artifact is absent is reported as ARTIFACT_MISSING and fails closed: no pixel-reference conformance may be claimed against it.",
+  "artifacts": [
+    {
+      "id": "frontend-studio-shell",
+      "title": "DDE Frontend Studio golden mockup",
+      "authority": "docs/truth/ARCHITECTURE_DECISIONS.md AD-035 (FS-R3-001); docs/truth/FRONTEND_STUDIO_REV3.md Part I",
+      "approved_on": "2026-09-03",
+      "approved_by": "repository owner",
+      "revision": 1,
+      "is_primary_desktop_baseline": true,
+      "expected_path": "docs/truth/golden/frontend-studio-shell.png",
+      "expected_width_px": 1672,
+      "expected_height_px": 941,
+      "content_sha256": null,
+      "state": "ARTIFACT_MISSING",
+      "state_note": "The approved image has never existed in this repository's git history (verified 2026-09-04 by `git log --all --name-only` over every path). Project Truth describes it in prose across FRONTEND_STUDIO_REV3.md, ARCHITECTURE_DECISIONS.md AD-035 and DEV_PLAN_REV3.md, but prose is not pixels. Until the owner commits the file at expected_path and records its sha256 here, DDE may claim STRUCTURAL conformance to the normative measurements in FRONTEND_STUDIO_REV3.md Part I sections 2-5 only, never PIXEL-REFERENCE conformance to the approved image.",
+      "structural_specification": "docs/truth/FRONTEND_STUDIO_REV3.md#2-golden-master-frame"
+    }
+  ]
+}

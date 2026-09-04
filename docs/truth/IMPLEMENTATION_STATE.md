@@ -66,7 +66,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `PLANNED` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Hard-blocked on DDE-068 evidence per FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause; no implementation commit exists yet. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). The PXG, Frontend Contract, Coverage Engine, read projections, isolated mutation/candidate/lock path, automatic DDE-068 bindings, React/Vite structural shell, Frontend Chat backend and DesignGateway foundation have landed. The 99-control ledger now derives final status from DOMAIN/READ/COMMAND/UI/WIRED/E2E/VISUAL evidence instead of treating backend tests as UI proof. Live preview, stable selection, Inspector wiring, Chat UI, Screen Audit and M8 source intelligence remain open. Per-control state: `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. External blockers remain the absent AD-035 golden image and uncertified Claude Design transport. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
@@ -332,7 +332,169 @@ covers it automatically.
 
 ### DDE-069 — DDE Code / Frontend Studio V2 + Live Design Foundation
 
-**State:** `PLANNED`. Not started; no implementation commit found.
+**State:** `IN_PROGRESS` (2026-09-04). Domain foundation and the
+host-neutral structural shell have landed; the code-backed live editing
+vertical slice has not.
+
+**Progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is the
+authoritative per-control state, generated from
+`docs/truth/golden/frontend_binding_matrix.json` and machine-checked by
+`tests/unit/test_frontend_binding_matrix.py`. Each row independently records
+`DOMAIN`, `READ`, `COMMAND`, `UI`, `WIRED`, `E2E` and `VISUAL`; final status
+is derived, and every applicable layer must be `VERIFIED` before the row can
+be final `VERIFIED`. At this snapshot: **0 VERIFIED, 1 BOUND,
+9 TYPED_UNAVAILABLE, 89 UNBOUND** of 99 rows. This correction deliberately
+reclassifies backend-only Chat, candidate and Inspector behavior as
+`UI=UNBOUND` rather than calling the visible golden controls complete.
+
+**Landed so far:**
+
+- **M1 characterization** — `tests/unit/test_frontend_studio_characterization_postgres.py`
+  freezes the DDE-067 refusals through the real command boundary: unknown
+  `frontend.*` types refused rather than prefix-forwarded, `screen_file`
+  traversal refused, foreign workspace = scope violation, token discipline
+  on every writable style property, and replay-leaves-one-element.
+- **M2 golden authority + ledger** — `engine/studio/golden_visual.py`,
+  `engine/studio/binding_matrix.py`, `scripts/render_binding_matrix.py`
+  (`--check` in `just contract-test`). The Screen Audit Packet A correction
+  hardens it to layered evidence and rejects a final `VERIFIED` claim when,
+  for example, Chat has backend tests but no React composer.
+- **M5/M6 domain** — `engine/studio/pxg/`, `engine/studio/contract/`,
+  `engine/studio/coverage/`, `engine/studio/reads.py`, migration `0024`.
+  Commands `frontend.contract.publish`, `frontend.pxg.apply`,
+  `frontend.coverage.recompute` on `mission.control`.
+- **M7 mutation/lock/candidate runtime** — `engine/studio/locks/`,
+  `engine/studio/candidates/`, `engine/studio/mutations/`, migration
+  `0025`. One governed write path: inspector, chat, drag/drop, `/design`,
+  template, source-import, agent and keyboard edits are the same
+  `MutationRequest` and get the same answer. Candidate isolation is
+  structural — the executor writes no accepted PXG nodes at all; a
+  candidate's changes live in its append-only mutation log and its
+  effective graph is that log projected over the accepted one
+  (`mutations/projection.py`), so promotion is the only writer of accepted
+  state. Commands: `frontend.candidate.create|transition|promote`,
+  `frontend.mutation.apply|revert`, `frontend.lock.create|release`.
+- **M3/M4 host-neutral workbench and golden shell** —
+  `interfaces/dde-studio/ui/` (React 19 / TS / Vite, admitted in
+  `docs/planning/dde-069-dependency-admission.md`). `DdeHostBridge` with
+  VS Code and test implementations; `acquireVsCodeApi()` appears in exactly
+  one file. Canonical tokens transcribed verbatim from
+  `FRONTEND_STUDIO_REV3.md` Part I section 3, and the four-zone shell built
+  on the section 2 measurements. 15 Playwright assertions at 1672x941 cover
+  panel geometry, zone tiling, canvas dominance, the applied token values,
+  responsive degradation, and the honest-state rules (an unknown count
+  renders an em-dash with its reason; a partially assessed project shows no
+  percentage; serving identity reads UNATTESTED; `Claude /design` is
+  visible but disabled; the candidate strip carries no invented cards).
+  Run with `just studio-visual`. Screenshot:
+  `docs/evidence/dde-069/frontend-studio-shell-actual.png`.
+- **M9/M10 Frontend Chat and the DesignGateway** — `engine/studio/chat/`,
+  `engine/studio/design/`, migration `0026`. Chat is a control plane, not
+  a chatbot: intent classification is deterministic, so "set the spacing
+  to space6" compiles to the same `MutationRequest` the inspector produces
+  and spends no model call, while an ambiguous instruction is refused
+  rather than guessed. `/design` is a capability inside that same
+  conversation, sharing one `DesignSession`. The gateway compiles an
+  allowlisted `DesignEditContext` (out-of-scope nodes and internal
+  attributes stay behind, tokens export as names not literals), records
+  the design-system hash so an artifact generated under an older system is
+  detectably stale, quarantines malformed provider output rather than
+  accepting it, and reaches code only through Try live's isolated
+  candidate. Commands: `frontend.design.provider_status|request|try_live`,
+  `frontend.chat.open|set_context|send`.
+- **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
+
+**Not started:** source adapters and candidate scoring (M8), the candidate
+preview/render runtime (part of M9 — the conversational half is done),
+cross-DDE migration (M12), mobile adapters (M13).
+
+#### `Claude /design` — BLOCKED_EXTERNAL on a certified transport
+
+The DesignGateway, `DesignEditContext` compiler, provider registry,
+artifact lifecycle and Try-live path are implemented and tested. What does
+not exist is a **certified design transport**. `FRONTEND_STUDIO_REV3.md`
+section 23 requires a structured one — a direct Claude Design MCP/OAuth
+transport preferred, a certified Claude Code `/design` WorkerSession
+transport allowed — and forbids by name substituting a generic
+code-generation prompt.
+
+`ClaudeDesignProvider` therefore reports `NOT_CERTIFIED` with that reason,
+and `DesignProviderRegistry.resolve` refuses with no fallback path in the
+code at all. Deliberately **not** routed through
+`capability.claude_code_invoke`: that capability grants arbitrary
+development execution against a human's own rate-limited seat and keeps
+its mandatory per-invocation approval for that reason (EDR-0001 Path A,
+EDR-0017), and using it here would be exactly the substitution section 23
+forbids.
+
+**To unblock:** register a certified transport implementing the
+`DesignProvider` protocol (`engine/studio/design/providers.py`). Everything
+downstream — session, context allowlist, artifacts, quarantine, Try live,
+candidate isolation, DDE-068 verification, promotion — is already wired and
+proven against a stub transport in
+`tests/unit/test_design_gateway_postgres.py`.
+
+**Deliberately honest gaps at this snapshot.** Candidate thumbnails,
+scores, Try-live and compare are `TYPED_UNAVAILABLE`: no preview runtime
+and no `CandidateScorecard` exist, so cards render "Not scored" and a
+disabled action with a typed reason rather than a fabricated percentage
+(FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92).
+
+#### Golden visual artifact — BLOCKED_EXTERNAL
+
+AD-035 names a user-approved 1672x941 Frontend Studio mockup as the
+canonical visual baseline. **The image has never existed in this
+repository** — verified 2026-09-04 by `git log --all --name-only` across
+every ref and path; the only committed mockup is
+`interfaces/dde-studio/docs/dde-mission-overview-mockup.png` at 1536x1024,
+a different and earlier artifact.
+
+Prose describing an image is not the image, so DDE distinguishes two
+claims and refuses to conflate them (`engine/studio/golden_visual.py`):
+
+- `STRUCTURAL` conformance to the normative measurements in
+  `FRONTEND_STUDIO_REV3.md` Part I sections 2-5 (58px top bar, 44-48px
+  rail, 215-225px explorer, 310-325px inspector, 32-36px status bar, and
+  the palette/type/radius/shadow tokens) — checkable now, and what M4 will
+  be held to;
+- `PIXEL_REFERENCE` conformance to the approved image —
+  `require_pixel_reference()` raises `CONTEXT_INCOMPLETE` while the
+  artifact is absent, and no visual signoff may claim it.
+
+**To unblock:** commit the approved image at
+`docs/truth/golden/frontend-studio-shell.png` and record its sha256 in
+`docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. The state machine then
+reports `PINNED` with no code change.
+
+#### Inherited dependency #1 — visual bindings on generated screens: CLOSED
+
+DDE-068 recorded this as deliberately carried into DDE-069. It is now
+closed.
+
+`schemas/design/screen_acceptance_defaults.json` is the versioned,
+inspectable policy (FRONTEND_STUDIO_REV3 section 42) naming `silhouette`
+and `visual_critique` mandatory for both `generated_screen` and
+`imported_screen` profiles, each with a stated rationale. `visual_diff` is
+optional by design: binding it with no approved golden would fail closed
+on every run for the wrong reason.
+
+`engine/studio/acceptance/defaults.py` builds the bindings and
+`assert_mandatory_bindings` refuses an oracle missing one, so an authoring
+path that assembles its own spec list cannot quietly drop
+`visual_critique`. `ScreenAcceptanceService.register_screen` registers the
+screen in the PXG and authors its `AcceptanceOracle` in one step, failing
+closed before any write — a refused binding leaves no screen in the graph.
+
+The production call site is the Gateway command
+`frontend.screen.register`, proven end to end in
+`tests/unit/test_screen_acceptance_binding_postgres.py` (the oracle is read
+back from PostgreSQL carrying both visual bindings).
+
+Because the promotion gate DDE-068 built is kind-agnostic and already
+refuses on any bound visual check, authoring the binding by default
+converts that mission's conditional guarantee — *"a bound check refuses"* —
+into the universal one — *"every generated screen is checked"* — without
+modifying the gate.
 
 **Domain authority:** `docs/truth/FRONTEND_STUDIO_REV3.md` (adopted 2026-09-03, AD-036), reconciling and superseding `docs/planning/frontend-studio-gui-spec.md`'s never-formally-adopted mission definition. Golden visual authority (light-first) is recorded separately as AD-035.
 
@@ -363,6 +525,8 @@ repository.
   `adapters/**`, and `Claude /design` stays architecturally distinct from
   the independent visual critic even where one model family serves both.
 - **Inherited dependency #1 — visual bindings on generated screens.**
+  **RESOLVED 2026-09-04** — see the DDE-069 section above; retained here as
+  the historical statement of the gap.
   DDE-068 delivered the capability *and* its enforcement: any oracle
   carrying a `visual_diff`/`silhouette`/`visual_critique` binding is
   machine-gated at promotion (proven in
@@ -480,11 +644,15 @@ The gate also records missing D3 list/read endpoints for some Studio surfaces. U
 
 **Residual:** future architecture changes must keep all five truth files synchronized through change control.
 
-### RISK-02 — DDE-068 becomes a documentation-only quality layer
+### RISK-02 — backend evidence becomes a UI-completion claim
 
-Visual/VLM concepts already exist in planning, but completion requires real verification executors and promotion call sites.
+The DDE-069 backend is materially ahead of the React workbench. A backend
+service and backend tests do not prove the corresponding visible control
+exists, is wired or works end to end.
 
-**Mitigation:** implement DDE-068 using the vertical slices in `DEV_PLAN_REV3.md` and gate each at production paths.
+**Mitigation:** the binding ledger now records and derives independent
+DOMAIN/READ/COMMAND/UI/WIRED/E2E/VISUAL states. Keep final `VERIFIED` closed
+until every applicable layer has evidence.
 
 ### RISK-03 — Premium-model quota transfer
 
@@ -500,9 +668,11 @@ A harness card/room is not proof of the full runtime role.
 
 ### RISK-05 — Frontend quality overclaim
 
-DDE-067 landed the surface; DDE-068 is still required for rendered quality evidence.
+DDE-068 is complete, but DDE-069 still lacks the real candidate preview and
+pixel-reference proof against the unavailable approved artifact.
 
-**Mitigation:** no `Definition of Polished` or quality badge without evidence-backed DDE-068 gates.
+**Mitigation:** no `LIVE`, `VERIFIED`, pixel-reference, or golden-control
+completion claim without the corresponding runtime and layered evidence.
 
 ---
 
@@ -510,20 +680,21 @@ DDE-067 landed the surface; DDE-068 is still required for rendered quality evide
 
 Unless newer implementation evidence exists:
 
-**Mission:** DDE-068 Visual Verification & Critique Loop.
+**Mission:** DDE-069 Frontend Studio V2.
 
-Start by auditing these areas against the signed charter and Rev 3 plan:
+**Next packet:** code-backed live preview, stable `pxg_key` selection and
+descriptor-driven Inspector editing through the existing governed mutation
+path.
 
-- `engine/verification/**`;
-- visual executor/oracle bindings;
-- `interfaces/dde-studio/visual/**`;
-- `scripts/design_lints.py`;
-- `tests/unit/test_studio_design_lints.py`;
-- Gateway/verification command path;
-- Evidence persistence;
-- approval/promotion call sites.
+The proof must traverse the actual React workbench:
 
-First vertical slice should prove a real visual verification request can render a ProductEnvironment screen and persist an evidence-backed result.
+```text
+candidate → isolated preview → select stable node → resolve descriptor
+→ Inspector mutation → candidate log → rerender → evidence invalidation
+```
+
+Accepted PXG/source state must remain unchanged before promotion. A static
+screenshot or hardcoded fixture cannot satisfy the LIVE state.
 
 ---
 

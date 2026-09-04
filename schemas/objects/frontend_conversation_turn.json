@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_conversation_turn.json",
+  "title": "FrontendConversationTurn",
+  "description": "DDE-069 one turn in a Frontend Conversation, append-only. Owned by engine.studio.chat. A turn records the classified intent, the context it was resolved against and the ids of whatever it produced -- mutations, a design request, a read -- so the lineage from an instruction to the change it caused is reconstructable. A turn that was refused records why: an ambiguous reference and an unavailable provider are different answers and the user needs to see which one they got.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_conversation_turns",
+    "order": 310,
+    "pk": ["turn_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["conversation_id", "sequence"]],
+    "checks": [
+      {
+        "name": "frontend_conversation_turns_sequence_positive",
+        "expression": "sequence >= 1"
+      },
+      {
+        "name": "frontend_conversation_turns_role_known",
+        "expression": "role IN ('user', 'studio')"
+      },
+      {
+        "name": "frontend_conversation_turns_outcome_known",
+        "expression": "outcome IN ('ROUTED', 'REFUSED', 'ANSWERED')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_conversation_turns_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_conversation_turns_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "frontend_conversation_turns_conversation_id_fkey",
+        "columns": ["conversation_id"],
+        "ref_table": "frontend_conversations",
+        "ref_columns": ["conversation_id"]
+      }
+    ]
+  },
+  "required": [
+    "turn_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "sequence",
+    "role",
+    "text",
+    "intent",
+    "outcome",
+    "resolved_context",
+    "produced_refs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "turn_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "conversation_id": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer" },
+    "role": { "type": "string", "enum": ["user", "studio"] },
+    "text": { "type": "string" },
+    "intent": {
+      "type": "string",
+      "description": "The classified intent class that decided routing."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["ROUTED", "REFUSED", "ANSWERED"]
+    },
+    "refusal_code": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "refusal_detail": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "resolved_context": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "What the references in this turn resolved to. Recorded so a later reader can tell what \"this\" meant at the time."
+    },
+    "produced_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Ids of what the turn caused: mutations, a design session, an artifact."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

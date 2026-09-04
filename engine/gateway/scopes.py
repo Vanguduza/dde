@@ -90,6 +90,26 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "frontend.canvas.remove_element": "mission.control",
     "frontend.motion.set_animation": "mission.control",
     "frontend.flow.upsert_step": "mission.control",
+    # DDE-069 Frontend Studio V2 -- contract/PXG/coverage authoring is
+    # ordinary project authoring, so it rides `mission.control` like the
+    # DDE-067 canvas commands. No new scope and no autonomy widening.
+    "frontend.screen.register": "mission.control",
+    "frontend.design.provider_status": "mission.read",
+    "frontend.design.request": "mission.control",
+    "frontend.design.try_live": "mission.control",
+    "frontend.chat.open": "mission.control",
+    "frontend.chat.set_context": "mission.control",
+    "frontend.chat.send": "mission.control",
+    "frontend.candidate.create": "mission.control",
+    "frontend.candidate.transition": "mission.control",
+    "frontend.candidate.promote": "mission.control",
+    "frontend.mutation.apply": "mission.control",
+    "frontend.mutation.revert": "mission.control",
+    "frontend.lock.create": "mission.control",
+    "frontend.lock.release": "mission.control",
+    "frontend.contract.publish": "mission.control",
+    "frontend.pxg.apply": "mission.control",
+    "frontend.coverage.recompute": "mission.control",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -119,6 +139,23 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "frontend.canvas.remove_element": "mission",
     "frontend.motion.set_animation": "mission",
     "frontend.flow.upsert_step": "mission",
+    "frontend.screen.register": "mission",
+    "frontend.design.provider_status": "mission",
+    "frontend.design.request": "mission",
+    "frontend.design.try_live": "mission",
+    "frontend.chat.open": "mission",
+    "frontend.chat.set_context": "mission",
+    "frontend.chat.send": "mission",
+    "frontend.candidate.create": "mission",
+    "frontend.candidate.transition": "mission",
+    "frontend.candidate.promote": "mission",
+    "frontend.mutation.apply": "mission",
+    "frontend.mutation.revert": "mission",
+    "frontend.lock.create": "mission",
+    "frontend.lock.release": "mission",
+    "frontend.contract.publish": "mission",
+    "frontend.pxg.apply": "mission",
+    "frontend.coverage.recompute": "mission",
 }
 
 #: Mission control command -> target mission status (Chapter 4.8).

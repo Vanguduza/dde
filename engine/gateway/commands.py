@@ -550,6 +550,116 @@ class CommandDispatcher:
                 idempotency_key=key,
                 parameters=params,
             )
+        elif command_type == "frontend.design.provider_status":
+            payload = await studio.design_provider_status(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.design.request":
+            payload = await studio.request_design(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.design.try_live":
+            payload = await studio.try_design_live(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.open":
+            payload = await studio.open_conversation(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.set_context":
+            payload = await studio.set_conversation_context(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.send":
+            payload = await studio.send_chat_turn(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.candidate.create":
+            payload = await studio.create_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.candidate.transition":
+            payload = await studio.transition_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.candidate.promote":
+            payload = await studio.promote_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.mutation.apply":
+            payload = await studio.apply_mutations(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.mutation.revert":
+            payload = await studio.revert_mutation(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.lock.create":
+            payload = await studio.create_lock(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.lock.release":
+            payload = await studio.release_lock(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.screen.register":
+            payload = await studio.register_screen(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.contract.publish":
+            payload = await studio.publish_contract(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.pxg.apply":
+            payload = await studio.apply_pxg(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.coverage.recompute":
+            payload = await studio.recompute_coverage(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                parameters=params,
+            )
         elif command_type == "frontend.canvas.insert_component":
             payload = await studio.insert_component(
                 tenant_id=tenant_id,

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_candidate.json",
+  "title": "FrontendCandidate",
+  "description": "DDE-069 isolated working revision of a project's frontend. Owned by engine.studio.candidates (CandidateService is the sole writer). The accepted design is never edited in place: even 'editing the current design' mutates a candidate based on an accepted revision, and promotion creates the next accepted revision. `base_pxg_revision` is what makes staleness detectable -- when the accepted base moves past it the candidate is stale and may not promote blindly. `state` is a governed lifecycle, not a set of frontend booleans; the transition table lives in engine.studio.candidates.lifecycle and a transition outside it is refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_candidates",
+    "order": 305,
+    "pk": ["candidate_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "frontend_candidates_state_known",
+        "expression": "state IN ('REQUESTED', 'GENERATING', 'GENERATED', 'MATERIALIZING', 'RENDERING', 'READY', 'EDITING', 'DIRTY', 'VERIFYING', 'FAILED', 'REPAIRABLE', 'REPAIRING', 'VERIFIED', 'REJECTED', 'BLOCKED', 'PROMOTABLE', 'PROMOTING', 'PROMOTED', 'SUPERSEDED', 'ERRORED')"
+      },
+      {
+        "name": "frontend_candidates_origin_known",
+        "expression": "origin IN ('DESIGN_ARTIFACT', 'DIRECT_EDIT', 'TEMPLATE_BLEND', 'SOURCE_IMPORT', 'AGENT_PACKET', 'REPAIR_CYCLE')"
+      },
+      {
+        "name": "frontend_candidates_base_revision_valid",
+        "expression": "base_pxg_revision >= 0"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_candidates_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_candidates_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "frontend_candidates_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      },
+      {
+        "name": "frontend_candidates_workspace_id_fkey",
+        "columns": ["workspace_id"],
+        "ref_table": "workspaces",
+        "ref_columns": ["workspace_id"]
+      }
+    ]
+  },
+  "required": [
+    "candidate_id",
+    "tenant_id",
+    "project_id",
+    "title",
+    "state",
+    "origin",
+    "base_pxg_revision",
+    "scope_keys",
+    "provenance",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "candidate_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "workspace_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }],
+      "description": "The isolated worktree this candidate materialises into. Null until MATERIALIZING; a candidate with no workspace cannot render, and must not claim LIVE."
+    },
+    "title": { "type": "string" },
+    "state": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "GENERATING",
+        "GENERATED",
+        "MATERIALIZING",
+        "RENDERING",
+        "READY",
+        "EDITING",
+        "DIRTY",
+        "VERIFYING",
+        "FAILED",
+        "REPAIRABLE",
+        "REPAIRING",
+        "VERIFIED",
+        "REJECTED",
+        "BLOCKED",
+        "PROMOTABLE",
+        "PROMOTING",
+        "PROMOTED",
+        "SUPERSEDED",
+        "ERRORED"
+      ]
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "DESIGN_ARTIFACT",
+        "DIRECT_EDIT",
+        "TEMPLATE_BLEND",
+        "SOURCE_IMPORT",
+        "AGENT_PACKET",
+        "REPAIR_CYCLE"
+      ]
+    },
+    "base_pxg_revision": {
+      "type": "integer",
+      "description": "The accepted PXG revision this candidate branched from. Staleness is base_pxg_revision < the project's current revision."
+    },
+    "base_contract_version": {
+      "anyOf": [{ "type": "integer" }, { "type": "null" }]
+    },
+    "scope_keys": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "PXG keys this candidate may mutate. Two candidates with disjoint scopes can proceed in parallel; overlapping scopes need explicit coordination."
+    },
+    "verification_run_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "provenance": { "type": "object", "additionalProperties": true },
+    "state_detail": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Why the candidate is in its current state -- the build log line, the refusal reason, the blocking finding. A FAILED card with no detail is not actionable."
+    },
+    "superseded_by": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "promoted_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

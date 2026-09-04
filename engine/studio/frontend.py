@@ -1,9 +1,15 @@
-"""DDE-067 Frontend Studio Gateway mutations.
+"""Frontend Studio Gateway mutations.
 
 Production call sites for compile, donor pin/discovery/adoption, and
 canvas/manifest edits. Every public method is reached from
-`CommandDispatcher` after CommandLedger begin — callers must not invoke
+`CommandDispatcher` after CommandLedger begin -- callers must not invoke
 these as a second write path around `/v1/commands`.
+
+DDE-069 keeps this class a *compatibility command façade* rather than
+letting it grow into a second monolith (FS-GAP-031). The V2 domain lives
+in bounded services -- `engine.studio.contract`, `engine.studio.pxg`,
+`engine.studio.coverage`, `engine.studio.reads` -- and the methods below
+only map command parameters onto them.
 """
 
 from __future__ import annotations
@@ -12,14 +18,26 @@ from dataclasses import asdict
 from typing import Any
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.contracts.frontend_contract import Obligation
+from engine.contracts.pxg_node import SourceRef
+from engine.contracts.verification_run import VerificationRun
 from engine.core.errors import DdeError
+from engine.core.ids import uuid7
 from engine.donor.discovery_service import DonorDiscoveryService, SearchQuery
 from engine.donor.grouping import FeatureCategory, grouped_results_as_dict
 from engine.donor.service import DonorLabService
+from engine.events.service import EventService
 from engine.governance.hashing import approval_scope_hash
 from engine.governance.service import ApprovalService
+from engine.missions.service import MissionService
+from engine.studio.acceptance.defaults import GENERATED_SCREEN
+from engine.studio.acceptance.service import ScreenAcceptanceService
+from engine.studio.candidates.lifecycle import CandidateState
+from engine.studio.candidates.promotion import PromotionService
+from engine.studio.candidates.service import CandidateService
 from engine.studio.canvas import (
     apply_insert,
     apply_move,
@@ -31,10 +49,20 @@ from engine.studio.canvas import (
     parse_manifest,
     screen_relative_path,
 )
+from engine.studio.chat.service import FrontendChatService
 from engine.studio.compiler import compile_generation_prompt
+from engine.studio.contract.service import FrontendContractService
+from engine.studio.coverage.service import CoverageService
+from engine.studio.design.gateway import DesignGateway
+from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
+from engine.studio.mutations.executor import MutationExecutor
+from engine.studio.mutations.planner import MutationRequest
+from engine.studio.preview.service import PreviewService
+from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.truth.db import open_unit_of_work
+from engine.verification.repository import VerificationRunRepository
 from engine.workers.repository import WorkerRunRepository
 from engine.workspaces.service import WorkspaceService
 
@@ -55,6 +83,10 @@ class FrontendStudioService:
         discovery: DonorDiscoveryService | None = None,
         approvals: ApprovalService | None = None,
         runs: WorkerRunRepository | None = None,
+        contracts: FrontendContractService | None = None,
+        pxg: PxgService | None = None,
+        coverage: CoverageService | None = None,
+        screens: ScreenAcceptanceService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -62,6 +94,74 @@ class FrontendStudioService:
         self._discovery = discovery or DonorDiscoveryService(engine)
         self._approvals = approvals or ApprovalService(engine)
         self._runs = runs or WorkerRunRepository()
+        self._contracts = contracts or FrontendContractService(engine)
+        self._pxg = pxg or PxgService(engine)
+        self._coverage = coverage or CoverageService(
+            engine, pxg=self._pxg, contracts=self._contracts
+        )
+        self._screens_service = screens
+
+    def _missions(self) -> MissionService:
+        return MissionService(self._engine, EventService(self._engine))
+
+    def _candidate_service(self) -> CandidateService:
+        return CandidateService(self._engine, pxg=self._pxg)
+
+    def _lock_service(self) -> LockService:
+        return LockService(self._engine)
+
+    def _mutation_executor(self) -> MutationExecutor:
+        return MutationExecutor(
+            self._engine,
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            candidates=self._candidate_service(),
+        )
+
+    def _design_gateway(self) -> DesignGateway:
+        return DesignGateway(
+            self._engine,
+            pxg=self._pxg,
+            contracts=self._contracts,
+            candidates=self._candidate_service(),
+        )
+
+    def _chat_service(self) -> FrontendChatService:
+        return FrontendChatService(
+            self._engine,
+            mutations=self._mutation_executor(),
+            design=self._design_gateway(),
+        )
+
+    def _promotion_service(self) -> PromotionService:
+        return PromotionService(
+            self._engine,
+            candidates=self._candidate_service(),
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            coverage=self._coverage,
+            mutations=self._mutation_executor(),
+        )
+
+    def _screens(self) -> ScreenAcceptanceService:
+        if self._screens_service is None:
+            self._screens_service = ScreenAcceptanceService(self._engine, pxg=self._pxg)
+        return self._screens_service
+
+    def _preview_service(self) -> PreviewService:
+        candidates = self._candidate_service()
+        mutations = MutationExecutor(
+            self._engine,
+            pxg=self._pxg,
+            locks=self._lock_service(),
+            candidates=candidates,
+        )
+        return PreviewService(
+            self._engine,
+            candidates=candidates,
+            mutations=mutations,
+            workspaces=self._workspaces,
+        )
 
     async def compile_prompt(
         self, *, parameters: dict[str, object]
@@ -258,6 +358,615 @@ class FrontendStudioService:
             "screen_ref": screen_ref,
             "rubric_version": rubric_version,
             "failing_dimensions": sorted(failing),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def design_provider_status(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.design.provider_status`.
+
+        What the `/design` control renders itself from. Never fabricated:
+        an uncertified provider reports that, with the reason.
+        """
+        del tenant_id, project_id, parameters
+        statuses = await self._design_gateway().provider_statuses()
+        return {
+            "providers": [
+                {
+                    "provider_id": item.provider_id,
+                    "display_name": item.display_name,
+                    "state": item.state.value,
+                    "detail": item.detail,
+                    "version": item.version,
+                    "usable": item.usable,
+                }
+                for item in statuses
+            ],
+            "side_effect_class": "PURE_READ",
+        }
+
+    async def request_design(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.design.request`.
+
+        Refuses when no certified provider exists rather than substituting
+        a generic code-generation prompt (FRONTEND_STUDIO_REV3 section 23).
+        """
+        raw_count = parameters.get("direction_count")
+        outcome = await self._design_gateway().request(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            conversation_id=_optional_uuid(parameters, "conversation_id"),
+            scope_keys=list(_string_list(parameters, "scope_keys")),
+            instruction=_str(parameters, "instruction"),
+            provider_id=str(parameters.get("provider_id") or "claude-design"),
+            direction_count=raw_count if isinstance(raw_count, int) else 3,
+        )
+        return {
+            "design_session_id": str(outcome.session.session_id),
+            "design_system_hash": outcome.session.design_system_hash,
+            "context_manifest": outcome.session.context_manifest,
+            "artifacts": [
+                {
+                    "artifact_id": str(item.artifact_id),
+                    "direction_label": item.direction_label,
+                    "status": item.status,
+                    "content_hash": item.content_hash,
+                    "quarantine_reason": item.quarantine_reason,
+                }
+                for item in outcome.artifacts
+            ],
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def try_design_live(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.design.try_live` -- artifact to isolated
+        candidate. Never to accepted code."""
+        artifact, candidate_id = await self._design_gateway().try_live(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+        )
+        return {
+            "artifact_id": str(artifact.artifact_id),
+            "direction_label": artifact.direction_label,
+            "candidate_id": str(candidate_id),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def open_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.chat.open`."""
+        conversation = await self._chat_service().open(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            viewport=str(parameters.get("viewport") or "desktop-1440"),
+        )
+        return {
+            "conversation_id": str(conversation.conversation_id),
+            "viewport": conversation.viewport,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_conversation_context(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.chat.set_context`.
+
+        The selection lives on the conversation so a later "this" resolves
+        to what the user had selected, not to whatever a client sent.
+        """
+        raw_keys = parameters.get("selected_node_keys")
+        conversation = await self._chat_service().set_context(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            selected_node_keys=(
+                list(_string_list(parameters, "selected_node_keys"))
+                if raw_keys is not None
+                else None
+            ),
+            active_candidate_id=_optional_uuid(parameters, "active_candidate_id"),
+        )
+        return {
+            "conversation_id": str(conversation.conversation_id),
+            "selected_node_keys": list(conversation.selected_node_keys),
+            "active_candidate_id": (
+                str(conversation.active_candidate_id)
+                if conversation.active_candidate_id
+                else None
+            ),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def send_chat_turn(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.chat.send`.
+
+        A refused turn is a 202 with a typed refusal in the payload, not an
+        error: the turn really was recorded, and the user needs to see
+        which refusal they got.
+        """
+        result = await self._chat_service().send(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            text=_str(parameters, "text"),
+        )
+        return {
+            "turn_id": str(result.turn.turn_id),
+            "sequence": result.turn.sequence,
+            "intent": result.turn.intent,
+            "outcome": result.turn.outcome,
+            "refusal_code": result.turn.refusal_code,
+            "refusal_detail": result.turn.refusal_detail,
+            "resolved_context": result.turn.resolved_context,
+            "produced_refs": list(result.produced_refs),
+            "message": result.message,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def create_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.candidate.create`."""
+        candidate = await self._candidate_service().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            title=_str(parameters, "title"),
+            origin=_str(parameters, "origin"),
+            scope_keys=_string_list(parameters, "scope_keys"),
+        )
+        return {
+            "candidate_id": str(candidate.candidate_id),
+            "state": candidate.state,
+            "base_pxg_revision": candidate.base_pxg_revision,
+            "scope_keys": list(candidate.scope_keys),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def transition_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.candidate.transition` -- governed by the
+        lifecycle table, so an illegal jump is refused here rather than
+        being expressible from the client."""
+        candidate = await self._candidate_service().transition(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            target=CandidateState(_str(parameters, "target")),
+            detail=_optional_str(parameters, "detail"),
+        )
+        return {
+            "candidate_id": str(candidate.candidate_id),
+            "state": candidate.state,
+            "state_detail": candidate.state_detail,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def start_preview(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Materialize or rerender a real isolated candidate."""
+        snapshot = await self._preview_service().start(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            route_key=_str(parameters, "route_key"),
+        )
+        return {
+            **snapshot.as_dict(),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def select_preview_node(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Resolve an instrumented selection to stable PXG identity."""
+        revision = parameters.get("candidate_pxg_revision")
+        if not isinstance(revision, int):
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "candidate_pxg_revision must be an integer",
+                retryable=False,
+            )
+        snapshot = await self._preview_service().select(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            preview_session_id=_uuid(parameters, "preview_session_id"),
+            pxg_key=_str(parameters, "pxg_key"),
+            candidate_pxg_revision=revision,
+        )
+        return {
+            **snapshot.as_dict(),
+            "side_effect_class": "PURE_READ",
+        }
+
+    async def read_preview(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        candidate_id: UUID,
+    ) -> dict[str, object]:
+        snapshot = await self._preview_service().latest(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate_id,
+        )
+        if snapshot is None:
+            return {
+                "session": None,
+                "document_html": None,
+                "inspector": None,
+                "live": False,
+                "availability": "EMPTY",
+            }
+        return {
+            **snapshot.as_dict(),
+            "availability": (
+                "AVAILABLE" if snapshot.session.status == "READY" else "DEGRADED"
+            ),
+        }
+
+    async def apply_mutations(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.mutation.apply` -- the one governed write path.
+
+        Refusals are returned, not raised: the caller gets a typed code
+        per request so the studio can say what it declined and why.
+        """
+        outcome = await self._mutation_executor().apply(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            requests=_mutation_requests(parameters),
+        )
+        return {
+            "candidate_state": outcome.candidate_state.value,
+            "applied": [
+                {
+                    "mutation_id": str(item.mutation_id),
+                    "sequence": item.sequence,
+                    "operation": item.operation,
+                    "target_key": item.target_key,
+                }
+                for item in outcome.applied
+            ],
+            "refused": [
+                {
+                    "sequence": item.sequence,
+                    "operation": item.operation,
+                    "target_key": item.target_key,
+                    "refusal_code": item.refusal_code,
+                    "refusal_detail": item.refusal_detail,
+                }
+                for item in outcome.refused
+            ],
+            "fully_applied": outcome.fully_applied,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def revert_mutation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.mutation.revert`."""
+        compensating = await self._mutation_executor().revert(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+            mutation_id=_uuid(parameters, "mutation_id"),
+        )
+        return {
+            "compensating_mutation_id": str(compensating.mutation_id),
+            "target_key": compensating.target_key,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def create_lock(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.lock.create`."""
+        lock = await self._lock_service().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            lock_kind=_str(parameters, "lock_kind"),
+            scope_key=_str(parameters, "scope_key"),
+            reason=_str(parameters, "reason"),
+            created_by=principal_id,
+        )
+        return {
+            "lock_id": str(lock.lock_id),
+            "lock_kind": lock.lock_kind,
+            "scope_key": lock.scope_key,
+            "status": lock.status,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def release_lock(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.lock.release`."""
+        lock = await self._lock_service().release(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            lock_id=_uuid(parameters, "lock_id"),
+            released_by=principal_id,
+        )
+        return {
+            "lock_id": str(lock.lock_id),
+            "status": lock.status,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def promote_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.candidate.promote`.
+
+        Every gate is evaluated; a denial carries all of them so the user
+        sees everything blocking rather than one condition per attempt.
+        """
+        candidate_id = _uuid(parameters, "candidate_id")
+        runs = await self._verification_runs_for(
+            tenant_id=tenant_id, project_id=project_id, parameters=parameters
+        )
+        promoted = await self._promotion_service().promote(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate_id,
+            verification_runs=runs,
+        )
+        return {
+            "candidate_id": str(promoted.candidate_id),
+            "state": promoted.state,
+            "promoted_at": promoted.promoted_at.isoformat()
+            if promoted.promoted_at
+            else None,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def _verification_runs_for(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> tuple[VerificationRun, ...]:
+        """Load the evidence the gate will judge.
+
+        Read from `verification_runs` rather than accepted from the
+        caller: a client that could supply its own verdicts would make the
+        gate decorative.
+        """
+        task_id = parameters.get("task_id")
+        if not isinstance(task_id, str):
+            return ()
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            runs = await VerificationRunRepository().list_for_task(
+                uow.connection, _as_uuid(task_id, "task_id")
+            )
+        return tuple(
+            run
+            for run in runs
+            if run.tenant_id == tenant_id and run.project_id == project_id
+        )
+
+    async def register_screen(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.screen.register`.
+
+        The production authoring path that closes DDE-068's carry-over: a
+        screen enters the Project Experience Graph and receives its
+        mandatory visual-verification bindings in the same governed step,
+        so nothing reaches promotion merely because someone forgot to
+        attach a check. A screen whose bindings are refused is not
+        registered at all.
+        """
+        task_id = _uuid(parameters, "task_id")
+        task = await self._missions().get_task(
+            tenant_id=tenant_id, project_id=project_id, task_id=task_id
+        )
+        if task.mission_id != mission_id:
+            raise DdeError(
+                "POLICY_DENIED",
+                "task_id is not bound to the command mission",
+                retryable=False,
+                details={"task_id": str(task_id), "mission_id": str(mission_id)},
+            )
+        registration = await self._screens().register_screen(
+            task=task,
+            screen_ref=_str(parameters, "screen_ref"),
+            title=_str(parameters, "title"),
+            preview_url=_str(parameters, "preview_url"),
+            profile=str(parameters.get("profile") or GENERATED_SCREEN),
+            route=_optional_str(parameters, "route"),
+            expect_text=_optional_str(parameters, "expect_text"),
+            visual_diff_spec_path=_optional_str(parameters, "visual_diff_spec_path"),
+        )
+        return {
+            "screen_ref": registration.screen_ref,
+            "pxg_revision": registration.pxg_revision,
+            "oracle_id": str(registration.oracle.oracle_id),
+            "oracle_version": registration.oracle.oracle_version,
+            "bound_verification_kinds": list(registration.bound_kinds),
+            "acceptance_policy_version": registration.policy_version,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def publish_contract(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.contract.publish`.
+
+        Publishing an identical obligation set returns the existing
+        version rather than inflating the counter, so this command is
+        naturally idempotent beyond the ledger's replay window.
+        """
+        contract = await self._contracts.publish(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            obligations=_obligations(parameters),
+        )
+        return {
+            "contract_id": str(contract.contract_id),
+            "contract_version": contract.contract_version,
+            "content_hash": contract.content_hash,
+            "status": contract.status,
+            "obligation_count": len(contract.obligations),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def apply_pxg(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.pxg.apply` -- one call is one revision."""
+        revision = await self._pxg.apply(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            nodes=_pxg_nodes(parameters),
+            edges=_pxg_edges(parameters),
+            remove_node_keys=_string_list(parameters, "remove_node_keys"),
+        )
+        return {
+            "pxg_revision": revision,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def recompute_coverage(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """DDE-069 `frontend.coverage.recompute`.
+
+        `weighted_percent` is echoed exactly as computed, including
+        `None`. A caller must not substitute a number for an unassessed
+        project.
+        """
+        del parameters
+        snapshot = await self._coverage.recompute(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        return {
+            "snapshot_id": str(snapshot.snapshot_id),
+            "contract_version": snapshot.contract_version,
+            "pxg_revision": snapshot.pxg_revision,
+            "summary_state": snapshot.summary_state,
+            "weighted_percent": snapshot.weighted_percent,
+            "dimensions": [
+                {
+                    "dimension": item.dimension,
+                    "state": item.state,
+                    "required_count": item.required_count,
+                    "satisfied_count": item.satisfied_count,
+                    "missing_count": item.missing_count,
+                    "unverified_count": item.unverified_count,
+                    "blocked_count": item.blocked_count,
+                    "waived_count": item.waived_count,
+                    "percent": item.percent,
+                }
+                for item in snapshot.dimensions
+            ],
+            "finding_count": len(snapshot.findings),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -711,3 +1420,140 @@ def _queries(parameters: dict[str, object]) -> tuple[SearchQuery, ...]:
             )
         )
     return tuple(out)
+
+
+def _string_list(parameters: dict[str, object], name: str) -> tuple[str, ...]:
+    raw = parameters.get(name) or []
+    if not isinstance(raw, list) or not all(isinstance(item, str) for item in raw):
+        raise DdeError(
+            "FORBIDDEN",
+            f"'{name}' must be an array of strings",
+            details={"parameter": name},
+        )
+    return tuple(raw)
+
+
+def _rows(parameters: dict[str, object], name: str) -> tuple[dict[str, object], ...]:
+    raw = parameters.get(name) or []
+    if not isinstance(raw, list) or not all(isinstance(item, dict) for item in raw):
+        raise DdeError(
+            "FORBIDDEN",
+            f"'{name}' must be an array of objects",
+            details={"parameter": name},
+        )
+    return tuple(raw)
+
+
+def _obligations(parameters: dict[str, object]) -> tuple[Obligation, ...]:
+    """Parse contract obligations, letting the contract model validate.
+
+    Pydantic rejects an unknown applicability or dimension here, so an
+    invalid obligation never reaches the service's own policy checks.
+    """
+    rows = _rows(parameters, "obligations")
+    if not rows:
+        raise DdeError(
+            "FORBIDDEN",
+            "'obligations' must be a non-empty array of objects",
+            details={"parameter": "obligations"},
+        )
+    parsed: list[Obligation] = []
+    for row in rows:
+        payload = dict(row)
+        payload.setdefault("obligation_id", str(uuid7()))
+        payload.setdefault("requirement_refs", [])
+        payload.setdefault("verification_kinds", [])
+        try:
+            parsed.append(Obligation.model_validate(payload))
+        except ValidationError as exc:
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "invalid frontend contract obligation",
+                retryable=False,
+                details={"errors": exc.errors(include_url=False)},
+            ) from exc
+    return tuple(parsed)
+
+
+def _pxg_nodes(parameters: dict[str, object]) -> tuple[NodeInput, ...]:
+    out: list[NodeInput] = []
+    for row in _rows(parameters, "nodes"):
+        refs = row.get("source_refs") or []
+        if not isinstance(refs, list):
+            raise DdeError("FORBIDDEN", "source_refs must be an array")
+        try:
+            source_refs = tuple(SourceRef.model_validate(ref) for ref in refs)
+        except ValidationError as exc:
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "invalid PXG source reference",
+                retryable=False,
+                details={"errors": exc.errors(include_url=False)},
+            ) from exc
+        parent = row.get("parent_key")
+        out.append(
+            NodeInput(
+                pxg_key=_str(row, "pxg_key"),
+                node_kind=_str(row, "node_kind"),
+                title=_str(row, "title"),
+                parent_key=parent if isinstance(parent, str) and parent else None,
+                source_refs=source_refs,
+                attributes=_mapping(row, "attributes"),
+                provenance=_mapping(row, "provenance"),
+            )
+        )
+    return tuple(out)
+
+
+def _pxg_edges(parameters: dict[str, object]) -> tuple[EdgeInput, ...]:
+    return tuple(
+        EdgeInput(
+            from_key=_str(row, "from_key"),
+            to_key=_str(row, "to_key"),
+            edge_kind=_str(row, "edge_kind"),
+            attributes=_mapping(row, "attributes"),
+        )
+        for row in _rows(parameters, "edges")
+    )
+
+
+def _mapping(row: dict[str, object], name: str) -> dict[str, object]:
+    value = row.get(name) or {}
+    if not isinstance(value, dict):
+        raise DdeError(
+            "FORBIDDEN",
+            f"'{name}' must be an object",
+            details={"parameter": name},
+        )
+    return value
+
+
+def _optional_str(parameters: dict[str, object], name: str) -> str | None:
+    value = parameters.get(name)
+    return value if isinstance(value, str) and value else None
+
+
+def _mutation_requests(parameters: dict[str, object]) -> list[MutationRequest]:
+    rows = _rows(parameters, "mutations")
+    if not rows:
+        raise DdeError(
+            "FORBIDDEN",
+            "'mutations' must be a non-empty array of objects",
+            details={"parameter": "mutations"},
+        )
+    return [
+        MutationRequest(
+            operation=_str(row, "operation"),
+            target_key=_str(row, "target_key"),
+            origin=_str(row, "origin"),
+            payload=_mapping(row, "payload"),
+        )
+        for row in rows
+    ]
+
+
+def _optional_uuid(parameters: dict[str, object], name: str) -> UUID | None:
+    value = parameters.get(name)
+    if value is None or value == "":
+        return None
+    return _as_uuid(value, name)

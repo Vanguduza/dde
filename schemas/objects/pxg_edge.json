@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/pxg_edge.json",
+  "title": "PxgEdge",
+  "description": "DDE-069 typed relationship between two Project Experience Graph nodes. Owned by engine.studio.pxg. Edges carry every relationship except containment, which is denormalised onto PxgNode.parent_key for tree reads. Both endpoints are pxg_keys rather than node UUIDs so an edge survives a node being rewritten in place, and a dangling edge is a reconciliation finding rather than a foreign-key crash -- FRONTEND_STUDIO_REV3 section 30 requires PXG/source divergence to surface explicitly rather than let either side blindly win.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "pxg_edges",
+    "order": 302,
+    "pk": ["edge_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [["tenant_id", "project_id", "from_key", "edge_kind", "to_key"]],
+    "checks": [
+      {
+        "name": "pxg_edges_kind_known",
+        "expression": "edge_kind IN ('navigates_to', 'triggers', 'binds_data', 'renders_state', 'satisfies', 'derived_from', 'depends_on', 'variant_of')"
+      },
+      {
+        "name": "pxg_edges_revision_positive",
+        "expression": "pxg_revision >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "pxg_edges_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "pxg_edges_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "edge_id",
+    "tenant_id",
+    "project_id",
+    "from_key",
+    "to_key",
+    "edge_kind",
+    "pxg_revision",
+    "attributes",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "edge_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "from_key": { "type": "string" },
+    "to_key": { "type": "string" },
+    "edge_kind": {
+      "type": "string",
+      "enum": [
+        "navigates_to",
+        "triggers",
+        "binds_data",
+        "renders_state",
+        "satisfies",
+        "derived_from",
+        "depends_on",
+        "variant_of"
+      ]
+    },
+    "pxg_revision": { "type": "integer" },
+    "attributes": { "type": "object", "additionalProperties": true },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "policy_version": 1,
+  "title": "Default acceptance-oracle bindings for generated screens",
+  "description": "DDE-069 closes the DDE-068 carry-over: a generated screen receives its visual-verification bindings automatically, so the promotion guarantee stops being conditional on somebody remembering to attach one. DDE-068 proved that a bound check is machine-gated at promotion; this policy is what makes the binding exist. Versioned and inspectable here rather than buried in frontend constants (FRONTEND_STUDIO_REV3 section 42). Raising policy_version is a Project Truth change: it alters what every future generated screen is held to.",
+  "authority": "docs/truth/FRONTEND_STUDIO_REV3.md section 20 (DDE-068 as the quality backplane); EDR-0016; EDR-0017",
+  "profiles": {
+    "generated_screen": {
+      "description": "Any screen authored through a DDE generation or Frontend Studio authoring path. These bindings are mandatory: the binder refuses to author an oracle for such a screen without them.",
+      "mandatory_kinds": ["silhouette", "visual_critique"],
+      "optional_kinds": ["visual_diff"],
+      "rationale": {
+        "silhouette": "Deterministic, model-free near-match refusal against the generic-layout corpus. Cheap, and it catches the template-clone failure before any model is spent.",
+        "visual_critique": "The rubric-scored multimodal judgment EDR-0016 requires. Any dimension below 4 blocks promotion; a critic that is unavailable or malformed fails closed rather than passing.",
+        "visual_diff": "Only meaningful once an approved golden image exists for the screen, so it is optional rather than mandatory; binding it without a golden would fail closed on every run for the wrong reason."
+      }
+    },
+    "imported_screen": {
+      "description": "A screen adopted from an external or donor source. Held to the same visual bar as a generated one, because provenance does not make pixels good.",
+      "mandatory_kinds": ["silhouette", "visual_critique"],
+      "optional_kinds": ["visual_diff"],
+      "rationale": {
+        "silhouette": "An imported template is the single most likely source of a generic-layout near-match.",
+        "visual_critique": "Adoption is not evidence of quality."
+      }
+    }
+  }
+}

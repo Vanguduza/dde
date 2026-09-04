@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_conversation.json",
+  "title": "FrontendConversation",
+  "description": "DDE-069 the Frontend Studio's single conversational control plane. Owned by engine.studio.chat. Frontend Chat is not a chatbot dock bolted onto the studio: it carries the workspace context (screen, candidate, selection, viewport) that makes a reference like \"this\" or \"Candidate B\" resolvable, and every turn that changes frontend state compiles to the same governed FrontendMutation or DesignSession operation as any other affordance. `/design` is a capability inside this conversation, not a second one.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_conversations",
+    "order": 309,
+    "pk": ["conversation_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "foreign_keys": [
+      {
+        "name": "frontend_conversations_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_conversations_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "frontend_conversations_mission_id_fkey",
+        "columns": ["mission_id"],
+        "ref_table": "missions",
+        "ref_columns": ["mission_id"]
+      }
+    ]
+  },
+  "required": [
+    "conversation_id",
+    "tenant_id",
+    "project_id",
+    "selected_node_keys",
+    "viewport",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "conversation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "mission_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "active_candidate_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "design_session_id": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "selected_node_keys": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The PXG keys a bare reference like \"this\" resolves to. Stable keys, not DOM positions."
+    },
+    "viewport": { "type": "string" },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

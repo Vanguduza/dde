@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_lock.json",
+  "title": "FrontendLock",
+  "description": "DDE-069 functional lock over part of a project's frontend. Owned by engine.studio.locks (LockService is the sole writer). The lock iconography in the golden mockup is product semantics, not decoration: a locked element cannot be silently overwritten by drag/drop, chat, template import, source retrieval, `/design`, an autonomous agent or a refactor, because every one of those compiles to the same FrontendMutation and every FrontendMutation is checked against the effective lock set. `scope_key` is a PXG key; a lock covers that node and everything contained beneath it, so locking a screen locks its regions without needing a row per descendant.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_locks",
+    "order": 304,
+    "pk": ["lock_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "frontend_locks_kind_known",
+        "expression": "lock_kind IN ('GLOBAL_DESIGN', 'SCREEN', 'SECTION', 'COMPONENT', 'STYLE', 'STRUCTURE', 'BEHAVIOUR', 'CONTENT', 'TOKEN')"
+      },
+      {
+        "name": "frontend_locks_status_known",
+        "expression": "status IN ('ACTIVE', 'RELEASED')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_locks_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_locks_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      }
+    ]
+  },
+  "required": [
+    "lock_id",
+    "tenant_id",
+    "project_id",
+    "lock_kind",
+    "scope_key",
+    "status",
+    "reason",
+    "created_by",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "lock_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "lock_kind": {
+      "type": "string",
+      "enum": [
+        "GLOBAL_DESIGN",
+        "SCREEN",
+        "SECTION",
+        "COMPONENT",
+        "STYLE",
+        "STRUCTURE",
+        "BEHAVIOUR",
+        "CONTENT",
+        "TOKEN"
+      ]
+    },
+    "scope_key": {
+      "type": "string",
+      "description": "PXG key the lock covers, including descendants. '*' locks the whole project (GLOBAL_DESIGN)."
+    },
+    "status": { "type": "string", "enum": ["ACTIVE", "RELEASED"] },
+    "reason": {
+      "type": "string",
+      "description": "Why this is locked. Required: an unexplained lock is indistinguishable from a mistake and gets removed by the next person who hits it."
+    },
+    "created_by": { "type": "string", "format": "uuid" },
+    "released_by": {
+      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    },
+    "released_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

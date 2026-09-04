@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_preview_session.json",
+  "title": "FrontendPreviewSession",
+  "description": "A durable DDE-069 code-backed candidate preview. Owned by engine.studio.preview. READY means the candidate graph was materialized into an isolated Workspace artifact, its content hash was recorded, and that exact artifact can be served to the Frontend Studio canvas. A design image or stale render can never satisfy READY.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_preview_sessions",
+    "order": 310,
+    "pk": ["preview_session_id"],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "frontend_preview_sessions_state_known",
+        "expression": "status IN ('BUILDING', 'LOADING', 'READY', 'RUNTIME_ERROR', 'RENDER_ERROR', 'STALE', 'UNAVAILABLE', 'STOPPED')"
+      },
+      {
+        "name": "frontend_preview_sessions_revision_positive",
+        "expression": "candidate_pxg_revision >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_preview_sessions_tenant_id_fkey",
+        "columns": ["tenant_id"],
+        "ref_table": "tenants",
+        "ref_columns": ["tenant_id"]
+      },
+      {
+        "name": "frontend_preview_sessions_project_id_fkey",
+        "columns": ["project_id"],
+        "ref_table": "projects",
+        "ref_columns": ["project_id"]
+      },
+      {
+        "name": "frontend_preview_sessions_candidate_id_fkey",
+        "columns": ["candidate_id"],
+        "ref_table": "frontend_candidates",
+        "ref_columns": ["candidate_id"]
+      },
+      {
+        "name": "frontend_preview_sessions_workspace_id_fkey",
+        "columns": ["workspace_id"],
+        "ref_table": "workspaces",
+        "ref_columns": ["workspace_id"]
+      }
+    ]
+  },
+  "required": [
+    "preview_session_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "workspace_id",
+    "status",
+    "candidate_pxg_revision",
+    "route_key",
+    "document_path",
+    "document_sha256",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "preview_session_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "project_id": { "type": "string", "format": "uuid" },
+    "candidate_id": { "type": "string", "format": "uuid" },
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "BUILDING",
+        "LOADING",
+        "READY",
+        "RUNTIME_ERROR",
+        "RENDER_ERROR",
+        "STALE",
+        "UNAVAILABLE",
+        "STOPPED"
+      ]
+    },
+    "candidate_pxg_revision": { "type": "integer" },
+    "route_key": { "type": "string" },
+    "document_path": { "type": "string" },
+    "document_sha256": { "type": "string" },
+    "selected_pxg_key": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "error_code": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "error_detail": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }]
+    },
+    "built_at": {
+      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "lock_version": { "type": "integer" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
