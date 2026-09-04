@@ -230,6 +230,9 @@ else:
     class _PosixTerminator:
         def __init__(self, pid: int) -> None:
             self._pid = pid
+            #: Set once `is_running`/`await_exit` has reaped this child, so
+            #: a later probe cannot mistake a recycled pid for this one.
+            self._reaped = False
 
         @property
         def graceful(self) -> bool:
@@ -242,8 +245,30 @@ else:
             os.kill(self._pid, signal.SIGKILL)
 
         def is_running(self) -> bool:
-            # Signal 0 checks existence without signalling. On POSIX this
-            # is the conventional probe (the Windows trap does not apply).
+            # A child that has exited but has not yet been reaped is a
+            # ZOMBIE, and a zombie still answers signal 0 -- so the bare
+            # existence probe reports it alive forever. Since the sweep
+            # terminates processes DDE itself spawned, that is the common
+            # case, not an edge case: without reaping first, a perfectly
+            # well-behaved child that honoured SIGTERM would sit out the
+            # whole grace window and then be needlessly SIGKILLed and
+            # recorded as `killed` rather than `terminated`.
+            #
+            # So: reap non-blockingly first. `waitpid` returning our pid
+            # means it has exited (and is now reaped); 0 means genuinely
+            # still running. Only when the pid is not our child does the
+            # existence probe below decide.
+            if self._reaped:
+                return False
+            try:
+                done, _status = os.waitpid(self._pid, os.WNOHANG)
+            except ChildProcessError:
+                pass  # not our child (or already reaped elsewhere)
+            else:
+                if done == self._pid:
+                    self._reaped = True
+                    return False
+                return True
             try:
                 os.kill(self._pid, 0)
             except ProcessLookupError:
@@ -263,15 +288,20 @@ else:
                         return
                 else:
                     if done == self._pid:
+                        self._reaped = True
                         return
                 time.sleep(_TERMINATE_POLL_INTERVAL_SECONDS)
             raise TimeoutError(f"pid {self._pid} did not exit within grace window")
 
         def reap(self) -> None:
+            if self._reaped:
+                return
             try:
                 os.waitpid(self._pid, os.WNOHANG)
             except (ChildProcessError, OSError):
                 pass
+            else:
+                self._reaped = True
 
     def _open_terminator(pid: int) -> _ProcessTerminator | None:
         try:
