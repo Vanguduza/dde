@@ -268,11 +268,44 @@ rather than guessed:
    end-to-end critique run is treated as an explicitly budgeted step rather
    than something a verification loop should perform casually.
 
+### Live evidence (recorded 2026-09-04)
+
+The decision was exercised for real, not just implemented:
+`docs/evidence/dde-068/` records a full chain run with no stand-ins — real
+Playwright render, real screenshot, real deterministic analysis, real
+critique through `capability.visual_critique`, real verdict, real promotion
+decision.
+
+- The deliberately poor candidate was rejected (BLOCK at 0.92;
+  `believable_density`, `token_discipline`, `data_presentation`,
+  `copy_voice`, `states_completeness` all scored 1).
+- The good candidate was blocked on `accessibility = 3` at cycle 0 —
+  a defect the deterministic layer had passed — then its own
+  `repair_instructions` were applied and cycle 1 passed with every
+  dimension >= 4, moving `REVISE (1 of 3)` -> `PROMOTE`. That is the
+  bounded repair loop working on real pixels, unscripted.
+- The critic quoted the deterministic density evidence back verbatim in a
+  non-blocking finding, confirming the two density layers cooperate without
+  either impersonating the other (guardrail: believable-density judgment is
+  perceptual, density evidence is measured).
+
+Measured cost across three live invocations: **$0.3631** on
+`claude-sonnet-5`, reported by the runtime rather than estimated —
+satisfying guardrail 8.
+
+**GUI-spec open item D2 closed as part of this work:**
+`prototype_pixel_signoff` is now an admitted `APPROVAL_TYPES` member and is
+in `STANDING_FORBIDDEN_TYPES`, so `ESCALATE_HUMAN` has a real approval class
+to land on and no standing grant can pre-authorise a batch of pixel
+sign-offs. `StudioFrontendService.request_pixel_signoff` creates a real
+`Approval` bound by scope hash to the screen, rubric version and failing
+dimensions.
+
 ### Residual
 
-The deterministic and structural proofs are complete and green. The
-**live-runtime end-to-end evidence run** — one real candidate through the
-real `claude` runtime producing a real structured verdict — remains
-outstanding, deliberately deferred rather than faked, because the operator's
-usage pool was exhausted during implementation. Until it is recorded,
-DDE-068 stays open and DDE-069 stays blocked.
+None blocking DDE-068. Two follow-ons are carried forward: writing this
+accepted EDR as a durable row in real Project Truth (only the markdown
+pre-image exists, because implementation ran against an ephemeral sandbox
+database), and authoring default oracle bindings so generated screens carry
+the visual checks automatically — DDE-065/067 authoring-surface territory,
+inherited by DDE-069.

@@ -84,16 +84,15 @@ Required outcome includes:
 
 Do not call a schema enum, fixture, mock, CI-only screenshot or UI badge an implementation of these features unless the real production path invokes it.
 
-**Status note (2026-09-04).** Items 1–6, 8 and 10 are implemented and
-green; item 7's critique capability and item 5's density judgment are built
-behind `capability.visual_critique` per accepted `EDR-0017`. The single
-remaining gate to DDE-068 VERIFIED is the **live-runtime end-to-end
-evidence run** (a real candidate through the real critic, plus a
-deliberately poor candidate proving promotion is denied). It was deferred
-because a nested critique invocation draws on the operator's own
-rate-limited pool, which was exhausted during implementation — budget for
-it explicitly rather than skipping or faking it. See
-`IMPLEMENTATION_STATE.md`'s DDE-068 entry for per-item evidence.
+**Status note (2026-09-04).** DDE-068 is `COMPLETE_EVIDENCED`. All ten
+elements are implemented and evidenced, including a live end-to-end run on
+real pixels (`docs/evidence/dde-068/`): a poor candidate rejected, a good
+candidate blocked on a real accessibility defect, repaired from the
+critique's own instructions, and passed on cycle 1. The critic runs behind
+the narrow `capability.visual_critique` per accepted `EDR-0017` (Option C);
+the broad `capability.claude_code_invoke` is unchanged. GUI-spec item D2 is
+closed. DDE-069 is therefore unblocked — see `IMPLEMENTATION_STATE.md` for
+per-item evidence and the two follow-ons it inherits.
 
 ### 5. Work in vertical slices
 

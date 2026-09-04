@@ -65,7 +65,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-065 Generation-Prompt Compiler | `COMPLETE_EVIDENCED` | Landed in commit `9a8bb86...`; chapter-gate document exists. Treat later regressions separately. |
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
-| DDE-068 Visual Verification & Critique Loop | `IMPLEMENTED_PARTIAL` | All ten required elements are now built and green EXCEPT the live-runtime evidence run. `EDR-0017` was **accepted as Option C** (2026-09-04): a new, narrow `capability.visual_critique` was created rather than relaxing the broad `capability.claude_code_invoke`, which is unchanged and keeps its per-invocation human approval; `STANDING_FORBIDDEN_TYPES` was neither bypassed nor edited. Real multimodal critique, believable-density judgment, bounded revision (<=3 then escalate) and the machine-enforced promotion gate are implemented and covered by 30 passing tests including all six EDR-0017 boundaries and real Postgres promotion-gate proofs. **Remaining:** the live end-to-end critique run, deferred because the operator's usage pool was exhausted mid-implementation — deliberately not faked. DDE-068 is therefore NOT yet VERIFIED; do not begin substantive DDE-069 work. |
+| DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1272 tests pass, full suite green. |
 | DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `PLANNED` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Hard-blocked on DDE-068 evidence per FRONTEND_STUDIO_REV3.md's own "DDE-068 DEPENDENCY" clause; no implementation commit exists yet. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
@@ -130,7 +130,7 @@ Observed evidence:
 
 ### DDE-068 — Visual Verification & Critique Loop
 
-**State:** `IMPLEMENTED_PARTIAL`.
+**State:** `COMPLETE_EVIDENCED`.
 
 **Unblocked by:** accepted EDR-0016.
 
@@ -180,8 +180,7 @@ Observed evidence:
    `pytest.importorskip("PIL")`-skips there rather than silently
    fabricating a pass; `ruff`/`mypy` are clean in the default (no-extra)
    environment, matching what CI actually runs.
-5. believable-density enforcement — `LANDED (pending live-runtime
-   evidence)`. Now a scored dimension of the real rubric
+5. believable-density enforcement — `VERIFIED`. Now a scored dimension of the real rubric
    (`schemas/design/visual_critique_rubric.json`, `believable_density`,
    transcribed from playbook §8.3's P4 line) judged by the item-7 critic,
    with `evaluate_verdict` applying §8's own "any dimension <4 blocks"
@@ -197,8 +196,7 @@ Observed evidence:
    `animation-duration`/`animation-name` under
    `prefers-reduced-motion: reduce`, distinct from the pre-existing
    snapshot-only reduced-motion golden.
-7. VLM screenshot critique as rank-9 evidence — `LANDED (pending
-   live-runtime evidence)`, unblocked by **EDR-0017 accepted as Option C**
+7. VLM screenshot critique as rank-9 evidence — `VERIFIED`, unblocked by **EDR-0017 accepted as Option C**
    (2026-09-04). History, kept rather than erased: this requirement was
    `BLOCKED_EXTERNAL` across two prior tranches. The first reading ("no
    API key exists, therefore no route") was too shallow; the audit that
@@ -244,7 +242,7 @@ Observed evidence:
      containment flag; the only user-turn text is the adapter's own fixed
      instruction; a fake runtime records that its working directory held
      exactly `screenshot.png` and nothing else).
-8. bounded revision <= 3 cycles — `LANDED (pending live-runtime evidence)`.
+8. bounded revision <= 3 cycles — `VERIFIED`.
    `decide_revision_action` (`engine/verification/visual_critique.py`) is
    the whole bound: pure, so it cannot be bypassed by a caller losing
    count. `PROMOTE` on a passing assessment, `REVISE` while budget
@@ -256,12 +254,16 @@ Observed evidence:
    *apply* repair instructions and re-render is a replan-path integration
    that this tranche did not build and did not fake; the caller drives
    re-render between cycles.
-9. human escalation after bound — `LANDED (pending live-runtime evidence)`
-   as the `ESCALATE_HUMAN` terminal state above. Routing that state into
-   the approvals surface as a typed `prototype_pixel_signoff`-class row
-   remains open (GUI-spec item D2 still has no such `APPROVAL_TYPES`
-   member; adding one is its own contract change, not an implementation
-   detail to invent here).
+9. human escalation after bound — `VERIFIED`. `ESCALATE_HUMAN` is the
+   terminal state of the bounded policy, and **GUI-spec open item D2 is
+   now closed**: `prototype_pixel_signoff` is an admitted
+   `APPROVAL_TYPES` member and is in `STANDING_FORBIDDEN_TYPES` (a
+   blanket "approve all future pixel sign-offs" would defeat the bound).
+   `StudioFrontendService.request_pixel_signoff` no longer refuses: it
+   creates a real `Approval` whose scope hash binds the screen ref,
+   rubric version and failing dimensions, so approving one screen's
+   pixels cannot authorise another's. Covered by the frontend-studio
+   gateway test and a standing-forbidden assertion.
 10. real production promotion/merge gate consuming visual verdicts —
     `LANDED`. The gate is generic across every `EXECUTABLE_KINDS` member:
     `VerificationRunnerService.run()` -> `_execute_outcome()` ->
@@ -284,28 +286,41 @@ Observed evidence:
     binding one automatically for every generated-screen task is
     DDE-065/067 authoring-surface territory.
 
-**Immediate next work packet:**
+**Live end-to-end evidence (2026-09-04):** `docs/evidence/dde-068/`
+records a real run with no stand-ins in the chain — real Playwright render,
+real screenshot, real deterministic analysis, real multimodal critique, real
+verdict, real promotion decision:
 
-- **The one thing standing between DDE-068 and VERIFIED:** record the
-  live-runtime end-to-end evidence run — one real candidate rendered,
-  captured, put through the deterministic layer and then through the real
-  `claude` runtime behind `capability.visual_critique`, producing a real
-  structured verdict, plus one deliberately poor candidate proving
-  promotion is denied. Deferred deliberately rather than faked: the
-  operator's usage pool was exhausted during implementation, and a nested
-  critique invocation draws on that same pool. Everything it needs is
-  built and green; this is an execution-budget step, not an engineering
-  gap.
-- Route `ESCALATE_HUMAN` into the approvals surface (item 9's residual):
-  needs a `prototype_pixel_signoff`-class member added to
-  `APPROVAL_TYPES` through the ordinary contract path (GUI-spec item D2),
-  which is a contract change, not an implementation detail.
-- Author default oracle bindings so generated-screen tasks actually carry
-  the visual checks (item 10's residual) — DDE-065/067 territory.
-- Write the accepted `EDR-0017` row into real Project Truth via the
-  `scripts/accept_owner_edrs.py` path; only its markdown pre-image exists
-  so far, because implementation ran against an ephemeral sandbox
-  database.
+- `poor-candidate` (the playbook's own generic tells plus lorem/"Item 1"
+  filler): BLOCK at confidence 0.92, `believable_density`/`token_discipline`/
+  `data_presentation`/`copy_voice`/`states_completeness` all scored 1 —
+  promotion **DENIED**.
+- `good-candidate` cycle 0: not written to fail, and the deterministic layer
+  passed it (silhouette similarity 0.47, no near-match). The live critic
+  nonetheless blocked it on `accessibility = 3`, correctly spotting
+  low-contrast secondary text below the AA bar — promotion **DENIED**.
+- `good-candidate` cycle 1: that critique's own `repair_instructions` were
+  applied, the screen re-rendered and re-critiqued with the prior critique
+  fed back; `accessibility` 3 -> 4, every dimension >= 4, policy PASS,
+  `decide_revision_action` -> `PROMOTE` — promotion **ELIGIBLE**.
+
+The critic's non-blocking `hierarchy_and_rhythm` finding quoted the
+deterministic density evidence back verbatim (top_half_ratio 0.67 vs
+bottom_half_ratio 0.40): the deterministic layer measured, the rubric layer
+judged, neither impersonated the other. Measured cost across the three live
+invocations: **$0.3631** (`claude-sonnet-5`), reported by the runtime, not
+estimated.
+
+**Remaining residual (not a DDE-068 gate):** nothing yet *authors* a
+`silhouette`/`visual_diff`/`visual_critique` binding onto a generated
+screen's `AcceptanceOracle` by default. The gate refuses correctly whenever
+such a check is bound; binding one automatically for every generated-screen
+task is DDE-065/067 authoring-surface territory and is carried into DDE-069.
+
+**Housekeeping:** write the accepted `EDR-0017` row into real Project Truth
+via the `scripts/accept_owner_edrs.py` path — only its markdown pre-image
+exists so far, because implementation ran against an ephemeral sandbox
+database.
 
 ### DDE-069 — DDE Code / Frontend Studio V2 + Live Design Foundation
 
