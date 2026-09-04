@@ -22,6 +22,15 @@ substrate per gap-closure-record §6.3, while donor-search egress proceeds now
 under EDR-0015. The accepted processing below covers EDR-0001..EDR-0016;
 PROPOSED_OWNER_EDR_SLUGS is empty.
 
+On 2026-09-04 the project owner decided EDR-0017 ("visual-critic execution
+route", resolved as Option C: a new narrow `capability.visual_critique`
+rather than relaxing the broad `capability.claude_code_invoke` or weakening
+`STANDING_FORBIDDEN_TYPES`), extending the accepted processing to
+EDR-0001..EDR-0017. This script is the repository's authoritative, versioned
+representation of those accepted decisions: the runtime database is
+provisioned from here, never the other way round, so adding a slug and its
+payload here is what durably ratifies a decision for every environment.
+
 
 Slug uniqueness is per-project, so re-running after a full run is a no-op
 reconciliation read, and a partial run proposes+accepts only missing slugs.
@@ -53,7 +62,7 @@ OWNER_ORGANIZATION_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d13")
 
 ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
     {
-        *(f"EDR-{number:04d}" for number in range(1, 17)),
+        *(f"EDR-{number:04d}" for number in range(1, 18)),
     }
 )
 
@@ -1416,6 +1425,149 @@ def _payload(slug: str) -> dict[str, object]:
                 "If rejected instead, Definition-of-Polished gates that "
                 "depend on VLM critique stay named deferrals and DD201-DD206 "
                 "+ honesty tests remain the merge bar.",
+            ],
+            "affected_requirement_slugs": [],
+        },
+        "EDR-0017": {
+            "context": (
+                "EDR-0016 admitted a VLM design critic for DDE-068 and "
+                "decided its model would be 'selected at implementation time "
+                "from whatever providers are then declared', routed through "
+                "the existing provider-agnostic path with brokered "
+                "short-lived credentials and per-call dollar ceilings. At "
+                "DDE-068 implementation time that route did not exist: a "
+                "capability audit found no multimodal-provider credential in "
+                "any environment this project has run in, no engine module "
+                "importing a vision provider SDK, and the routing Appendix A "
+                "'vision and visual evidence' profile wired to no adapter "
+                "and no fixed-model pin. The only real multimodal execution "
+                "route in the repository was capability.claude_code_invoke "
+                "(EDR-0001 Path A), which spawns the human's own "
+                "already-authenticated local claude CLI as a subprocess. "
+                "That route is genuinely multimodal-capable but is broad: it "
+                "grants arbitrary development execution against a human's "
+                "personal, rate-limited seat, which is precisely why its "
+                "external_model_invocation approval type sits in "
+                "STANDING_FORBIDDEN_TYPES and is enforced in code, requiring "
+                "a fresh human decision per invocation. Measured during the "
+                "audit: one nested invocation cost $0.142 before generating "
+                "output and drew on the same rate-limited pool as the "
+                "operator's own interactive session, which was exhausted "
+                "mid-implementation."
+            ),
+            "alternatives": [
+                "Wait for a brokered VLM provider exactly as EDR-0016 "
+                "decision 1 envisioned - rejected: no such provider has been "
+                "provisioned in any environment this project has run in, and "
+                "waiting leaves DDE-068's critique and believable-density "
+                "gates blocked indefinitely with no committed unblock date.",
+                "Amend EDR-0016 to route the critic through the broad "
+                "capability.claude_code_invoke and redefine 'bounded "
+                "automatic revision' as human-approved per invocation - "
+                "rejected: it would relax a broad, privileged capability's "
+                "approval semantics to serve one narrow unattended use, "
+                "weakening the boundary that protects every other privileged "
+                "use of that capability.",
+                "Weaken or carve an exception into STANDING_FORBIDDEN_TYPES "
+                "so the unattended loop could pre-authorise batches - "
+                "rejected outright: that set exists to stop exactly this, "
+                "and a generic 'narrow capabilities may escape approval' "
+                "mechanism would let any capability relabel itself narrow.",
+                "Admit a new, separately registered capability whose entire "
+                "permitted action surface is bounded visual evidence plus a "
+                "versioned rubric in, one schema-validated structured "
+                "verdict out - accepted and implemented.",
+            ],
+            "decision": (
+                "Accepted as Option C by explicit project-owner decision "
+                "(2026-09-04). DDE exposes capability.visual_critique, a new "
+                "narrow multimodal visual-critique capability for "
+                "machine-governed frontend verification, implemented by "
+                "adapters.visual_critic.LocalMultimodalVisualCritic behind "
+                "the engine.capabilities.visual_critic seam. "
+                "capability.claude_code_invoke is unchanged: it remains the "
+                "broad privileged capability, remains "
+                "external_model_invocation, remains in "
+                "STANDING_FORBIDDEN_TYPES, and keeps its mandatory "
+                "per-invocation human approval. Nothing was removed from "
+                "STANDING_FORBIDDEN_TYPES and no generic narrowness "
+                "exemption was created: the permission to run unattended "
+                "attaches to this specific registered capability and its "
+                "validated request schema only. Authority boundary, enforced "
+                "by construction rather than convention: a fresh "
+                "per-invocation scratch directory containing only the "
+                "screenshot, so no repository, workspace or source is in "
+                "reach; restricted mode dropping command- and code-running "
+                "tools and WebFetch; a single read-only tool with an "
+                "explicit deny list behind it; permission prompts auto-denied "
+                "rather than silently allowed; output schema-constrained at "
+                "source and independently re-validated on return; a hard "
+                "per-invocation spend ceiling and wall-clock timeout; no "
+                "directory widening, MCP servers or nested agents; and a "
+                "request type that carries no prompt or instruction field at "
+                "all, so callers supply evidence and never instructions. "
+                "Rendered candidate content is treated as data to evaluate, "
+                "never as instructions to obey. Fail-closed is mandatory and "
+                "the failure classes stay distinct: a missing capability is "
+                "POLICY_DENIED, an unavailable, erroring, timed-out or "
+                "malformed critic is ERRORED (a check that could not run "
+                "proves nothing in either direction), and a genuine "
+                "sub-threshold rubric score is FAILED - none of them is ever "
+                "a pass. The promotion gate consumes validated structured "
+                "fields, never prose: a model claiming PASS while scoring a "
+                "dimension below the blocking threshold is still blocked, "
+                "and rubric_version, model and cost are attached from real "
+                "transport metadata so a model cannot spoof what judged it. "
+                "Unattended does not mean unbounded: revision is capped at "
+                "three cycles by a pure policy function, after which "
+                "auto-progression stops and escalation lands on the "
+                "prototype_pixel_signoff approval class, itself added to "
+                "APPROVAL_TYPES and to STANDING_FORBIDDEN_TYPES so no "
+                "standing grant can pre-authorise a batch of pixel "
+                "sign-offs."
+            ),
+            "rationale": (
+                "EDR-0016 remains the visual-verification policy - what "
+                "verification requires - and is amended only in its decision "
+                "1 'model choice'; its rubric storage, retention, bounded "
+                "revise <=3 cycles and rank-9-forever decisions are "
+                "untouched. EDR-0017 records how DDE safely obtains machine "
+                "multimodal critique. Separating the capabilities rather "
+                "than relaxing one preserves least privilege: the broad "
+                "capability's human gate continues to protect arbitrary "
+                "development execution, while the narrow one earns "
+                "unattended use by having almost no action surface to abuse. "
+                "Because the narrow capability cannot run commands, mutate a "
+                "workspace, edit source, reach git, carry an arbitrary "
+                "prompt or spawn a nested agent, the ordinary Chapter 9 "
+                "lease path is the proportionate governance for it, and no "
+                "new approval type or exemption was needed. EDR-0016's "
+                "dollar ceilings have no referent on this route - there is "
+                "no broker call and no metered per-call vendor price - so "
+                "resource governance records the real consumable instead: "
+                "measured invocation cost as reported by the runtime, and "
+                "the fact that invocations draw on the operator's own "
+                "rate-limited pool. Nothing is invented where it is not "
+                "known."
+            ),
+            "consequences": [
+                "DDE-068's multimodal critique and believable-density "
+                "judgment become real, callable, evidence-producing "
+                "capabilities without a new paid API, a new provider SDK or "
+                "a new credential admission.",
+                "capability.claude_code_invoke keeps its per-invocation "
+                "human approval, so no existing privileged surface is "
+                "widened by this decision; a future qualified critic can "
+                "replace the current runtime behind the same seam because "
+                "provider-specific execution stays in adapters.",
+                "Unattended visual critique is bounded and auditable: three "
+                "revision cycles maximum, hard spend and time ceilings per "
+                "invocation, structured verdicts recorded as evidence, and "
+                "human escalation through prototype_pixel_signoff once the "
+                "bound is spent.",
+                "Claude /design remains a Frontend Studio design capability "
+                "and stays architecturally distinct from the independent "
+                "visual critic even where the same model family serves both.",
             ],
             "affected_requirement_slugs": [],
         },
