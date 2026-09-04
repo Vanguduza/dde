@@ -1,22 +1,26 @@
 # EDR-0017 — Visual-critic execution route: capability audit finding and
 # a real local route vs. EDR-0016's assumed brokered-API route
 
+> **ACCEPTED 2026-09-04 by explicit project-owner decision, resolving this
+> filing as OPTION C** (create a new, narrowly scoped capability dedicated
+> to unattended, bounded multimodal visual critique; do NOT amend
+> `capability.claude_code_invoke` to become generally unattended; do NOT
+> bypass or weaken `STANDING_FORBIDDEN_TYPES`). The decision text and its
+> guardrails are transcribed in the ACCEPTANCE section at the end of this
+> file. See that section for what was actually built.
+
 > **Location note.** Per Chapter 3.6, an EDR is a row in the `edrs` table,
 > written only by `engine/truth/`. Following the convention established in
-> `EDR-0001`–`EDR-0016`, this file is filed as a **markdown pre-image**
-> awaiting a human decision — this session has no access to the durable
-> Project Truth database (only an ephemeral, per-session sandbox instance
-> used to run tests), so no `edrs` row exists for this slug yet. Do not
-> treat this file as accepted; `status` below is `proposed`. Filing this
-> pre-image, without self-accepting it, is itself the correct DDE-native
-> response to a genuine authoritative-source conflict per
-> `docs/truth/RESUME_PROMPT.md`'s own instruction: "Do not silently choose
-> a convenient document when sources conflict. Identify the conflict and
-> use the EDR/change-control path if the authoritative contract must
-> change."
+> `EDR-0001`–`EDR-0016`, this file is the **markdown pre-image** of that
+> row. The implementing session had access only to an ephemeral, per-session
+> sandbox database used to run tests, never the durable Project Truth
+> instance, so the `edrs` row for this slug still needs to be written by
+> whoever runs the acceptance path (the `scripts/accept_owner_edrs.py`
+> pattern) against real Project Truth. Where this file and that row ever
+> differ in wording, the row outranks it.
 
 - **slug:** `EDR-0017`
-- **status:** `proposed`
+- **status:** `accepted (2026-09-04)`
 - **supersedes:** none (amends `EDR-0016`'s decision 1 "Model choice" only;
   every other EDR-0016 decision — rubric storage, retention, bounded
   revise ≤3 cycles, rank-9-forever — is unaffected)
@@ -121,40 +125,13 @@ is the largest change: a new approval type, new `STANDING_FORBIDDEN_TYPES`
 carve-out reasoning, and its own risk review — genuinely a new governance
 decision, not a reading of an existing one.
 
-## Decision (proposed)
+## Decision (proposed at filing time)
 
-Recommend **(b)** as the smallest safe next step consistent with "do not
-require a new paid API merely because that is the easiest conventional
-solution" and DDE's own preference for reusing already-admitted machinery
-over inventing parallel architecture — while being explicit this is a
-recommendation, not a self-acceptance. The deciding human may instead pick
-(a), (c), a hybrid, or reject this filing outright.
-
-If (b) is accepted, the concrete follow-on implementation (not done by this
-filing) is:
-
-1. A `_run_visual_critique` executor in `engine/verification/checks.py`
-   analogous to this tranche's `_run_silhouette`, but its capability
-   dependency is `ClaudeCodeWorkerAdapter`/`ApprovalService.require_approved`
-   (EDR-0001's existing gate) rather than `BrowserCapability` alone — it
-   still needs the browser capability first, to get the screenshot to hand
-   the CLI.
-2. A structured critique schema (verdict, confidence, defect categories,
-   repair instructions, blocking/non-blocking split) under `schemas/design/`
-   per EDR-0016 decision 3's existing rubric-storage plan (unaffected by
-   this amendment).
-3. The bounded-revision state machine (cycle counter capped at 3, escalate
-   to the approvals surface past the bound) as a DDE-native orchestration
-   loop — real code, testable with the adapter's own established
-   fake-binary-double pattern
-   (`tests/unit/test_claude_adapter_requires_approval.py`'s convention) for
-   fast, deterministic, no-live-cost tests, with the real live path
-   exercised only under an actual human-granted `Approval` in a real
-   deployment, never fabricated or run unattended by an agent session on
-   the human's behalf.
-4. Believable-density's rubric dimension rides the same critique response
-   (playbook §8.3: `"believable-density >= 4"` is a scored field oftteh
-   same structured critique output, not a separate call).
+The filing recommended **(b)** as the smallest change. The project owner
+decided **(c)** instead — see ACCEPTANCE below. (c) was chosen precisely
+because (b) would have relaxed a broad, privileged capability's approval
+semantics to serve one narrow use, weakening DDE's security architecture
+for everything else that capability governs.
 
 ## Consequences
 
@@ -172,9 +149,130 @@ filing) is:
   wants it explored.
 - Either way, this filing does not by itself complete DDE-068's VLM/density
   requirements; it only proposes which real route those requirements should
-  be built against. No implementation in this tranche invokes
-  `capability.claude_code_invoke` live — doing so before this EDR is decided
-  would spend the human's own subscription-seat quota on an architecture
-  decision they have not yet made, which is exactly what EDR-0001's
-  per-invocation approval gate exists to prevent an agent from doing
-  unilaterally.
+  be built against. No implementation in the filing tranche invoked
+  `capability.claude_code_invoke` live — doing so before this EDR was
+  decided would have spent the human's own subscription-seat quota on an
+  architecture decision they had not yet made, which is exactly what
+  EDR-0001's per-invocation approval gate exists to prevent an agent from
+  doing unilaterally.
+
+## ACCEPTANCE (2026-09-04) — OPTION C
+
+**Accepted as Option C by explicit project-owner decision.** The owner
+accepted the blocker analysis above and rejected both (a) waiting
+indefinitely for a brokered provider and (b) relaxing the broad capability,
+on the stated grounds that "relaxing its approval semantics globally merely
+to satisfy DDE-068 would weaken DDE's security/capability architecture."
+
+**Decision.** DDE exposes a **new, narrowly scoped** multimodal
+visual-critique capability for machine-governed frontend verification. It
+may use an already-authorized local multimodal execution substrate,
+including the existing Claude Code runtime where technically appropriate,
+but **it must not expose general Claude Code execution privileges to the
+unattended verification loop**. Its whole purpose is to transform bounded
+visual evidence plus a versioned rubric into a structured
+visual-verification verdict.
+
+**Guardrails set at acceptance, all binding:**
+
+1. `capability.claude_code_invoke` is **not** weakened. It keeps
+   `external_model_invocation` and its `STANDING_FORBIDDEN_TYPES`
+   membership, and keeps requiring a fresh human `Approval` per invocation.
+2. `STANDING_FORBIDDEN_TYPES` is neither bypassed nor edited.
+3. The new capability must be narrower than the broad one, with distinct
+   authorization and distinct schemas — never an alias for it.
+4. No generic "narrowness" escape hatch: the exemption from per-invocation
+   human approval attaches to this specific registered capability and its
+   validated request schema, not to any capability that labels itself
+   narrow.
+5. Provider abstraction preserved: the engine asks for a multimodal visual
+   critic, not for one vendor forever. Provider-specific execution stays
+   behind an adapter.
+6. Claude `/design` remains a Frontend Studio design capability and is
+   architecturally distinct from the independent visual critic, even where
+   the same model family serves both.
+7. Unattended does not mean unbounded: hard caps on attempts, repair
+   cycles, timeout, evidence size, spend; a fixed approved rubric; no
+   arbitrary prompt; no general tools; no source mutation; no recursive
+   agent creation; an explicit failure state; an auditable invocation
+   record.
+8. Real resource consumption is recorded, never invented.
+
+### What was built against this decision
+
+- **`capability.visual_critique`** — new `SeedCapability`
+  (`engine/capabilities/seed.py`), `PURE_READ`, T1, distinct
+  `capability_id`, distinct governance posture from the broad
+  `EXTERNAL_NON_IDEMPOTENT` `capability.claude_code_invoke`. Governed by
+  the ordinary Chapter 9 lease path; **no new approval type was added and
+  none was removed from `STANDING_FORBIDDEN_TYPES`**.
+- **`engine/capabilities/visual_critic.py`** — the typed seam
+  (`VisualCriticCapability`, `VisualCritiqueRequest`,
+  `VisualCritiqueResult`). The request type deliberately carries **no
+  prompt/instruction field at all**, so no caller can smuggle instructions
+  into the runtime (structural injection defence, asserted by test).
+- **`adapters/visual_critic/adapter.py`** — `LocalMultimodalVisualCritic`,
+  the provider-specific runtime, containment enforced by construction:
+  a fresh per-invocation scratch directory holding **only** the screenshot
+  (no repo, no workspace, no source in reach); `--restricted` (removes
+  command/code-running tools and WebFetch, ignores settings files);
+  `--allowed-tools Read` plus an explicit deny list; `--permission-prompts
+  none` (anything that would prompt is denied, never silently allowed);
+  `--json-schema` + `--output-format json` (structured output constrained
+  at source); a hard `--max-budget-usd` ceiling and wall-clock timeout;
+  no `--add-dir`, no `--mcp-config`, no `--agents`.
+- **`schemas/design/visual_critique_rubric.json`** — the versioned rubric
+  (EDR-0016 decision 3's storage location, unchanged), transcribed from
+  playbook §8.1 and §8.3 including **believable_density** as a scored
+  dimension. The adapter refuses to critique when the requested rubric
+  version does not match the rubric on disk.
+- **`engine/verification/visual_critique.py`** — verdict schema,
+  fail-closed `parse_verdict` (rejects malformed JSON, missing fields,
+  out-of-range scores and unknown fields), `evaluate_verdict` applying
+  playbook §8's own "any dimension <4 blocks" rule, and
+  `decide_revision_action` implementing the bounded repair policy
+  (`PROMOTE` / `REVISE` / `ESCALATE_HUMAN`, capped at
+  `MAX_REVISION_CYCLES = 3`).
+  **The gate consumes validated fields, never prose**: a model claiming
+  `"verdict": "PASS"` while scoring a dimension below threshold is still
+  blocked (asserted by test), and `rubric_version`/`model`/`cost_usd` are
+  attached from real transport metadata rather than read from the model's
+  own response, so a model cannot spoof them.
+- **Deterministic density evidence** (`compute_density_evidence` in
+  `engine/verification/silhouette.py`) is kept strictly separate from the
+  perceptual believable-density judgment and supplied to the critic as
+  context only — neither impersonates the other.
+- **`visual_critique` oracle kind** wired through
+  `schemas/objects/acceptance_oracle.json`, `EXECUTABLE_KINDS`,
+  `checks.py::_run_visual_critique` and the runner, so the verdict reaches
+  the already-proven promotion gate with no bespoke merge logic.
+- **Fail-closed classes kept distinct**, not collapsed: a missing
+  capability is `POLICY_DENIED`; an unavailable/erroring/malformed critic
+  is `ERRORED` (a check that could not run proves nothing); a genuine
+  sub-threshold rubric score is `FAILED`.
+
+### Resource governance, measured rather than assumed
+
+A live discovery invocation during implementation cost **$0.142** and was
+terminated by its own `--max-budget-usd` ceiling before generating output,
+with the spend dominated by ambient context caching (~35k cache-creation
+tokens) rather than the critique itself. Two facts follow, both recorded
+rather than guessed:
+
+1. A per-invocation ceiling below roughly $0.25 truncates real work, so the
+   adapter's default is set above that with the real figure documented.
+2. Nested invocations draw on **the same rate-limited pool as the
+   operator's own interactive session** — observed directly when that pool
+   was exhausted mid-implementation. This is the concrete reason the
+   bounded caps in guardrail 7 are not ceremonial, and it is why the live
+   end-to-end critique run is treated as an explicitly budgeted step rather
+   than something a verification loop should perform casually.
+
+### Residual
+
+The deterministic and structural proofs are complete and green. The
+**live-runtime end-to-end evidence run** — one real candidate through the
+real `claude` runtime producing a real structured verdict — remains
+outstanding, deliberately deferred rather than faked, because the operator's
+usage pool was exhausted during implementation. Until it is recorded,
+DDE-068 stays open and DDE-069 stays blocked.

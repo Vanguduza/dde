@@ -52,7 +52,15 @@ Read:
 - `docs/planning/frontend-studio-gui-spec.md`
 - `docs/planning/dde-067-chapter-gate.md`
 - `docs/planning/design-tooling-integration.md`
-- accepted `EDR-0016` VLM design-critic dependency/budget record
+- accepted `EDR-0016` VLM design-critic dependency/budget record — **what
+  visual verification requires**
+- accepted `EDR-0017` visual-critic execution route (Option C) — **how DDE
+  safely obtains machine multimodal critique**: a narrow
+  `capability.visual_critique`, deliberately separate from the broad,
+  human-approval-gated `capability.claude_code_invoke`. Read it before
+  touching the critic; its guardrails (no weakening of the broad
+  capability, no `STANDING_FORBIDDEN_TYPES` bypass, no generic
+  "narrowness" escape hatch, provider abstraction preserved) are binding.
 - relevant visual/verification sections of `BLUEPRINT_REV3.md` and `DEV_PLAN_REV3.md`
 
 Do not skip DDE-068 merely to start newer orchestration or DDE-069/Frontend Studio V2 work (which now includes the former mobile-profiles scope as a sub-capability, not a separate mission — see `ARCHITECTURE_DECISIONS.md` AD-030) unless code evidence proves DDE-068 is already evidence-complete.
@@ -75,6 +83,17 @@ Required outcome includes:
 10. a real promotion/merge/quality gate that consumes the recorded visual verdict.
 
 Do not call a schema enum, fixture, mock, CI-only screenshot or UI badge an implementation of these features unless the real production path invokes it.
+
+**Status note (2026-09-04).** Items 1–6, 8 and 10 are implemented and
+green; item 7's critique capability and item 5's density judgment are built
+behind `capability.visual_critique` per accepted `EDR-0017`. The single
+remaining gate to DDE-068 VERIFIED is the **live-runtime end-to-end
+evidence run** (a real candidate through the real critic, plus a
+deliberately poor candidate proving promotion is denied). It was deferred
+because a nested critique invocation draws on the operator's own
+rate-limited pool, which was exhausted during implementation — budget for
+it explicitly rather than skipping or faking it. See
+`IMPLEMENTATION_STATE.md`'s DDE-068 entry for per-item evidence.
 
 ### 5. Work in vertical slices
 
