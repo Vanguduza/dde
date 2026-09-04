@@ -7,7 +7,7 @@ decision memo, the Ch.5.2 structural retriever, and the DDE-059 charter; recorde
 `docs/planning/gap-closure-record.md §6.8`.
 
 **Orientation anchors:** `AGENTS.md` (Ch.9.6 dependency admission; patterns-not-packages);
-`docs/blueprint/REV_2_0.md` Ch.7.2 (T2 enforcement tiers; T2 rule 2 egress proxy),
+`docs/blueprint/historical/REV_2_0.md` Ch.7.2 (T2 enforcement tiers; T2 rule 2 egress proxy),
 Ch.7.4 (provisioning economics), Ch.5.2 retrievers, Ch.5.4 index lifecycle, Ch.5.13
 eval corpus and promotion gates; `docs/truth/edr/EDR-0011-t2-network-egress-and-container-containment.md`,
 `docs/truth/edr/EDR-0002-semantic-retriever-default-gating.md`.

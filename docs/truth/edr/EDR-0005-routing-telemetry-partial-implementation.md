@@ -29,7 +29,7 @@
 - **affected_requirement_slugs:** none filed yet — should be linked to
   whatever requirement charters Chapter 6.5's real-telemetry engine once
   it exists as a Project Truth row.
-- **raised during:** implementation of DDE-035 (`docs/blueprint/REV_2_0.md`
+- **raised during:** implementation of DDE-035 (`docs/blueprint/historical/REV_2_0.md`
   §18.3's roadmap: "`DDE-035` routing telemetry, propensity logging,
   shadow mode ⟨Ch.6.5–6.7⟩"), gate-reviewed independently after DDE-034
   (Chapter 5.11 failure attribution engine, commit `ff39fd7`) was found

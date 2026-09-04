@@ -23,7 +23,7 @@
 - **status:** `accepted (2026-08-22)`
 - **supersedes:** none
 - **affected_requirement_slugs:** none filed yet
-- **raised during:** implementation of DDE-037 (`docs/blueprint/REV_2_0.md`
+- **raised during:** implementation of DDE-037 (`docs/blueprint/historical/REV_2_0.md`
   §18.3's roadmap: "`DDE-037` mission-level AcceptanceOracle +
   wrong-product detection ⟨Ch.11.3⟩"), gate-reviewed independently after
   DDE-036 (Chapter 6.4 Routing Simulation Model, commit `ae8a2f8`) was

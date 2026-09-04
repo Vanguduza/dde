@@ -1,6 +1,6 @@
 # DDE Code — VS Code / Cursor Extension Suite: Plan (REV 1)
 
-**Status:** planning document. Not a line item in `docs/blueprint/REV_2_0.md` Chapter 18 —
+**Status:** planning document. Not a line item in `docs/blueprint/historical/REV_2_0.md` Chapter 18 —
 if this suite is later formalized as `DDE-0xx` missions, that's a follow-up edit to Ch.18,
 not implied by this document.
 **Scope:** (1) reviews the original "DDE VS Code extension suite" concept against REV 2.0,
@@ -12,7 +12,7 @@ correction below either points a UI element at a contract that already exists in
 or proposes a UI surface for a subsystem REV 2.0 already specifies. If anything here implies
 a change to Chapter 2–20, that's a bug in this document, not a proposal to amend the
 blueprint. One blueprint inconsistency this review surfaced (§1.5.4 vs Ch.18.3 on the MCP
-server's stage) has already been fixed directly in `docs/blueprint/REV_2_0.md`; see §1.
+server's stage) has already been fixed directly in `docs/blueprint/historical/REV_2_0.md`; see §1.
 
 The original plan is sound at the architecture level: keep the editor as the editor, add DDE
 as a control layer using native extension points, route model selection through DDE rather
@@ -47,7 +47,7 @@ a second source of truth. All of that survives this review unchanged.
 
 ## §1 Blueprint fix already applied
 
-`docs/blueprint/REV_2_0.md` §1.5.4 said *"Once DDE has an MCP server (Stage 3)..."* while
+`docs/blueprint/historical/REV_2_0.md` §1.5.4 said *"Once DDE has an MCP server (Stage 3)..."* while
 Ch.18.3 places `DDE-042` ("DDE MCP server") under **S5**. These are inconsistent, and the
 inconsistency matters here because it decides when this plan's MCP-tool integration
 (originally §2 of the chat-export plan) becomes real instead of aspirational.
@@ -789,4 +789,4 @@ What's left:
 2. **Should this suite become formal `DDE-0xx` Chapter 18 line items?** This document treats
    it as planning-only per its own header. If/when it should be formalized into Ch.18 (e.g.
    as sub-items under the S1/S3 milestones each module rides alongside), that's a follow-up
-   edit to `docs/blueprint/REV_2_0.md` — not implied by writing this plan.
+   edit to `docs/blueprint/historical/REV_2_0.md` — not implied by writing this plan.

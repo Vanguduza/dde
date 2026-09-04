@@ -2834,7 +2834,7 @@ Audited/current repository areas include:
 
 - `README.md`, `AGENTS.md`;
 - `docs/truth/**`;
-- legacy `docs/blueprint/REV_2_0.md`;
+- legacy `docs/blueprint/historical/REV_2_0.md`;
 - Frontend Studio planning/charters/chapter gates;
 - planning/routing/worker registries;
 - Worker Manager;

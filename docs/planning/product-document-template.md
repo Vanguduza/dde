@@ -6,7 +6,7 @@
 > blueprint Ch.2.4, and only `engine/truth/**` ever writes Truth tables.
 
 - **version:** 1.2
-- **authority:** `docs/blueprint/REV_2_0.md` (Ch.2 authority ranks, Ch.2.4 Project Truth,
+- **authority:** `docs/blueprint/historical/REV_2_0.md` (Ch.2 authority ranks, Ch.2.4 Project Truth,
   Ch.11 verification, Ch.13.8 donor governance) + `schemas/objects/*.json` as schema truth
 - **consumers:** DDE-065 generation-prompt compiler (fail-closed on unresolved inputs),
   mission chartering (Ch.4), Donor Lab ingestion (DDE-046/047), diff-gate admission (Ch.9.7)

@@ -39,7 +39,7 @@ Accepted Project Truth rows written through `engine/truth/**` outrank markdown s
 
 **Status:** REV3-LOCKED
 
-`docs/truth/BLUEPRINT_REV3.md` is the canonical human-readable architecture. `docs/blueprint/REV_2_0.md` remains historical depth/reference.
+`docs/truth/BLUEPRINT_REV3.md` is the canonical human-readable architecture. `docs/blueprint/historical/REV_2_0.md` remains historical depth/reference.
 
 **Consequence:** new work boots from Rev 3; where Rev 2 conflicts with Rev 3, Rev 3 wins unless an accepted Project Truth record says otherwise.
 
@@ -301,11 +301,17 @@ The operator experience should unify Mission Overview, truth/context, work, flee
 
 ---
 
-## AD-030 — Web Frontend Studio quality closes before multi-target expansion
+## AD-030 — DDE-069 is Frontend Studio V2 / Live Design Foundation, not a separate mobile mission
 
-**Status:** PLANNED
+**Status:** REV3-LOCKED (resolves a documentation drift; supersedes this AD's earlier text)
 
-DDE-069 mobile/multi-target profiles are sequenced after the web Frontend Studio verification loop is evidence-complete enough to avoid multiplying an immature pipeline.
+DDE-069 is the **DDE Code / Frontend Studio V2 + Live Design Foundation** mission: a host-neutral React/TS/Vite workbench, production PXG/Frontend Contract/Coverage Engine, one unified mutation/candidate/lock architecture, governed design-source adapters, and first-class `Claude /design` integration — per `docs/truth/DEV_PLAN_REV3.md` §6 and the adopted domain architecture `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036).
+
+This closes a same-day Rev 3.3 drift: `DEV_PLAN_REV3.md` was rewritten (commit `b5753db`, "docs: adopt Rev 3.3 orchestrator attestation truth") to give DDE-069 this scope, but this file, `IMPLEMENTATION_STATE.md` and `RESUME_PROMPT.md` were never updated to match and kept describing DDE-069 as deferred "Mobile/Multi-target Profiles." Web Frontend Studio quality (DDE-068) still gates DDE-069 promotion exactly as this AD originally said — that sequencing constraint is unchanged, only the mission's name/scope was drifted and is now corrected.
+
+Mobile/multi-target work is not deleted or forgotten: it becomes a governed **sub-capability** of DDE-069 (platform-specific design-source adapters — BNA UI/gluestack/React Native Reusables — plus Expo/device runtime verification; `FRONTEND_STUDIO_REV3.md` §11.6, §26, migration phase M13), not a separately numbered deferred mission. See AD-031, unchanged.
+
+**Consequence:** any doc, chapter gate, or agent bootstrap prompt referring to "DDE-069 mobile" as a standalone mission is stale. Treat this AD-030 and `FRONTEND_STUDIO_REV3.md` as authoritative until superseded by an accepted EDR.
 
 ---
 
@@ -313,7 +319,7 @@ DDE-069 mobile/multi-target profiles are sequenced after the web Frontend Studio
 
 **Status:** PLANNED / REV3-LOCKED direction
 
-Multi-target/mobile support reuses one design/token authority and adds renderer adapters plus target-specific verification. A platform must not fork its own independent design truth.
+Mobile/multi-target rendering (scoped inside DDE-069 per AD-030, not a separate mission) reuses one design/token authority and adds renderer adapters plus target-specific verification. A platform must not fork its own independent design truth.
 
 ---
 
@@ -341,7 +347,46 @@ Compilers, validators, lints, state machines, rule tables and test oracles shoul
 
 `BLUEPRINT_REV3.md`, `DEV_PLAN_REV3.md`, `ARCHITECTURE_DECISIONS.md`, `IMPLEMENTATION_STATE.md` and `RESUME_PROMPT.md` form the human-readable bootstrap set.
 
-**Consequence:** they must remain internally consistent and must be updated deliberately when the project advances.
+**Consequence:** they must remain internally consistent and must be updated deliberately when the project advances. (AD-030's original text drifted from `DEV_PLAN_REV3.md` for several hours before being caught and corrected on 2026-09-04 — see AD-030 itself for the case study.)
+
+---
+
+## AD-035 — Golden visual authority: light-first supersedes the prior dark-first Frontend Studio direction
+
+**Status:** REV3-LOCKED (user-approved change package, 2026-09-03)
+
+The user-approved golden Frontend Studio mockup (1672×941px, approved 2026-09-03) is the canonical DDE visual baseline, per `docs/truth/FRONTEND_STUDIO_REV3.md` decision FS-R3-001. It supersedes the older DDE-069 "Precision Manufacturing Workbench" visual-direction prose in `DEV_PLAN_REV3.md` §6.1 (dark-first; broadly prohibited gradients).
+
+Canonical direction: light-first, neutral, dense, precision-oriented shell; dark theme remains a required derived parity theme, not the golden baseline; DDE application chrome stays gradient-free; a target project being designed/previewed may use gradients when its own Frontend Contract permits them. The dense, high-information-density, no-generic-SaaS-card-grid discipline from the superseded text is retained.
+
+**Consequence:** `DEV_PLAN_REV3.md` §6.1 is annotated as superseded-by-FS-R3-001 in place, preserving the historical text it replaces, rather than silently rewritten. Full architecture: `docs/truth/FRONTEND_STUDIO_REV3.md`.
+
+---
+
+## AD-036 — Frontend Studio Rev 3 domain architecture adopted
+
+**Status:** REV3-LOCKED (user-locked change package, 2026-09-03)
+
+`docs/truth/FRONTEND_STUDIO_REV3.md` is adopted as the canonical Frontend Studio domain architecture. It consolidates the prior Rev 2 Frontend Studio blueprint in full and supersedes `docs/planning/frontend-studio-gui-spec.md` for DDE-069's mission definition — that document's own header states "proposed spec — awaiting charter integration," so it was never formally adopted in the first place. `docs/planning/product-studio-charter.md` and `docs/planning/dde-frontend-ux-playbook.md` remain in force for their signed DDE-065/066/067/068 scope, except where `FRONTEND_STUDIO_REV3.md` explicitly supersedes a visual-direction detail (AD-035).
+
+DDE-068 remains a hard prerequisite for any DDE-069 promotion: `FRONTEND_STUDIO_REV3.md`'s own "DDE-068 DEPENDENCY" clause and `docs/truth/RESUME_PROMPT.md` §3 both hold that Frontend Studio V2 work cannot be marked complete or promoted around the DDE-068 visual-verification gate, even though preparatory schema/UI/runtime work may proceed in isolated, non-promoted packets where sequencing allows.
+
+**Consequence:** an agent bootstrapping into Frontend Studio work must read `FRONTEND_STUDIO_REV3.md` alongside the existing Rev 3 truth set (see updated `RESUME_PROMPT.md`). `frontend-studio-gui-spec.md` is retained for its still-useful mobile/technical detail but is no longer authoritative for DDE-069's mission scope.
+
+---
+
+## AD-037 — Documentation consolidation: one source of truth per subject, superseded/orphaned docs removed or archived
+
+**Status:** USER-LOCKED (2026-09-04)
+
+Per explicit user direction to leave the project "with one source of truth" and remove documents "containing superseded features... to avoid conflicting features, confusion," the following consolidation was executed on 2026-09-04, alongside AD-030/AD-035/AD-036 above:
+
+1. `docs/blueprint/REV_2_0.md` — moved to `docs/blueprint/historical/REV_2_0.md` (not deleted; it remains historical/reference depth per the pre-existing rule at the top of this file). All ~19 in-repo references to the old path were updated to the new path. An archival note was added at the top of the moved file stating it is preserved verbatim, is not updated for accuracy, and naming two facts that have since changed (the deleted `product-constitution.md` stub it references as a bootstrap step, and DDE-069's redefinition under AD-030/AD-036).
+2. `docs/planning/comparable-systems-research-2026-08-22.md` and `docs/planning/system-audit-2026-08-22.md` — deleted. Both were confirmed to have zero inbound references anywhere in the repository before deletion (verified by repo-wide grep, not merely asserted).
+3. `docs/product-constitution.md` — deleted. It was an empty, never-filled template stub with one inbound reference, inside the now-archived `docs/blueprint/historical/REV_2_0.md`; that reference is addressed by the archival note in (1) rather than by editing the historical document's body text.
+4. `docs/planning/frontend-studio-gui-spec.md` — annotated with a supersession banner pointing to `FRONTEND_STUDIO_REV3.md`/AD-036 for DDE-069's mission definition, consistent with AD-036's existing text; the file itself is otherwise retained per AD-036 for its DDE-065..068 GUI/UX detail.
+
+**Consequence:** the repository's superseded/orphaned/empty documentation debt identified during this audit is resolved. Future superseded documents should be handled the same way — archived with a dated note if historically referenced, deleted outright if orphaned and empty — rather than left in place to accumulate drift. This AD does not itself change any DDE-06x/DDE-069 scope decision; those are recorded in AD-030/AD-035/AD-036.
 
 ---
 

@@ -16,7 +16,7 @@ PRECEDENCE — WHAT WINS WHEN SOURCES DISAGREE
 Bind in this order, highest first:
 1. schemas/objects/*.json — field names, enum values, array item types. Schema truth
    outranks all prose about what the schema means.
-2. docs/blueprint/REV_2_0.md — chapter law (Ch.11.2 binding rule, Ch.13.8 taxonomy, Ch.9.3
+2. docs/blueprint/historical/REV_2_0.md — chapter law (Ch.11.2 binding rule, Ch.13.8 taxonomy, Ch.9.3
    side-effect classes, Ch.3.4 slugs).
 3. product-document-template.md — structural authority for the artifact you are filling.
 4. This prompt.
@@ -40,7 +40,7 @@ Open decisions / EDR intake with a proposed_default where an honest one exists. 
 gap is a planning input; an invented answer is a defect wearing a finished shape.
 
 INPUTS YOU NEED BEFORE STARTING
-- The blueprint (docs/blueprint/REV_2_0.md) and the schemas it's generated from — these are
+- The blueprint (docs/blueprint/historical/REV_2_0.md) and the schemas it's generated from — these are
   schema truth. Field names, enum values, and chapter citations in your draft must trace to
   something in one of these, never to your general knowledge of "how ERPs usually work."
 - product-document-template.md (v1.2) — the structure you're filling. Its load-bearing

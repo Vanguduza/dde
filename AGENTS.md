@@ -17,7 +17,7 @@ this order before starting or resuming implementation:
 `docs/truth/RESUME_PROMPT.md` is the canonical prompt for starting a fresh engineering
 session without the historic ChatGPT thread.
 
-`docs/blueprint/REV_2_0.md` is retained as historical/reference depth. It is no longer
+`docs/blueprint/historical/REV_2_0.md` is retained as historical/reference depth. It is no longer
 the forward-development authority. Where it conflicts with Blueprint Rev 3, use Rev 3
 unless an accepted Project Truth record decides otherwise.
 

@@ -18,7 +18,7 @@ and migration `0003` — was independently gate-reviewed and confirmed
 gate-partial-implementation.md`, which itself already flags the commit's
 mission number as "provisional").
 
-Per `docs/blueprint/REV_2_0.md` §18.3's own roadmap, **Chapter 5.13's eval
+Per `docs/blueprint/historical/REV_2_0.md` §18.3's own roadmap, **Chapter 5.13's eval
 corpus and promotion gates are chartered as `DDE-032`, not `DDE-031`.** The
 commit message mislabels its actual blueprint-chartered scope.
 

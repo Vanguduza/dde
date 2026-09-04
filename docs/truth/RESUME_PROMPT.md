@@ -19,10 +19,11 @@ Read, in this order:
 3. `docs/truth/ARCHITECTURE_DECISIONS.md`
 4. `docs/truth/DEV_PLAN_REV3.md`
 5. `docs/truth/IMPLEMENTATION_STATE.md`
-6. the relevant accepted EDR markdown pre-images under `docs/truth/edr/**`
-7. the relevant mission charter / chapter-gate / specialist planning documents under `docs/planning/**`
+6. `docs/truth/FRONTEND_STUDIO_REV3.md` — adopted domain architecture for DDE-069/Frontend Studio V2, required reading once DDE-068 is evidence-complete (AD-036)
+7. the relevant accepted EDR markdown pre-images under `docs/truth/edr/**` — note some EDRs referenced elsewhere (e.g. EDR-0027, EDR-0028, EDR-0031, EDR-0033) have no markdown pre-image in this directory; if the file is absent, the accepted Project Truth database row is the record, not a missing file
+8. the relevant mission charter / chapter-gate / specialist planning documents under `docs/planning/**`
 
-Accepted Project Truth database records outrank every markdown file. `BLUEPRINT_REV3.md` is the canonical human-readable architecture. `docs/blueprint/REV_2_0.md` is historical/reference depth only unless Rev 3 explicitly points to it.
+Accepted Project Truth database records outrank every markdown file. `BLUEPRINT_REV3.md` is the canonical human-readable architecture. `docs/blueprint/historical/REV_2_0.md` is historical/reference depth only unless Rev 3 explicitly points to it.
 
 Do not silently choose a convenient document when sources conflict. Identify the conflict and use the EDR/change-control path if the authoritative contract must change.
 
@@ -54,7 +55,7 @@ Read:
 - accepted `EDR-0016` VLM design-critic dependency/budget record
 - relevant visual/verification sections of `BLUEPRINT_REV3.md` and `DEV_PLAN_REV3.md`
 
-Do not skip DDE-068 merely to start newer orchestration or mobile work unless code evidence proves DDE-068 is already evidence-complete.
+Do not skip DDE-068 merely to start newer orchestration or DDE-069/Frontend Studio V2 work (which now includes the former mobile-profiles scope as a sub-capability, not a separate mission — see `ARCHITECTURE_DECISIONS.md` AD-030) unless code evidence proves DDE-068 is already evidence-complete.
 
 ### 4. DDE-068 execution rule
 

@@ -12,7 +12,7 @@ New development starts from the repository truth set, not from historic chat con
 4. [`docs/truth/IMPLEMENTATION_STATE.md`](docs/truth/IMPLEMENTATION_STATE.md) — evidence-based current state and next work packet.
 5. [`docs/truth/RESUME_PROMPT.md`](docs/truth/RESUME_PROMPT.md) — canonical bootstrap prompt for a fresh engineering session.
 
-[`docs/blueprint/REV_2_0.md`](docs/blueprint/REV_2_0.md) is retained as historical/reference depth. It is no longer the forward-development authority where it conflicts with Rev 3.
+[`docs/blueprint/historical/REV_2_0.md`](docs/blueprint/historical/REV_2_0.md) is retained as historical/reference depth. It is no longer the forward-development authority where it conflicts with Rev 3.
 
 Read [`AGENTS.md`](AGENTS.md) before changing code.
 

@@ -5,7 +5,7 @@ planning; no engine code changes, no Project Truth rows, no new dependency. Reco
 `docs/planning/gap-closure-record.md §6.9`.
 
 **Orientation anchors:** `AGENTS.md` (forbidden list; no second source of truth);
-`docs/blueprint/REV_2_0.md` Ch.2.2 (precedence ranks), Ch.5.6/5.7 (rank-9 evidence,
+`docs/blueprint/historical/REV_2_0.md` Ch.2.2 (precedence ranks), Ch.5.6/5.7 (rank-9 evidence,
 budget/eviction), Ch.13.1–13.4 (approval, standing approvals, non-blocking decisions,
 attention economics), Ch.12.4 (durable effects); the blueprint's standing refusal of
 "any agent framework, graph runtime or agent-to-agent message bus" for core state

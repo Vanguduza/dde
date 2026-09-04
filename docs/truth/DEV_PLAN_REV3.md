@@ -707,6 +707,8 @@ New binding rules:
 **Priority:** P0  
 **Objective:** Replace DDE-067's command-console UX with a professional IDE-class workbench without changing Core authority or the proven command paths.
 
+**Domain authority:** `docs/truth/FRONTEND_STUDIO_REV3.md` is the adopted, detailed technical architecture for this mission (AD-036) — read it alongside this section. It supersedes `docs/planning/frontend-studio-gui-spec.md`'s mission definition (that document was never formally adopted) and hardens/elaborates everything below: host-neutral React/TS/Vite runtime, PXG/Frontend Contract/Coverage Engine, unified mutation/candidate/lock architecture, governed source adapters (internal/21st/donor/mobile), and first-class `Claude /design` integration. DDE-068 remains a hard prerequisite for promotion.
+
 ---
 
 ## 6.1 Product design register
@@ -721,7 +723,9 @@ Design serves:
 - quality control;
 - multi-agent supervision.
 
-Visual direction:
+> **SUPERSEDED BY FS-R3-001 (2026-09-03; see `docs/truth/ARCHITECTURE_DECISIONS.md` AD-035).** The paragraph below is retained verbatim as the historical record of the decision it replaces — do not implement against it. The user-approved golden Frontend Studio mockup (1672×941px) is now the canonical visual baseline: **light-first**, neutral, dense, precision-oriented shell; dark theme is a required derived parity theme, not the golden baseline; DDE application chrome stays gradient-free; a target project being designed/previewed may use gradients when its own Frontend Contract permits. The density/no-generic-SaaS-card-grid discipline below is retained. Full architecture: `docs/truth/FRONTEND_STUDIO_REV3.md`.
+
+Visual direction (historical, superseded):
 
 > **Precision Manufacturing Workbench**
 

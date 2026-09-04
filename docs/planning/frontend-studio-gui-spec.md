@@ -1,5 +1,7 @@
 # Frontend Studio — GUI/UX specification
 
+> **Superseded (2026-09-04):** DDE-069's mission definition — Frontend Studio V2 and the Live Design Foundation — is now governed by `docs/truth/FRONTEND_STUDIO_REV3.md`, adopted per `docs/truth/ARCHITECTURE_DECISIONS.md` AD-030/AD-036. This document remains valid as the DDE-065..068 GUI/UX spec (the material below §12's mobile-targets scope), but no longer authoritatively defines DDE-069 scope; that content is superseded by the Rev 3 domain architecture document.
+
 **Version:** v1.2 (2026-08-24; §12 mobile targets added). **Status:**
 proposed spec — awaiting charter integration. This is a work-planning/design document, not an EDR; it creates
 no Project Truth rows and modifies no contract. It specifies the GUI surface

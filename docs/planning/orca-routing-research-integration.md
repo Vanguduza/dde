@@ -6,7 +6,7 @@ adopted patterns below are design inputs **and** acceptance-criteria seeds for t
 routing-learning charters; recorded in `docs/planning/gap-closure-record.md §6.7`.
 
 **Orientation anchors:** `AGENTS.md` (Ch.9.6 dependency admission; patterns-not-packages);
-`docs/blueprint/REV_2_0.md` Ch.6 (gate pipeline; §6.5 day-one telemetry; §6.7
+`docs/blueprint/historical/REV_2_0.md` Ch.6 (gate pipeline; §6.5 day-one telemetry; §6.7
 exploration/propensity; §6.8 learning eligibility; §6.9 staged activation), §5.11
 failure attribution; `engine/routing/**`, `engine.telemetry`,
 `engine.contracts.routing_decision_outcome`.

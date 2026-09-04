@@ -22,7 +22,7 @@
 - **status:** `proposed`
 - **supersedes:** none
 - **affected_requirement_slugs:** none filed yet
-- **raised during:** implementation of DDE-036 (`docs/blueprint/REV_2_0.md`
+- **raised during:** implementation of DDE-036 (`docs/blueprint/historical/REV_2_0.md`
   §18.3's roadmap: "`DDE-036` Routing Simulation Model as fixture
   generator ⟨Ch.6.4⟩"), gate-reviewed independently after DDE-035
   (Chapter 6.5 routing telemetry, commit `2b82040`) was found

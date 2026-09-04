@@ -1,5 +1,7 @@
 # DDE v1 — Master Technical Blueprint & Construction Plan
 
+> **Archival note (2026-09-04):** This document was moved from `docs/blueprint/REV_2_0.md` to `docs/blueprint/historical/REV_2_0.md` as part of the Rev 3 documentation consolidation (`ARCHITECTURE_DECISIONS.md` AD-037). It is preserved verbatim as historical/reference depth only — it is **not** updated for accuracy against the current repository. In particular: `docs/product-constitution.md`, referenced below as a bootstrap artifact, was deleted as an orphaned empty stub and no longer exists; and the DDE-069 mission it describes as "mobile targets" was redefined by Rev 3 — see `docs/truth/FRONTEND_STUDIO_REV3.md` and AD-030. Consult `docs/truth/BLUEPRINT_REV3.md` and the Rev 3 truth set for current architecture.
+
 **Revision 2.0 — Execution-Ready Baseline**
 **Date:** 19 August 2026
 **Supersedes:** REV 1.3 Gap-Closure Construction Baseline (all REV 1.3 content is preserved, corrected, or superseded explicitly in [Chapter 20](#chapter-20--change-control-and-traceability-to-rev-13))

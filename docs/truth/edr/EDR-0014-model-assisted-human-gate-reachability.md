@@ -19,7 +19,7 @@
 
 ## Context
 
-Chapter 4.3's approval table (`docs/blueprint/REV_2_0.md`, §4.3) requires
+Chapter 4.3's approval table (`docs/blueprint/historical/REV_2_0.md`, §4.3) requires
 graph approval "when any node is `risk_class ≥ high` or
 `blast_radius ≥ cross_module`". DDE-040 encoded that threshold verbatim
 (`engine/planning/registry.py` `promote_human_gate_required`,

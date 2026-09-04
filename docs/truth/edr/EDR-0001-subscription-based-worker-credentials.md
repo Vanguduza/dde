@@ -11,7 +11,7 @@
 > gates and similar follow-ons stay gated on their own missions.
 
 > **Location note (read before anything else).** This repository has **no existing
-> markdown-file EDR convention**. Per Chapter 3.6 of `docs/blueprint/REV_2_0.md`,
+> markdown-file EDR convention**. Per Chapter 3.6 of `docs/blueprint/historical/REV_2_0.md`,
 > an EDR is a **row in the `edrs` table** (`schemas/objects/edr.json`,
 > `engine/contracts/edr.py`), written only by `engine/truth/` (the chapter's
 > "sole writer"), surfaced to humans via an "EDR" panel (see
@@ -320,7 +320,7 @@ new capability Chapter 14.3 does not have today):
   entitlement), mediated or token-exchanged by the broker — used only where
   no machine-mintable credential exists."* This is a blueprint change, not
   just an implementation detail, and should be reflected in
-  `docs/blueprint/REV_2_0.md` §14.3 if/when this EDR is accepted (per
+  `docs/blueprint/historical/REV_2_0.md` §14.3 if/when this EDR is accepted (per
   AGENTS.md: "Public behaviour change is reflected in the blueprint chapter
   it belongs to").
 - The broker gains a sixth operation (`register_delegated_session`, name

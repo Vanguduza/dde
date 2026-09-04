@@ -18,7 +18,7 @@ optional steering at best; Track B value is harvested into DDE-owned schemas, li
 and verification seams already chartered under DDE-065 / DDE-067 / DDE-068.
 
 **Orientation anchors:** `AGENTS.md` (Ch.9.6 dependency admission);
-`docs/blueprint/REV_2_0.md` Ch.11 (AcceptanceOracle, generator/verifier independence,
+`docs/blueprint/historical/REV_2_0.md` Ch.11 (AcceptanceOracle, generator/verifier independence,
 Definition-of-Polished battery), Ch.13.8 (donor governance, conformance-by-construction);
 `docs/planning/product-studio-charter.md`; `docs/planning/dde-frontend-ux-playbook.md`
 §1.1 / §10; `docs/planning/gap-closure-record.md` §5–§6.5; `docs/truth/edr/EDR-0008-*`
