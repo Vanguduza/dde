@@ -1,0 +1,64 @@
+{
+  "rubric_id": "dde.visual_critique",
+  "rubric_version": "1",
+  "source": "docs/planning/dde-frontend-ux-playbook.md sections 8.1 and 8.3",
+  "scale": { "minimum": 1, "maximum": 5 },
+  "blocking_threshold": 4,
+  "blocking_rule": "Any scored dimension below blocking_threshold blocks merge (playbook section 8: 'Each dimension scored 1-5; any dimension <4 blocks merge.').",
+  "dimensions": [
+    {
+      "key": "pattern_fidelity",
+      "source": "8.1",
+      "five_looks_like": "Recognisably the one declared pattern; zero orphan elements",
+      "one_looks_like": "Ad-hoc layout, mixed grammars"
+    },
+    {
+      "key": "token_discipline",
+      "source": "8.1",
+      "five_looks_like": "Only generated token references; lints green",
+      "one_looks_like": "Inline hex/px/motion literals"
+    },
+    {
+      "key": "hierarchy_and_rhythm",
+      "source": "8.1",
+      "five_looks_like": "Clear scan path; spacing grid holds at both widths",
+      "one_looks_like": "Uneven gaps, competing emphasis"
+    },
+    {
+      "key": "data_presentation",
+      "source": "8.1",
+      "five_looks_like": "Tabular truth: aligned figures, quiet chrome, honest empties",
+      "one_looks_like": "Decorative charts, pill-spam status, fabricated density"
+    },
+    {
+      "key": "copy_voice",
+      "source": "8.1",
+      "five_looks_like": "Verb-first, sentence case, domain-exact, terse",
+      "one_looks_like": "Marketing tone, helper essays, exclamation marks"
+    },
+    {
+      "key": "states_completeness",
+      "source": "8.1",
+      "five_looks_like": "idle/loading/empty/error/disabled designed and shown",
+      "one_looks_like": "Happy path only"
+    },
+    {
+      "key": "motion_restraint",
+      "source": "8.1",
+      "five_looks_like": "Token durations, bounded loops, reduced-motion variants shown",
+      "one_looks_like": "Autoplaying loops, bounce/spring, no reduce variant"
+    },
+    {
+      "key": "accessibility",
+      "source": "8.1",
+      "five_looks_like": "Focus rings intact, labels present, AA contrast, targets >=28px",
+      "one_looks_like": "Removed outline, unlabeled controls"
+    },
+    {
+      "key": "believable_density",
+      "source": "8.3 (P4)",
+      "five_looks_like": "Realistic marked sample data (data-sample=\"demo\") that lets hierarchy, rhythm, and states be judged",
+      "one_looks_like": "Placeholder filler (\"Item 1\", lorem) that cannot be evaluated"
+    }
+  ]
+}

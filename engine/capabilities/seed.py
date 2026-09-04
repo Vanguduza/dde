@@ -151,6 +151,46 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
             "egress": "external:anthropic (via local claude CLI only)"
         },
     ),
+    # DDE-068 / EDR-0017 Option C: the NARROW multimodal visual critic.
+    # Deliberately a separate capability from `capability.claude_code_invoke`
+    # rather than a relaxation of it -- that one keeps its mandatory,
+    # non-standing, per-invocation human approval
+    # (`external_model_invocation`, `STANDING_FORBIDDEN_TYPES`) precisely
+    # because it grants arbitrary development execution against a human's
+    # own rate-limited seat. This one is safe for bounded machine use under
+    # the ordinary Chapter 9 lease path because its permitted action set is
+    # intrinsically narrow, enforced by construction in its adapter:
+    # bounded visual evidence + a versioned rubric in, one schema-validated
+    # structured verdict out; a per-invocation scratch directory holding
+    # only the screenshot; read-only tooling; no arbitrary prompt; no code
+    # execution; no nested agent; a hard spend ceiling and timeout.
+    # PURE_READ: a critique observes a rendered artifact and writes nothing
+    # -- contrast `capability.claude_code_invoke`'s
+    # EXTERNAL_NON_IDEMPOTENT. Its real consumable resource is model
+    # invocation against a rate-limited seat, recorded in invocation counts
+    # and whatever usage metadata the runtime actually reports (never an
+    # invented dollar figure).
+    SeedCapability(
+        capability_id="capability.visual_critique",
+        version="1",
+        category="external_model",
+        summary=(
+            "Judge one rendered screenshot against the versioned "
+            "visual-critique rubric and return a schema-validated "
+            "structured verdict (DDE-068). Narrow by construction: no "
+            "shell, no filesystem mutation, no source access, no arbitrary "
+            "prompt, no nested agent -- evidence in, verdict out."
+        ),
+        side_effect_class="PURE_READ",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("adapters.visual_critic.adapter.LocalMultimodalVisualCritic",),
+        dependencies=("claude",),
+        supported_workloads=("verification", "visual_analysis"),
+        network_requirements={
+            "egress": "external:multimodal-critic (via local CLI runtime only)"
+        },
+    ),
     # DDE-043 / Chapter 9.8 web-browser class. Playwright is the blueprint's
     # named implementation (Ch.11 verification tooling, Appendix A). T1:
     # DDE's own adapter launches the browser, never a third-party harness
