@@ -14,6 +14,7 @@ from engine.chat.attachments import FrontendChatAttachmentService
 from engine.chat.plans import FrontendChatPlanService
 from engine.core.errors import DdeError
 from engine.fabric.memory import MemoryService
+from engine.studio.audit.reads import ScreenAuditReadService
 from engine.studio.candidates.service import CandidateService
 from engine.studio.pxg.service import PxgService
 from engine.truth.db import open_unit_of_work
@@ -116,6 +117,7 @@ class FrontendChatContextService:
         self._pxg = PxgService(engine)
         self._candidates = CandidateService(engine, pxg=self._pxg)
         self._truth = TruthRepository()
+        self._audit = ScreenAuditReadService(engine)
 
     async def assemble(
         self,
@@ -363,15 +365,52 @@ class FrontendChatContextService:
                 str(payload.get("version") or payload.get("updated_at") or ""),
             )
         if kind == "finding":
-            # Screen Audit is an adopted DDE-069 dependency. Until its stashed
-            # Packet C is restored after this Chat checkpoint, fail closed here.
+            try:
+                finding_id = UUID(target)
+            except ValueError as exc:
+                raise DdeError(
+                    "VALIDATION_FAILED",
+                    "invalid Screen Audit finding id",
+                    retryable=False,
+                ) from exc
+            finding = await self._audit.finding_by_id(
+                tenant_id=tenant_id, project_id=project_id, finding_id=finding_id
+            )
+            if finding is None:
+                return ResolvedContextRef(
+                    normalized,
+                    kind,
+                    "UNAVAILABLE",
+                    "Screen Audit finding not found",
+                    None,
+                    0,
+                )
+            evidence = await self._audit.evidence_for_finding(
+                tenant_id=tenant_id, project_id=project_id, finding_id=finding_id
+            )
+            text = (
+                f"finding={finding.finding_id} type={finding.finding_type} "
+                f"severity={finding.severity} status={finding.status} "
+                f"assessment={finding.assessment_state} pxg_key={finding.pxg_key}\n"
+                f"message={finding.message}\nrule={finding.rule_id}@{finding.rule_version}\n"
+                f"evidence="
+                + ", ".join(
+                    f"{item.source_type}:{item.source_ref}:{item.assessment_state}"
+                    for item in evidence
+                )
+            )
             return ResolvedContextRef(
                 normalized,
                 kind,
-                "UNAVAILABLE",
-                "Screen Audit finding projection is not yet active in this checkpoint",
-                None,
-                0,
+                "AVAILABLE" if not finding.stale else "UNAVAILABLE",
+                (
+                    f"Screen Audit {finding.finding_type} ({finding.severity})"
+                    if not finding.stale
+                    else "Screen Audit finding is stale and must be re-audited"
+                ),
+                text if not finding.stale else None,
+                _tokens(text) if not finding.stale else 0,
+                str(finding.audit_run_id),
             )
         raise DdeError("VALIDATION_FAILED", "unsupported Chat context ref")
 

@@ -43,6 +43,7 @@ from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.fabric.lifecycle import FabricLifecycleService
 from engine.fabric.runtime import AgentInteropRuntimeService
+from engine.studio.audit.reads import ScreenAuditReadService
 from engine.studio.design.gateway import DesignGateway
 from engine.studio.inspector import InspectorService
 from engine.studio.locks.service import LockService
@@ -85,6 +86,7 @@ class FrontendChatService:
         fabric_runtime: AgentInteropRuntimeService | None = None,
         lifecycle: FabricLifecycleService | None = None,
         frontend_context: FrontendStudioChatContextAdapter | None = None,
+        audit_reads: ScreenAuditReadService | None = None,
     ) -> None:
         self._engine = engine
         self._mutations = mutations or GovernedMutationService(engine)
@@ -111,6 +113,7 @@ class FrontendChatService:
         self._frontend_context = frontend_context or FrontendStudioChatContextAdapter(
             engine, reads=self._reads, locks=self._locks
         )
+        self._audit_reads = audit_reads or ScreenAuditReadService(engine)
 
     async def open(
         self,
@@ -1233,35 +1236,37 @@ class FrontendChatService:
             return "ANSWERED", None, None, message
 
         if intent is Intent.QA_QUERY:
-            if conversation.active_candidate_id is None:
-                detail = (
-                    "QA query needs an active candidate to identify current evidence"
-                )
-                return "REFUSED", "NO_ACTIVE_CANDIDATE", detail, detail
-            board = await self._reads.candidate_board(
-                tenant_id=tenant_id, project_id=project_id
+            pxg_key = (
+                classification.target_keys[0] if classification.target_keys else None
             )
-            candidate_id = str(conversation.active_candidate_id)
-            card = next(
-                (item for item in board.cards if item.candidate_id == candidate_id),
-                None,
+            findings = await self._audit_reads.current_findings(
+                tenant_id=tenant_id, project_id=project_id, pxg_key=pxg_key
             )
-            if card is None:
-                detail = (
-                    "the active candidate is absent from the current candidate board"
-                )
-                return "REFUSED", "CONTEXT_INCOMPLETE", detail, detail
-            checks = ", ".join(
-                f"{item.kind}={item.status}" for item in card.verification_checks
-            )
-            run_state = card.verification_run_status or "NOT_EVALUATED"
-            request_state = card.verification_request_state or "NOT_REQUESTED"
+            blocking = sum(1 for item in findings if item.severity == "BLOCKING")
             message = (
-                f"Candidate QA: request={request_state}; run={run_state}; "
-                f"evidence={len(card.verification_evidence_refs)}"
+                f"Screen Audit: {len(findings)} unresolved finding(s); "
+                f"blocking={blocking}"
             )
-            if checks:
-                message += f"; checks: {checks}"
+            if findings:
+                message += "; " + " | ".join(
+                    f"{item.finding_type}@{item.pxg_key or item.node_key or 'project'} "
+                    f"[{item.severity}/{item.assessment_state}]"
+                    for item in findings[:10]
+                )
+                if len(findings) > 10:
+                    message += f"; +{len(findings) - 10} more"
+            if conversation.active_candidate_id is not None:
+                board = await self._reads.candidate_board(
+                    tenant_id=tenant_id, project_id=project_id
+                )
+                candidate_id = str(conversation.active_candidate_id)
+                card = next(
+                    (item for item in board.cards if item.candidate_id == candidate_id),
+                    None,
+                )
+                if card is not None:
+                    run_state = card.verification_run_status or "NOT_EVALUATED"
+                    message += f"; active candidate verification={run_state}"
             return "ANSWERED", None, None, message
 
         if intent is Intent.INSPECT:

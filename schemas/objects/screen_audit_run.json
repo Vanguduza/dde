@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/screen_audit_run.json",
+  "title": "ScreenAuditRun",
+  "description": "DDE-069 reproducible Screen Audit execution pinned to exact PXG/Frontend Contract inputs. Owned by engine.studio.audit; summary_state never turns unknown evidence into a pass.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "screen_audit_runs",
+    "order": 313,
+    "pk": [
+      "audit_run_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "screen_audit_runs_revision_valid",
+        "expression": "pxg_revision >= 0"
+      },
+      {
+        "name": "screen_audit_runs_lock_version_positive",
+        "expression": "lock_version >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "screen_audit_runs_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "screen_audit_runs_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "screen_audit_runs_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "screen_audit_runs_contract_id_fkey",
+        "columns": [
+          "frontend_contract_id"
+        ],
+        "ref_table": "frontend_contracts",
+        "ref_columns": [
+          "contract_id"
+        ]
+      },
+      {
+        "name": "screen_audit_runs_parent_id_fkey",
+        "columns": [
+          "parent_audit_run_id"
+        ],
+        "ref_table": "screen_audit_runs",
+        "ref_columns": [
+          "audit_run_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "audit_run_id",
+    "tenant_id",
+    "project_id",
+    "pxg_revision",
+    "policy_version",
+    "started_at",
+    "status",
+    "trigger",
+    "summary_state",
+    "affected_keys",
+    "stale",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "audit_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pxg_revision": {
+      "type": "integer"
+    },
+    "frontend_contract_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "frontend_contract_version": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "role_policy_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "design_system_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "BLOCKED",
+        "SUPERSEDED"
+      ]
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "FULL",
+        "INCREMENTAL",
+        "MANUAL",
+        "CONTRACT_CHANGE",
+        "PXG_CHANGE",
+        "PROMOTION",
+        "VERIFICATION_CHANGE",
+        "SOURCE_CHANGE"
+      ]
+    },
+    "parent_audit_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "affected_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

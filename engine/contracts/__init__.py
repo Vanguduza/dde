@@ -97,6 +97,11 @@ from engine.contracts.routing_activation_state import RoutingActivationState
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
 from engine.contracts.routing_insight_candidate import RoutingInsightCandidate
 from engine.contracts.routing_simulation_run import RoutingSimulationRun
+from engine.contracts.screen_audit_evidence import ScreenAuditEvidence
+from engine.contracts.screen_audit_finding import ScreenAuditFinding
+from engine.contracts.screen_audit_resolution import ScreenAuditResolution
+from engine.contracts.screen_audit_run import ScreenAuditRun
+from engine.contracts.screen_audit_screen_record import ScreenAuditScreenRecord
 from engine.contracts.seed_dataset import SeedDataset
 from engine.contracts.standing_approval import StandingApproval
 from engine.contracts.task import Task
@@ -212,6 +217,11 @@ __all__ = [
     "RoutingDecisionOutcome",
     "RoutingInsightCandidate",
     "RoutingSimulationRun",
+    "ScreenAuditEvidence",
+    "ScreenAuditFinding",
+    "ScreenAuditResolution",
+    "ScreenAuditRun",
+    "ScreenAuditScreenRecord",
     "SeedDataset",
     "StandingApproval",
     "Task",

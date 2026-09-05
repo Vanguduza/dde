@@ -16,11 +16,13 @@ from sqlalchemy import (
     TIMESTAMP,
     Boolean,
     Column,
+    Index,
     Integer,
     MetaData,
     Numeric,
     Table,
     Text,
+    UniqueConstraint,
     Uuid,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -420,3 +422,174 @@ frontend_chat_change_reviews = Table(
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
+
+# Screen Audit / Experience Completeness Engine. Schema authority lives in
+# schemas/objects/screen_audit_*.json; these tables mirror generated SQL.
+screen_audit_runs = Table(
+    "screen_audit_runs",
+    metadata,
+    Column("audit_run_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=True),
+    Column("source_revision", Text, nullable=True),
+    Column("pxg_revision", Integer, nullable=False),
+    Column("frontend_contract_id", Uuid(as_uuid=True), nullable=True),
+    Column("frontend_contract_version", Integer, nullable=True),
+    Column("policy_version", Text, nullable=False),
+    Column("role_policy_hash", Text, nullable=True),
+    Column("design_system_hash", Text, nullable=True),
+    Column("started_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("completed_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("status", Text, nullable=False),
+    Column("trigger", Text, nullable=False),
+    Column("parent_audit_run_id", Uuid(as_uuid=True), nullable=True),
+    Column("summary_state", Text, nullable=False),
+    Column("affected_keys", JSONB, nullable=False),
+    Column("stale", Boolean, nullable=False),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+Index(
+    "ix_screen_audit_runs_project_started",
+    screen_audit_runs.c.project_id,
+    screen_audit_runs.c.started_at,
+)
+
+screen_audit_screen_records = Table(
+    "screen_audit_screen_records",
+    metadata,
+    Column("record_id", Uuid(as_uuid=True), primary_key=True),
+    Column("audit_run_id", Uuid(as_uuid=True), nullable=False),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("pxg_key", Text, nullable=False),
+    Column("screen_kind", Text, nullable=False),
+    Column("platform", Text, nullable=False),
+    Column("module_or_product_area", Text, nullable=True),
+    Column("route_identity", Text, nullable=True),
+    Column("source_refs", JSONB, nullable=False),
+    Column("journey_refs", JSONB, nullable=False),
+    Column("role_refs", JSONB, nullable=False),
+    Column("feature_requirement_refs", JSONB, nullable=False),
+    Column("data_dependency_refs", JSONB, nullable=False),
+    Column("component_inventory_ref", Text, nullable=True),
+    Column("verification_binding_refs", JSONB, nullable=False),
+    Column("render_evidence_refs", JSONB, nullable=False),
+    Column("implementation_state", Text, nullable=False),
+    Column("assessment_state", Text, nullable=False),
+    Column("dimension_states", JSONB, nullable=False),
+    Column("stale", Boolean, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+    UniqueConstraint("audit_run_id", "pxg_key"),
+)
+Index(
+    "ix_screen_audit_records_project_key",
+    screen_audit_screen_records.c.project_id,
+    screen_audit_screen_records.c.pxg_key,
+)
+Index(
+    "ix_screen_audit_records_project_stale",
+    screen_audit_screen_records.c.project_id,
+    screen_audit_screen_records.c.stale,
+)
+
+screen_audit_findings = Table(
+    "screen_audit_findings",
+    metadata,
+    Column("finding_id", Uuid(as_uuid=True), primary_key=True),
+    Column("audit_run_id", Uuid(as_uuid=True), nullable=False),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("pxg_key", Text, nullable=True),
+    Column("node_key", Text, nullable=True),
+    Column("finding_type", Text, nullable=False),
+    Column("dimension", Text, nullable=False),
+    Column("severity", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("assessment_state", Text, nullable=False),
+    Column("message", Text, nullable=False),
+    Column("evidence_refs", JSONB, nullable=False),
+    Column("requirement_refs", JSONB, nullable=False),
+    Column("journey_refs", JSONB, nullable=False),
+    Column("role_refs", JSONB, nullable=False),
+    Column("dependency_keys", JSONB, nullable=False),
+    Column("rule_id", Text, nullable=False),
+    Column("rule_version", Text, nullable=False),
+    Column("first_detected_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("last_observed_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("resolved_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("resolution_ref", Uuid(as_uuid=True), nullable=True),
+    Column("decision_ref", Text, nullable=True),
+    Column("stale", Boolean, nullable=False),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+Index(
+    "ix_screen_audit_findings_project_key",
+    screen_audit_findings.c.project_id,
+    screen_audit_findings.c.pxg_key,
+)
+Index(
+    "ix_screen_audit_findings_project_status",
+    screen_audit_findings.c.project_id,
+    screen_audit_findings.c.stale,
+    screen_audit_findings.c.status,
+)
+Index(
+    "ix_screen_audit_findings_project_dimension",
+    screen_audit_findings.c.project_id,
+    screen_audit_findings.c.dimension,
+    screen_audit_findings.c.severity,
+)
+
+screen_audit_evidence = Table(
+    "screen_audit_evidence",
+    metadata,
+    Column("evidence_id", Uuid(as_uuid=True), primary_key=True),
+    Column("audit_run_id", Uuid(as_uuid=True), nullable=False),
+    Column("finding_id", Uuid(as_uuid=True), nullable=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("pxg_key", Text, nullable=True),
+    Column("dimension", Text, nullable=False),
+    Column("evidence_kind", Text, nullable=False),
+    Column("source_type", Text, nullable=False),
+    Column("source_ref", Text, nullable=False),
+    Column("source_revision", Text, nullable=True),
+    Column("content_hash", Text, nullable=True),
+    Column("assessment_state", Text, nullable=False),
+    Column("metadata", JSONB, nullable=False),
+    Column("stale", Boolean, nullable=False),
+    Column("observed_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+Index(
+    "ix_screen_audit_evidence_project_key",
+    screen_audit_evidence.c.project_id,
+    screen_audit_evidence.c.pxg_key,
+    screen_audit_evidence.c.stale,
+)
+
+screen_audit_resolutions = Table(
+    "screen_audit_resolutions",
+    metadata,
+    Column("resolution_id", Uuid(as_uuid=True), primary_key=True),
+    Column("finding_id", Uuid(as_uuid=True), nullable=False),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("resolution_kind", Text, nullable=False),
+    Column("candidate_id", Uuid(as_uuid=True), nullable=True),
+    Column("accepted_revision", Text, nullable=True),
+    Column("decision_ref", Text, nullable=True),
+    Column("evidence_refs", JSONB, nullable=False),
+    Column("resolved_by", Uuid(as_uuid=True), nullable=True),
+    Column("resolved_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+Index("ix_screen_audit_resolutions_finding", screen_audit_resolutions.c.finding_id)

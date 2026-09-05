@@ -33,6 +33,7 @@ import type {
   FrontendStudioSnapshot,
   InspectorDescriptor,
   PreviewDocument,
+  ScreenAuditMatrix,
   StudioMode,
 } from "../state/projections";
 
@@ -57,6 +58,7 @@ export function DdeStudioApp({
 }: DdeStudioAppProps) {
   const [hostContext, setHostContext] = useState<FrontendHostContext | null>(null);
   const [snapshot, setSnapshot] = useState<FrontendStudioSnapshot | null>(null);
+  const [auditMatrix, setAuditMatrix] = useState<ScreenAuditMatrix | null>(null);
   const [mode, setMode] = useState<StudioMode>("design");
   const [group, setGroup] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -184,11 +186,13 @@ export function DdeStudioApp({
     Promise.all([
       bridge.requestRead<FrontendHostContext>({ resource: "frontend.host.context" }),
       bridge.requestRead<FrontendStudioSnapshot>({ resource: "frontend.studio.snapshot" }),
+      bridge.requestRead<ScreenAuditMatrix>({ resource: "frontend.audit.matrix" }).catch(() => null),
     ])
-      .then(([context, value]) => {
+      .then(([context, value, audit]) => {
         if (cancelled) return;
         setHostContext(context);
         setSnapshot(value);
+        setAuditMatrix(audit);
         setLoadError(null);
       })
       .catch((error: unknown) => {
@@ -904,6 +908,7 @@ export function DdeStudioApp({
           <FrontendStudioWorkspace
             mode={mode}
             snapshot={snapshot}
+            auditMatrix={auditMatrix}
             viewport={viewport}
             onViewportChange={setViewport}
             screenKey={screenKey}
@@ -956,6 +961,7 @@ export function DdeStudioApp({
           error={inspectorError}
           applyingProperty={applyingProperty}
           candidate={activeCandidate}
+          auditMatrix={auditMatrix}
           onApply={(propertyName, value) =>
             void applyInspectorProperty(propertyName, value)
           }

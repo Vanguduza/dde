@@ -4,6 +4,7 @@ import { Unavailable } from "../components/Honest";
 import type {
   CandidateCardSnapshot,
   InspectorDescriptor,
+  ScreenAuditMatrix,
   InspectorPropertyDescriptor,
 } from "../state/projections";
 
@@ -15,6 +16,7 @@ export interface InspectorPanelProps {
   readonly error: string | null;
   readonly applyingProperty: string | null;
   readonly candidate: CandidateCardSnapshot | null;
+  readonly auditMatrix: ScreenAuditMatrix | null;
   readonly onApply: (propertyName: string, value: string) => void;
 }
 
@@ -26,6 +28,7 @@ export function InspectorPanel({
   error,
   applyingProperty,
   candidate,
+  auditMatrix,
   onApply,
 }: InspectorPanelProps) {
   if (!selectedKey) {
@@ -83,6 +86,15 @@ export function InspectorPanel({
             onApply={onApply}
           />
         ))}
+      </div>
+      <div className="dde-inspector-section" data-testid="inspector-audit">
+        <h3>Screen Audit</h3>
+        {(() => {
+          const screen = auditMatrix?.screens.find((item) => item.pxgKey === descriptor.pxgKey || descriptor.pxgKey.startsWith(`${item.pxgKey}#`) || descriptor.pxgKey.startsWith(`${item.pxgKey}/`));
+          if (!screen) return <span data-state="NOT_EVALUATED">Not evaluated.</span>;
+          const findings = auditMatrix?.findings.filter((item) => item.pxgKey === screen.pxgKey) ?? [];
+          return <><strong data-state={screen.assessmentState}>{screen.assessmentState}</strong><div className="dde-chip-row">{Object.entries(screen.dimensionStates).map(([dimension,state]) => <span key={dimension} className="dde-chip" data-state={state}>{dimension} · {state}</span>)}</div>{findings.length ? <span>{findings.length} unresolved finding(s)</span> : <span data-state="PASS">No current findings.</span>}</>;
+        })()}
       </div>
       <div className="dde-inspector-section" data-testid="inspector-verification-evidence">
         <h3>Current verification evidence</h3>

@@ -4,6 +4,8 @@ import type {
   CandidateCardSnapshot,
   FrontendStudioSnapshot,
   PreviewDocument,
+  ScreenAuditMatrix,
+  ScreenAuditFinding,
   SourceWorkspaceInventory,
   StudioMode,
 } from "../state/projections";
@@ -41,6 +43,7 @@ export type PreviewRuntimeSignal =
 export interface WorkspaceProps {
   readonly mode: StudioMode;
   readonly snapshot: FrontendStudioSnapshot | null;
+  readonly auditMatrix: ScreenAuditMatrix | null;
   readonly viewport: string;
   readonly onViewportChange: (value: string) => void;
   readonly screenKey: string | null;
@@ -64,6 +67,7 @@ export interface WorkspaceProps {
 export function FrontendStudioWorkspace({
   mode,
   snapshot,
+  auditMatrix,
   viewport,
   onViewportChange,
   screenKey,
@@ -96,9 +100,11 @@ export function FrontendStudioWorkspace({
       />
       <div className="dde-canvas" data-testid="canvas">
         {mode === "coverage" ? (
-          <CoverageMode snapshot={snapshot} />
+          <CoverageMode snapshot={snapshot} auditMatrix={auditMatrix} />
         ) : mode === "qa" ? (
-          <QaMode snapshot={snapshot} activeCandidateId={activeCandidateId} />
+          <QaMode snapshot={snapshot} auditMatrix={auditMatrix} activeCandidateId={activeCandidateId} />
+        ) : mode === "architecture" ? (
+          <ArchitectureMode auditMatrix={auditMatrix} />
         ) : mode === "design" ? (
           <DesignMode
             activeCandidateId={activeCandidateId}
@@ -132,9 +138,8 @@ export function FrontendStudioWorkspace({
 const MODE_REASON: Record<StudioMode, string> = {
   design: "",
   coverage: "",
-  architecture:
-    "The PXG graph view is DDE-069 M12. The graph itself is real — see Coverage — but this rendering is not built.",
-  qa: "Verification evidence summary is implemented; Screen Audit findings land in the next DDE-069 packet.",
+  architecture: "",
+  qa: "",
   source: "The design-source registry is DDE-069 M8. No source adapter is wired yet.",
 };
 
@@ -438,8 +443,10 @@ function isGeometry(value: unknown): value is PreviewSelection["geometry"] {
 
 function CoverageMode({
   snapshot,
+  auditMatrix,
 }: {
   readonly snapshot: FrontendStudioSnapshot | null;
+  readonly auditMatrix: ScreenAuditMatrix | null;
 }) {
   const coverage = snapshot?.coverage;
   if (!coverage) {
@@ -458,6 +465,24 @@ function CoverageMode({
         {coverage.pxgRevision ?? "—"}
         {coverage.stale ? " (stale — recompute)" : ""}
       </p>
+      {auditMatrix ? (
+        <>
+          <p className="dde-muted" data-testid="audit-summary">
+            Screen Audit {auditMatrix.summary.currentness} · {auditMatrix.summary.summaryState} · {auditMatrix.summary.blockingFindings} blocking
+          </p>
+          <table className="dde-table" data-testid="audit-screen-matrix">
+            <thead><tr><th>Screen</th><th>Contract</th><th>Journey</th><th>Functional</th><th>State</th><th>A11y</th><th>Visual</th><th>Platform</th></tr></thead>
+            <tbody>{auditMatrix.screens.map((screen) => (
+              <tr key={screen.pxgKey} data-testid={`audit-screen-${screen.pxgKey}`}>
+                <th scope="row">{screen.pxgKey}</th>
+                {["CONTRACT","JOURNEY","FUNCTIONAL","STATE","ACCESSIBILITY","VISUAL","RESPONSIVE_PLATFORM"].map((dimension) => (
+                  <td key={dimension} data-state={screen.dimensionStates[dimension] ?? "UNKNOWN"}>{screen.dimensionStates[dimension] ?? "UNKNOWN"}</td>
+                ))}
+              </tr>
+            ))}</tbody>
+          </table>
+        </>
+      ) : <p className="dde-muted">Screen Audit has not been evaluated.</p>}
       <table className="dde-table">
         <thead>
           <tr>
@@ -480,9 +505,11 @@ function CoverageMode({
 
 function QaMode({
   snapshot,
+  auditMatrix,
   activeCandidateId,
 }: {
   readonly snapshot: FrontendStudioSnapshot | null;
+  readonly auditMatrix: ScreenAuditMatrix | null;
   readonly activeCandidateId: string | null;
 }) {
   if (!snapshot) {
@@ -492,17 +519,13 @@ function QaMode({
     (candidate) =>
       candidate.verificationRequestId !== null || candidate.verificationRunId !== null,
   );
-  if (!cards.length) {
-    return (
-      <Unavailable
-        availability="EMPTY"
-        reason="No candidate verification request or run exists yet."
-      />
-    );
+  if (!cards.length && !auditMatrix?.findings.length) {
+    return <Unavailable availability="EMPTY" reason="No audit findings or candidate verification runs exist yet." />;
   }
   return (
     <div className="dde-coverage-mode" data-testid="qa-mode">
-      <h2 className="dde-panel-heading">Candidate verification</h2>
+      <h2 className="dde-panel-heading">QA findings & verification</h2>
+      {auditMatrix?.findings.length ? <AuditFindingList findings={auditMatrix.findings} /> : null}
       <p className="dde-muted">
         Real DDE-068 request, check and evidence state. PENDING/BLOCKED/SUPERSEDED are
         not verdicts.
@@ -551,6 +574,21 @@ function QaMode({
       ))}
     </div>
   );
+}
+
+function AuditFindingList({ findings }: { readonly findings: readonly ScreenAuditFinding[] }) {
+  return <div data-testid="audit-findings">{findings.map((finding) => (
+    <article key={finding.findingId} className="dde-qa-candidate" data-severity={finding.severity}>
+      <div className="dde-qa-heading"><strong>{finding.findingType}</strong><span>{finding.severity}</span><span>{finding.assessmentState}</span></div>
+      <p>{finding.message}</p><span className="dde-muted">{finding.pxgKey ?? finding.nodeKey ?? "project"} · {finding.dimension} · {finding.ruleId}</span>
+    </article>
+  ))}</div>;
+}
+
+function ArchitectureMode({ auditMatrix }: { readonly auditMatrix: ScreenAuditMatrix | null }) {
+  if (!auditMatrix) return <Unavailable availability="NOT_CONFIGURED" reason="Run Screen Audit to populate architecture overlays." />;
+  const findings = auditMatrix.findings.filter((item) => ["JOURNEY","NAVIGATION","DRIFT","ROLE","RESPONSIVE_PLATFORM"].includes(item.dimension));
+  return <div className="dde-coverage-mode" data-testid="architecture-audit-mode"><h2 className="dde-panel-heading">Experience graph audit overlays</h2><p className="dde-muted">Derived from PXG/Contract audit evidence; no demo graph is fabricated.</p>{findings.length ? <AuditFindingList findings={findings} /> : <p data-state="PASS">No current architecture findings.</p>}</div>;
 }
 
 function CandidateStrip({

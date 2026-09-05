@@ -63,6 +63,21 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("qa-mode")).toContainText("Evidence: 2");
   });
 
+  test("Screen Audit matrix, QA and architecture modes render one current projection", async ({ page }) => {
+    await page.getByTestId("mode-coverage").click();
+    await expect(page.getByTestId("audit-screen-matrix")).toContainText("screens/checkout");
+    await expect(page.getByTestId("audit-summary")).toContainText("1 blocking");
+    await expect(page.getByTestId("audit-screen-screens/checkout")).toContainText("FAIL");
+
+    await page.getByTestId("mode-qa").click();
+    await expect(page.getByTestId("audit-findings")).toContainText("MISSING_ERROR_STATE");
+    await expect(page.getByTestId("audit-findings")).toContainText("Checkout has no payment-error state");
+
+    await page.getByTestId("mode-architecture").click();
+    await expect(page.getByTestId("architecture-audit-mode")).toBeVisible();
+    await expect(page.getByTestId("architecture-audit-mode")).toContainText("REQUIRED_VIEWPORT_UNVERIFIED");
+  });
+
   test("stable pxg selection resolves a real Inspector descriptor", async ({ page }) => {
     const frame = page.frameLocator("iframe.dde-preview-frame");
     const hero = frame.locator('[data-dde-pxg-key="screens/checkout#hero"]');
@@ -83,6 +98,8 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("inspector-verification-evidence")).toContainText(
       "visual_critique · PASSED",
     );
+    await expect(page.getByTestId("inspector-audit")).toContainText("PARTIAL");
+    await expect(page.getByTestId("inspector-audit")).toContainText("2 unresolved finding");
   });
 
   test("View source resolves the descriptor source through the host bridge", async ({ page }) => {

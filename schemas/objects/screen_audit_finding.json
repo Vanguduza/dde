@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/screen_audit_finding.json",
+  "title": "ScreenAuditFinding",
+  "description": "Durable typed Screen Audit finding. Resolution is evidence-driven and records are never deleted to simulate success.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "screen_audit_findings",
+    "order": 315,
+    "pk": [
+      "finding_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "screen_audit_findings_lock_version_positive",
+        "expression": "lock_version >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "screen_audit_findings_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "screen_audit_findings_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "screen_audit_findings_run_id_fkey",
+        "columns": [
+          "audit_run_id"
+        ],
+        "ref_table": "screen_audit_runs",
+        "ref_columns": [
+          "audit_run_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "finding_id",
+    "audit_run_id",
+    "tenant_id",
+    "project_id",
+    "finding_type",
+    "dimension",
+    "severity",
+    "status",
+    "assessment_state",
+    "message",
+    "evidence_refs",
+    "requirement_refs",
+    "journey_refs",
+    "role_refs",
+    "dependency_keys",
+    "rule_id",
+    "rule_version",
+    "first_detected_at",
+    "last_observed_at",
+    "stale",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "finding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "audit_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "pxg_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "node_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "finding_type": {
+      "type": "string"
+    },
+    "dimension": {
+      "type": "string",
+      "enum": [
+        "CONTRACT",
+        "JOURNEY",
+        "FUNCTIONAL",
+        "STATE",
+        "DATA",
+        "ROLE",
+        "PERMISSION",
+        "NAVIGATION",
+        "ACCESSIBILITY",
+        "RESPONSIVE_PLATFORM",
+        "VISUAL",
+        "SOURCE_PROVENANCE",
+        "SECURITY",
+        "VERIFICATION",
+        "DRIFT"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "BLOCKING",
+        "ERROR",
+        "WARNING",
+        "INFO"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DETECTED",
+        "CONFIRMED",
+        "CANDIDATE_CREATED",
+        "ASSIGNED",
+        "VERIFYING",
+        "RESOLVED",
+        "ACCEPTED_EXCEPTION",
+        "BLOCKED",
+        "SUPERSEDED"
+      ]
+    },
+    "assessment_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "requirement_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "journey_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "role_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependency_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rule_id": {
+      "type": "string"
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "first_detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolution_ref": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decision_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

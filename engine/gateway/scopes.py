@@ -137,6 +137,9 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "frontend.contract.publish": "mission.control",
     "frontend.pxg.apply": "mission.control",
     "frontend.coverage.recompute": "mission.control",
+    "frontend.audit.run": "mission.control",
+    "frontend.audit.recompute_affected": "mission.control",
+    "frontend.audit.accept_exception": "mission.control",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -210,6 +213,9 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "frontend.contract.publish": "mission",
     "frontend.pxg.apply": "mission",
     "frontend.coverage.recompute": "mission",
+    "frontend.audit.run": "mission",
+    "frontend.audit.recompute_affected": "mission",
+    "frontend.audit.accept_exception": "mission",
 }
 
 #: AI Conversation Fabric commands are explicit and mission-scoped. The dispatcher

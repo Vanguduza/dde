@@ -773,3 +773,21 @@ Do not spend the session rewriting this plan unless implementation evidence expo
 ## End of canonical resume prompt
 
 The purpose of this file is to make a fresh engineering session accurate, evidence-driven and independent of chat history while preserving DDE's quality-over-speed rule.
+
+## DDE-069 Screen Audit checkpoint — 2026-09-05
+
+Screen Audit Packet C/D/E/F is now implemented in the working branch: schema-first
+run/screen/finding/evidence/resolution persistence, deterministic reconciliation,
+accepted DDE-068 evidence, incremental staleness, mission reads/commands, Coverage
+Screen Matrix, QA findings, Architecture overlays, Inspector Audit, universal Chat
+audit queries and live `@finding`. Dogfood reconciliation validates the independent
+99-control ledger and does not fabricate a production audit run when PostgreSQL is
+unavailable. Evidence: `docs/evidence/dde-069/SCREEN_AUDIT_ENGINE.md`.
+
+The next unblocked DDE-069 packet is **M8 Source Intelligence**: common
+DesignSourceAdapter contract, project/internal/DDE-library/donor/21st source inventory,
+provider health, inspected artifacts, Design System Compiler admission, provenance,
+template recommendations and evidence-backed candidate scorecards. External providers
+must remain typed unavailable when not configured; no provider result may write accepted
+production directly. Then use the dogfood 99-control gap list to close remaining golden
+controls.

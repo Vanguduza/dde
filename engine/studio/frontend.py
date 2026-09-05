@@ -43,6 +43,7 @@ from engine.governance.service import ApprovalService
 from engine.missions.service import MissionService
 from engine.studio.acceptance.defaults import GENERATED_SCREEN
 from engine.studio.acceptance.service import ScreenAcceptanceService
+from engine.studio.audit.service import ScreenAuditService
 from engine.studio.candidates.lifecycle import CandidateState
 from engine.studio.candidates.promotion import PromotionService
 from engine.studio.candidates.service import CandidateService
@@ -97,6 +98,7 @@ class FrontendStudioService:
         pxg: PxgService | None = None,
         coverage: CoverageService | None = None,
         screens: ScreenAcceptanceService | None = None,
+        audit: ScreenAuditService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -110,6 +112,9 @@ class FrontendStudioService:
             engine, pxg=self._pxg, contracts=self._contracts
         )
         self._screens_service = screens
+        self._audit = audit or ScreenAuditService(
+            engine, pxg=self._pxg, contracts=self._contracts
+        )
 
     def _missions(self) -> MissionService:
         return MissionService(self._engine, EventService(self._engine))
@@ -1438,12 +1443,20 @@ class FrontendStudioService:
             candidate_id=candidate_id,
             verification_runs=runs,
         )
+        audit = await self._refresh_audit_after_accepted_change(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=promoted.mission_id,
+            trigger="PROMOTION",
+            affected_keys=tuple(promoted.scope_keys),
+        )
         return {
             "candidate_id": str(promoted.candidate_id),
             "state": promoted.state,
             "promoted_at": promoted.promoted_at.isoformat()
             if promoted.promoted_at
             else None,
+            **audit,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -1478,6 +1491,55 @@ class FrontendStudioService:
         if run is None or run.tenant_id != tenant_id or run.project_id != project_id:
             return ()
         return (run,)
+
+    async def _refresh_audit_after_accepted_change(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        trigger: str,
+        affected_keys: tuple[str, ...] = (),
+        full_invalidation: bool = False,
+    ) -> dict[str, object]:
+        """Refresh derived audit truth without misreporting an already-accepted write.
+
+        The accepted write has committed before this helper runs. Audit is derived
+        state, so failure is surfaced as degraded audit state rather than making the
+        command look rolled back when it was not. Old audit rows are staled first.
+        """
+        try:
+            if full_invalidation:
+                await self._audit.invalidate_all(
+                    tenant_id=tenant_id, project_id=project_id
+                )
+            elif affected_keys:
+                await self._audit.invalidate_affected(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    affected_keys=affected_keys,
+                )
+            execution = await self._audit.run(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                trigger=trigger,
+                affected_keys=affected_keys,
+            )
+            return {
+                "audit_run_id": str(execution.run.audit_run_id),
+                "audit_summary_state": execution.run.summary_state,
+                "audit_refresh_state": "COMPLETED",
+            }
+        except (
+            Exception
+        ) as exc:  # derived-state failure must not falsify accepted write
+            return {
+                "audit_run_id": None,
+                "audit_summary_state": "UNKNOWN",
+                "audit_refresh_state": "ERRORED",
+                "audit_error": f"{type(exc).__name__}: {exc}",
+            }
 
     async def register_screen(
         self,
@@ -1517,6 +1579,13 @@ class FrontendStudioService:
             expect_text=_optional_str(parameters, "expect_text"),
             visual_diff_spec_path=_optional_str(parameters, "visual_diff_spec_path"),
         )
+        audit = await self._refresh_audit_after_accepted_change(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            trigger="PXG_CHANGE",
+            affected_keys=(registration.screen_ref,),
+        )
         return {
             "screen_ref": registration.screen_ref,
             "pxg_revision": registration.pxg_revision,
@@ -1524,6 +1593,7 @@ class FrontendStudioService:
             "oracle_version": registration.oracle.oracle_version,
             "bound_verification_kinds": list(registration.bound_kinds),
             "acceptance_policy_version": registration.policy_version,
+            **audit,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -1547,12 +1617,20 @@ class FrontendStudioService:
             mission_id=mission_id,
             obligations=_obligations(parameters),
         )
+        audit = await self._refresh_audit_after_accepted_change(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            trigger="CONTRACT_CHANGE",
+            full_invalidation=True,
+        )
         return {
             "contract_id": str(contract.contract_id),
             "contract_version": contract.contract_version,
             "content_hash": contract.content_hash,
             "status": contract.status,
             "obligation_count": len(contract.obligations),
+            **audit,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -1564,15 +1642,34 @@ class FrontendStudioService:
         parameters: dict[str, object],
     ) -> dict[str, object]:
         """DDE-069 `frontend.pxg.apply` -- one call is one revision."""
+        nodes = _pxg_nodes(parameters)
+        edges = _pxg_edges(parameters)
+        removals = _string_list(parameters, "remove_node_keys")
         revision = await self._pxg.apply(
             tenant_id=tenant_id,
             project_id=project_id,
-            nodes=_pxg_nodes(parameters),
-            edges=_pxg_edges(parameters),
-            remove_node_keys=_string_list(parameters, "remove_node_keys"),
+            nodes=nodes,
+            edges=edges,
+            remove_node_keys=removals,
+        )
+        affected_keys = tuple(
+            dict.fromkeys(
+                [item.pxg_key for item in nodes]
+                + [item.from_key for item in edges]
+                + [item.to_key for item in edges]
+                + list(removals)
+            )
+        )
+        audit = await self._refresh_audit_after_accepted_change(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=None,
+            trigger="PXG_CHANGE",
+            affected_keys=affected_keys,
         )
         return {
             "pxg_revision": revision,
+            **audit,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -1614,6 +1711,99 @@ class FrontendStudioService:
                 for item in snapshot.dimensions
             ],
             "finding_count": len(snapshot.findings),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def run_screen_audit(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Run a reproducible full/manual Screen Audit."""
+        execution = await ScreenAuditService(
+            self._engine, pxg=self._pxg, contracts=self._contracts
+        ).run(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            trigger=str(parameters.get("trigger") or "MANUAL"),
+            source_revision=(
+                str(parameters["source_revision"])
+                if isinstance(parameters.get("source_revision"), str)
+                else None
+            ),
+            role_policy_hash=(
+                str(parameters["role_policy_hash"])
+                if isinstance(parameters.get("role_policy_hash"), str)
+                else None
+            ),
+            design_system_hash=(
+                str(parameters["design_system_hash"])
+                if isinstance(parameters.get("design_system_hash"), str)
+                else None
+            ),
+        )
+        return {
+            "audit_run": execution.run.model_dump(mode="json"),
+            "screen_count": execution.screen_count,
+            "finding_count": execution.finding_count,
+            "evidence_count": execution.evidence_count,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def recompute_affected_audit(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Re-audit only dependency-proven affected PXG keys."""
+        affected = tuple(_string_list(parameters, "affected_keys"))
+        execution = await ScreenAuditService(
+            self._engine, pxg=self._pxg, contracts=self._contracts
+        ).run(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            trigger="INCREMENTAL",
+            affected_keys=affected,
+            source_revision=(
+                str(parameters["source_revision"])
+                if isinstance(parameters.get("source_revision"), str)
+                else None
+            ),
+        )
+        return {
+            "audit_run": execution.run.model_dump(mode="json"),
+            "affected_keys": list(affected),
+            "screen_count": execution.screen_count,
+            "finding_count": execution.finding_count,
+            "evidence_count": execution.evidence_count,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def accept_audit_exception(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        finding = await ScreenAuditService(self._engine).accept_exception(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            finding_id=_uuid(parameters, "finding_id"),
+            decision_ref=_str(parameters, "decision_ref"),
+            principal_id=principal_id,
+        )
+        return {
+            "finding": finding.model_dump(mode="json"),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 

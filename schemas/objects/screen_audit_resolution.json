@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/screen_audit_resolution.json",
+  "title": "ScreenAuditResolution",
+  "description": "Durable authority explaining how a ScreenAuditFinding left an unresolved state. Chat/model assertions are not valid resolution kinds.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "screen_audit_resolutions",
+    "order": 317,
+    "pk": [
+      "resolution_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "screen_audit_resolutions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "screen_audit_resolutions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "screen_audit_resolutions_finding_id_fkey",
+        "columns": [
+          "finding_id"
+        ],
+        "ref_table": "screen_audit_findings",
+        "ref_columns": [
+          "finding_id"
+        ]
+      },
+      {
+        "name": "screen_audit_resolutions_candidate_id_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "frontend_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "resolution_id",
+    "finding_id",
+    "tenant_id",
+    "project_id",
+    "resolution_kind",
+    "evidence_refs",
+    "resolved_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "resolution_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "finding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resolution_kind": {
+      "type": "string",
+      "enum": [
+        "PROMOTED_REVISION",
+        "ACCEPTED_EXCEPTION",
+        "REQUIREMENT_SUPERSEDED",
+        "SOURCE_CORRECTION"
+      ]
+    },
+    "candidate_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "accepted_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decision_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "resolved_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

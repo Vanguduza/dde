@@ -1828,6 +1828,134 @@ CREATE TABLE frontend_verification_requests (
     CHECK (candidate_pxg_revision >= 0)
 );
 
+CREATE TABLE screen_audit_runs (
+    audit_run_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    source_revision text,
+    pxg_revision integer NOT NULL,
+    frontend_contract_id uuid,
+    frontend_contract_version integer,
+    policy_version text NOT NULL,
+    role_policy_hash text,
+    design_system_hash text,
+    started_at timestamptz NOT NULL,
+    completed_at timestamptz,
+    status text NOT NULL,
+    trigger text NOT NULL,
+    parent_audit_run_id uuid,
+    summary_state text NOT NULL,
+    affected_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    stale boolean NOT NULL,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (audit_run_id),
+    CHECK (pxg_revision >= 0),
+    CHECK (lock_version >= 1)
+);
+
+CREATE TABLE screen_audit_screen_records (
+    record_id uuid NOT NULL,
+    audit_run_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    pxg_key text NOT NULL,
+    screen_kind text NOT NULL,
+    platform text NOT NULL,
+    module_or_product_area text,
+    route_identity text,
+    source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    journey_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    role_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    feature_requirement_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    data_dependency_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    component_inventory_ref text,
+    verification_binding_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    render_evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    implementation_state text NOT NULL,
+    assessment_state text NOT NULL,
+    dimension_states jsonb NOT NULL DEFAULT '{}'::jsonb,
+    stale boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (record_id),
+    UNIQUE (audit_run_id, pxg_key)
+);
+
+CREATE TABLE screen_audit_findings (
+    finding_id uuid NOT NULL,
+    audit_run_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    pxg_key text,
+    node_key text,
+    finding_type text NOT NULL,
+    dimension text NOT NULL,
+    severity text NOT NULL,
+    status text NOT NULL,
+    assessment_state text NOT NULL,
+    message text NOT NULL,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    requirement_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    journey_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    role_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    dependency_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    rule_id text NOT NULL,
+    rule_version text NOT NULL,
+    first_detected_at timestamptz NOT NULL,
+    last_observed_at timestamptz NOT NULL,
+    resolved_at timestamptz,
+    resolution_ref uuid,
+    decision_ref text,
+    stale boolean NOT NULL,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (finding_id),
+    CHECK (lock_version >= 1)
+);
+
+CREATE TABLE screen_audit_evidence (
+    evidence_id uuid NOT NULL,
+    audit_run_id uuid NOT NULL,
+    finding_id uuid,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    pxg_key text,
+    dimension text NOT NULL,
+    evidence_kind text NOT NULL,
+    source_type text NOT NULL,
+    source_ref text NOT NULL,
+    source_revision text,
+    content_hash text,
+    assessment_state text NOT NULL,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    stale boolean NOT NULL,
+    observed_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (evidence_id)
+);
+
+CREATE TABLE screen_audit_resolutions (
+    resolution_id uuid NOT NULL,
+    finding_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    resolution_kind text NOT NULL,
+    candidate_id uuid,
+    accepted_revision text,
+    decision_ref text,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    resolved_by uuid,
+    resolved_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (resolution_id)
+);
+
 CREATE TABLE frontend_chat_attachments (
     attachment_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -2614,6 +2742,30 @@ ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_
 ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_preview_session_id_fkey FOREIGN KEY (preview_session_id) REFERENCES frontend_preview_sessions (preview_session_id);
 ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
 
+ALTER TABLE screen_audit_runs ADD CONSTRAINT screen_audit_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE screen_audit_runs ADD CONSTRAINT screen_audit_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE screen_audit_runs ADD CONSTRAINT screen_audit_runs_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE screen_audit_runs ADD CONSTRAINT screen_audit_runs_contract_id_fkey FOREIGN KEY (frontend_contract_id) REFERENCES frontend_contracts (contract_id);
+ALTER TABLE screen_audit_runs ADD CONSTRAINT screen_audit_runs_parent_id_fkey FOREIGN KEY (parent_audit_run_id) REFERENCES screen_audit_runs (audit_run_id);
+
+ALTER TABLE screen_audit_screen_records ADD CONSTRAINT screen_audit_screen_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE screen_audit_screen_records ADD CONSTRAINT screen_audit_screen_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE screen_audit_screen_records ADD CONSTRAINT screen_audit_screen_records_run_id_fkey FOREIGN KEY (audit_run_id) REFERENCES screen_audit_runs (audit_run_id);
+
+ALTER TABLE screen_audit_findings ADD CONSTRAINT screen_audit_findings_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE screen_audit_findings ADD CONSTRAINT screen_audit_findings_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE screen_audit_findings ADD CONSTRAINT screen_audit_findings_run_id_fkey FOREIGN KEY (audit_run_id) REFERENCES screen_audit_runs (audit_run_id);
+
+ALTER TABLE screen_audit_evidence ADD CONSTRAINT screen_audit_evidence_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE screen_audit_evidence ADD CONSTRAINT screen_audit_evidence_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE screen_audit_evidence ADD CONSTRAINT screen_audit_evidence_run_id_fkey FOREIGN KEY (audit_run_id) REFERENCES screen_audit_runs (audit_run_id);
+ALTER TABLE screen_audit_evidence ADD CONSTRAINT screen_audit_evidence_finding_id_fkey FOREIGN KEY (finding_id) REFERENCES screen_audit_findings (finding_id);
+
+ALTER TABLE screen_audit_resolutions ADD CONSTRAINT screen_audit_resolutions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE screen_audit_resolutions ADD CONSTRAINT screen_audit_resolutions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE screen_audit_resolutions ADD CONSTRAINT screen_audit_resolutions_finding_id_fkey FOREIGN KEY (finding_id) REFERENCES screen_audit_findings (finding_id);
+ALTER TABLE screen_audit_resolutions ADD CONSTRAINT screen_audit_resolutions_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
+
 ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
@@ -3057,6 +3209,26 @@ CREATE POLICY frontend_preview_sessions_tenant_isolation ON frontend_preview_ses
 ALTER TABLE frontend_verification_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_verification_requests FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_verification_requests_tenant_isolation ON frontend_verification_requests USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE screen_audit_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE screen_audit_runs FORCE ROW LEVEL SECURITY;
+CREATE POLICY screen_audit_runs_tenant_isolation ON screen_audit_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE screen_audit_screen_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE screen_audit_screen_records FORCE ROW LEVEL SECURITY;
+CREATE POLICY screen_audit_screen_records_tenant_isolation ON screen_audit_screen_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE screen_audit_findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE screen_audit_findings FORCE ROW LEVEL SECURITY;
+CREATE POLICY screen_audit_findings_tenant_isolation ON screen_audit_findings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE screen_audit_evidence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE screen_audit_evidence FORCE ROW LEVEL SECURITY;
+CREATE POLICY screen_audit_evidence_tenant_isolation ON screen_audit_evidence USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE screen_audit_resolutions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE screen_audit_resolutions FORCE ROW LEVEL SECURITY;
+CREATE POLICY screen_audit_resolutions_tenant_isolation ON screen_audit_resolutions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE frontend_chat_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_chat_attachments FORCE ROW LEVEL SECURITY;

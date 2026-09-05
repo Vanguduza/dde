@@ -63,6 +63,7 @@ from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
 from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
+from engine.studio.audit.reads import ScreenAuditReadService
 from engine.studio.candidates.service import CandidateService
 from engine.studio.frontend import FrontendStudioService
 from engine.studio.inspector import InspectorService
@@ -876,6 +877,27 @@ class CommandDispatcher:
                 project_id=project_id,
                 parameters=params,
             )
+        elif command_type == "frontend.audit.run":
+            payload = await studio.run_screen_audit(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.audit.recompute_affected":
+            payload = await studio.recompute_affected_audit(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.audit.accept_exception":
+            payload = await studio.accept_audit_exception(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
         elif command_type == "frontend.canvas.insert_component":
             payload = await studio.insert_component(
                 tenant_id=tenant_id,
@@ -1094,6 +1116,89 @@ class GatewayCommandService:
             tenant_id=session.tenant_id, project_id=mission.project_id
         )
         return asdict(snapshot)
+
+    async def read_frontend_audit_summary(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        summary = await ScreenAuditReadService(self._engine).summary(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        return asdict(summary)
+
+    async def read_frontend_audit_matrix(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        matrix = await ScreenAuditReadService(self._engine).matrix(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        return {
+            "summary": asdict(matrix.summary),
+            "screens": [item.model_dump(mode="json") for item in matrix.screens],
+            "findings": [item.model_dump(mode="json") for item in matrix.findings],
+        }
+
+    async def read_frontend_audit_screen(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        pxg_key: str,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        reads = ScreenAuditReadService(self._engine)
+        screens = await reads.current_screens(
+            tenant_id=session.tenant_id, project_id=mission.project_id, pxg_key=pxg_key
+        )
+        findings = await reads.current_findings(
+            tenant_id=session.tenant_id, project_id=mission.project_id, pxg_key=pxg_key
+        )
+        return {
+            "screen": screens[0].model_dump(mode="json") if screens else None,
+            "findings": [item.model_dump(mode="json") for item in findings],
+        }
+
+    async def read_frontend_audit_findings(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        pxg_key: str | None = None,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        findings = await ScreenAuditReadService(self._engine).current_findings(
+            tenant_id=session.tenant_id, project_id=mission.project_id, pxg_key=pxg_key
+        )
+        return {"findings": [item.model_dump(mode="json") for item in findings]}
+
+    async def read_frontend_audit_evidence(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        finding_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        evidence = await ScreenAuditReadService(self._engine).evidence_for_finding(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            finding_id=finding_id,
+        )
+        return {"evidence": [item.model_dump(mode="json") for item in evidence]}
 
     async def read_frontend_chat(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID

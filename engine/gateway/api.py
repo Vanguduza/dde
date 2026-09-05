@@ -43,6 +43,7 @@ _HTTP_STATUS = {
     "FORBIDDEN": 403,
     "POLICY_DENIED": 403,
     "TENANT_SCOPE_VIOLATION": 403,
+    "NOT_FOUND": 404,
     # A required capability is not available to this build or principal.
     # A refusal, not an outage: the contract's `retryable` field carries
     # whether waiting would help, so the status line does not have to.
@@ -165,6 +166,78 @@ async def read_frontend_snapshot(
 ) -> dict[str, object]:
     return await _services(request).commands.read_frontend_snapshot(
         session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/audit/summary")
+async def read_frontend_audit_summary(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_audit_summary(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/audit/matrix")
+async def read_frontend_audit_matrix(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_audit_matrix(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/audit/screen")
+async def read_frontend_audit_screen(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    pxg_key: str,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_audit_screen(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        pxg_key=pxg_key,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/audit/findings")
+async def read_frontend_audit_findings(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    pxg_key: str | None = None,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_audit_findings(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        pxg_key=pxg_key,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/audit/findings/{finding_id}/evidence")
+async def read_frontend_audit_evidence(
+    mission_id: UUID,
+    finding_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_audit_evidence(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        finding_id=finding_id,
     )
 
 

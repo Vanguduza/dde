@@ -69,6 +69,9 @@ DDE_069_COMMANDS = (
     "frontend.contract.publish",
     "frontend.pxg.apply",
     "frontend.coverage.recompute",
+    "frontend.audit.run",
+    "frontend.audit.recompute_affected",
+    "frontend.audit.accept_exception",
 )
 
 

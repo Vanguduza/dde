@@ -339,6 +339,15 @@ export class StudioGatewayService {
     );
   }
 
+  async readFrontendAudit(
+    missionId: string,
+    suffix = "summary",
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendAudit(session, this.principalId, missionId, suffix),
+    );
+  }
+
   async readFrontendPreview(
     missionId: string,
     previewSessionId: string,

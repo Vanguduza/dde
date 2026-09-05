@@ -17,6 +17,7 @@ import type {
   FrontendStudioSnapshot,
   InspectorDescriptor,
   PreviewDocument,
+  ScreenAuditMatrix,
 } from "../src/state/projections";
 import "../src/styles/tokens.css";
 import "../src/styles/global.css";
@@ -120,6 +121,29 @@ const chatBudget = (): FrontendChatContextBudget => ({
     archiveSizeBytes: 4096,
   },
 });
+
+function auditMatrix(): ScreenAuditMatrix {
+  return {
+    summary: {
+      availability: "AVAILABLE", currentness: "CURRENT", auditRunId: "audit-run-1",
+      runStatus: "COMPLETED", trigger: "FULL", summaryState: "PARTIAL", pxgRevision: 12,
+      contractVersion: 4, sourceRevision: "workspace-revision", screenCount: 1, unresolvedFindings: 2,
+      blockingFindings: 1, staleFindings: 0, findingCountsByDimension: { STATE: 1, VERIFICATION: 1 },
+      assessmentCounts: { PARTIAL: 1 },
+    },
+    screens: [{
+      recordId: "audit-screen-record-1", auditRunId: "audit-run-1", pxgKey: "screens/checkout",
+      screenKind: "screen", platform: "web", routeIdentity: "/checkout", sourceRefs: [{ path: "src/Checkout.tsx" }],
+      journeyRefs: ["journeys/checkout"], roleRefs: ["customer"], featureRequirementRefs: ["ORDER-F023"],
+      implementationState: "PRESENT", assessmentState: "PARTIAL", stale: false,
+      dimensionStates: { CONTRACT: "PASS", JOURNEY: "PASS", FUNCTIONAL: "PASS", STATE: "FAIL", ACCESSIBILITY: "UNKNOWN", VISUAL: "PASS", RESPONSIVE_PLATFORM: "PARTIAL", VERIFICATION: "PASS" },
+    }],
+    findings: [
+      { findingId: "00000000-0000-0000-0000-0000000000f1", pxgKey: "screens/checkout", nodeKey: null, findingType: "MISSING_ERROR_STATE", dimension: "STATE", severity: "BLOCKING", status: "DETECTED", assessmentState: "FAIL", message: "Checkout has no payment-error state.", evidenceRefs: [], requirementRefs: ["ORDER-F023"], journeyRefs: ["journeys/checkout"], roleRefs: ["customer"], ruleId: "state.required", stale: false },
+      { findingId: "00000000-0000-0000-0000-0000000000f2", pxgKey: "screens/checkout", nodeKey: null, findingType: "REQUIRED_VIEWPORT_UNVERIFIED", dimension: "RESPONSIVE_PLATFORM", severity: "WARNING", status: "DETECTED", assessmentState: "PARTIAL", message: "Mobile checkout remains unverified.", evidenceRefs: [], requirementRefs: [], journeyRefs: [], roleRefs: [], ruleId: "responsive.required", stale: false },
+    ],
+  };
+}
 
 function historicalConversation(): FrontendChatConversation {
   const now = new Date().toISOString();
@@ -781,7 +805,7 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
       };
     }
     if (lower.includes("qa") || lower.includes("finding") || lower.includes("issue")) {
-      const message = `Candidate QA: request=${verificationRequestState ?? "NOT_REQUESTED"}; run=${verificationRunStatus ?? "NOT_EVALUATED"}; evidence=${verificationRunStatus === "PASSED" ? 2 : 0}`;
+      const message = `Screen Audit: 2 unresolved finding(s); blocking=1; MISSING_ERROR_STATE@screens/checkout [BLOCKING/FAIL]; Candidate QA: request=${verificationRequestState ?? "NOT_REQUESTED"}; run=${verificationRunStatus ?? "NOT_EVALUATED"}; evidence=${verificationRunStatus === "PASSED" ? 2 : 0}`;
       const pair = appendChatPair(text, {
         intent: "QA_QUERY",
         outcome: "ANSWERED",
@@ -913,6 +937,11 @@ const bridge = new TestHostBridge({
   reads: {
     "frontend.host.context": { missionId, projectId, projectName: "LogiFlow Marketplace" },
     "frontend.studio.snapshot": () => snapshot(),
+    "frontend.audit.matrix": () => auditMatrix(),
+    "frontend.audit.summary": () => auditMatrix().summary,
+    "frontend.audit.findings": () => ({ findings: auditMatrix().findings }),
+    "frontend.audit.screen": () => ({ screen: auditMatrix().screens[0], findings: auditMatrix().findings }),
+    "frontend.audit.evidence": () => ({ evidence: [] }),
     "frontend.chat.thread": () => chatThread(),
     "frontend.chat.thread.by_id": (query: DdeReadQuery) => {
       const id = String(query.parameters?.conversationId ?? "");

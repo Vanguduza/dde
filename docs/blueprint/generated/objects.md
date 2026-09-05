@@ -690,6 +690,46 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: true
 
+## ScreenAuditRun
+
+- table: `screen_audit_runs`
+- primary key: audit_run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## ScreenAuditScreenRecord
+
+- table: `screen_audit_screen_records`
+- primary key: record_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ScreenAuditFinding
+
+- table: `screen_audit_findings`
+- primary key: finding_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## ScreenAuditEvidence
+
+- table: `screen_audit_evidence`
+- primary key: evidence_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ScreenAuditResolution
+
+- table: `screen_audit_resolutions`
+- primary key: resolution_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## FrontendChatAttachment
 
 - table: `frontend_chat_attachments`

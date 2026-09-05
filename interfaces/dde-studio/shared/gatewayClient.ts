@@ -283,6 +283,20 @@ export class GatewayApiClient {
     );
   }
 
+  async readFrontendAudit(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    suffix = "summary",
+  ): Promise<Record<string, unknown>> {
+    const clean = suffix.replace(/^\/+/, "");
+    return this.get(
+      `/missions/${missionId}/frontend/audit/${clean}`,
+      sessionId,
+      principalId,
+    );
+  }
+
   async readFrontendPreview(
     sessionId: string,
     principalId: string,

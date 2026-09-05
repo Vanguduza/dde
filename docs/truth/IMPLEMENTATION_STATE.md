@@ -348,8 +348,10 @@ history/search/rename/archive/branching, Ask/Plan/Execute modes, honest model
 selection, native opaque-token file attachments, governed plans, activity/tool
 timeline, checkpoints, pinned context budgets and isolated-workspace diff review.
 Deterministic execution still uses the same governed mutation seam and browser-
-proves rerender + fresh DDE-068 re-verification. Production PostgreSQL-backed
-workbench E2E, Screen Audit and M8 Source Intelligence are not complete.
+proves rerender + fresh DDE-068 re-verification. Screen Audit core, incremental
+invalidation, Coverage/QA/Architecture/Inspector projections, deterministic Chat
+queries and `@finding` are now implemented and browser-proven. Production
+PostgreSQL-backed workbench/audit E2E and M8 Source Intelligence are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
 the authoritative per-control projection of
@@ -424,7 +426,8 @@ neither is a completion claim under v2.
   rerender and require fresh DDE-068 verification. `capability.claude_code_invoke`
   remains per-invocation human-approved and is not treated as an always-on model
   or a substitute `/design` transport. Source search remains typed unavailable
-  until M8 and `@finding` remains fail-closed until Screen Audit. Evidence:
+  until M8. `@finding` now resolves current Screen Audit evidence and rejects stale
+  findings. Evidence:
   `docs/evidence/dde-069/REACT_FRONTEND_CHAT.md` and
   `docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md`.
 - **Code-backed preview + Inspector foundation** — `engine/studio/preview_runtime/`,
@@ -480,17 +483,27 @@ neither is a completion claim under v2.
   cards, QA and Inspector expose current request/run/check/evidence state and
   never turn PENDING/BLOCKED/SUPERSEDED into VERIFIED. Evidence:
   `docs/evidence/dde-069/CANDIDATE_VERIFICATION_EXECUTION.md`.
+- **Screen Audit & Experience Completeness Engine** — migration `0033` and
+  `engine/studio/audit/` implement exact-input full/incremental audit runs, durable
+  screen records/findings/evidence/resolutions, deterministic Contract/PXG/Coverage
+  reconciliation, accepted DDE-068 evidence binding, dependency-directed staleness,
+  accepted-change refresh and durable exception authority. Coverage renders the
+  Screen Matrix; QA renders findings plus DDE-068 evidence; Architecture renders
+  real audit overlays; Inspector renders selected-screen audit dimensions; universal
+  DDE Chat answers audit queries and resolves `@finding`. Candidate-local edits do
+  not stale accepted-product audits; promotion does. The dogfood reconciler keeps
+  the independent 99-control ledger unchanged at 5/23/5/66 and records any future
+  disagreement rather than forcing agreement. Evidence:
+  `docs/evidence/dde-069/SCREEN_AUDIT_ENGINE.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / not started:** M8 source adapters, provenance and candidate
 scoring; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
-prototype HTML; production VS Code → Gateway → PostgreSQL live-loop evidence
-(current host has no database/Redis runtime; the new PostgreSQL candidate-run
-persistence test is therefore present but UNAVAILABLE locally); exact viewport
-`set_state`, resize handles and Inspector tab-specific golden contracts not yet
-matched by the current generic controls; mandatory Screen Audit
-domain/projections/Coverage-QA-Architecture integration and dogfood; cross-DDE
-migration (M12); mobile adapters (M13).
+prototype HTML; production VS Code → Gateway → PostgreSQL live-loop/audit evidence
+(current host has no database/Redis runtime; PostgreSQL specifications are present
+but UNAVAILABLE locally); exact viewport `set_state`, resize handles and Inspector
+tab-specific golden contracts not yet matched by the current generic controls;
+cross-DDE migration (M12); mobile adapters (M13).
 
 #### `Claude /design` — BLOCKED_EXTERNAL on a certified transport
 

@@ -203,6 +203,31 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
         ),
       );
     }
+    if (query.resource === "frontend.audit.summary") {
+      return camelizeResult(await gateway.readFrontendAudit(missionId, "summary"));
+    }
+    if (query.resource === "frontend.audit.matrix") {
+      return camelizeResult(await gateway.readFrontendAudit(missionId, "matrix"));
+    }
+    if (query.resource === "frontend.audit.findings") {
+      const pxgKey = optionalParameter(query, "pxgKey");
+      const suffix = pxgKey
+        ? `findings?pxg_key=${encodeURIComponent(pxgKey)}`
+        : "findings";
+      return camelizeResult(await gateway.readFrontendAudit(missionId, suffix));
+    }
+    if (query.resource === "frontend.audit.screen") {
+      const pxgKey = requiredParameter(query, "pxgKey");
+      return camelizeResult(
+        await gateway.readFrontendAudit(missionId, `screens/${encodeURIComponent(pxgKey)}`),
+      );
+    }
+    if (query.resource === "frontend.audit.evidence") {
+      const findingId = requiredParameter(query, "findingId");
+      return camelizeResult(
+        await gateway.readFrontendAudit(missionId, `findings/${findingId}/evidence`),
+      );
+    }
     if (query.resource === "frontend.preview.document") {
       const previewSessionId = requiredParameter(query, "previewSessionId");
       return camelizeResult(

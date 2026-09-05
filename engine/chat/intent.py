@@ -174,7 +174,21 @@ def _intent_of(text: str) -> Intent:
         return Intent.LOCK_CHANGE
     if "coverage" in lowered or "uncovered" in lowered:
         return Intent.COVERAGE_QUERY
-    if any(word in lowered for word in ("qa", "finding", "issue", "warning")):
+    if any(
+        word in lowered
+        for word in (
+            "qa",
+            "audit",
+            "finding",
+            "issue",
+            "warning",
+            "missing state",
+            "unreachable",
+            "dead end",
+            "dead-end",
+            "role gap",
+        )
+    ):
         return Intent.QA_QUERY
     if _SET_PROPERTY.search(text):
         return Intent.MUTATE_DETERMINISTIC

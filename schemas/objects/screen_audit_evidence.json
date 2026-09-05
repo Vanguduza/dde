@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/screen_audit_evidence.json",
+  "title": "ScreenAuditEvidence",
+  "description": "Reference-oriented evidence for one Screen Audit fact. Existing VerificationRun/PXG/Contract/source evidence is referenced instead of copied as new truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "screen_audit_evidence",
+    "order": 316,
+    "pk": [
+      "evidence_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "screen_audit_evidence_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "screen_audit_evidence_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "screen_audit_evidence_run_id_fkey",
+        "columns": [
+          "audit_run_id"
+        ],
+        "ref_table": "screen_audit_runs",
+        "ref_columns": [
+          "audit_run_id"
+        ]
+      },
+      {
+        "name": "screen_audit_evidence_finding_id_fkey",
+        "columns": [
+          "finding_id"
+        ],
+        "ref_table": "screen_audit_findings",
+        "ref_columns": [
+          "finding_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "evidence_id",
+    "audit_run_id",
+    "tenant_id",
+    "project_id",
+    "dimension",
+    "evidence_kind",
+    "source_type",
+    "source_ref",
+    "assessment_state",
+    "metadata",
+    "stale",
+    "observed_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "audit_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "finding_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "pxg_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dimension": {
+      "type": "string",
+      "enum": [
+        "CONTRACT",
+        "JOURNEY",
+        "FUNCTIONAL",
+        "STATE",
+        "DATA",
+        "ROLE",
+        "PERMISSION",
+        "NAVIGATION",
+        "ACCESSIBILITY",
+        "RESPONSIVE_PLATFORM",
+        "VISUAL",
+        "SOURCE_PROVENANCE",
+        "SECURITY",
+        "VERIFICATION",
+        "DRIFT"
+      ]
+    },
+    "evidence_kind": {
+      "type": "string"
+    },
+    "source_type": {
+      "type": "string"
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "assessment_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

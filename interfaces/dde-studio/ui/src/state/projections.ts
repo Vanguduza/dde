@@ -444,6 +444,26 @@ export interface FrontendHostContext {
   readonly projectName: string;
 }
 
+export interface ScreenAuditSummary {
+  readonly availability: string; readonly currentness: string; readonly auditRunId: string | null;
+  readonly runStatus: string | null; readonly trigger: string | null; readonly summaryState: string;
+  readonly pxgRevision: number | null; readonly contractVersion: number | null; readonly sourceRevision: string | null;
+  readonly screenCount: number; readonly unresolvedFindings: number; readonly blockingFindings: number; readonly staleFindings: number;
+  readonly findingCountsByDimension: Readonly<Record<string, number>>; readonly assessmentCounts: Readonly<Record<string, number>>;
+}
+export interface ScreenAuditScreen {
+  readonly recordId: string; readonly auditRunId: string; readonly pxgKey: string; readonly screenKind: string; readonly platform: string;
+  readonly routeIdentity: string | null; readonly sourceRefs: readonly Readonly<Record<string, unknown>>[]; readonly journeyRefs: readonly string[];
+  readonly roleRefs: readonly string[]; readonly featureRequirementRefs: readonly string[]; readonly implementationState: string; readonly assessmentState: string;
+  readonly dimensionStates: Readonly<Record<string, string>>; readonly stale: boolean;
+}
+export interface ScreenAuditFinding {
+  readonly findingId: string; readonly pxgKey: string | null; readonly nodeKey: string | null; readonly findingType: string; readonly dimension: string;
+  readonly severity: string; readonly status: string; readonly assessmentState: string; readonly message: string; readonly evidenceRefs: readonly string[];
+  readonly requirementRefs: readonly string[]; readonly journeyRefs: readonly string[]; readonly roleRefs: readonly string[]; readonly ruleId: string; readonly stale: boolean;
+}
+export interface ScreenAuditMatrix { readonly summary: ScreenAuditSummary; readonly screens: readonly ScreenAuditScreen[]; readonly findings: readonly ScreenAuditFinding[]; }
+
 export interface FrontendStudioSnapshot {
   readonly projectId: string;
   readonly observedAt: string;

@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/screen_audit_screen_record.json",
+  "title": "ScreenAuditScreenRecord",
+  "description": "One logical screen assessment within a ScreenAuditRun, anchored by stable PXG identity or a required contract key when implementation is missing.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "screen_audit_screen_records",
+    "order": 314,
+    "pk": [
+      "record_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [
+      [
+        "audit_run_id",
+        "pxg_key"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "screen_audit_screen_records_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "screen_audit_screen_records_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "screen_audit_screen_records_run_id_fkey",
+        "columns": [
+          "audit_run_id"
+        ],
+        "ref_table": "screen_audit_runs",
+        "ref_columns": [
+          "audit_run_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "record_id",
+    "audit_run_id",
+    "tenant_id",
+    "project_id",
+    "pxg_key",
+    "screen_kind",
+    "platform",
+    "source_refs",
+    "journey_refs",
+    "role_refs",
+    "feature_requirement_refs",
+    "data_dependency_refs",
+    "verification_binding_refs",
+    "render_evidence_refs",
+    "implementation_state",
+    "assessment_state",
+    "dimension_states",
+    "stale",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "record_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "audit_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "pxg_key": {
+      "type": "string"
+    },
+    "screen_kind": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string"
+    },
+    "module_or_product_area": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "route_identity": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "journey_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "role_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "feature_requirement_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data_dependency_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "component_inventory_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "verification_binding_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "render_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "implementation_state": {
+      "type": "string",
+      "enum": [
+        "PRESENT",
+        "MISSING",
+        "ORPHANED",
+        "UNKNOWN"
+      ]
+    },
+    "assessment_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "dimension_states": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
