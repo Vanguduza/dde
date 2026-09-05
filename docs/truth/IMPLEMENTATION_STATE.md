@@ -66,12 +66,12 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. React live-canvas wiring, workbench selection/edit E2E, React Chat UI, Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and permanent React Frontend Chat surface are browser-proven and production-wired; production PostgreSQL E2E remains unavailable on this host. Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
 | DeepSeek worker integration | `IMPLEMENTED_PARTIAL` | Harness/profile references exist; Rev 3 lower-cost delegation policy and measured routing specialization remain to be proven end-to-end. |
-| Frontend Studio professional Rev 3 redesign | `IMPLEMENTED_PARTIAL` | The host-neutral React shell, canonical composition, DDE-068 backend integration, code-backed prototype preview foundation and InspectorDescriptor reads exist. React/host live-canvas wiring, real selected-node editing, React Chat UI, Screen Audit and source intelligence are still incomplete under DDE-069. |
+| Frontend Studio professional Rev 3 redesign | `IMPLEMENTED_PARTIAL` | The host-neutral React shell, canonical composition, code-backed live preview, stable selected-node Inspector editing, DDE-068 candidate re-verification and permanent React Frontend Chat control plane exist and are browser-proven. Production PostgreSQL E2E, Screen Audit and source intelligence remain incomplete under DDE-069. |
 | Routing intelligence / learned policy promotion | `IMPLEMENTED_PARTIAL` | Existing routing registry/telemetry/learning planning exists; open EDR/partial implementation records require careful production-call-site audit before claiming full adaptive routing. |
 | Context optimization / repository memory | `IMPLEMENTED_PARTIAL` | Rev 3 bootstrap removes chat history as a required project-memory source; deeper task-packet/retrieval optimization remains planned. |
 | Windows complete installer / DDE Code distribution | `IMPLEMENTED_PARTIAL` | README and packaging describe DDE Code + Core/Postgres/Redis/migrations/wizard paths; release/recovery/signing/operational hardening remains a Rev 3 phase. |
@@ -341,9 +341,13 @@ VS Code React workbench is now bound to that foundation for existing
 code-backed candidates: browser-attested LIVE, stable `pxg_key` selection,
 descriptor-driven token edit, preview invalidation and rerender are proven in
 React/Playwright. Fresh candidate source-workspace onboarding, durable
-DDE-068 verification requests, candidate-origin VerificationRun execution and
-current request/run/check evidence in QA/Inspector are implemented. Production
-PostgreSQL-backed workbench E2E, React Chat UI, Screen Audit and M8 Source
+DDE-068 verification requests, candidate-origin VerificationRun execution,
+current request/run/check evidence in QA/Inspector, and the permanent React
+Frontend Chat control plane are implemented. Chat restores a durable mission
+thread, persists user/Studio turns, records server-derived contract/PXG/lock/
+runtime/verification context, routes deterministic edits and undo through the
+same governed mutation seam, and browser-proves rerender + re-verification.
+Production PostgreSQL-backed workbench E2E, Screen Audit and M8 Source
 Intelligence are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
@@ -351,8 +355,8 @@ the authoritative per-control projection of
 `docs/truth/golden/frontend_binding_matrix.json` v2. Final status is derived
 from explicit `DOMAIN / READ / COMMAND / STATE / UI / WIRED / E2E / VISUAL`
 evidence; backend files/tests cannot certify a missing React control or
-production binding. At this tranche: **5 VERIFIED, 15 BOUND, 5
-TYPED_UNAVAILABLE, 74 UNBOUND** of 99 rows. `tests/unit/test_frontend_binding_matrix.py`
+production binding. At this tranche: **5 VERIFIED, 23 BOUND, 5
+TYPED_UNAVAILABLE, 66 UNBOUND** of 99 rows. `tests/unit/test_frontend_binding_matrix.py`
 validates the schema, evidence references, applicability and generated-doc
 drift.
 
@@ -403,20 +407,24 @@ neither is a completion claim under v2.
   visible but disabled; the candidate strip carries no invented cards).
   Run with `just studio-visual`. Screenshot:
   `docs/evidence/dde-069/frontend-studio-shell-actual.png`.
-- **M9/M10 Frontend Chat backend and the DesignGateway** — `engine/studio/chat/`,
-  `engine/studio/design/`, migration `0026`. Chat is a control plane, not
-  a chatbot: intent classification is deterministic, so "set the spacing
-  to space6" compiles to the same `MutationRequest` the inspector produces
-  and spends no model call, while an ambiguous instruction is refused
-  rather than guessed. `/design` is a capability inside that same
-  conversation, sharing one `DesignSession`. The gateway compiles an
-  allowlisted `DesignEditContext` (out-of-scope nodes and internal
-  attributes stay behind, tokens export as names not literals), records
-  the design-system hash so an artifact generated under an older system is
-  detectably stale, quarantines malformed provider output rather than
-  accepting it, and reaches code only through Try live's isolated
-  candidate. Commands: `frontend.design.provider_status|request|try_live`,
-  `frontend.chat.open|set_context|send`.
+- **M9/M10 Frontend Chat + DesignGateway control plane** — `engine/studio/chat/`,
+  `engine/studio/design/`, migrations `0026` and `0030`, plus
+  `interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx`.
+  Chat is a control plane, not a chatbot: deterministic edits compile to the
+  same `MutationRequest` as Inspector and use `GovernedMutationService`, so
+  successful Chat edits/undo invalidate old preview and verification evidence
+  before rerender. The mission-scoped `frontend.chat.thread` read restores the
+  durable conversation and ordered user/Studio turns after reload. Selection,
+  screen, candidate and viewport identities are persisted on the conversation;
+  each turn additionally records server-derived PXG revision, Frontend Contract
+  version, coverage state, active locks, candidate worktree/preview and current
+  verification state. Coverage/QA/inspect questions read actual projections;
+  source search remains typed unavailable until M8; lock/promotion requests
+  refuse rather than bypass their explicit authority surfaces. `/design` stays
+  inside the same conversation/DesignSession and remains typed unavailable
+  without a certified provider. Browser evidence proves selection-aware Chat
+  edit → mutation → rerender → fresh DDE-068 verification and governed undo.
+  Evidence: `docs/evidence/dde-069/REACT_FRONTEND_CHAT.md`.
 - **Code-backed preview + Inspector foundation** — `engine/studio/preview_runtime/`,
   `engine/studio/inspector.py`, migration `0027`, and mission-scoped Frontend
   Gateway reads. `PrototypeHtmlPreviewAdapter` materializes actual candidate
@@ -478,8 +486,7 @@ prototype HTML; production VS Code → Gateway → PostgreSQL live-loop evidence
 (current host has no database/Redis runtime; the new PostgreSQL candidate-run
 persistence test is therefore present but UNAVAILABLE locally); exact viewport
 `set_state`, resize handles and Inspector tab-specific golden contracts not yet
-matched by the current generic controls; the React Frontend Chat
-composer/context surface; mandatory Screen Audit
+matched by the current generic controls; mandatory Screen Audit
 domain/projections/Coverage-QA-Architecture integration and dogfood; cross-DDE
 migration (M12); mobile adapters (M13).
 
@@ -752,29 +759,28 @@ DDE-068 is `COMPLETE_EVIDENCED`, but DDE-069 can still overclaim frontend qualit
 
 Unless newer implementation evidence exists:
 
-**Mission:** DDE-069 — React Frontend Chat control plane.
+**Mission:** DDE-069 — Screen Audit & Experience Completeness Engine.
 
-The live candidate loop, fresh source onboarding, hash-bound DDE-068 request
-scheduling, candidate-origin VerificationRun execution and QA/Inspector evidence
-projection are now composed. Do not rebuild them. Production PostgreSQL E2E is
-still unavailable on this host and remains BOUND.
+The live candidate/verification loop and permanent React Frontend Chat control
+plane are now composed and browser-proven. Do not rebuild them. Production
+PostgreSQL E2E is still unavailable on this host and remains BOUND.
 
 Next:
 
-1. bind the existing `engine.studio.chat` backend to a real React composer and
-   conversation history surface;
-2. keep one shared context: mission/project/screen/candidate/selected `pxg_key`/
-   viewport/contract/PXG/coverage/current verification;
-3. route deterministic edits through the existing MutationRequest/Planner and
-   show typed refusals for ambiguity/unavailability;
-4. keep `/design` in the same conversation but typed unavailable until a
-   certified provider transport exists;
-5. browser-prove chat edit → mutation → rerender → new DDE-068 verification.
+1. read `docs/truth/SCREEN_AUDIT_ENGINE.md` in full and implement the canonical
+   ScreenAuditRun/ScreenRecord/Finding/Evidence/Resolution persistence model;
+2. derive findings from existing Frontend Contract, PXG, journeys/routes, roles,
+   locks, DDE-068 verification and source/runtime evidence without fabricating
+   unavailable dimensions;
+3. implement incremental audit invalidation keyed to affected PXG/screen/
+   candidate evidence rather than recomputing or silently preserving stale facts;
+4. project audit truth into Coverage/QA/Architecture plus Canvas/Inspector markers
+   and extend the landed Chat control plane with audit queries/repair context;
+5. dogfood Screen Audit against DDE Frontend Studio and reconcile its findings
+   with the 99-control binding ledger instead of forcing either system to agree.
 
-After Chat is green, read `SCREEN_AUDIT_ENGINE.md` in full and implement the
-mandatory Screen Audit domain + incremental invalidation/projections, then M8
-Source Intelligence. Pixel-reference conformance remains fail-closed under
-AD-039 and does not block functional implementation.
+After Screen Audit is green, implement M8 Source Intelligence. Pixel-reference
+conformance remains fail-closed under AD-039 and does not block functional work.
 
 ---
 

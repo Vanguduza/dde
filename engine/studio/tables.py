@@ -204,6 +204,7 @@ frontend_conversations = Table(
     Column("mission_id", Uuid(as_uuid=True), nullable=True),
     Column("active_candidate_id", Uuid(as_uuid=True), nullable=True),
     Column("design_session_id", Uuid(as_uuid=True), nullable=True),
+    Column("screen_key", Text, nullable=True),
     Column("selected_node_keys", JSONB, nullable=False),
     Column("viewport", Text, nullable=False),
     Column("lock_version", Integer, nullable=False),

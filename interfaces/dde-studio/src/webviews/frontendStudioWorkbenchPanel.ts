@@ -157,6 +157,9 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
     if (query.resource === "frontend.studio.snapshot") {
       return camelizeResult(await gateway.readFrontendSnapshot(missionId));
     }
+    if (query.resource === "frontend.chat.thread") {
+      return camelizeResult(await gateway.readFrontendChat(missionId));
+    }
     if (query.resource === "frontend.preview.document") {
       const previewSessionId = requiredParameter(query, "previewSessionId");
       return camelizeResult(

@@ -27,6 +27,7 @@ class FrontendConversation(BaseModel):
     mission_id: UUID | None = None
     active_candidate_id: UUID | None = None
     design_session_id: UUID | None = None
+    screen_key: str | None = None
     selected_node_keys: list[str]
     viewport: str
     lock_version: int

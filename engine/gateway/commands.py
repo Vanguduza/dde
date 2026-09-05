@@ -51,6 +51,7 @@ from engine.missions.service import MissionService
 from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
 from engine.studio.candidates.service import CandidateService
+from engine.studio.chat.service import FrontendChatService
 from engine.studio.frontend import FrontendStudioService
 from engine.studio.inspector import InspectorService
 from engine.studio.preview_runtime.service import PreviewService
@@ -906,6 +907,30 @@ class GatewayCommandService:
             tenant_id=session.tenant_id, project_id=mission.project_id
         )
         return asdict(snapshot)
+
+    async def read_frontend_chat(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        chat = FrontendChatService(self._engine)
+        conversation = await chat.latest_for_mission(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission_id,
+        )
+        if conversation is None:
+            return {"conversation": None, "turns": []}
+        turns = await chat.history(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation.conversation_id,
+        )
+        return {
+            "conversation": conversation.model_dump(mode="json"),
+            "turns": [item.model_dump(mode="json") for item in turns],
+        }
 
     async def read_frontend_preview(
         self,

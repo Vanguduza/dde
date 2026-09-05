@@ -22,7 +22,6 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.frontend_contract import Obligation
-from engine.contracts.frontend_preview_session import FrontendPreviewSession
 from engine.contracts.pxg_node import SourceRef
 from engine.contracts.verification_run import VerificationRun
 from engine.core.errors import DdeError
@@ -58,6 +57,7 @@ from engine.studio.design.gateway import DesignGateway
 from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
 from engine.studio.mutations.executor import MutationExecutor
+from engine.studio.mutations.governed import GovernedMutationService
 from engine.studio.mutations.planner import MutationRequest
 from engine.studio.preview_runtime.service import PreviewService, PreviewState
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
@@ -129,10 +129,27 @@ class FrontendStudioService:
             candidates=self._candidate_service(),
         )
 
+    def _governed_mutations(self) -> GovernedMutationService:
+        executor = self._mutation_executor()
+        candidates = self._candidate_service()
+        previews = PreviewService(
+            self._engine,
+            workspaces=self._workspaces,
+            candidates=candidates,
+            mutations=executor,
+        )
+        requests = CandidateVerificationRequestService(self._engine, mutations=executor)
+        return GovernedMutationService(
+            self._engine,
+            executor=executor,
+            previews=previews,
+            verification_requests=requests,
+        )
+
     def _chat_service(self) -> FrontendChatService:
         return FrontendChatService(
             self._engine,
-            mutations=self._mutation_executor(),
+            mutations=self._governed_mutations(),
             design=self._design_gateway(),
         )
 
@@ -483,10 +500,12 @@ class FrontendStudioService:
             tenant_id=tenant_id,
             project_id=project_id,
             mission_id=mission_id,
+            screen_key=_optional_str(parameters, "screen_key"),
             viewport=str(parameters.get("viewport") or "desktop-1440"),
         )
         return {
             "conversation_id": str(conversation.conversation_id),
+            "screen_key": conversation.screen_key,
             "viewport": conversation.viewport,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
@@ -514,6 +533,10 @@ class FrontendStudioService:
                 else None
             ),
             active_candidate_id=_optional_uuid(parameters, "active_candidate_id"),
+            set_active_candidate="active_candidate_id" in parameters,
+            screen_key=_optional_str(parameters, "screen_key"),
+            set_screen="screen_key" in parameters,
+            viewport=_optional_str(parameters, "viewport"),
         )
         return {
             "conversation_id": str(conversation.conversation_id),
@@ -523,6 +546,8 @@ class FrontendStudioService:
                 if conversation.active_candidate_id
                 else None
             ),
+            "screen_key": conversation.screen_key,
+            "viewport": conversation.viewport,
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -547,6 +572,7 @@ class FrontendStudioService:
         )
         return {
             "turn_id": str(result.turn.turn_id),
+            "reply_turn_id": str(result.reply.turn_id),
             "sequence": result.turn.sequence,
             "intent": result.turn.intent,
             "outcome": result.turn.outcome,
@@ -620,32 +646,13 @@ class FrontendStudioService:
         per request so the studio can say what it declined and why.
         """
         candidate_id = _uuid(parameters, "candidate_id")
-        outcome = await self._mutation_executor().apply(
+        governed = await self._governed_mutations().apply(
             tenant_id=tenant_id,
             project_id=project_id,
             candidate_id=candidate_id,
             requests=_mutation_requests(parameters),
         )
-        invalidated: tuple[FrontendPreviewSession, ...] = ()
-        superseded_requests: tuple[UUID, ...] = ()
-        if outcome.applied:
-            invalidated = await self._preview_service().invalidate_candidate(
-                tenant_id=tenant_id,
-                project_id=project_id,
-                candidate_id=candidate_id,
-                detail="governed mutation changed the candidate; rerender required",
-            )
-            superseded_requests = (
-                await self._verification_requests().supersede_for_candidate(
-                    tenant_id=tenant_id,
-                    project_id=project_id,
-                    candidate_id=candidate_id,
-                    reason=(
-                        "governed mutation changed the candidate; DDE-068 "
-                        "verification must run against the new preview"
-                    ),
-                )
-            )
+        outcome = governed.mutation
         return {
             "candidate_state": outcome.candidate_state.value,
             "applied": [
@@ -669,10 +676,10 @@ class FrontendStudioService:
             ],
             "fully_applied": outcome.fully_applied,
             "invalidated_preview_session_ids": [
-                str(item.preview_session_id) for item in invalidated
+                str(item) for item in governed.invalidated_preview_session_ids
             ],
             "superseded_verification_request_ids": [
-                str(item) for item in superseded_requests
+                str(item) for item in governed.superseded_verification_request_ids
             ],
             "side_effect_class": "WORKSPACE_LOCAL",
         }
@@ -685,15 +692,22 @@ class FrontendStudioService:
         parameters: dict[str, object],
     ) -> dict[str, object]:
         """DDE-069 `frontend.mutation.revert`."""
-        compensating = await self._mutation_executor().revert(
+        governed = await self._governed_mutations().revert(
             tenant_id=tenant_id,
             project_id=project_id,
             candidate_id=_uuid(parameters, "candidate_id"),
             mutation_id=_uuid(parameters, "mutation_id"),
         )
+        compensating = governed.compensating_mutation
         return {
             "compensating_mutation_id": str(compensating.mutation_id),
             "target_key": compensating.target_key,
+            "invalidated_preview_session_ids": [
+                str(item) for item in governed.invalidated_preview_session_ids
+            ],
+            "superseded_verification_request_ids": [
+                str(item) for item in governed.superseded_verification_request_ids
+            ],
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 

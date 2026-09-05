@@ -74,15 +74,16 @@ def test_every_golden_region_and_layer_is_present() -> None:
         assert set(row.layers) == set(EvidenceLayerName)
 
 
-def test_backend_only_chat_cannot_claim_final_verified() -> None:
+def test_chat_ui_cannot_claim_final_verified_without_production_e2e() -> None:
     matrix = load_matrix(repo_root())
     row = next(item for item in matrix.rows if item.id == "CH-01")
     assert row.layer(EvidenceLayerName.DOMAIN).status is EvidenceStatus.VERIFIED
     assert row.layer(EvidenceLayerName.COMMAND).status is EvidenceStatus.VERIFIED
-    assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.UNBOUND
-    assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.UNBOUND
-    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.UNBOUND
-    assert row.status is BindingStatus.UNBOUND
+    assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.VISUAL).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.BOUND
+    assert row.status is BindingStatus.BOUND
 
 
 def test_backend_only_inspector_mutation_cannot_claim_final_verified() -> None:

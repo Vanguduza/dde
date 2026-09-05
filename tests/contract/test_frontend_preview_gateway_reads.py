@@ -6,6 +6,7 @@ from engine.gateway.api import router
 
 EXPECTED = {
     "/v1/missions/{mission_id}/frontend/snapshot",
+    "/v1/missions/{mission_id}/frontend/chat",
     "/v1/missions/{mission_id}/frontend/previews/{preview_session_id}",
     "/v1/missions/{mission_id}/frontend/inspector/{candidate_id}",
 }

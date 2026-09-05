@@ -147,11 +147,11 @@ Verify the following known gaps before deciding they still exist:
 2. **Fresh candidate onboarding is implemented.** Core projects real READY durable source workspaces, excludes candidate-preview worktrees, auto-selects only a unique source and requires explicit choice when ambiguous. No workspace id is guessed.
 3. **Production PostgreSQL workbench E2E is not evidenced on the current execution host.** React/Playwright proves composition through an explicit fail-closed TestHostBridge; keep production E2E BOUND until a real VS Code → Gateway → database run succeeds.
 4. **DDE-068 candidate request execution is implemented.** A hash-confirmed LIVE preview persists a request over the candidate's effective PXG and existing AcceptanceOracle; `frontend.verification.run` executes it through the shared DDE-068 runner as a typed `FRONTEND_CANDIDATE` subject, with real browser/visual-critic capability leases, real VerificationRun/Evidence, stale-run protection and current evidence projection in QA/Inspector. PENDING/BLOCKED/SUPERSEDED remain non-verdict states. Production PostgreSQL E2E remains unavailable on this host.
-5. **Frontend Chat backend exists, but the golden React chat composer/control surface is not yet implemented.**
+5. **The React Frontend Chat control plane is implemented and browser-proven.** A mission-scoped read restores the persisted conversation/ordered turns; the permanent composer keeps selection/screen/candidate/viewport context, each turn records server-derived PXG/Contract/coverage/locks/runtime/verification context, deterministic edits and undo use the same governed mutation/invalidation path as Inspector, read-only coverage/QA/inspect requests use real projections, and `/design` stays in this same conversation while its provider is typed unavailable.
 6. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
 7. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
 8. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
-9. **The binding ledger is v2 and currently projects 5 VERIFIED / 15 BOUND / 5 TYPED_UNAVAILABLE / 74 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; treat newer evidence as authoritative if it has landed.
+9. **The binding ledger is v2 and currently projects 5 VERIFIED / 23 BOUND / 5 TYPED_UNAVAILABLE / 66 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; treat newer evidence as authoritative if it has landed.
 
 Do not declare M7/M9/M10 or DDE-069 complete from domain implementation alone.
 
@@ -224,54 +224,49 @@ axis or delete requirements to improve the count.
 
 ---
 
-# 8. Next highest-value vertical slice — React Frontend Chat
+# 8. Next highest-value vertical slice — Screen Audit
 
-The governed live-edit + verification loop is now composed:
+The governed live-edit + verification + Chat loop is now composed:
 
 ```text
-real candidate board
-→ READY source selection when needed
+real candidate board / READY source selection
 → sandboxed code-backed preview
 → browser hash handshake / Core-confirmed LIVE
-→ FrontendVerificationRequest
-→ frontend.verification.run
 → real DDE-068 VerificationRun/Evidence
-→ current QA/Inspector verification state
 → stable pxg_key selection
-→ governed Inspector mutation
-→ candidate DIRTY + old preview/evidence stale
+→ Inspector or Frontend Chat governed mutation / undo
+→ old preview + verification evidence stale/superseded
 → rerender/new hash
 → new verification request/run/evidence
+→ persisted Chat thread with server-derived project context
 ```
 
 Do not rebuild that path. Evidence is in
 `docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md`,
-`docs/evidence/dde-069/SOURCE_AND_VERIFICATION_REQUESTS.md` and
-`docs/evidence/dde-069/CANDIDATE_VERIFICATION_EXECUTION.md`.
+`docs/evidence/dde-069/SOURCE_AND_VERIFICATION_REQUESTS.md`,
+`docs/evidence/dde-069/CANDIDATE_VERIFICATION_EXECUTION.md` and
+`docs/evidence/dde-069/REACT_FRONTEND_CHAT.md`.
 
-The next missing user-facing control plane is the already-implemented backend
-Frontend Chat surface:
+The next missing dependency is the mandatory Screen Audit & Experience
+Completeness Engine. Read `docs/truth/SCREEN_AUDIT_ENGINE.md` in full before
+editing implementation. Build domain/persistence/read/command authority first,
+then incremental invalidation and UI projections. Required outcomes include:
 
-- expose the persisted FrontendConversation + ordered turns through a
-  mission-scoped read projection;
-- build the React composer/history surface from real turns only;
-- maintain one shared context across mission/project/screen/candidate/selected
-  `pxg_key`/viewport/contract/PXG/coverage/current verification;
-- drive `frontend.chat.open`, `frontend.chat.set_context` and
-  `frontend.chat.send` through the existing production host bridge;
-- deterministic edits must continue to compile to the same MutationRequest/
-  Planner used by Inspector and trigger the same rerender/reverification loop;
-- ambiguous/refused/unavailable outcomes must be rendered as typed outcomes,
-  never converted into invented assistant prose;
-- `/design` remains in the same conversation/context, but its button stays
-  typed unavailable while no certified DesignProvider transport exists;
-- browser-prove deterministic chat edit → mutation → rerender → fresh DDE-068
-  evidence and ambiguous chat → refusal without mutation.
+- canonical ScreenAuditRun / ScreenAuditScreenRecord / ScreenAuditFinding /
+  ScreenAuditEvidence / ScreenAuditResolution;
+- the adopted audit dimensions and PASS/FAIL/PARTIAL/UNKNOWN/BLOCKED/
+  NOT_APPLICABLE semantics;
+- finding lifecycle from DETECTED through CONFIRMED/ASSIGNED/VERIFYING/RESOLVED
+  plus ACCEPTED_EXCEPTION/BLOCKED/SUPERSEDED;
+- incremental invalidation tied to real mutation/PXG/evidence dependencies;
+- Coverage completeness matrix, QA finding workbench, Architecture overlays and
+  Canvas/Inspector audit markers;
+- audit-aware commands in the already-landed Frontend Chat, with `/design` repair
+  context only when a certified provider exists;
+- dogfood audit of DDE Frontend Studio reconciled against the 99-control ledger.
 
 Production VS Code → Gateway → PostgreSQL E2E remains BOUND until database
-infrastructure is available. After Chat is green, read
-`SCREEN_AUDIT_ENGINE.md` in full and implement the mandatory Screen Audit
-domain and incremental projections before M8 Source Intelligence.
+infrastructure is available. AD-039 still blocks pixel-reference conformance.
 
 ---
 

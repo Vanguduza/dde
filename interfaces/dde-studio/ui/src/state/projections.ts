@@ -212,6 +212,39 @@ export interface InspectorDescriptor {
   readonly requiredVerification: readonly string[];
 }
 
+export interface FrontendChatConversation {
+  readonly conversationId: string;
+  readonly projectId: string;
+  readonly missionId: string | null;
+  readonly activeCandidateId: string | null;
+  readonly designSessionId: string | null;
+  readonly screenKey: string | null;
+  readonly selectedNodeKeys: readonly string[];
+  readonly viewport: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface FrontendChatTurn {
+  readonly turnId: string;
+  readonly conversationId: string;
+  readonly sequence: number;
+  readonly role: "user" | "studio";
+  readonly text: string;
+  readonly intent: string;
+  readonly outcome: "ROUTED" | "REFUSED" | "ANSWERED";
+  readonly refusalCode: string | null;
+  readonly refusalDetail: string | null;
+  readonly resolvedContext: Readonly<Record<string, unknown>>;
+  readonly producedRefs: readonly string[];
+  readonly createdAt: string;
+}
+
+export interface FrontendChatThread {
+  readonly conversation: FrontendChatConversation | null;
+  readonly turns: readonly FrontendChatTurn[];
+}
+
 export interface FrontendHostContext {
   readonly missionId: string;
   readonly projectId: string;

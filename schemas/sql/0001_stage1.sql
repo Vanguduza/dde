@@ -1656,6 +1656,7 @@ CREATE TABLE frontend_conversations (
     mission_id uuid,
     active_candidate_id uuid,
     design_session_id uuid,
+    screen_key text,
     selected_node_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
     viewport text NOT NULL,
     lock_version integer NOT NULL DEFAULT 1,

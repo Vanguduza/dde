@@ -126,6 +126,7 @@ const bridge = new TestHostBridge({
       projectName: "LogiFlow Marketplace",
     },
     "frontend.studio.snapshot": SNAPSHOT,
+    "frontend.chat.thread": { conversation: null, turns: [] },
   },
 });
 

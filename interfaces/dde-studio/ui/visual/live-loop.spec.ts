@@ -102,6 +102,160 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     expect(revealed).toEqual([{ path: "prototypes/screens/checkout.html" }]);
   });
 
+  test("Frontend Chat is permanent and exposes live scope context", async ({ page }) => {
+    const chat = page.getByTestId("frontend-chat");
+    await expect(chat).toBeVisible();
+    await expect(page.getByTestId("chat-input")).toBeVisible();
+    const chrome = await chat.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { position: style.position, borderRadius: style.borderRadius };
+    });
+    expect(chrome).toEqual({ position: "absolute", borderRadius: "12px" });
+    await expect(page.getByTestId("chat-context-chips")).toContainText("Checkout");
+    await expect(page.getByTestId("chat-context-chips")).toContainText("Desktop 1440");
+
+    const hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await expect(page.getByTestId("chat-selection-chip")).toContainText("hero");
+
+    await page.getByTestId("chat-settings").click();
+    const settings = page.getByTestId("chat-context-settings");
+    await expect(settings).toContainText("Checkout spacing refinement");
+    await expect(settings).toContainText("Desktop 1440");
+    await expect(settings).toContainText("/design checks certified provider availability");
+  });
+
+  test("deterministic Chat edit uses governed mutation then rerenders and reverifies", async ({
+    page,
+  }) => {
+    const hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await page.getByTestId("chat-input").fill("set the spacing to space4");
+    await page.getByTestId("chat-send").click();
+
+    await expect(
+      page
+        .frameLocator("iframe.dde-preview-frame")
+        .locator('[data-dde-pxg-key="screens/checkout#hero"]'),
+    ).toContainText("Hero space4");
+    await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    await expect(
+      page.getByTestId(
+        "candidate-verification-00000000-0000-0000-0000-000000000020",
+      ),
+    ).toHaveText("VERIFY PASSED");
+    await expect(page.getByTestId("chat-thread")).toContainText(
+      "set the spacing to space4",
+    );
+    await expect(page.getByTestId("chat-thread")).toContainText("applied 1 change(s)");
+    await expect(page.getByTestId("chat-thread")).toContainText("MUTATE_DETERMINISTIC");
+
+    const commands = await page.evaluate(() => {
+      const bridge = (
+        window as unknown as {
+          __ddeTestBridge: { sentCommands: Array<{ commandType: string }> };
+        }
+      ).__ddeTestBridge;
+      return bridge.sentCommands.map((item) => item.commandType);
+    });
+    expect(commands).toContain("frontend.chat.open");
+    expect(commands).toContain("frontend.chat.set_context");
+    expect(commands).toContain("frontend.chat.send");
+    expect(commands).toContain("frontend.preview.start");
+    expect(commands).toContain("frontend.verification.run");
+    expect(commands).not.toContain("frontend.design.request");
+  });
+
+  test("removing the selection chip changes Chat scope without changing Canvas selection", async ({
+    page,
+  }) => {
+    const hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await expect(page.getByTestId("selection-outline")).toBeVisible();
+    await page
+      .getByRole("button", { name: "Remove selected element from Chat scope" })
+      .click();
+    await expect(page.getByTestId("chat-selection-excluded")).toBeVisible();
+    await expect(page.getByTestId("selection-outline")).toBeVisible();
+
+    await page.getByTestId("chat-input").fill("set the spacing to space4");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-thread")).toContainText("AMBIGUOUS_REFERENCE");
+    await expect(hero).toContainText("Hero space2");
+  });
+
+  test("read-only Chat questions answer from current project evidence", async ({ page }) => {
+    await page.getByTestId("chat-input").fill("how much coverage do we have?");
+    await page.getByTestId("chat-send").click();
+    const thread = page.getByTestId("chat-thread");
+    await expect(thread).toContainText("COVERAGE_QUERY");
+    await expect(thread).toContainText(
+      "Coverage PARTIAL: percentage unavailable; blocking findings=0",
+    );
+
+    await page.getByTestId("chat-input").fill("show me the QA findings");
+    await page.getByTestId("chat-send").click();
+    await expect(thread).toContainText("QA_QUERY");
+    await expect(thread).toContainText("run=PASSED");
+    await expect(thread).toContainText("evidence=2");
+  });
+
+  test("/design remains in the same Chat and fails honestly without a certified provider", async ({
+    page,
+  }) => {
+    const hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await page.getByTestId("chat-input").fill("/design two hero alternatives");
+    await page.getByTestId("chat-send").click();
+
+    const thread = page.getByTestId("chat-thread");
+    await expect(thread).toContainText("DESIGN_DIVERGENT");
+    await expect(thread).toContainText("CAPABILITY_UNAVAILABLE");
+    await expect(thread).toContainText("no certified design provider transport");
+    await expect(hero).toContainText("Hero space2");
+  });
+
+  test("Chat undo creates a governed compensating edit and reverifies it", async ({ page }) => {
+    let hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await page.getByTestId("chat-input").fill("set the spacing to space4");
+    await page.getByTestId("chat-send").click();
+    hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await expect(hero).toContainText("Hero space4");
+    await expect(
+      page.getByTestId(
+        "candidate-verification-00000000-0000-0000-0000-000000000020",
+      ),
+    ).toHaveText("VERIFY PASSED");
+
+    await page.getByTestId("chat-input").fill("undo");
+    await page.getByTestId("chat-send").click();
+    hero = page
+      .frameLocator("iframe.dde-preview-frame")
+      .locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await expect(hero).toContainText("Hero space2");
+    await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    await expect(
+      page.getByTestId(
+        "candidate-verification-00000000-0000-0000-0000-000000000020",
+      ),
+    ).toHaveText("VERIFY PASSED");
+    await expect(page.getByTestId("chat-thread")).toContainText("UNDO_REVERT");
+    await expect(page.getByTestId("chat-thread")).toContainText("reverted mutation 1");
+  });
+
   test("Inspector mutation invalidates and rerenders the candidate", async ({ page }) => {
     const frame = page.frameLocator("iframe.dde-preview-frame");
     const hero = frame.locator('[data-dde-pxg-key="screens/checkout#hero"]');

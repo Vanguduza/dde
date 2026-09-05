@@ -6416,13 +6416,16 @@
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/scopes.py",
+            "engine/gateway/api.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -6465,45 +6468,85 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/scopes.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -6542,12 +6585,16 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
-            "engine/studio/chat/service.py"
+            "engine/studio/chat/service.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -6577,42 +6624,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
-            "engine/studio/chat/service.py"
+            "engine/studio/chat/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -6649,12 +6737,16 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
-            "engine/studio/chat/service.py"
+            "engine/studio/chat/service.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -6677,42 +6769,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
-            "engine/studio/chat/service.py"
+            "engine/studio/chat/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -6756,13 +6889,16 @@
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/scopes.py",
+            "engine/gateway/api.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -6805,45 +6941,85 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/scopes.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -6882,12 +7058,16 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
-            "engine/studio/chat/service.py"
+            "engine/studio/chat/service.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -6917,42 +7097,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
-            "engine/studio/chat/service.py"
+            "engine/studio/chat/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -6998,12 +7219,16 @@
             "engine/studio/chat/service.py",
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/design/providers.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -7046,45 +7271,86 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/design/providers.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -7130,14 +7396,18 @@
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/studio/mutations/executor.py",
-            "engine/studio/mutations/planner.py"
+            "engine/studio/mutations/planner.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_mutation_engine.py",
             "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -7182,46 +7452,87 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
             "engine/studio/mutations/executor.py",
-            "engine/studio/mutations/planner.py"
+            "engine/studio/mutations/planner.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_mutation_engine.py",
             "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },
@@ -7263,11 +7574,15 @@
             "engine/studio/mutations/planner.py",
             "engine/studio/mutations/executor.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/scopes.py",
+            "engine/gateway/api.py",
+            "engine/studio/chat/service.py"
           ],
           "test_refs": [
             "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "tests/unit/test_frontend_chat_reads.py"
           ],
           "evidence_refs": [],
           "note": ""
@@ -7306,43 +7621,84 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Bound through the central React workbench and production host/Gateway transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/mutations/planner.py",
             "engine/studio/mutations/executor.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/scopes.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/studio/chat/service.py",
+            "engine/studio/mutations/governed.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
           ],
           "test_refs": [
             "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md"
+          ],
+          "note": "React workbench/browser evidence proves this control structurally and functionally; AD-039 still blocks pixel-reference conformance of the whole approved image."
         }
       }
     },

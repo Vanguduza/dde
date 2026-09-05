@@ -16,6 +16,7 @@ import { DdeShell } from "../shell/DdeShell";
 import { GlobalTopBar } from "../shell/GlobalTopBar";
 import { StatusBar } from "../shell/StatusBar";
 import type {
+  FrontendChatThread,
   FrontendHostContext,
   FrontendStudioSnapshot,
   InspectorDescriptor,
@@ -64,12 +65,26 @@ export function DdeStudioApp({
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const verificationStarted = useRef<Set<string>>(new Set());
+  const [chatThread, setChatThread] = useState<FrontendChatThread | null>(null);
+  const [chatLoading, setChatLoading] = useState(true);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatIncludeSelection, setChatIncludeSelection] = useState(true);
 
   const refreshSnapshot = useCallback(async () => {
     const value = await bridge.requestRead<FrontendStudioSnapshot>({
       resource: "frontend.studio.snapshot",
     });
     setSnapshot(value);
+    return value;
+  }, [bridge]);
+
+  const refreshChat = useCallback(async () => {
+    const value = await bridge.requestRead<FrontendChatThread>({
+      resource: "frontend.chat.thread",
+    });
+    setChatThread(value);
+    setChatError(null);
     return value;
   }, [bridge]);
 
@@ -94,6 +109,23 @@ export function DdeStudioApp({
       cancelled = true;
     };
   }, [bridge]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setChatLoading(true);
+    refreshChat()
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setChatError(error instanceof Error ? error.message : String(error));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setChatLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshChat]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -178,6 +210,10 @@ export function DdeStudioApp({
   }, [activeCandidate?.candidateId, activeCandidate?.previewSessionId, loadPreviewDocument]);
 
   useEffect(() => {
+    setChatIncludeSelection(true);
+  }, [selectedKey]);
+
+  useEffect(() => {
     if (!selectedKey || !activeCandidateId) {
       setDescriptor(null);
       setInspectorLoading(false);
@@ -227,6 +263,32 @@ export function DdeStudioApp({
     },
     [bridge, hostContext],
   );
+
+  useEffect(() => {
+    const conversationId = chatThread?.conversation?.conversationId;
+    if (!conversationId) return;
+    const parameters: Record<string, unknown> = {
+      conversation_id: conversationId,
+      selected_node_keys:
+        chatIncludeSelection && selectedKey ? [selectedKey] : [],
+      viewport,
+    };
+    parameters.active_candidate_id = activeCandidateId;
+    parameters.screen_key = screenKey;
+    sendFrontendCommand("frontend.chat.set_context", parameters).catch(
+      (error: unknown) => {
+        setChatError(error instanceof Error ? error.message : String(error));
+      },
+    );
+  }, [
+    activeCandidateId,
+    chatIncludeSelection,
+    chatThread?.conversation?.conversationId,
+    screenKey,
+    selectedKey,
+    sendFrontendCommand,
+    viewport,
+  ]);
 
   useEffect(() => {
     const requestId = activeCandidate?.verificationRequestId;
@@ -320,6 +382,79 @@ export function DdeStudioApp({
     sourceWorkspaceId,
     viewport,
   ]);
+
+  const handleChatSend = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (chatLoading || chatError) {
+        setChatError(chatError ?? "Frontend Chat thread is still loading.");
+        return false;
+      }
+      setChatBusy(true);
+      setChatError(null);
+      try {
+        let conversationId = chatThread?.conversation?.conversationId ?? null;
+        if (!conversationId) {
+          const openParameters: Record<string, unknown> = { viewport };
+          if (screenKey) openParameters.screen_key = screenKey;
+          const opened = await sendFrontendCommand("frontend.chat.open", openParameters);
+          conversationId = payloadString(opened, "conversationId");
+          if (!conversationId) {
+            throw new Error("Frontend Chat did not return a conversation identity.");
+          }
+        }
+
+        const contextParameters: Record<string, unknown> = {
+          conversation_id: conversationId,
+          selected_node_keys:
+            chatIncludeSelection && selectedKey ? [selectedKey] : [],
+          viewport,
+        };
+        contextParameters.active_candidate_id = activeCandidateId;
+        contextParameters.screen_key = screenKey;
+        await sendFrontendCommand("frontend.chat.set_context", contextParameters);
+
+        const accepted = await sendFrontendCommand("frontend.chat.send", {
+          conversation_id: conversationId,
+          text,
+        });
+        const intent = payloadString(accepted, "intent");
+        const outcome = payloadString(accepted, "outcome");
+        await refreshChat();
+
+        if (
+          outcome === "ROUTED" &&
+          (intent === "MUTATE_DETERMINISTIC" || intent === "UNDO_REVERT")
+        ) {
+          setSelection(null);
+          setSelectedKey(null);
+          setPreview(null);
+          setPreviewBrowserReady(false);
+          await refreshSnapshot();
+          await startPreview();
+        }
+        return true;
+      } catch (error) {
+        setChatError(error instanceof Error ? error.message : String(error));
+        return false;
+      } finally {
+        setChatBusy(false);
+      }
+    },
+    [
+      activeCandidateId,
+      chatError,
+      chatIncludeSelection,
+      chatLoading,
+      chatThread?.conversation?.conversationId,
+      refreshChat,
+      refreshSnapshot,
+      screenKey,
+      selectedKey,
+      sendFrontendCommand,
+      startPreview,
+      viewport,
+    ],
+  );
 
   const handlePreviewSignal = useCallback(
     async (signal: PreviewRuntimeSignal) => {
@@ -486,6 +621,13 @@ export function DdeStudioApp({
             selection={selection}
             onStartPreview={() => void startPreview()}
             onPreviewSignal={(signal) => void handlePreviewSignal(signal)}
+            chatThread={chatThread}
+            chatLoading={chatLoading}
+            chatError={chatError}
+            chatBusy={chatBusy}
+            chatIncludeSelection={chatIncludeSelection}
+            onChatIncludeSelectionChange={setChatIncludeSelection}
+            onChatSend={handleChatSend}
           />
         )
       }

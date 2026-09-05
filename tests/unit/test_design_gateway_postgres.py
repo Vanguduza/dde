@@ -338,7 +338,7 @@ async def test_chat_routes_a_deterministic_edit_through_the_mutation_path() -> N
                 **scope, candidate_id=candidate.candidate_id, target=target
             )
 
-        chat = FrontendChatService(engine, mutations=MutationExecutor(engine))
+        chat = FrontendChatService(engine)
         conversation = await chat.open(**scope)
         await chat.set_context(
             **scope,
@@ -431,8 +431,10 @@ async def test_chat_and_design_share_one_session() -> None:
         turns = await chat.history(
             **scope, conversation_id=conversation.conversation_id
         )
-        assert len(turns) == 1
+        assert len(turns) == 2
+        assert [turn.role for turn in turns] == ["user", "studio"]
         assert turns[0].resolved_context["target_keys"] == ["screens/checkout"]
+        assert turns[1].text == "2 direction(s) generated"
     finally:
         await engine.dispose()
 

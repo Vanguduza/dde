@@ -154,6 +154,18 @@ async def read_frontend_snapshot(
     )
 
 
+@router.get("/missions/{mission_id}/frontend/chat")
+async def read_frontend_chat(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
 @router.get("/missions/{mission_id}/frontend/previews/{preview_session_id}")
 async def read_frontend_preview(
     mission_id: UUID,

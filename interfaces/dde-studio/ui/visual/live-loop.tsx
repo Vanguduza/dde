@@ -4,6 +4,9 @@ import { DdeStudioApp } from "../src/app/DdeStudioApp";
 import type { DdeCommand } from "../src/bridge/DdeHostBridge";
 import { TestHostBridge } from "../src/bridge/TestHostBridge";
 import type {
+  FrontendChatConversation,
+  FrontendChatThread,
+  FrontendChatTurn,
   FrontendStudioSnapshot,
   InspectorDescriptor,
   PreviewDocument,
@@ -32,6 +35,62 @@ let verificationRequestState: "PENDING" | "PASSED" | "FAILED" | "BLOCKED" | "SUP
 let verificationRequestNumber = 1;
 let verificationRunId: string | null = null;
 let verificationRunStatus: string | null = null;
+let previousSpacing = spacing;
+let chatConversation: FrontendChatConversation | null = null;
+let chatTurns: FrontendChatTurn[] = [];
+let chatSequence = 0;
+let chatTurnNumber = 0;
+
+function chatThread(): FrontendChatThread {
+  return { conversation: chatConversation, turns: [...chatTurns] };
+}
+
+function appendChatPair(
+  text: string,
+  options: {
+    intent: string;
+    outcome: "ROUTED" | "REFUSED" | "ANSWERED";
+    message: string;
+    refusalCode?: string | null;
+    refusalDetail?: string | null;
+    producedRefs?: string[];
+  },
+): { user: FrontendChatTurn; studio: FrontendChatTurn } {
+  if (!chatConversation) throw new Error("chat conversation is not open");
+  chatTurnNumber += 1;
+  const createdAt = new Date().toISOString();
+  const resolvedContext = {
+    target_keys: [...chatConversation.selectedNodeKeys],
+    references: chatConversation.selectedNodeKeys.length ? { deictic: "selection" } : {},
+  };
+  const base = {
+    conversationId: chatConversation.conversationId,
+    intent: options.intent,
+    outcome: options.outcome,
+    refusalCode: options.refusalCode ?? null,
+    refusalDetail: options.refusalDetail ?? null,
+    resolvedContext,
+    producedRefs: options.producedRefs ?? [],
+    createdAt,
+  } as const;
+  const user: FrontendChatTurn = {
+    ...base,
+    turnId: `chat-user-${chatTurnNumber}`,
+    sequence: ++chatSequence,
+    role: "user",
+    text,
+  };
+  const studio: FrontendChatTurn = {
+    ...base,
+    turnId: `chat-studio-${chatTurnNumber}`,
+    sequence: ++chatSequence,
+    role: "studio",
+    text: options.message,
+  };
+  chatTurns = [...chatTurns, user, studio];
+  chatConversation = { ...chatConversation, updatedAt: createdAt };
+  return { user, studio };
+}
 
 function snapshot(): FrontendStudioSnapshot {
   return {
@@ -246,6 +305,258 @@ function inspector(): InspectorDescriptor {
 }
 
 function commandPayload(command: DdeCommand): Record<string, unknown> {
+  if (command.commandType === "frontend.chat.open") {
+    if (!chatConversation) {
+      const now = new Date().toISOString();
+      chatConversation = {
+        conversationId: "conversation-1",
+        projectId,
+        missionId,
+        activeCandidateId: null,
+        designSessionId: null,
+        screenKey:
+          typeof command.parameters.screen_key === "string"
+            ? command.parameters.screen_key
+            : null,
+        selectedNodeKeys: [],
+        viewport:
+          typeof command.parameters.viewport === "string"
+            ? command.parameters.viewport
+            : "1440",
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+    return {
+      conversationId: chatConversation.conversationId,
+      screenKey: chatConversation.screenKey,
+      viewport: chatConversation.viewport,
+    };
+  }
+  if (command.commandType === "frontend.chat.set_context") {
+    if (!chatConversation) throw new Error("chat context set before open");
+    const rawKeys = command.parameters.selected_node_keys;
+    chatConversation = {
+      ...chatConversation,
+      selectedNodeKeys: Array.isArray(rawKeys)
+        ? rawKeys.filter((item): item is string => typeof item === "string")
+        : chatConversation.selectedNodeKeys,
+      activeCandidateId: Object.prototype.hasOwnProperty.call(
+        command.parameters,
+        "active_candidate_id",
+      )
+        ? typeof command.parameters.active_candidate_id === "string"
+          ? command.parameters.active_candidate_id
+          : null
+        : chatConversation.activeCandidateId,
+      screenKey: Object.prototype.hasOwnProperty.call(command.parameters, "screen_key")
+        ? typeof command.parameters.screen_key === "string"
+          ? command.parameters.screen_key
+          : null
+        : chatConversation.screenKey,
+      viewport:
+        typeof command.parameters.viewport === "string"
+          ? command.parameters.viewport
+          : chatConversation.viewport,
+      updatedAt: new Date().toISOString(),
+    };
+    return {
+      conversationId: chatConversation.conversationId,
+      selectedNodeKeys: [...chatConversation.selectedNodeKeys],
+      activeCandidateId: chatConversation.activeCandidateId,
+      screenKey: chatConversation.screenKey,
+      viewport: chatConversation.viewport,
+    };
+  }
+  if (command.commandType === "frontend.chat.send") {
+    if (!chatConversation) throw new Error("chat send before open");
+    const text = String(command.parameters.text ?? "").trim();
+    const lower = text.toLowerCase();
+    if (lower.startsWith("/design")) {
+      const refusalDetail = "no certified design provider transport";
+      const pair = appendChatPair(text, {
+        intent: "DESIGN_DIVERGENT",
+        outcome: "REFUSED",
+        message: refusalDetail,
+        refusalCode: "CAPABILITY_UNAVAILABLE",
+        refusalDetail,
+      });
+      return {
+        turnId: pair.user.turnId,
+        replyTurnId: pair.studio.turnId,
+        sequence: pair.user.sequence,
+        intent: "DESIGN_DIVERGENT",
+        outcome: "REFUSED",
+        refusalCode: "CAPABILITY_UNAVAILABLE",
+        refusalDetail,
+        resolvedContext: pair.user.resolvedContext,
+        producedRefs: [],
+        message: refusalDetail,
+      };
+    }
+    if (lower === "undo" || lower.includes("revert")) {
+      if (!chatConversation.activeCandidateId) {
+        const detail = "undo applies to a candidate; none is active";
+        const pair = appendChatPair(text, {
+          intent: "UNDO_REVERT",
+          outcome: "REFUSED",
+          message: detail,
+          refusalCode: "NO_ACTIVE_CANDIDATE",
+          refusalDetail: detail,
+        });
+        return {
+          turnId: pair.user.turnId,
+          replyTurnId: pair.studio.turnId,
+          sequence: pair.user.sequence,
+          intent: "UNDO_REVERT",
+          outcome: "REFUSED",
+          refusalCode: "NO_ACTIVE_CANDIDATE",
+          refusalDetail: detail,
+          resolvedContext: pair.user.resolvedContext,
+          producedRefs: [],
+          message: detail,
+        };
+      }
+      const next = previousSpacing;
+      previousSpacing = spacing;
+      spacing = next;
+      candidateState = "DIRTY";
+      previewState = "STALE";
+      verificationRequestState = "SUPERSEDED";
+      verificationRunId = null;
+      verificationRunStatus = null;
+      const pair = appendChatPair(text, {
+        intent: "UNDO_REVERT",
+        outcome: "ROUTED",
+        message: "reverted mutation 1",
+        producedRefs: ["chat-revert-mutation"],
+      });
+      return {
+        turnId: pair.user.turnId,
+        replyTurnId: pair.studio.turnId,
+        sequence: pair.user.sequence,
+        intent: "UNDO_REVERT",
+        outcome: "ROUTED",
+        refusalCode: null,
+        refusalDetail: null,
+        resolvedContext: pair.user.resolvedContext,
+        producedRefs: ["chat-revert-mutation"],
+        message: "reverted mutation 1",
+      };
+    }
+    const match = lower.match(/set\s+(?:the\s+)?spacing\s+to\s+(space[0-9]+)/);
+    if (match) {
+      if (!chatConversation.selectedNodeKeys.length) {
+        const detail =
+          "nothing is selected and the message names no element, so there is no unambiguous target for this instruction";
+        const pair = appendChatPair(text, {
+          intent: "MUTATE_DETERMINISTIC",
+          outcome: "REFUSED",
+          message: detail,
+          refusalCode: "AMBIGUOUS_REFERENCE",
+          refusalDetail: detail,
+        });
+        return {
+          turnId: pair.user.turnId,
+          replyTurnId: pair.studio.turnId,
+          sequence: pair.user.sequence,
+          intent: "MUTATE_DETERMINISTIC",
+          outcome: "REFUSED",
+          refusalCode: "AMBIGUOUS_REFERENCE",
+          refusalDetail: detail,
+          resolvedContext: pair.user.resolvedContext,
+          producedRefs: [],
+          message: detail,
+        };
+      }
+      previousSpacing = spacing;
+      spacing = match[1]!;
+      candidateState = "DIRTY";
+      previewState = "STALE";
+      verificationRequestState = "SUPERSEDED";
+      verificationRunId = null;
+      verificationRunStatus = null;
+      const pair = appendChatPair(text, {
+        intent: "MUTATE_DETERMINISTIC",
+        outcome: "ROUTED",
+        message: "applied 1 change(s)",
+        producedRefs: ["chat-mutation-1"],
+      });
+      return {
+        turnId: pair.user.turnId,
+        replyTurnId: pair.studio.turnId,
+        sequence: pair.user.sequence,
+        intent: "MUTATE_DETERMINISTIC",
+        outcome: "ROUTED",
+        refusalCode: null,
+        refusalDetail: null,
+        resolvedContext: pair.user.resolvedContext,
+        producedRefs: ["chat-mutation-1"],
+        message: "applied 1 change(s)",
+      };
+    }
+    if (lower.includes("coverage") || lower.includes("uncovered")) {
+      const message =
+        "Coverage PARTIAL: percentage unavailable; blocking findings=0; dimensions: screen=ASSESSED";
+      const pair = appendChatPair(text, {
+        intent: "COVERAGE_QUERY",
+        outcome: "ANSWERED",
+        message,
+      });
+      return {
+        turnId: pair.user.turnId,
+        replyTurnId: pair.studio.turnId,
+        sequence: pair.user.sequence,
+        intent: "COVERAGE_QUERY",
+        outcome: "ANSWERED",
+        refusalCode: null,
+        refusalDetail: null,
+        resolvedContext: pair.user.resolvedContext,
+        producedRefs: [],
+        message,
+      };
+    }
+    if (lower.includes("qa") || lower.includes("finding") || lower.includes("issue")) {
+      const message = `Candidate QA: request=${verificationRequestState ?? "NOT_REQUESTED"}; run=${verificationRunStatus ?? "NOT_EVALUATED"}; evidence=${verificationRunStatus === "PASSED" ? 2 : 0}`;
+      const pair = appendChatPair(text, {
+        intent: "QA_QUERY",
+        outcome: "ANSWERED",
+        message,
+      });
+      return {
+        turnId: pair.user.turnId,
+        replyTurnId: pair.studio.turnId,
+        sequence: pair.user.sequence,
+        intent: "QA_QUERY",
+        outcome: "ANSWERED",
+        refusalCode: null,
+        refusalDetail: null,
+        resolvedContext: pair.user.resolvedContext,
+        producedRefs: [],
+        message,
+      };
+    }
+    const detail = "the studio could not tell what this instruction should do";
+    const pair = appendChatPair(text, {
+      intent: "UNKNOWN",
+      outcome: "REFUSED",
+      message: detail,
+      refusalCode: "INTENT_AMBIGUOUS",
+      refusalDetail: detail,
+    });
+    return {
+      turnId: pair.user.turnId,
+      replyTurnId: pair.studio.turnId,
+      sequence: pair.user.sequence,
+      intent: "UNKNOWN",
+      outcome: "REFUSED",
+      refusalCode: "INTENT_AMBIGUOUS",
+      refusalDetail: detail,
+      resolvedContext: pair.user.resolvedContext,
+      producedRefs: [],
+      message: detail,
+    };
+  }
   if (command.commandType === "frontend.preview.set_state") {
     if (command.parameters.state === "LIVE") {
       previewState = "LIVE";
@@ -332,10 +643,14 @@ const bridge = new TestHostBridge({
   reads: {
     "frontend.host.context": { missionId, projectId, projectName: "LogiFlow Marketplace" },
     "frontend.studio.snapshot": () => snapshot(),
+    "frontend.chat.thread": () => chatThread(),
     "frontend.preview.document": () => previewDocument(),
     "frontend.inspector.describe": () => inspector(),
   },
   commands: {
+    "frontend.chat.open": commandPayload,
+    "frontend.chat.set_context": commandPayload,
+    "frontend.chat.send": commandPayload,
     "frontend.preview.set_state": commandPayload,
     "frontend.mutation.apply": commandPayload,
     "frontend.preview.start": commandPayload,

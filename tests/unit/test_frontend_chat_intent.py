@@ -61,9 +61,11 @@ def test_a_deictic_reference_resolves_to_the_selection() -> None:
     assert result.references["deictic"] == "selection"
 
 
-def test_a_candidate_reference_is_captured() -> None:
+def test_an_unmapped_candidate_reference_is_captured_and_refused() -> None:
     result = classify("use Candidate B's sidebar", SELECTED)
     assert result.references["candidate"] == "B"
+    assert result.refusal_code == "AMBIGUOUS_REFERENCE"
+    assert "stable candidate id" in (result.refusal_detail or "")
 
 
 def test_read_only_intents_do_not_compile_a_mutation() -> None:

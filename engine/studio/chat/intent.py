@@ -109,6 +109,15 @@ def classify(text: str, context: ChatContext) -> Classification:
     candidate_match = _CANDIDATE_REF.search(stripped)
     if candidate_match:
         references["candidate"] = candidate_match.group(1).upper()
+        return Classification(
+            intent=intent,
+            refusal_code="AMBIGUOUS_REFERENCE",
+            refusal_detail=(
+                f"Candidate {references['candidate']} is not mapped to a stable "
+                "candidate id in this conversation; select the candidate explicitly"
+            ),
+            references=references,
+        )
 
     targets = _resolve_targets(stripped, context, references)
 

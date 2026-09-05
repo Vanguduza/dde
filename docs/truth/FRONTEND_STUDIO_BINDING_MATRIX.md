@@ -10,9 +10,9 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 74 |
+| `UNBOUND` | 66 |
 | `TYPED_UNAVAILABLE` | 5 |
-| `BOUND` | 15 |
+| `BOUND` | 23 |
 | `VERIFIED` | 5 |
 | **total** | **99** |
 
@@ -150,14 +150,14 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#86-frontend-chat-composer`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CH-01 | Chat composer | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-02 | Selection-aware context chips | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-03 | Context/scope settings | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-04 | Send | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-05 | Reference resolution (this/Candidate B) | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-06 | Design-class intent routing | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-07 | Deterministic edit routing | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CH-08 | Undo / revert | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CH-01 | Chat composer | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-02 | Selection-aware context chips | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-03 | Context/scope settings | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-04 | Send | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-05 | Reference resolution (this/Candidate B) | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-06 | Design-class intent routing | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-07 | Deterministic edit routing | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| CH-08 | Undo / revert | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
 
 Notes:
 

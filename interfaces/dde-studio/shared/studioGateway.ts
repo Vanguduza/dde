@@ -248,6 +248,18 @@ export class StudioGatewayService {
     );
   }
 
+  async readFrontendChat(
+    missionId: string,
+  ): Promise<{
+    ok: boolean;
+    value?: Record<string, unknown>;
+    reason?: string;
+  }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendChat(session, this.principalId, missionId),
+    );
+  }
+
   async readFrontendPreview(
     missionId: string,
     previewSessionId: string,

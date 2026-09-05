@@ -192,6 +192,18 @@ export class GatewayApiClient {
     );
   }
 
+  async readFrontendChat(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/chat`,
+      sessionId,
+      principalId,
+    );
+  }
+
   async readFrontendPreview(
     sessionId: string,
     principalId: string,

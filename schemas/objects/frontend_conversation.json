@@ -56,6 +56,10 @@
     "design_session_id": {
       "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
     },
+    "screen_key": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "The current PXG screen context for the composer. It scopes read/design context but never substitutes for an unambiguous selected node when a mutation requires one."
+    },
     "selected_node_keys": {
       "type": "array",
       "items": { "type": "string" },
