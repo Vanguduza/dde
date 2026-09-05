@@ -9,7 +9,17 @@ export default defineConfig({
     // portable between them.
     outDir: "dist",
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/dde-studio.js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: (assetInfo) =>
+          assetInfo.name?.endsWith(".css")
+            ? "assets/dde-studio.css"
+            : "assets/[name]-[hash][extname]",
+      },
+    },
   },
   base: "./",
 });

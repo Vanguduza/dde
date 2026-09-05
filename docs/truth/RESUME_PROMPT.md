@@ -143,14 +143,15 @@ The backend/domain architecture is ahead of the actual Frontend Studio user expe
 
 Verify the following known gaps before deciding they still exist:
 
-1. **A code-backed prototype-HTML PreviewRuntimeAdapter/PreviewService now exists in Core, but the React workbench is not yet wired to it and general React/Vite project preview remains unavailable.**
-2. **Stable `pxg_key` preview instrumentation now exists, but React canvas selection/outline is not yet wired end-to-end.**
-3. **InspectorDescriptor reads now exist, but React cannot yet perform the full selected-node → descriptor → mutation → rerender loop.**
-4. **Frontend Chat backend exists, but the golden React chat composer/control surface was not yet implemented when this packet was written.**
-5. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
-6. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
-7. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
-8. **The binding ledger has been hardened to v2.** Verify that current HEAD still derives final state from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence. At the 2026-09-05 recovery tranche the projection was 5 VERIFIED / 8 BOUND / 5 TYPED_UNAVAILABLE / 81 UNBOUND; treat newer evidence as authoritative if it has landed.
+1. **The canonical central VS Code React workbench is now wired to the code-backed prototype-HTML PreviewRuntime for existing materialized candidates.** It performs browser-attested LIVE, stable `pxg_key` selection, InspectorDescriptor reads, governed token mutation, preview invalidation and rerender. Do not rebuild this loop.
+2. **Fresh candidate onboarding is not complete.** PreviewService can clone a real READY source workspace for a GENERATED candidate, but the workbench has no governed source-workspace inventory/selection and must not guess one.
+3. **Production PostgreSQL workbench E2E is not evidenced on the current execution host.** React/Playwright proves composition through an explicit fail-closed TestHostBridge; keep production E2E BOUND until a real VS Code → Gateway → database run succeeds.
+4. **DDE-068 evidence invalidation/re-run scheduling after an Inspector edit is incomplete.** Old preview and candidate verification attachment are invalidated, but required verification must be re-executed before VERIFIED/PROMOTABLE.
+5. **Frontend Chat backend exists, but the golden React chat composer/control surface is not yet implemented.**
+6. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
+7. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
+8. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
+9. **The binding ledger is v2 and currently projects 5 VERIFIED / 15 BOUND / 5 TYPED_UNAVAILABLE / 74 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; treat newer evidence as authoritative if it has landed.
 
 Do not declare M7/M9/M10 or DDE-069 complete from domain implementation alone.
 
@@ -223,36 +224,44 @@ axis or delete requirements to improve the count.
 
 ---
 
-# 8. Next highest-value vertical slice — compose the landed preview foundation
+# 8. Next highest-value vertical slice — fresh candidate onboarding + verification
 
-The backend half is now present: prototype-HTML candidate materialization,
-preview-session lifecycle/hash handshake, stable `pxg_key` instrumentation,
-InspectorDescriptor reads and mission-scoped Gateway reads. Do not rebuild them.
-The remaining vertical slice is the actual workbench composition:
+The existing-candidate React loop is landed and browser-proven:
 
 ```text
 real candidate board
-→ host bridge reads real Core snapshot
-→ sandbox opens the real candidate preview document
-→ browser ready handshake
-→ Core-confirmed LIVE
+→ production host read contract
+→ sandboxed materialized candidate document
+→ browser hash handshake / Core-confirmed LIVE
 → stable pxg_key selection
 → InspectorDescriptor
-→ real descriptor control
-→ frontend.mutation.apply
-→ candidate DIRTY
+→ governed frontend.mutation.apply
+→ candidate DIRTY + old preview STALE
 → code-backed rerender/new preview hash
-→ DDE-068 evidence invalidated/recomputed as required
-→ candidate state updated
+→ new browser LIVE handshake
 ```
 
-Requirements remain fail-closed: accepted code is untouched until promotion;
-selection identity survives DOM reflow; off-token/locked/stale edits use the same
-mutation authority; render/runtime failures stay typed; React cannot mint LIVE;
-and no screenshot or `srcDoc` demo may substitute for candidate code.
+Do not rebuild that path. Evidence is in
+`docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md`.
 
-Add browser/E2E evidence through the real React workbench and production host
-transport, not only TestHostBridge service tests.
+The next missing dependency is the *front* of the loop and its verification
+tail:
+
+- project a real READY source-workspace/revision inventory;
+- let a fresh GENERATED candidate choose/admit an explicit source workspace
+  without guessing;
+- make generation/materialization ownership explicit instead of relying on
+  test/manual lifecycle transitions;
+- retain typed unavailable/ambiguous states when no unique source exists;
+- after any preview-invalidating mutation, schedule the DDE-068 checks required
+  by the selected screen/descriptor and prevent VERIFIED/PROMOTABLE from using
+  pre-edit evidence;
+- run a real production-host/Gateway/PostgreSQL user flow when infrastructure is
+  available. Lack of database infrastructure is an E2E evidence blocker, not a
+  reason to fabricate a pass.
+
+After this packet, wire the existing Frontend Chat backend into the React
+composer/context surface, then proceed into mandatory Screen Audit.
 
 ---
 

@@ -11,3 +11,18 @@ desktop/**
 shared/**
 *.vsix
 README.md
+# Frontend Studio React sources are build inputs; ship only the production bundle.
+ui/node_modules/**
+ui/src/**
+ui/visual/**
+ui/test-results/**
+ui/playwright-report/**
+ui/*.ts
+ui/*.tsx
+ui/tsconfig.json
+ui/vite.config.ts
+ui/package*.json
+!ui/dist/**
+
+ui/dist/**/*.map
+ui/dist/assets/*.map

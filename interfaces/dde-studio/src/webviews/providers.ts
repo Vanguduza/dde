@@ -27,6 +27,7 @@ export type StudioMessage =
   | { type: "useLocal" }
   | { type: "useCloud" }
   | { type: "openPanel" }
+  | { type: "openFrontendStudio" }
   | { type: "setSessionToken" }
   | { type: "clearSessionToken" }
   | { type: "openMorningReview" }

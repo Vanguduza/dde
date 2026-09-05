@@ -90,6 +90,102 @@ export interface AttentionCenterSnapshot {
   readonly reason?: string | null;
 }
 
+
+export interface ScreenNode {
+  readonly pxgKey: string;
+  readonly title: string;
+  readonly route: string | null;
+  readonly childKeys: readonly string[];
+}
+
+export type PreviewState =
+  | "BUILDING"
+  | "LOADING"
+  | "LIVE"
+  | "STALE"
+  | "RUNTIME_ERROR"
+  | "RENDER_ERROR"
+  | "UNAVAILABLE"
+  | "STOPPED";
+
+export interface CandidateCardSnapshot {
+  readonly candidateId: string;
+  readonly title: string;
+  readonly state: string;
+  readonly origin: string;
+  readonly workspaceId: string | null;
+  readonly basePxgRevision: number;
+  readonly currentPxgRevision: number;
+  readonly stale: boolean;
+  readonly scopeKeys: readonly string[];
+  readonly previewSessionId: string | null;
+  readonly previewState: PreviewState | null;
+  readonly previewStateDetail: string | null;
+}
+
+export interface CandidateBoardSnapshot {
+  readonly cards: readonly CandidateCardSnapshot[];
+  readonly count: CountValue;
+}
+
+export interface PreviewDocument {
+  readonly previewSessionId: string;
+  readonly candidateId: string;
+  readonly workspaceId: string;
+  readonly screenKey: string;
+  readonly state: PreviewState;
+  readonly viewport: string;
+  readonly route: string | null;
+  readonly candidatePxgRevision: number;
+  readonly sourceRevision: string;
+  readonly documentPath: string | null;
+  readonly contentHash: string | null;
+  readonly stateDetail: string | null;
+  readonly content: string;
+}
+
+export interface InspectorPropertyDescriptor {
+  readonly propertyName: string;
+  readonly value: string | null;
+  readonly valueType: string;
+  readonly units: string | null;
+  readonly semanticTokenClass: string;
+  readonly legalValues: readonly string[];
+  readonly computedValue: string | null;
+  readonly responsiveSemantics: string;
+  readonly sourcePath: string | null;
+  readonly mutationOperation: string;
+  readonly lockBehavior: string;
+  readonly writable: boolean;
+  readonly lockReason: string | null;
+  readonly accessibilityEffect: string;
+  readonly validation: string;
+  readonly previewInvalidation: readonly string[];
+  readonly requiredVerification: readonly string[];
+}
+
+export interface InspectorDescriptor {
+  readonly candidateId: string;
+  readonly pxgKey: string;
+  readonly title: string;
+  readonly nodeKind: string;
+  readonly candidateState: string;
+  readonly graphRevision: number;
+  readonly stale: boolean;
+  readonly sourceMapping: string;
+  readonly sourcePath: string | null;
+  readonly sourceSymbol: string | null;
+  readonly elementId: string | null;
+  readonly properties: readonly InspectorPropertyDescriptor[];
+  readonly requiredVerification: readonly string[];
+}
+
+export interface FrontendHostContext {
+  readonly missionId: string;
+  readonly projectId: string;
+  readonly projectName: string;
+}
+
 export interface FrontendStudioSnapshot {
   readonly projectId: string;
   readonly observedAt: string;
@@ -100,6 +196,8 @@ export interface FrontendStudioSnapshot {
   readonly orchestrator: OrchestratorFrontendStatus;
   readonly sync: StudioSyncSnapshot;
   readonly attention: AttentionCenterSnapshot;
+  readonly screens: readonly ScreenNode[];
+  readonly candidates: CandidateBoardSnapshot;
   readonly degradedReasons: readonly string[];
 }
 

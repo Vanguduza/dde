@@ -471,6 +471,50 @@ class PreviewService:
             ) from exc
         return PreviewDocumentRead(session=session, content=content)
 
+    async def invalidate_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        candidate_id: UUID,
+        detail: str,
+    ) -> tuple[FrontendPreviewSession, ...]:
+        """Invalidate every preview that still claims to describe this candidate.
+
+        A mutation changes the candidate projection before a new preview document
+        is materialised. Existing BUILDING/LOADING/LIVE sessions therefore become
+        STALE immediately; leaving a LIVE row behind would be a false quality claim.
+        """
+        active_states = (
+            PreviewState.BUILDING.value,
+            PreviewState.LOADING.value,
+            PreviewState.LIVE.value,
+        )
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            result = await uow.connection.execute(
+                select(frontend_preview_sessions)
+                .where(
+                    frontend_preview_sessions.c.tenant_id == tenant_id,
+                    frontend_preview_sessions.c.project_id == project_id,
+                    frontend_preview_sessions.c.candidate_id == candidate_id,
+                    frontend_preview_sessions.c.state.in_(active_states),
+                )
+                .order_by(frontend_preview_sessions.c.created_at)
+            )
+            rows = result.mappings().all()
+        invalidated: list[FrontendPreviewSession] = []
+        for row in rows:
+            invalidated.append(
+                await self._transition_session(
+                    FrontendPreviewSession.model_validate(dict(row)),
+                    PreviewState.STALE,
+                    detail=detail,
+                )
+            )
+        return tuple(invalidated)
+
     async def latest_for_candidate(
         self, *, tenant_id: UUID, project_id: UUID, candidate_id: UUID
     ) -> FrontendPreviewSession | None:

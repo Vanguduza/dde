@@ -336,17 +336,21 @@ covers it automatically.
 mutation/candidate/lock runtime, the host-neutral React shell, Frontend Chat
 backend and DesignGateway are implemented. A code-backed prototype preview
 runtime, stable PXG instrumentation, InspectorDescriptor projection and
-mission-scoped Frontend Gateway reads are implemented as backend foundation.
-The React live canvas/selection/edit loop, React Chat UI, Screen Audit and M8
-Source Intelligence are not complete.
+mission-scoped Frontend Gateway reads are implemented. The canonical central
+VS Code React workbench is now bound to that foundation for existing
+code-backed candidates: browser-attested LIVE, stable `pxg_key` selection,
+descriptor-driven token edit, preview invalidation and rerender are proven in
+React/Playwright. Fresh candidate source-workspace onboarding, production
+PostgreSQL-backed workbench E2E, DDE-068 rerun scheduling, React Chat UI, Screen
+Audit and M8 Source Intelligence are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
 the authoritative per-control projection of
 `docs/truth/golden/frontend_binding_matrix.json` v2. Final status is derived
 from explicit `DOMAIN / READ / COMMAND / STATE / UI / WIRED / E2E / VISUAL`
 evidence; backend files/tests cannot certify a missing React control or
-production binding. At this tranche: **5 VERIFIED, 8 BOUND, 5
-TYPED_UNAVAILABLE, 81 UNBOUND** of 99 rows. `tests/unit/test_frontend_binding_matrix.py`
+production binding. At this tranche: **5 VERIFIED, 15 BOUND, 5
+TYPED_UNAVAILABLE, 74 UNBOUND** of 99 rows. `tests/unit/test_frontend_binding_matrix.py`
 validates the schema, evidence references, applicability and generated-doc
 drift.
 
@@ -423,16 +427,33 @@ neither is a completion claim under v2.
   mutation planner now also refuses stale candidate bases and rechecks accepted
   PXG revision inside apply-time write authority. Evidence:
   `docs/evidence/dde-069/PREVIEW_RUNTIME_FOUNDATION.md`.
+- **Central live React workbench loop** —
+  `interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts` now
+  implements the canonical section 5.3 central `WebviewPanel`; the six older
+  Frontend Studio sidebar views are compatibility shims with an explicit open
+  action. `VsCodeHostBridge` requests are translated by the panel onto
+  `StudioGatewayService` / `GatewayApiClient` and the mission-scoped Core
+  Frontend reads and `/v1/commands`, preserving the UI's idempotency key. The
+  React workbench renders real candidate cards and PXG screens, loads the
+  materialized candidate document in an `allow-scripts` sandbox, requires this
+  browser to re-attest the content hash before displaying LIVE, resolves
+  selection by stable `pxg_key`, reads `InspectorDescriptor`, applies token
+  edits through `frontend.mutation.apply`, marks old preview sessions STALE,
+  clears stale candidate verification attachment, rerenders and requires a new
+  LIVE handshake. `npm run package` now builds and ships the React assets in
+  the VSIX. Evidence: `docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / not started:** M8 source adapters, provenance and candidate
-scoring; general React/Vite/Expo PreviewRuntimeAdapters; React/host binding of
-the live candidate document; workbench selected-node state and selection
-outline; actual Inspector controls and Inspector edit → mutation → rerender E2E;
-DDE-068 rerun scheduling after preview-invalidating edits; the React Frontend
-Chat composer/context surface; mandatory Screen Audit domain/projections/
-Coverage-QA-Architecture integration and dogfood; cross-DDE migration (M12);
-mobile adapters (M13).
+scoring; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
+prototype HTML; governed source-workspace inventory/onboarding for a fresh
+REQUESTED/GENERATED candidate; production VS Code → Gateway → PostgreSQL live
+loop evidence (current host has no database/Redis runtime); DDE-068 rerun
+scheduling after preview-invalidating edits; exact viewport `set_state`, resize
+handles and Inspector tab-specific golden contracts not yet matched by the
+current generic controls; the React Frontend Chat composer/context surface;
+mandatory Screen Audit domain/projections/Coverage-QA-Architecture integration
+and dogfood; cross-DDE migration (M12); mobile adapters (M13).
 
 #### `Claude /design` — BLOCKED_EXTERNAL on a certified transport
 
@@ -705,27 +726,27 @@ Unless newer implementation evidence exists:
 
 **Mission:** DDE-069 — real Frontend Studio vertical slice.
 
-The multidimensional ledger, prototype-HTML preview service, stable PXG
-instrumentation, InspectorDescriptor and mission-scoped Core reads are now
-landed. The next dependency is the real workbench integration, not more backend
-breadth:
+The existing-candidate live React loop is now composed and browser-proven. Do
+not rebuild it. The next dependency is to make that loop start honestly from a
+fresh governed candidate and then connect verification:
 
-1. make the host bridge execute the canonical mission-scoped Frontend reads and
-   `/v1/commands` without a parallel extension API;
-2. bind CandidateBoardSnapshot to real candidate cards and open the latest real
-   preview document in a sandboxed canvas;
-3. browser ready → `frontend.preview.set_state` → Core-confirmed `LIVE`;
-4. preview selection message → stable `pxg_key` → InspectorDescriptor → real
-   selected-node/selection-outline state;
-5. descriptor control → `frontend.mutation.apply` → candidate `DIRTY` → preview
-   rerender → new hash/handshake, with stale/lock/token refusal surfaced;
-6. invalidate/re-run DDE-068 evidence where the descriptor requires it;
-7. prove the whole flow through React/Playwright plus production host/Gateway
-   integration evidence.
+1. project a governed inventory of READY source workspaces/revisions suitable as
+   preview materialization bases; never guess a workspace id;
+2. bind candidate generation/materialization so a REQUESTED/GENERATED candidate
+   can reach an isolated code-backed preview without manual database/test state
+   transitions;
+3. surface source-workspace absence/ambiguity as typed workbench states and allow
+   explicit user selection where multiple admitted sources exist;
+4. after Inspector mutation/rerender, schedule/invalidate the required DDE-068
+   verification (`silhouette`, `visual_critique`, and any bound checks) and keep
+   VERIFIED/PROMOTABLE unavailable until fresh evidence exists;
+5. execute a real VS Code → Gateway → PostgreSQL user-flow gate when a database
+   runtime is available; until then E2E remains BOUND, never VERIFIED.
 
-After that vertical slice is green, bind the existing Frontend Chat backend to
-the React composer/context surface, then implement the mandatory Screen Audit
-domain and incremental projections before Coverage/QA/Architecture audit UI.
+Once fresh candidate onboarding + verification invalidation/recheck are green,
+bind the existing Frontend Chat backend to the React composer/context surface,
+then implement the mandatory Screen Audit domain and incremental projections
+before Coverage/QA/Architecture audit UI.
 Pixel-reference conformance remains fail-closed under AD-039 and does not block
 functional implementation.
 

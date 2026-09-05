@@ -1,7 +1,7 @@
 {
   "name": "dde-studio",
   "displayName": "DDE Code",
-  "description": "DDE Code — VS Code / Cursor extension suite. Primary Mission Overview dashboard plus activity-bar Mission Control for missions, fleets (Hermes / Claude Code / DeepSeek), verification, and approvals. Gateway/CLI client only — never Core tables.",
+  "description": "DDE Code \u2014 VS Code / Cursor extension suite. Primary Mission Overview dashboard plus activity-bar Mission Control for missions, fleets (Hermes / Claude Code / DeepSeek), verification, and approvals. Gateway/CLI client only \u2014 never Core tables.",
   "version": "0.1.0",
   "publisher": "dde",
   "license": "UNLICENSED",
@@ -58,6 +58,12 @@
           "default": "",
           "description": "DDE principal UUID for Gateway /v1 session calls. Empty disables mission reads."
         },
+        "dde.studio.frontendMissionId": {
+          "type": "string",
+          "format": "uuid",
+          "default": "",
+          "description": "Mission UUID opened by the canonical Frontend Studio workbench. When empty, one uniquely tracked mission may be used."
+        },
         "dde.studio.cliPath": {
           "type": "string",
           "default": "dde",
@@ -110,6 +116,16 @@
       {
         "command": "dde.studio.openChat",
         "title": "Open Chat Shell",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.openFrontendStudio",
+        "title": "Open Frontend Studio Workbench",
+        "category": "DDE Code"
+      },
+      {
+        "command": "dde.studio.setFrontendMission",
+        "title": "Set Frontend Studio Mission",
         "category": "DDE Code"
       },
       {
@@ -333,21 +349,28 @@
         },
         {
           "command": "dde.studio.openChat"
+        },
+        {
+          "command": "dde.studio.openFrontendStudio"
+        },
+        {
+          "command": "dde.studio.setFrontendMission"
         }
       ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build:frontend-ui && npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "tsc -p ./ --noEmit",
     "test": "npm run check && npm run compile && node --test out/shared/*.test.js",
     "test:visual": "npm run check && npm run compile && node --test out/shared/overviewVisual.test.js && npx playwright test --config visual/playwright.config.ts",
-    "package": "npm run compile && npx --yes @vscode/vsce package --no-dependencies",
+    "package": "npm run build:frontend-ui && npm run compile && npx --yes @vscode/vsce package --no-dependencies",
     "dist:win": "npm run compile && npm --prefix desktop run dist:win",
     "desktop:start": "npm run compile && npm --prefix desktop start",
-    "desktop:install": "npm --prefix desktop install"
+    "desktop:install": "npm --prefix desktop install",
+    "build:frontend-ui": "npm --prefix ui run build"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -355,5 +378,9 @@
     "@types/node": "^20.11.30",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vanguduza/dde.git"
   }
 }

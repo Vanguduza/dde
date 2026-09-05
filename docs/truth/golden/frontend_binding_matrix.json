@@ -5368,119 +5368,167 @@
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
-            "engine/studio/preview_runtime/runtime.py",
             "engine/studio/preview_runtime/prototype_html.py",
-            "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_frontend_preview_runtime.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Code-backed prototype-HTML candidate preview sessions now implement persisted BUILDING/LOADING/LIVE/STALE/error semantics; React/host execution is not yet proven end-to-end."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "PreviewSession/PreviewService and the prototype-HTML runtime implement the real code-backed lifecycle; PostgreSQL-backed service execution is not available on this host, so domain closure remains BOUND."
         },
         "READ": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/reads.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/api.py"
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Mission-scoped Gateway reads expose candidate/preview state and the actual materialized preview document; fresh PostgreSQL execution is unavailable on this host."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Mission-scoped Core reads and the production VS Code host expose the candidate board and materialized preview document. Route/transport contracts are tested; live PostgreSQL read execution is unavailable here."
         },
         "COMMAND": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
-            "engine/studio/preview_runtime/runtime.py",
             "engine/studio/preview_runtime/prototype_html.py",
-            "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
+            "engine/gateway/api.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
             "tests/unit/test_frontend_preview_runtime.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "frontend.preview.start|set_state|stop are registered and mapped to PreviewService; no fresh PostgreSQL Gateway E2E is available on this host."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "frontend.preview.start|set_state|stop are registered and the workbench sends them through the real Gateway client while preserving caller idempotency. PostgreSQL command execution was not runnable on this host."
         },
         "STATE": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
-            "engine/studio/preview_runtime/runtime.py",
             "engine/studio/preview_runtime/prototype_html.py",
-            "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
+            "engine/gateway/api.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/candidates/service.py"
           ],
           "test_refs": [
             "tests/unit/test_frontend_preview_runtime.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Code-backed prototype-HTML candidate preview sessions now implement persisted BUILDING/LOADING/LIVE/STALE/error semantics; React/host execution is not yet proven end-to-end."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "BUILDING/LOADING/LIVE/STALE/error states, browser-hash attestation, mutation invalidation and DIRTY verification invalidation are implemented; persisted-state E2E awaits a database-backed run."
         },
         "UI": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The canvas region exists with the correct dominance and toolbar; the code-backed preview runtime is DDE-069 M9. Showing a screenshot here would violate the LIVE-badge rule (section 9.3)."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The React design canvas renders the materialized candidate document in an allow-scripts-only sandbox and exposes honest empty/error/loading states."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/ui/src/bridge/VsCodeHostBridge.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The honest unavailable surface does not constitute production feature wiring."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The production bridge chain React \u2192 VsCodeHostBridge \u2192 central WebviewPanel \u2192 StudioGatewayService \u2192 Core routes is implemented and compiled; browser protocol composition is exercised separately."
         },
         "E2E": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The feature cannot execute end-to-end because its backing runtime/product capability is not implemented."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Browser E2E proves candidate document \u2192 handshake \u2192 selection \u2192 mutation \u2192 invalidation \u2192 rerender, but uses explicit TestHostBridge because this host has no PostgreSQL/Redis runtime."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
             "interfaces/dde-studio/ui/visual/shell.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The real preview surface is rendered and structurally asserted. AD-039 still blocks pixel-reference conformance globally."
         }
       }
     },
@@ -5506,33 +5554,46 @@
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
-            "engine/studio/preview_runtime/runtime.py",
             "engine/studio/preview_runtime/prototype_html.py",
-            "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
             "tests/unit/test_frontend_preview_runtime.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "LIVE is server-owned and requires browser content-hash attestation plus current candidate workspace/state/PXG checks; no React badge is wired yet."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "LIVE is server-owned and requires source/content/revision checks; persisted execution awaits PostgreSQL-backed E2E."
         },
         "READ": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/reads.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/api.py"
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Preview session state is available through mission-scoped Core reads, but the React badge does not consume it yet."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Preview state is exposed by mission-scoped reads and candidate-board projections; live database execution is unavailable here."
         },
         "COMMAND": {
           "applicable": false,
@@ -5547,51 +5608,93 @@
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
-            "engine/studio/preview_runtime/runtime.py",
             "engine/studio/preview_runtime/prototype_html.py",
-            "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
+            "engine/gateway/api.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_preview_runtime.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "LIVE is server-owned and requires browser content-hash attestation plus current candidate workspace/state/PXG checks; no React badge is wired yet."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "A persisted LIVE row is downgraded to LOADING in a newly opened browser until that iframe re-attests the exact content hash."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The LIVE/LOADING/STALE/error badge is a functional React control backed by PreviewDocument.state."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The badge consumes the real preview read and the browser ready message sends frontend.preview.set_state through the production host transport."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Browser handshake-before-LIVE is proven, but the browser harness does not include a real PostgreSQL Gateway runtime."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "LIVE badge presence and state are asserted in Playwright; AD-039 separately blocks pixel-reference conformance."
         }
       }
     },
@@ -5664,40 +5767,68 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The toolbar now renders real PXG screens and drives the next preview screen. In-place route navigation via the row-declared frontend.preview.set_state contract is not complete."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "ScreenTreeSnapshot is wired through the production host and selected screen_key is passed to preview.start; the exact in-place route command remains incomplete."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/pxg/service.py",
-            "engine/studio/reads.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The browser fixture proves a real PXG screen selection is present in the live loop, but not production Gateway route switching."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The screen selector is rendered in the actual canvas toolbar; AD-039 separately blocks pixel-reference conformance."
         }
       }
     },
@@ -5728,15 +5859,28 @@
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
-            "engine/studio/inspector.py"
+            "engine/studio/frontend.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
             "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
             "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
-          "note": "The preview emits stable pxg_key selection anchors and Core can resolve that key to an InspectorDescriptor; React does not yet consume the message."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The preview emits stable pxg_key selection anchors and Core resolves the same key to InspectorDescriptor. Production database execution remains unavailable."
         },
         "COMMAND": {
           "applicable": false,
@@ -5748,47 +5892,91 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/preview_runtime/prototype_html.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_preview_runtime.py"
+            "tests/unit/test_frontend_preview_runtime.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Stable selection identity exists in the preview protocol and survives DOM reordering; selected-node UI state is not yet implemented."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "pxg_key identity survives DOM reordering and React stores selection by that key rather than DOM index or coordinates."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The React canvas renders a selection outline carrying the selected stable pxg_key."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Iframe selection message \u2192 React selection \u2192 production Inspector read resource is implemented through the host bridge."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/inspector.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Playwright selects the instrumented iframe node and resolves its Inspector descriptor; production PostgreSQL/Gateway E2E is not available."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Selection outline visibility and stable key are asserted in Playwright; AD-039 still blocks pixel-reference conformance."
         }
       }
     },
@@ -5826,11 +6014,20 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The declared InspectorDescriptor read model is not implemented; mutation planner/executor evidence does not substitute for descriptor resolution."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "InspectorDescriptor is implemented and mission-scoped, but this exact golden sub-surface is not yet represented as a dedicated React control/tab; UI remains UNBOUND."
         },
         "COMMAND": {
           "applicable": true,
@@ -7188,11 +7385,22 @@
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/reads.py",
-            "engine/studio/candidates/service.py"
+            "engine/studio/candidates/service.py",
+            "engine/studio/preview_runtime/service.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "CandidateBoardSnapshot now projects real candidate lifecycle/staleness and latest preview state. A dedicated projection test and React card binding are still missing."
+          "test_refs": [
+            "tests/unit/test_frontend_preview_runtime.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "CandidateBoardSnapshot projects real candidate lifecycle/staleness/latest preview state and is served through the production host; database-backed reads were unavailable here."
         },
         "COMMAND": {
           "applicable": true,
@@ -7230,39 +7438,55 @@
         },
         "UI": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
             "interfaces/dde-studio/ui/visual/shell.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The workbench renders an explicit unavailable state instead of a fake functional control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Candidate cards render only real CandidateBoardSnapshot records; the empty board remains an explicit EMPTY state with no fabricated directions or scores."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The honest unavailable surface does not constitute production feature wiring."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "CandidateBoardSnapshot is consumed through the production bridge and selecting a card drives the preview/Inspector context."
         },
         "E2E": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The feature cannot execute end-to-end because its backing runtime/product capability is not implemented."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Browser proof selects a real candidate record and enters its preview loop; production database-backed E2E remains unavailable."
         },
         "VISUAL": {
           "applicable": true,
@@ -8416,30 +8640,37 @@
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/api.py"
+            "engine/studio/mutations/executor.py",
+            "engine/studio/locks/service.py"
           ],
           "test_refs": [
             "tests/unit/test_frontend_inspector.py",
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "InspectorDescriptor resolves real candidate PXG/source identity and staleness/lock state; the React Inspector still has no selected-node binding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "InspectorDescriptor resolves candidate PXG/source/staleness/lock semantics; database-backed service execution remains unavailable."
         },
         "READ": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/api.py"
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
             "tests/unit/test_frontend_inspector.py",
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
           ],
-          "evidence_refs": [],
-          "note": "InspectorDescriptor resolves real candidate PXG/source identity and staleness/lock state; the React Inspector still has no selected-node binding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Mission-scoped Inspector reads and production host mapping are implemented and transport-tested; PostgreSQL execution is unavailable."
         },
         "COMMAND": {
           "applicable": false,
@@ -8454,63 +8685,84 @@
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/api.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_inspector.py",
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "InspectorDescriptor resolves real candidate PXG/source identity and staleness/lock state; the React Inspector still has no selected-node binding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "No-selection/loading/error/selected/stale descriptor states are implemented; production persisted context awaits E2E."
         },
         "UI": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The inspector panel exists at the locked width with a designed no-selection state. Stable selection needs the preview instrumentation layer (DDE-069 M9); the mutation path it would drive is already real and governed."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The selected node title and stable pxg_key are rendered from InspectorDescriptor after real iframe selection."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
           ],
-          "evidence_refs": [],
-          "note": "The honest unavailable surface does not constitute production feature wiring."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Stable selection drives the production frontend.inspector.describe read through the host bridge."
         },
         "E2E": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The feature cannot execute end-to-end because its backing runtime/product capability is not implemented."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Playwright proves selection \u2192 descriptor \u2192 rendered header, but via explicit TestHostBridge rather than PostgreSQL Gateway."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
           ],
           "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
             "interfaces/dde-studio/ui/visual/shell.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Selected-node Inspector is rendered in the locked panel geometry; AD-039 separately blocks pixel-reference conformance."
         }
       }
     },
@@ -8546,11 +8798,20 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The declared InspectorDescriptor read model is not implemented; mutation planner/executor evidence does not substitute for descriptor resolution."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "InspectorDescriptor is implemented and mission-scoped, but this exact golden sub-surface is not yet represented as a dedicated React control/tab; UI remains UNBOUND."
         },
         "COMMAND": {
           "applicable": true,
@@ -8653,13 +8914,18 @@
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/inspector.py"
+            "engine/studio/inspector.py",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_inspector.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/contract/test_frontend_preview_gateway_reads.py"
           ],
-          "evidence_refs": [],
-          "note": "Descriptor-driven token style properties, legal values, computed values, source mapping, lock behaviour and verification invalidation are implemented; the Style tab UI is not wired."
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "InspectorDescriptor is implemented and mission-scoped, but this exact golden sub-surface is not yet represented as a dedicated React control/tab; UI remains UNBOUND."
         },
         "COMMAND": {
           "applicable": true,
@@ -9773,11 +10039,22 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "InspectorDescriptor carries the mapped source path from PXG and the mission-scoped read transports it to React; database-backed execution remains unavailable."
         },
         "COMMAND": {
           "applicable": false,
@@ -9789,43 +10066,82 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Source mapping reports VERIFIED/PARTIAL/UNAVAILABLE and the action is absent when no source path resolves."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The Inspector exposes View source only from a resolved descriptor source path."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "React calls DdeHostBridge.revealFile and the VS Code host implementation path-jails then opens the file. Playwright verifies the bridge request; a live VS Code reveal was not executed here."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "Browser proof verifies the exact SourceFileRef sent through the bridge; live VS Code editor reveal remains unexecuted."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+          ],
+          "note": "The source section/button is rendered and exercised, but there is no separate golden visual assertion for this row and AD-039 blocks pixel-reference conformance."
         }
       }
     },

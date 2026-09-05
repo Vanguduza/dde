@@ -230,6 +230,7 @@ class FrontendStudioSnapshot:
     orchestrator: OrchestratorFrontendStatus
     sync: StudioSyncSnapshot
     attention: AttentionCenterSnapshot
+    screens: tuple[ScreenNode, ...]
     candidates: CandidateBoardSnapshot
     degraded_reasons: tuple[str, ...] = field(default_factory=tuple)
 
@@ -320,6 +321,7 @@ class FrontendReadService:
                 build_version=self._build_version,
             ),
             attention=attention,
+            screens=screen_tree(graph),
             candidates=candidates,
             degraded_reasons=tuple(degraded),
         )

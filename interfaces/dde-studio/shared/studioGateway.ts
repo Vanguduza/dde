@@ -51,7 +51,9 @@ export class StudioGatewayService {
   reset(baseUrl: string, principalId: string, clientType = "human"): void {
     const usable = baseUrl.trim().length > 0 && isUuid(principalId.trim());
     this.client =
-      usable && baseUrl.trim().length > 0 ? new GatewayApiClient(baseUrl.trim()) : null;
+      usable && baseUrl.trim().length > 0
+        ? new GatewayApiClient(baseUrl.trim())
+        : null;
     this.principalId = principalId.trim();
     if (!isUuid(this.principalId)) {
       this.principalId = "";
@@ -120,7 +122,11 @@ export class StudioGatewayService {
 
   async readMissionControl(
     missionId: string,
-  ): Promise<MissionReadResult & { control?: import("./gatewayClient").GatewayMissionControl }> {
+  ): Promise<
+    MissionReadResult & {
+      control?: import("./gatewayClient").GatewayMissionControl;
+    }
+  > {
     const state = await this.state();
     if (state.kind !== "ready" || !this.session) {
       return {
@@ -194,9 +200,13 @@ export class StudioGatewayService {
     commandType: string,
     missionId: string,
     parameters: Record<string, unknown>,
+    idempotencyKey?: string,
   ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
     if (!/^frontend\./.test(commandType) || !isUuid(missionId.trim())) {
-      return { ok: false, reason: "Frontend Studio needs a valid command and mission UUID." };
+      return {
+        ok: false,
+        reason: "Frontend Studio needs a valid command and mission UUID.",
+      };
     }
     const state = await this.state();
     if (state.kind !== "ready" || !this.session) {
@@ -209,7 +219,7 @@ export class StudioGatewayService {
       this.trackMission(missionId);
       const acceptance = await this.client!.acceptCommand({
         commandId: randomUUID(),
-        idempotencyKey: `${commandType}:${missionId}:${randomUUID()}`,
+        idempotencyKey: idempotencyKey ?? `${commandType}:${missionId}:${randomUUID()}`,
         principalId: this.principalId,
         clientSessionId: this.session.session_id,
         targetType: "mission",
@@ -218,6 +228,80 @@ export class StudioGatewayService {
         parameters,
       });
       return { ok: true, acceptance };
+    } catch (err) {
+      if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
+        this.session = null;
+      }
+      return { ok: false, reason: describe(err) };
+    }
+  }
+
+  async readFrontendSnapshot(
+    missionId: string,
+  ): Promise<{
+    ok: boolean;
+    value?: Record<string, unknown>;
+    reason?: string;
+  }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendSnapshot(session, this.principalId, missionId),
+    );
+  }
+
+  async readFrontendPreview(
+    missionId: string,
+    previewSessionId: string,
+  ): Promise<{
+    ok: boolean;
+    value?: Record<string, unknown>;
+    reason?: string;
+  }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendPreview(
+        session,
+        this.principalId,
+        missionId,
+        previewSessionId,
+      ),
+    );
+  }
+
+  async readFrontendInspector(
+    missionId: string,
+    candidateId: string,
+    pxgKey: string,
+  ): Promise<{
+    ok: boolean;
+    value?: Record<string, unknown>;
+    reason?: string;
+  }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendInspector(
+        session,
+        this.principalId,
+        missionId,
+        candidateId,
+        pxgKey,
+      ),
+    );
+  }
+
+  private async readFrontendResource(
+    read: (sessionId: string) => Promise<Record<string, unknown>>,
+  ): Promise<{
+    ok: boolean;
+    value?: Record<string, unknown>;
+    reason?: string;
+  }> {
+    const state = await this.state();
+    if (state.kind !== "ready" || !this.session) {
+      return {
+        ok: false,
+        reason: state.kind === "ready" ? "session not open yet" : state.reason,
+      };
+    }
+    try {
+      return { ok: true, value: await read(this.session.session_id) };
     } catch (err) {
       if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
         this.session = null;
@@ -253,8 +337,14 @@ export class StudioGatewayService {
           "batch approve needs the DDE project UUID (no project_id exists in the Gateway session); set dde.studio.projectId",
       };
     }
-    if (approvalIds.length === 0 || approvalIds.some((id) => !isUuid(id.trim()))) {
-      return { ok: false, reason: "batch approve needs at least one approval UUID" };
+    if (
+      approvalIds.length === 0 ||
+      approvalIds.some((id) => !isUuid(id.trim()))
+    ) {
+      return {
+        ok: false,
+        reason: "batch approve needs at least one approval UUID",
+      };
     }
     if (
       opts.scopeHashes.length !== approvalIds.length ||
@@ -262,7 +352,8 @@ export class StudioGatewayService {
     ) {
       return {
         ok: false,
-        reason: "scopeHashes must be parallel to approvalIds (one per approval)",
+        reason:
+          "scopeHashes must be parallel to approvalIds (one per approval)",
       };
     }
     const parameters: Record<string, unknown> = {
@@ -271,7 +362,10 @@ export class StudioGatewayService {
       decision: "APPROVED",
       rationale: opts.rationale,
     };
-    if (typeof opts.humanMinutes === "number" && Number.isInteger(opts.humanMinutes)) {
+    if (
+      typeof opts.humanMinutes === "number" &&
+      Number.isInteger(opts.humanMinutes)
+    ) {
       parameters.human_minutes = opts.humanMinutes;
     }
     const state = await this.state();

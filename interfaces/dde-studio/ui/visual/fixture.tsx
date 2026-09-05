@@ -95,6 +95,8 @@ const SNAPSHOT: FrontendStudioSnapshot = {
     durableRevisionAt: "2026-09-04T11:58:00Z",
     buildVersion: "dde-studio 0.1.0",
   },
+  screens: [],
+  candidates: { cards: [], count: { value: 0, availability: "EMPTY" } },
   attention: {
     items: [
       {
@@ -110,7 +112,14 @@ const SNAPSHOT: FrontendStudioSnapshot = {
 };
 
 const bridge = new TestHostBridge({
-  reads: { "frontend.studio.snapshot": SNAPSHOT },
+  reads: {
+    "frontend.host.context": {
+      missionId: "00000000-0000-0000-0000-000000000010",
+      projectId: SNAPSHOT.projectId,
+      projectName: "LogiFlow Marketplace",
+    },
+    "frontend.studio.snapshot": SNAPSHOT,
+  },
 });
 
 const container = document.getElementById("dde-root");

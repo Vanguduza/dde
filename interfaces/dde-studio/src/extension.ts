@@ -34,6 +34,7 @@ import {
   type StudioMessage,
 } from "./webviews/providers";
 import { PreviewGalleryProvider as GalleryProvider } from "./webviews/previewGalleryProvider";
+import { FrontendStudioWorkbenchPanel } from "./webviews/frontendStudioWorkbenchPanel";
 
 const CONFIG_SECTION = "dde.studio";
 const PROTOTYPES_PATH_SETTING = "prototypesPath";
@@ -52,6 +53,11 @@ export function activate(context: vscode.ExtensionContext): void {
   let pollTimer: ReturnType<typeof setInterval> | undefined;
   const panels = new Map<HarnessId, HarnessPanel>();
   let gatewayService: StudioGatewayService | undefined;
+  const frontendWorkbench = new FrontendStudioWorkbenchPanel(
+    context,
+    () => gatewayService,
+    resolveFrontendMissionId,
+  );
 
   const overviewView = new OverviewViewProvider((msg) =>
     void handleMessage(msg),
@@ -119,6 +125,7 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.window.registerWebviewViewProvider(view.viewType, view),
     ),
     galleryView,
+    frontendWorkbench,
     vscode.commands.registerCommand("dde.studio.refreshHealth", () =>
       refreshAll(),
     ),
@@ -149,6 +156,29 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("dde.studio.openChat", async () => {
       await vscode.commands.executeCommand("dde.studio.chat.focus");
+    }),
+    vscode.commands.registerCommand("dde.studio.openFrontendStudio", () => {
+      frontendWorkbench.show();
+    }),
+    vscode.commands.registerCommand("dde.studio.setFrontendMission", async () => {
+      const configured = resolveFrontendMissionId() ?? "";
+      const missionId = await vscode.window.showInputBox({
+        title: "Frontend Studio mission",
+        prompt: "Enter the DDE mission UUID to open in the Frontend Studio workbench.",
+        value: configured,
+        validateInput: (value) =>
+          isUuid(value.trim()) ? undefined : "Enter a valid UUID.",
+      });
+      if (!missionId) return;
+      await vscode.workspace
+        .getConfiguration(CONFIG_SECTION)
+        .update(
+          "frontendMissionId",
+          missionId.trim(),
+          vscode.ConfigurationTarget.Workspace,
+        );
+      gatewayService?.trackMission(missionId.trim());
+      frontendWorkbench.show();
     }),
     vscode.commands.registerCommand("dde.studio.setLocalTarget", async () => {
       await vscode.workspace
@@ -241,6 +271,17 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     pushUi();
     restartPoll(connection.pollIntervalMs);
+  }
+
+  function resolveFrontendMissionId(): string | null {
+    const configured = String(
+      vscode.workspace
+        .getConfiguration(CONFIG_SECTION)
+        .get("frontendMissionId") ?? "",
+    ).trim();
+    if (isUuid(configured)) return configured;
+    const tracked = gatewayService?.trackedMissionIds ?? [];
+    return tracked.length === 1 ? tracked[0] : null;
   }
 
   function pushUi(): void {
@@ -343,6 +384,9 @@ export function activate(context: vscode.ExtensionContext): void {
         if (harness) {
           openPanel(harness);
         }
+        break;
+      case "openFrontendStudio":
+        frontendWorkbench.show();
         break;
       case "openHermes":
         openPanel("hermes");
@@ -613,4 +657,10 @@ function tryRegisterChatParticipantPlaceholder(): void {
 
 export function deactivate(): void {
   // disposables handled via context.subscriptions
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

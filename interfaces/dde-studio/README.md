@@ -33,7 +33,7 @@ It does **not** write Project Truth tables, own mission state, or import `engine
 
 | Display name | **DDE Code** |
 
-| Transport now | Live `/healthz` + `/readyz`; Gateway stubs; CLI-JSON seam for S1 |
+| Transport now | Live `/healthz` + `/readyz`; real Gateway session/command and mission-scoped Frontend Studio read transport; other module list surfaces remain incremental |
 
 | Transport later | Gateway REST/WS (DDE-027, S3) swaps under the same client abstraction |
 
@@ -41,7 +41,7 @@ It does **not** write Project Truth tables, own mission state, or import `engine
 
 | Chat | Webview-first when built; Chat Participant only as gated additive (§3.3) |
 
-| React/Vite `webview-ui` | **Not yet** — migrate when `dde-integration` + `dde-approvals` need it (§3.5) |
+| React/Vite `webview-ui` | **Implemented for the canonical central Frontend Studio workbench** — built during VSIX prepublish; older sidebar Frontend Studio views are compatibility shims |
 
 
 
@@ -50,8 +50,9 @@ It does **not** write Project Truth tables, own mission state, or import `engine
 Cursor / VS Code (workbench)                    Complete Windows product (double-click)
   └─ DDE Code extension (optional)                  └─ DDE-Complete-Setup → DDE Code
        ├─ Activity bar views                           ├─ Same activity-bar layout
+       ├─ Central React Frontend Studio panel          ├─ Frontend workbench bundle
        ├─ Status bar → Core ready / down               ├─ Same shared HTML pages
-       └─ fetch → :8000/healthz|readyz                 ├─ Setup wizard + Start local Core
+       └─ Gateway /v1 + health probes                  ├─ Setup wizard + Start local Core
                                                        └─ Core via Docker (same install)
 ```
 

@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.frontend_contract import Obligation
+from engine.contracts.frontend_preview_session import FrontendPreviewSession
 from engine.contracts.pxg_node import SourceRef
 from engine.contracts.verification_run import VerificationRun
 from engine.core.errors import DdeError
@@ -603,12 +604,21 @@ class FrontendStudioService:
         Refusals are returned, not raised: the caller gets a typed code
         per request so the studio can say what it declined and why.
         """
+        candidate_id = _uuid(parameters, "candidate_id")
         outcome = await self._mutation_executor().apply(
             tenant_id=tenant_id,
             project_id=project_id,
-            candidate_id=_uuid(parameters, "candidate_id"),
+            candidate_id=candidate_id,
             requests=_mutation_requests(parameters),
         )
+        invalidated: tuple[FrontendPreviewSession, ...] = ()
+        if outcome.applied:
+            invalidated = await self._preview_service().invalidate_candidate(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate_id,
+                detail="governed mutation changed the candidate; rerender required",
+            )
         return {
             "candidate_state": outcome.candidate_state.value,
             "applied": [
@@ -631,6 +641,9 @@ class FrontendStudioService:
                 for item in outcome.refused
             ],
             "fully_applied": outcome.fully_applied,
+            "invalidated_preview_session_ids": [
+                str(item.preview_session_id) for item in invalidated
+            ],
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 

@@ -55,10 +55,11 @@ export function frontendStudioHtml(view: FrontendStudioView, status = ""): strin
     label{display:grid;gap:var(--space-1);margin:var(--space-2) 0}input,select,textarea{padding:var(--space-2);background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border)}
     .empty{padding:var(--space-3);border:1px dashed var(--vscode-panel-border)}.status{min-height:1.5em}</style></head>
     <body data-frontend-studio-view="${view}"><h1>${copy.title}</h1>
+    <button type="button" id="open-frontend-workbench">Open Frontend Studio Workbench</button>
     <nav aria-label="Frontend Studio"><span>Home</span><span>Intake</span><span>Donors</span><span>Canvas</span><span>Verify</span><span>Approvals</span></nav>
     <section class="empty" data-bind="live-results">${copy.empty}</section>${action}
     <p class="status" role="status">${escapeHtml(status)}</p>
-    <script>const vscode=acquireVsCodeApi();const form=document.getElementById('studio-command');
+    <script>const vscode=acquireVsCodeApi();document.getElementById('open-frontend-workbench')?.addEventListener('click',()=>vscode.postMessage({type:'openFrontendStudio'}));const form=document.getElementById('studio-command');
     if(form){form.addEventListener('submit',(event)=>{event.preventDefault();let parameters;
     try{parameters=JSON.parse(document.getElementById('parameters').value);if(!parameters||Array.isArray(parameters)||typeof parameters!=='object')throw new Error();}
     catch{document.querySelector('.status').textContent='Parameters must be a JSON object.';return;}

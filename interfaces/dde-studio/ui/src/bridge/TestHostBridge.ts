@@ -21,10 +21,17 @@ import type {
 } from "./DdeHostBridge";
 import { DdeBridgeError } from "./DdeHostBridge";
 
+export type TestReadHandler = (query: DdeReadQuery) => unknown | Promise<unknown>;
+export type TestCommandHandler = (
+  command: DdeCommand,
+) => Record<string, unknown> | Promise<Record<string, unknown>>;
+
 export interface TestHostBridgeOptions {
   readonly capabilities?: Partial<HostCapabilities>;
-  readonly reads?: Readonly<Record<string, unknown>>;
-  readonly commands?: Readonly<Record<string, Record<string, unknown>>>;
+  readonly reads?: Readonly<Record<string, unknown | TestReadHandler>>;
+  readonly commands?: Readonly<
+    Record<string, Record<string, unknown> | TestCommandHandler>
+  >;
 }
 
 const DEFAULT_CAPABILITIES: HostCapabilities = {
@@ -42,8 +49,11 @@ export class TestHostBridge implements DdeHostBridge {
   readonly revealedFiles: SourceFileRef[] = [];
 
   private readonly capabilities: HostCapabilities;
-  private readonly reads: Record<string, unknown>;
-  private readonly commands: Record<string, Record<string, unknown>>;
+  private readonly reads: Record<string, unknown | TestReadHandler>;
+  private readonly commands: Record<
+    string,
+    Record<string, unknown> | TestCommandHandler
+  >;
   private readonly listeners = new Set<{
     filter: EventFilter;
     onEvent: (event: DdeEvent) => void;
@@ -55,8 +65,15 @@ export class TestHostBridge implements DdeHostBridge {
     this.commands = { ...(options.commands ?? {}) };
   }
 
-  setRead(resource: string, value: unknown): void {
+  setRead(resource: string, value: unknown | TestReadHandler): void {
     this.reads[resource] = value;
+  }
+
+  setCommand(
+    commandType: string,
+    value: Record<string, unknown> | TestCommandHandler,
+  ): void {
+    this.commands[commandType] = value;
   }
 
   emit(event: DdeEvent): void {
@@ -71,14 +88,16 @@ export class TestHostBridge implements DdeHostBridge {
 
   async sendCommand(command: DdeCommand): Promise<CommandAcceptance> {
     this.sentCommands.push(command);
-    const payload = this.commands[command.commandType];
-    if (payload === undefined) {
+    const registered = this.commands[command.commandType];
+    if (registered === undefined) {
       throw new DdeBridgeError({
         errorCode: "FORBIDDEN",
         message: `no registered response for ${command.commandType}`,
         retryable: false,
       });
     }
+    const payload =
+      typeof registered === "function" ? await registered(command) : registered;
     return {
       commandId: `test-${this.sentCommands.length}`,
       status: "accepted",
@@ -96,7 +115,10 @@ export class TestHostBridge implements DdeHostBridge {
         retryable: false,
       });
     }
-    return this.reads[query.resource] as T;
+    const registered = this.reads[query.resource];
+    const value =
+      typeof registered === "function" ? await registered(query) : registered;
+    return value as T;
   }
 
   subscribeEvents(

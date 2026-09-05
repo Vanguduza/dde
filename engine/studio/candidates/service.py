@@ -182,7 +182,12 @@ class CandidateService:
             }
             if workspace_id is not None:
                 values["workspace_id"] = workspace_id
-            if verification_run_id is not None:
+            if target is CandidateState.DIRTY:
+                # A verdict describes the code before the edit. Keeping its
+                # run id attached after a mutation would let downstream reads
+                # mistake stale evidence for current evidence.
+                values["verification_run_id"] = None
+            elif verification_run_id is not None:
                 values["verification_run_id"] = verification_run_id
             if superseded_by is not None:
                 values["superseded_by"] = superseded_by

@@ -180,6 +180,46 @@ export class GatewayApiClient {
     return this.get(`/mission-control/${missionId}`, sessionId, principalId);
   }
 
+  async readFrontendSnapshot(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/snapshot`,
+      sessionId,
+      principalId,
+    );
+  }
+
+  async readFrontendPreview(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    previewSessionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/previews/${previewSessionId}`,
+      sessionId,
+      principalId,
+    );
+  }
+
+  async readFrontendInspector(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    candidateId: string,
+    pxgKey: string,
+  ): Promise<Record<string, unknown>> {
+    const query = new URLSearchParams({ pxg_key: pxgKey });
+    return this.get(
+      `/missions/${missionId}/frontend/inspector/${candidateId}?${query.toString()}`,
+      sessionId,
+      principalId,
+    );
+  }
+
   private async get<T>(
     path: string,
     sessionId: string,
@@ -199,7 +239,10 @@ export class GatewayApiClient {
   private async post<T>(path: string, body: unknown): Promise<T> {
     const response = await fetch(`${this.getBasePath()}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(body),
     });
     return this.parse<T>(response);
