@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.frontend_preview_session import FrontendPreviewSession
 from engine.contracts.frontend_verification_request import FrontendVerificationRequest
+from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.preview_runtime.service import PreviewState
@@ -167,6 +168,188 @@ class CandidateVerificationRequestService:
             )
         return resolved
 
+    async def get(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        verification_request_id: UUID,
+    ) -> FrontendVerificationRequest:
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            row = (
+                (
+                    await uow.connection.execute(
+                        select(frontend_verification_requests).where(
+                            frontend_verification_requests.c.tenant_id == tenant_id,
+                            frontend_verification_requests.c.project_id == project_id,
+                            frontend_verification_requests.c.verification_request_id
+                            == verification_request_id,
+                        )
+                    )
+                )
+                .mappings()
+                .first()
+            )
+        if row is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "unknown frontend verification request in this project",
+                retryable=False,
+                details={"verification_request_id": str(verification_request_id)},
+            )
+        return FrontendVerificationRequest.model_validate(dict(row))
+
+    async def mark_running(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        verification_request_id: UUID,
+    ) -> FrontendVerificationRequest:
+        current = await self.get(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            verification_request_id=verification_request_id,
+        )
+        if current.state != "PENDING":
+            raise DdeError(
+                "VERSION_CONFLICT",
+                f"verification request is {current.state}, not PENDING",
+                retryable=current.state == "RUNNING",
+                details={"verification_request_id": str(verification_request_id)},
+            )
+        return await self._write_state(
+            current, target="RUNNING", reason="candidate verification is executing"
+        )
+
+    async def mark_blocked(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        verification_request_id: UUID,
+        reason: str,
+    ) -> FrontendVerificationRequest:
+        current = await self.get(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            verification_request_id=verification_request_id,
+        )
+        if current.state not in {"PENDING", "RUNNING", "BLOCKED"}:
+            return current
+        if current.state == "BLOCKED" and current.reason == reason:
+            return current
+        return await self._write_state(current, target="BLOCKED", reason=reason)
+
+    async def record_run(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        verification_request_id: UUID,
+        verification_run_id: UUID,
+        terminal_state: str,
+        reason: str | None = None,
+    ) -> FrontendVerificationRequest:
+        if terminal_state not in {"PASSED", "FAILED", "BLOCKED"}:
+            raise ValueError(f"unsupported request terminal state {terminal_state!r}")
+        # A mutation may supersede the request while the verifier is in flight.
+        # Retry one optimistic conflict so the completed run remains attached to
+        # the request for audit, while SUPERSEDED remains authoritative.
+        for _ in range(2):
+            current = await self.get(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                verification_request_id=verification_request_id,
+            )
+            if current.state not in {"RUNNING", "SUPERSEDED"}:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "verification run completed for a request that is no longer "
+                    "running or superseded",
+                    retryable=False,
+                    details={
+                        "verification_request_id": str(verification_request_id),
+                        "state": current.state,
+                    },
+                )
+            run_ids = list(current.verification_run_ids)
+            if verification_run_id not in run_ids:
+                run_ids.append(verification_run_id)
+            target = "SUPERSEDED" if current.state == "SUPERSEDED" else terminal_state
+            resolved_reason = current.reason if target == "SUPERSEDED" else reason
+            try:
+                return await self._write_state(
+                    current,
+                    target=target,
+                    reason=resolved_reason,
+                    verification_run_ids=run_ids,
+                )
+            except DdeError as exc:
+                if exc.error_code != "VERSION_CONFLICT":
+                    raise
+        raise DdeError(
+            "VERSION_CONFLICT",
+            "verification request changed repeatedly while recording the run",
+            retryable=True,
+            details={"verification_request_id": str(verification_request_id)},
+        )
+
+    async def _write_state(
+        self,
+        current: FrontendVerificationRequest,
+        *,
+        target: str,
+        reason: str | None,
+        verification_run_ids: list[UUID] | None = None,
+    ) -> FrontendVerificationRequest:
+        now = datetime.now(UTC)
+        values: dict[str, object] = {
+            "state": target,
+            "reason": reason,
+            "updated_at": now,
+            "lock_version": current.lock_version + 1,
+        }
+        if verification_run_ids is not None:
+            values["verification_run_ids"] = [
+                str(item) for item in verification_run_ids
+            ]
+        async with open_unit_of_work(
+            self._engine,
+            tenant_id=current.tenant_id,
+            project_id=current.project_id,
+        ) as uow:
+            row = (
+                (
+                    await uow.connection.execute(
+                        update(frontend_verification_requests)
+                        .where(
+                            frontend_verification_requests.c.verification_request_id
+                            == current.verification_request_id,
+                            frontend_verification_requests.c.lock_version
+                            == current.lock_version,
+                        )
+                        .values(**values)
+                        .returning(frontend_verification_requests)
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if row is None:
+                raise DdeError(
+                    "VERSION_CONFLICT",
+                    "verification request changed concurrently; re-read and retry",
+                    retryable=True,
+                    details={
+                        "verification_request_id": str(current.verification_request_id)
+                    },
+                )
+            await uow.commit()
+        return FrontendVerificationRequest.model_validate(dict(row))
+
     async def for_preview(
         self, *, tenant_id: UUID, project_id: UUID, preview_session_id: UUID
     ) -> FrontendVerificationRequest | None:
@@ -236,7 +419,7 @@ class CandidateVerificationRequestService:
                             frontend_verification_requests.c.candidate_id
                             == candidate_id,
                             frontend_verification_requests.c.state.in_(
-                                ["PENDING", "BLOCKED"]
+                                ["PENDING", "BLOCKED", "RUNNING"]
                             ),
                         )
                         .values(

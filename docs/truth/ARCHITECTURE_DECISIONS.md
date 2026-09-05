@@ -454,6 +454,38 @@ or amend AD-035 to make the structural specification the sole visual authority.
 
 ---
 
+## AD-040 — VerificationRun subject lineage supports governed non-worker revision verification
+
+**Status:** REV3-CONFORMANCE CORRECTION (2026-09-05). Not a new product scope or autonomy policy.
+
+Blueprint Rev 3 §17.1 defines a VerificationRun by exact acceptance criterion,
+task/change packet, revision, design/runtime identity, verifier and evidence.
+`FRONTEND_STUDIO_REV3.md` §20.1 explicitly requires Candidate/Accepted revision
+→ VerificationRun. The generated schema had drifted narrower and required a
+non-null WorkerRun and TaskAttempt for every run, which made the adopted
+Frontend Studio path impossible without fabricating worker lineage.
+
+**Correction.** VerificationRun retains all existing worker-origin lineage and
+semantics, and adds typed subject lineage. Existing/worker runs are
+`WORKER_RUN`; governed Frontend candidate revisions may be
+`FRONTEND_CANDIDATE` with null worker/attempt ids. Both use the same
+verification checks, Evidence writer and verdict evaluation. Worker-specific
+recovery, telemetry and learning remain worker-only and are not manufactured
+for human/Inspector edits.
+
+Capability authority is unchanged: non-worker verification still requires
+real Chapter 9 CapabilityLeases. Its explicit lease checkout refuses any
+WorkerRun-bound lease, which must continue through the original kill-flag-aware
+path. EDR-0017's narrow `capability.visual_critique` is preserved; broad
+`capability.claude_code_invoke` remains standing-forbidden and is not used.
+
+**Consequence.** DDE can satisfy the already-adopted candidate/accepted
+revision verification architecture without a synthetic WorkerRun. This corrects
+schema/implementation drift under AD-036; it does not weaken any accepted EDR,
+change promotion authority, or make a pending verification request a verdict.
+
+---
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.

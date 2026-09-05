@@ -642,6 +642,13 @@ class CommandDispatcher:
                 project_id=project_id,
                 parameters=params,
             )
+        elif command_type == "frontend.verification.run":
+            payload = await studio.run_candidate_verification(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
         elif command_type == "frontend.lock.create":
             payload = await studio.create_lock(
                 tenant_id=tenant_id,

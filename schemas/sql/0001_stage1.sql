@@ -1025,8 +1025,10 @@ CREATE TABLE verification_runs (
     project_id uuid NOT NULL,
     mission_id uuid NOT NULL,
     task_id uuid NOT NULL,
-    task_attempt_id uuid NOT NULL,
-    worker_run_id uuid NOT NULL,
+    task_attempt_id uuid,
+    worker_run_id uuid,
+    subject_kind text,
+    subject_id uuid,
     workspace_id uuid NOT NULL,
     oracle_id uuid NOT NULL,
     sequence integer NOT NULL,
@@ -1042,7 +1044,10 @@ CREATE TABLE verification_runs (
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (verification_run_id),
     UNIQUE (worker_run_id, sequence),
-    UNIQUE (verification_run_id, project_id, tenant_id)
+    UNIQUE (verification_run_id, project_id, tenant_id),
+    UNIQUE (subject_kind, subject_id, sequence),
+    CHECK ((subject_kind IS NULL AND subject_id IS NULL) OR (subject_kind IS NOT NULL AND subject_id IS NOT NULL)),
+    CHECK (subject_kind IS NULL OR subject_kind IN ('WORKER_RUN', 'FRONTEND_CANDIDATE'))
 );
 
 CREATE TABLE plan_drafts (

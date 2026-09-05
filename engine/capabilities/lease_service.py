@@ -760,40 +760,93 @@ class CapabilityLeaseService:
                         "capability_id": capability_id,
                     },
                 )
-            now = self._clock.now()
-            if lease.status not in HELD_LEASE_STATUSES:
-                raise DdeError(
-                    "POLICY_DENIED",
-                    f"Capability lease is {lease.status}, not held -- fail closed",
-                    details={
-                        "lease_id": str(lease.lease_id),
-                        "status": lease.status,
-                    },
-                )
-            if lease.expires_at <= now:
-                await self._transition(
-                    active,
-                    lease,
-                    "EXPIRED",
-                    event_type="CapabilityLeaseTransitioned",
-                    payload={"from": lease.status, "to": "EXPIRED"},
-                )
-                raise DdeError(
-                    "POLICY_DENIED",
-                    "Capability lease has expired -- fail closed",
-                    details={"lease_id": str(lease.lease_id)},
-                )
-            if lease.status == "GRANTED":
-                lease = await self._transition(
-                    active,
-                    lease,
-                    "ACTIVE",
-                    event_type="CapabilityLeaseActivated",
-                    payload={},
-                )
-            return lease
+            return await self._activate_held_lease(active, lease)
 
         return await self._run(uow, tenant_id, project_id, _op)
+
+    async def require_active_lease(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        lease_id: UUID,
+        capability_id: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> CapabilityLease:
+        """Validate one explicitly identified non-worker capability lease.
+
+        Frontend candidate verification is an engine-owned verification subject,
+        not a WorkerRun. `CapabilityLease.worker_run_id` has always been nullable,
+        but the original checkout API could only resolve leases by WorkerRun. This
+        entry point closes that mismatch without creating a WorkerRun-shaped escape
+        hatch: it *refuses* worker-bound leases, which must continue through
+        `require_active()` and its kill-flag enforcement.
+        """
+
+        async def _op(active: PostgresUnitOfWork) -> CapabilityLease:
+            lease = await self._require_lease(active, lease_id)
+            if lease.tenant_id != tenant_id or lease.project_id != project_id:
+                raise DdeError(
+                    "TENANT_SCOPE_VIOLATION",
+                    "Capability lease is outside this project scope",
+                    details={"lease_id": str(lease_id)},
+                )
+            if lease.capability_id != capability_id:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "Capability lease does not authorize the requested capability",
+                    details={
+                        "lease_id": str(lease_id),
+                        "expected": capability_id,
+                        "actual": lease.capability_id,
+                    },
+                )
+            if lease.worker_run_id is not None:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "WorkerRun-bound leases must use require_active() so kill flags "
+                    "cannot be bypassed",
+                    details={
+                        "lease_id": str(lease_id),
+                        "worker_run_id": str(lease.worker_run_id),
+                    },
+                )
+            return await self._activate_held_lease(active, lease)
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
+    async def _activate_held_lease(
+        self, active: PostgresUnitOfWork, lease: CapabilityLease
+    ) -> CapabilityLease:
+        now = self._clock.now()
+        if lease.status not in HELD_LEASE_STATUSES:
+            raise DdeError(
+                "POLICY_DENIED",
+                f"Capability lease is {lease.status}, not held -- fail closed",
+                details={"lease_id": str(lease.lease_id), "status": lease.status},
+            )
+        if lease.expires_at <= now:
+            await self._transition(
+                active,
+                lease,
+                "EXPIRED",
+                event_type="CapabilityLeaseTransitioned",
+                payload={"from": lease.status, "to": "EXPIRED"},
+            )
+            raise DdeError(
+                "POLICY_DENIED",
+                "Capability lease has expired -- fail closed",
+                details={"lease_id": str(lease.lease_id)},
+            )
+        if lease.status == "GRANTED":
+            lease = await self._transition(
+                active,
+                lease,
+                "ACTIVE",
+                event_type="CapabilityLeaseActivated",
+                payload={},
+            )
+        return lease
 
     async def _revoke_latest_lease_on_kill(
         self,

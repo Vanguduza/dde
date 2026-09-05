@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DdeHostBridge } from "../bridge/DdeHostBridge";
 import { Unavailable } from "../components/Honest";
 import type {
+  CandidateCardSnapshot,
   InspectorDescriptor,
   InspectorPropertyDescriptor,
 } from "../state/projections";
@@ -13,6 +14,7 @@ export interface InspectorPanelProps {
   readonly loading: boolean;
   readonly error: string | null;
   readonly applyingProperty: string | null;
+  readonly candidate: CandidateCardSnapshot | null;
   readonly onApply: (propertyName: string, value: string) => void;
 }
 
@@ -23,6 +25,7 @@ export function InspectorPanel({
   loading,
   error,
   applyingProperty,
+  candidate,
   onApply,
 }: InspectorPanelProps) {
   if (!selectedKey) {
@@ -81,6 +84,10 @@ export function InspectorPanel({
           />
         ))}
       </div>
+      <div className="dde-inspector-section" data-testid="inspector-verification-evidence">
+        <h3>Current verification evidence</h3>
+        <InspectorVerificationEvidence descriptor={descriptor} candidate={candidate} />
+      </div>
       <div className="dde-inspector-section">
         <h3>Verification after edit</h3>
         {descriptor.requiredVerification.length ? (
@@ -111,6 +118,52 @@ export function InspectorPanel({
         ) : (
           <span className="dde-muted">Source mapping unavailable.</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+function InspectorVerificationEvidence({
+  descriptor,
+  candidate,
+}: {
+  readonly descriptor: InspectorDescriptor;
+  readonly candidate: CandidateCardSnapshot | null;
+}) {
+  if (!candidate?.verificationRunId) {
+    const stale =
+      candidate?.verificationRequestState === "SUPERSEDED" ||
+      candidate?.state === "DIRTY" ||
+      candidate?.stale;
+    return (
+      <span data-state={stale ? "STALE" : "NOT_EVALUATED"}>
+        {stale ? "Evidence stale — re-verification required." : "Not evaluated."}
+      </span>
+    );
+  }
+  const required = new Set(descriptor.requiredVerification);
+  const relevant = candidate.verificationChecks.filter((check) => required.has(check.kind));
+  const missing = descriptor.requiredVerification.filter(
+    (kind) => !relevant.some((check) => check.kind === kind),
+  );
+  const failed = relevant.filter((check) => check.status !== "PASSED");
+  const current = missing.length === 0 && failed.length === 0;
+  return (
+    <div>
+      <strong data-state={current ? "PASSED" : "INCOMPLETE"}>
+        {current ? "Current screen evidence: PASSED" : "Current evidence incomplete"}
+      </strong>
+      <div className="dde-chip-row">
+        {relevant.map((check) => (
+          <span key={check.checkRef} className="dde-chip" data-state={check.status}>
+            {check.kind} · {check.status}
+          </span>
+        ))}
+        {missing.map((kind) => (
+          <span key={kind} className="dde-chip" data-state="MISSING">
+            {kind} · MISSING
+          </span>
+        ))}
       </div>
     </div>
   );

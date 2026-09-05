@@ -124,6 +124,13 @@ export interface SourceWorkspaceInventory {
   readonly reason?: string | null;
 }
 
+export interface VerificationCheckSnapshot {
+  readonly checkRef: string;
+  readonly kind: string;
+  readonly status: string;
+  readonly detail: string | null;
+}
+
 export interface CandidateCardSnapshot {
   readonly candidateId: string;
   readonly title: string;
@@ -141,6 +148,11 @@ export interface CandidateCardSnapshot {
   readonly verificationRequestState: string | null;
   readonly verificationRequestReason: string | null;
   readonly verificationRequiredKinds: readonly string[];
+  readonly verificationRunId: string | null;
+  readonly verificationRunStatus: string | null;
+  readonly verificationConfidence: number | null;
+  readonly verificationChecks: readonly VerificationCheckSnapshot[];
+  readonly verificationEvidenceRefs: readonly string[];
 }
 
 export interface CandidateBoardSnapshot {

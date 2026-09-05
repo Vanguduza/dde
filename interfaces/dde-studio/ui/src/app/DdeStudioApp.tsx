@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CommandAcceptance,
   DdeHostBridge,
@@ -61,6 +61,9 @@ export function DdeStudioApp({
   const [inspectorLoading, setInspectorLoading] = useState(false);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
   const [applyingProperty, setApplyingProperty] = useState<string | null>(null);
+  const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const verificationStarted = useRef<Set<string>>(new Set());
 
   const refreshSnapshot = useCallback(async () => {
     const value = await bridge.requestRead<FrontendStudioSnapshot>({
@@ -224,6 +227,39 @@ export function DdeStudioApp({
     },
     [bridge, hostContext],
   );
+
+  useEffect(() => {
+    const requestId = activeCandidate?.verificationRequestId;
+    if (
+      !requestId ||
+      activeCandidate?.verificationRequestState !== "PENDING" ||
+      activeCandidate.previewState !== "LIVE" ||
+      verificationStarted.current.has(requestId)
+    ) {
+      return;
+    }
+    verificationStarted.current.add(requestId);
+    let cancelled = false;
+    setVerificationBusy(true);
+    setVerificationError(null);
+    sendFrontendCommand("frontend.verification.run", {
+      verification_request_id: requestId,
+    })
+      .then(async () => {
+        if (!cancelled) await refreshSnapshot();
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setVerificationError(error instanceof Error ? error.message : String(error));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setVerificationBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCandidate, refreshSnapshot, sendFrontendCommand]);
 
   const startPreview = useCallback(async () => {
     if (!activeCandidateId || !screenKey) {
@@ -445,6 +481,8 @@ export function DdeStudioApp({
             preview={displayedPreview}
             previewError={previewError}
             previewBusy={previewBusy}
+            verificationBusy={verificationBusy}
+            verificationError={verificationError}
             selection={selection}
             onStartPreview={() => void startPreview()}
             onPreviewSignal={(signal) => void handlePreviewSignal(signal)}
@@ -459,6 +497,7 @@ export function DdeStudioApp({
           loading={inspectorLoading}
           error={inspectorError}
           applyingProperty={applyingProperty}
+          candidate={activeCandidate}
           onApply={(propertyName, value) =>
             void applyInspectorProperty(propertyName, value)
           }

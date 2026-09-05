@@ -146,7 +146,7 @@ Verify the following known gaps before deciding they still exist:
 1. **The canonical central VS Code React workbench is now wired to the code-backed prototype-HTML PreviewRuntime for existing materialized candidates.** It performs browser-attested LIVE, stable `pxg_key` selection, InspectorDescriptor reads, governed token mutation, preview invalidation and rerender. Do not rebuild this loop.
 2. **Fresh candidate onboarding is implemented.** Core projects real READY durable source workspaces, excludes candidate-preview worktrees, auto-selects only a unique source and requires explicit choice when ambiguous. No workspace id is guessed.
 3. **Production PostgreSQL workbench E2E is not evidenced on the current execution host.** React/Playwright proves composition through an explicit fail-closed TestHostBridge; keep production E2E BOUND until a real VS Code → Gateway → database run succeeds.
-4. **DDE-068 request scheduling is implemented, execution is not.** A hash-confirmed LIVE preview persists a request that references the candidate's effective PXG, bound AcceptanceOracle/version and verification kinds; mutations supersede pending requests. Do not treat PENDING as evidence. The next gap is executing candidate requests through the real DDE-068 check/evidence machinery without fabricating a WorkerRun.
+4. **DDE-068 candidate request execution is implemented.** A hash-confirmed LIVE preview persists a request over the candidate's effective PXG and existing AcceptanceOracle; `frontend.verification.run` executes it through the shared DDE-068 runner as a typed `FRONTEND_CANDIDATE` subject, with real browser/visual-critic capability leases, real VerificationRun/Evidence, stale-run protection and current evidence projection in QA/Inspector. PENDING/BLOCKED/SUPERSEDED remain non-verdict states. Production PostgreSQL E2E remains unavailable on this host.
 5. **Frontend Chat backend exists, but the golden React chat composer/control surface is not yet implemented.**
 6. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
 7. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
@@ -224,51 +224,54 @@ axis or delete requirements to improve the count.
 
 ---
 
-# 8. Next highest-value vertical slice — execute candidate DDE-068 requests
+# 8. Next highest-value vertical slice — React Frontend Chat
 
-The existing-candidate React loop is landed and browser-proven:
+The governed live-edit + verification loop is now composed:
 
 ```text
 real candidate board
-→ production host read contract
-→ sandboxed materialized candidate document
+→ READY source selection when needed
+→ sandboxed code-backed preview
 → browser hash handshake / Core-confirmed LIVE
+→ FrontendVerificationRequest
+→ frontend.verification.run
+→ real DDE-068 VerificationRun/Evidence
+→ current QA/Inspector verification state
 → stable pxg_key selection
-→ InspectorDescriptor
-→ governed frontend.mutation.apply
-→ candidate DIRTY + old preview STALE
-→ code-backed rerender/new preview hash
-→ new browser LIVE handshake
+→ governed Inspector mutation
+→ candidate DIRTY + old preview/evidence stale
+→ rerender/new hash
+→ new verification request/run/evidence
 ```
 
 Do not rebuild that path. Evidence is in
-`docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md`.
+`docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md`,
+`docs/evidence/dde-069/SOURCE_AND_VERIFICATION_REQUESTS.md` and
+`docs/evidence/dde-069/CANDIDATE_VERIFICATION_EXECUTION.md`.
 
-Fresh candidate onboarding is now also landed: the snapshot carries a real
-READY source-workspace inventory, a unique source may be auto-selected,
-ambiguity requires explicit user choice, and the selected workspace is sent as
-`source_workspace_id` only when materializing a candidate with no workspace. A
-new hash-confirmed LIVE preview also persists a `FrontendVerificationRequest`
-over the candidate's effective PXG and existing DDE-068 AcceptanceOracle
-bindings. Mutation supersedes outstanding requests.
+The next missing user-facing control plane is the already-implemented backend
+Frontend Chat surface:
 
-The next missing dependency is *execution*, not scheduling:
+- expose the persisted FrontendConversation + ordered turns through a
+  mission-scoped read projection;
+- build the React composer/history surface from real turns only;
+- maintain one shared context across mission/project/screen/candidate/selected
+  `pxg_key`/viewport/contract/PXG/coverage/current verification;
+- drive `frontend.chat.open`, `frontend.chat.set_context` and
+  `frontend.chat.send` through the existing production host bridge;
+- deterministic edits must continue to compile to the same MutationRequest/
+  Planner used by Inspector and trigger the same rerender/reverification loop;
+- ambiguous/refused/unavailable outcomes must be rendered as typed outcomes,
+  never converted into invented assistant prose;
+- `/design` remains in the same conversation/context, but its button stays
+  typed unavailable while no certified DesignProvider transport exists;
+- browser-prove deterministic chat edit → mutation → rerender → fresh DDE-068
+  evidence and ambiguous chat → refusal without mutation.
 
-- extend/refactor DDE-068's execution boundary so a candidate LIVE revision can
-  run its bound AcceptanceOracle against its isolated workspace without
-  fabricating a WorkerRun;
-- transition the durable request through real execution and persist actual
-  VerificationRun/Evidence rows from the existing verification authority;
-- attach current evidence to the candidate only after the real run completes;
-- keep PENDING/BLOCKED/SUPERSEDED requests visibly non-verified;
-- prove mutation → new LIVE hash → new request → DDE-068 run → current evidence;
-- run a production-host/Gateway/PostgreSQL user flow when infrastructure is
-  available. Lack of database infrastructure remains an E2E evidence blocker,
-  not a reason to fabricate a pass.
-
-After this execution packet is green, wire the existing Frontend Chat backend
-into the React composer/context surface, then proceed into mandatory Screen
-Audit.
+Production VS Code → Gateway → PostgreSQL E2E remains BOUND until database
+infrastructure is available. After Chat is green, read
+`SCREEN_AUDIT_ENGINE.md` in full and implement the mandatory Screen Audit
+domain and incremental projections before M8 Source Intelligence.
 
 ---
 

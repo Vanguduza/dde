@@ -62,6 +62,7 @@ from engine.studio.mutations.planner import MutationRequest
 from engine.studio.preview_runtime.service import PreviewService, PreviewState
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
+from engine.studio.verification_execution import CandidateVerificationExecutionService
 from engine.studio.verification_requests import CandidateVerificationRequestService
 from engine.truth.db import open_unit_of_work
 from engine.verification.repository import VerificationRunRepository
@@ -163,6 +164,14 @@ class FrontendStudioService:
     def _verification_requests(self) -> CandidateVerificationRequestService:
         return CandidateVerificationRequestService(
             self._engine, mutations=self._mutation_executor()
+        )
+
+    def _verification_execution_service(self) -> CandidateVerificationExecutionService:
+        return CandidateVerificationExecutionService(
+            self._engine,
+            workspaces=self._workspaces,
+            candidates=self._candidate_service(),
+            previews=self._preview_service(),
         )
 
     def _screens(self) -> ScreenAcceptanceService:
@@ -773,6 +782,34 @@ class FrontendStudioService:
         )
         return _preview_payload(session)
 
+    async def run_candidate_verification(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Execute a durable Frontend verification request through DDE-068."""
+        result = await self._verification_execution_service().execute(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            verification_request_id=_uuid(parameters, "verification_request_id"),
+        )
+        return {
+            "verification_request_id": str(result.request.verification_request_id),
+            "request_state": result.request.state,
+            "request_reason": result.request.reason,
+            "verification_run_id": (
+                str(result.run.verification_run_id) if result.run else None
+            ),
+            "verification_run_status": result.run.status if result.run else None,
+            "candidate_id": str(result.candidate.candidate_id),
+            "candidate_state": result.candidate.state,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
     async def create_lock(
         self,
         *,
@@ -833,7 +870,9 @@ class FrontendStudioService:
         """
         candidate_id = _uuid(parameters, "candidate_id")
         runs = await self._verification_runs_for(
-            tenant_id=tenant_id, project_id=project_id, parameters=parameters
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate_id,
         )
         promoted = await self._promotion_service().promote(
             tenant_id=tenant_id,
@@ -855,28 +894,32 @@ class FrontendStudioService:
         *,
         tenant_id: UUID,
         project_id: UUID,
-        parameters: dict[str, object],
+        candidate_id: UUID,
     ) -> tuple[VerificationRun, ...]:
-        """Load the evidence the gate will judge.
+        """Load only the evidence currently attached to this candidate.
 
-        Read from `verification_runs` rather than accepted from the
-        caller: a client that could supply its own verdicts would make the
-        gate decorative.
+        A prior task-level PASSED run must never approve code that was edited
+        afterwards. CandidateService clears `verification_run_id` on DIRTY, and
+        only a fresh verification execution may attach a new one. Promotion
+        therefore consumes that exact durable run rather than every run ever
+        produced for the authoring task.
         """
-        task_id = parameters.get("task_id")
-        if not isinstance(task_id, str):
+        candidate = await self._candidate_service().get(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate_id,
+        )
+        if candidate.verification_run_id is None:
             return ()
         async with open_unit_of_work(
             self._engine, tenant_id=tenant_id, project_id=project_id
         ) as uow:
-            runs = await VerificationRunRepository().list_for_task(
-                uow.connection, _as_uuid(task_id, "task_id")
+            run = await VerificationRunRepository().get_run(
+                uow.connection, candidate.verification_run_id
             )
-        return tuple(
-            run
-            for run in runs
-            if run.tenant_id == tenant_id and run.project_id == project_id
-        )
+        if run is None or run.tenant_id != tenant_id or run.project_id != project_id:
+            return ()
+        return (run,)
 
     async def register_screen(
         self,

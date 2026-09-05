@@ -2,56 +2,120 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/verification_run.json",
   "title": "VerificationRun",
-  "description": "Independent verification run over durable artifacts (Chapter 11.1). Append-only result: once terminal, a row is never mutated again; a re-verification creates a new run.",
+  "description": "Independent verification run over durable artifacts (Chapter 11.1 / Blueprint 17.1). A run is task/revision/oracle bound and may originate from a completed WorkerRun or a governed Frontend candidate revision. Append-only result: once terminal, a row is never mutated again; a re-verification creates a new run.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
     "table": "verification_runs",
     "order": 210,
-    "pk": ["verification_run_id"],
+    "pk": [
+      "verification_run_id"
+    ],
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
     "uniques": [
-      ["worker_run_id", "sequence"],
-      ["verification_run_id", "project_id", "tenant_id"]
+      [
+        "worker_run_id",
+        "sequence"
+      ],
+      [
+        "verification_run_id",
+        "project_id",
+        "tenant_id"
+      ],
+      [
+        "subject_kind",
+        "subject_id",
+        "sequence"
+      ]
     ],
     "foreign_keys": [
       {
         "name": "verification_runs_mission_scope_fkey",
-        "columns": ["mission_id", "project_id", "tenant_id"],
+        "columns": [
+          "mission_id",
+          "project_id",
+          "tenant_id"
+        ],
         "ref_table": "missions",
-        "ref_columns": ["mission_id", "project_id", "tenant_id"]
+        "ref_columns": [
+          "mission_id",
+          "project_id",
+          "tenant_id"
+        ]
       },
       {
         "name": "verification_runs_task_scope_fkey",
-        "columns": ["task_id", "project_id", "tenant_id"],
+        "columns": [
+          "task_id",
+          "project_id",
+          "tenant_id"
+        ],
         "ref_table": "tasks",
-        "ref_columns": ["task_id", "project_id", "tenant_id"]
+        "ref_columns": [
+          "task_id",
+          "project_id",
+          "tenant_id"
+        ]
       },
       {
         "name": "verification_runs_attempt_scope_fkey",
-        "columns": ["task_attempt_id", "project_id", "tenant_id"],
+        "columns": [
+          "task_attempt_id",
+          "project_id",
+          "tenant_id"
+        ],
         "ref_table": "task_attempts",
-        "ref_columns": ["attempt_id", "project_id", "tenant_id"]
+        "ref_columns": [
+          "attempt_id",
+          "project_id",
+          "tenant_id"
+        ]
       },
       {
         "name": "verification_runs_worker_run_scope_fkey",
-        "columns": ["worker_run_id", "project_id", "tenant_id"],
+        "columns": [
+          "worker_run_id",
+          "project_id",
+          "tenant_id"
+        ],
         "ref_table": "worker_runs",
-        "ref_columns": ["run_id", "project_id", "tenant_id"]
+        "ref_columns": [
+          "run_id",
+          "project_id",
+          "tenant_id"
+        ]
       },
       {
         "name": "verification_runs_workspace_id_fkey",
-        "columns": ["workspace_id"],
+        "columns": [
+          "workspace_id"
+        ],
         "ref_table": "workspaces",
-        "ref_columns": ["workspace_id"]
+        "ref_columns": [
+          "workspace_id"
+        ]
       },
       {
         "name": "verification_runs_oracle_id_fkey",
-        "columns": ["oracle_id"],
+        "columns": [
+          "oracle_id"
+        ],
         "ref_table": "acceptance_oracles",
-        "ref_columns": ["oracle_id"]
+        "ref_columns": [
+          "oracle_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "verification_runs_subject_pair",
+        "expression": "(subject_kind IS NULL AND subject_id IS NULL) OR (subject_kind IS NOT NULL AND subject_id IS NOT NULL)"
+      },
+      {
+        "name": "verification_runs_subject_kind_known",
+        "expression": "subject_kind IS NULL OR subject_kind IN ('WORKER_RUN', 'FRONTEND_CANDIDATE')"
       }
     ]
   },
@@ -71,15 +135,36 @@
         "status"
       ],
       "properties": {
-        "check_ref": { "type": "string" },
-        "kind": { "type": "string" },
-        "command": { "type": "array", "items": { "type": "string" } },
-        "exit_code": { "type": "integer" },
-        "stdout": { "type": "string" },
-        "stderr": { "type": "string" },
-        "duration_ms": { "type": "integer" },
-        "timed_out": { "type": "boolean" },
-        "status": { "type": "string" }
+        "check_ref": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exit_code": {
+          "type": "integer"
+        },
+        "stdout": {
+          "type": "string"
+        },
+        "stderr": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer"
+        },
+        "timed_out": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        }
       }
     },
     "ObservableOutcomeResult": {
@@ -94,15 +179,37 @@
         "evaluated_at"
       ],
       "properties": {
-        "outcome_id": { "type": "string", "format": "uuid" },
-        "statement": { "type": "string" },
-        "is_negative_case": { "type": "boolean" },
-        "check_ref": { "type": "string" },
-        "status": { "type": "string" },
-        "evidence_id": {
-          "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+        "outcome_id": {
+          "type": "string",
+          "format": "uuid"
         },
-        "evaluated_at": { "type": "string", "format": "date-time" }
+        "statement": {
+          "type": "string"
+        },
+        "is_negative_case": {
+          "type": "boolean"
+        },
+        "check_ref": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidence_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     }
   },
@@ -112,8 +219,6 @@
     "project_id",
     "mission_id",
     "task_id",
-    "task_attempt_id",
-    "worker_run_id",
     "workspace_id",
     "oracle_id",
     "sequence",
@@ -128,36 +233,137 @@
     "updated_at"
   ],
   "properties": {
-    "verification_run_id": { "type": "string", "format": "uuid" },
-    "tenant_id": { "type": "string", "format": "uuid" },
-    "project_id": { "type": "string", "format": "uuid" },
-    "mission_id": { "type": "string", "format": "uuid" },
-    "task_id": { "type": "string", "format": "uuid" },
-    "task_attempt_id": { "type": "string", "format": "uuid" },
-    "worker_run_id": { "type": "string", "format": "uuid" },
-    "workspace_id": { "type": "string", "format": "uuid" },
-    "oracle_id": { "type": "string", "format": "uuid" },
-    "sequence": { "type": "integer" },
-    "status": { "type": "string" },
-    "confidence": { "type": "number" },
+    "verification_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_attempt_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subject_kind": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "WORKER_RUN",
+            "FRONTEND_CANDIDATE"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subject_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "oracle_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number"
+    },
     "check_results": {
       "type": "array",
-      "items": { "$ref": "#/$defs/CheckResult" }
+      "items": {
+        "$ref": "#/$defs/CheckResult"
+      }
     },
     "outcome_results": {
       "type": "array",
-      "items": { "$ref": "#/$defs/ObservableOutcomeResult" }
+      "items": {
+        "$ref": "#/$defs/ObservableOutcomeResult"
+      }
     },
     "negative_case_results": {
       "type": "array",
-      "items": { "$ref": "#/$defs/ObservableOutcomeResult" }
+      "items": {
+        "$ref": "#/$defs/ObservableOutcomeResult"
+      }
     },
-    "evidence_refs": { "type": "array", "items": { "type": "string", "format": "uuid" } },
-    "started_at": { "type": "string", "format": "date-time" },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "ended_at": {
-      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
   }
 }

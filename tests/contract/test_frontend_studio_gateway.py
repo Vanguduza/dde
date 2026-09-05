@@ -40,6 +40,7 @@ DDE_069_COMMANDS = (
     "frontend.preview.start",
     "frontend.preview.set_state",
     "frontend.preview.stop",
+    "frontend.verification.run",
     "frontend.lock.create",
     "frontend.lock.release",
     "frontend.contract.publish",

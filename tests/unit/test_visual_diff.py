@@ -199,3 +199,45 @@ async def test_visual_diff_fails_closed_without_browser(tmp_path: Path) -> None:
             browser=None,
         )
     assert exc.value.error_code == "POLICY_DENIED"
+
+
+@pytest.mark.asyncio
+async def test_visual_diff_can_bind_runtime_candidate_url_without_mutating_spec(
+    tmp_path: Path,
+) -> None:
+    visual_dir = tmp_path / "visual"
+    golden_dir = visual_dir / "goldens"
+    golden_dir.mkdir(parents=True)
+    (golden_dir / "screen.png").write_bytes(_PNG_BLACK)
+    (visual_dir / "screen.json").write_text(
+        json.dumps(
+            {
+                "url": "file:///accepted/screen.html",
+                "golden_path": "visual/goldens/screen.png",
+                "viewport": {"width": 900, "height": 600},
+                "max_diff_pixel_ratio": 0.02,
+            }
+        ),
+        encoding="utf-8",
+    )
+    probe = _CaptureProbe()
+    spec = CheckSpec(
+        outcome_id=uuid7(),
+        statement="candidate matches golden",
+        kind="visual_diff",
+        ref="screens/x:visual_diff",
+        command=["visual/screen.json"],
+    )
+    result = await run_check(
+        workspaces=None,  # type: ignore[arg-type] - visual_diff never executes shell
+        workspace=_workspace(tmp_path),
+        spec=spec,
+        browser=probe,
+        render_url_override="file:///candidate/.dde/preview/current.html",
+    )
+    assert result.status == "PASSED"
+    assert probe.calls[0].url == "file:///candidate/.dde/preview/current.html"
+    assert json.loads(result.stdout)["render_url"] == probe.calls[0].url
+    assert load_visual_diff_spec(visual_dir / "screen.json").url == (
+        "file:///accepted/screen.html"
+    )

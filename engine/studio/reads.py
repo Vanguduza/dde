@@ -39,6 +39,8 @@ from engine.studio.coverage.service import CoverageRead, CoverageService
 from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.pxg.service import PxgGraph, PxgService
 from engine.studio.verification_requests import CandidateVerificationRequestService
+from engine.truth.db import open_unit_of_work
+from engine.verification.repository import VerificationRunRepository
 from engine.workspaces.service import WorkspaceService
 
 
@@ -217,6 +219,14 @@ class SourceWorkspaceInventory:
 
 
 @dataclass(frozen=True)
+class VerificationCheckSnapshot:
+    check_ref: str
+    kind: str
+    status: str
+    detail: str | None
+
+
+@dataclass(frozen=True)
 class CandidateCardSnapshot:
     candidate_id: str
     title: str
@@ -234,6 +244,11 @@ class CandidateCardSnapshot:
     verification_request_state: str | None
     verification_request_reason: str | None
     verification_required_kinds: tuple[str, ...]
+    verification_run_id: str | None
+    verification_run_status: str | None
+    verification_confidence: float | None
+    verification_checks: tuple[VerificationCheckSnapshot, ...]
+    verification_evidence_refs: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -313,6 +328,7 @@ class FrontendReadService:
         self._verification_requests = (
             verification_requests or CandidateVerificationRequestService(engine)
         )
+        self._verification_runs = VerificationRunRepository()
         self._build_version = build_version
 
     async def snapshot(
@@ -395,6 +411,19 @@ class FrontendReadService:
                     candidate_id=candidate.candidate_id,
                 )
             )
+            verification_run = None
+            if candidate.verification_run_id is not None:
+                async with open_unit_of_work(
+                    self._engine, tenant_id=tenant_id, project_id=project_id
+                ) as uow:
+                    verification_run = await self._verification_runs.get_run(
+                        uow.connection, candidate.verification_run_id
+                    )
+                if verification_run is not None and (
+                    verification_run.tenant_id != tenant_id
+                    or verification_run.project_id != project_id
+                ):
+                    verification_run = None
             cards.append(
                 CandidateCardSnapshot(
                     candidate_id=str(candidate.candidate_id),
@@ -427,6 +456,35 @@ class FrontendReadService:
                     verification_required_kinds=(
                         tuple(verification_request.required_kinds)
                         if verification_request
+                        else ()
+                    ),
+                    verification_run_id=(
+                        str(verification_run.verification_run_id)
+                        if verification_run
+                        else None
+                    ),
+                    verification_run_status=(
+                        verification_run.status if verification_run else None
+                    ),
+                    verification_confidence=(
+                        float(verification_run.confidence) if verification_run else None
+                    ),
+                    verification_checks=(
+                        tuple(
+                            VerificationCheckSnapshot(
+                                check_ref=check.check_ref,
+                                kind=check.kind,
+                                status=check.status,
+                                detail=(check.stderr or None),
+                            )
+                            for check in verification_run.check_results
+                        )
+                        if verification_run
+                        else ()
+                    ),
+                    verification_evidence_refs=(
+                        tuple(str(item) for item in verification_run.evidence_refs)
+                        if verification_run
                         else ()
                     ),
                 )

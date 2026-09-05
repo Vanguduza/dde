@@ -249,6 +249,33 @@ def _run_request_hash(
     )
 
 
+def _subject_run_request_hash(
+    *,
+    task_id: UUID,
+    subject_kind: str,
+    subject_id: UUID,
+    oracle_id: UUID,
+    oracle_version: str,
+    workspace_id: UUID,
+    revision_fingerprint: str,
+    render_url_override: str | None,
+) -> str:
+    return sha256_hex(
+        canonical_json(
+            {
+                "task_id": str(task_id),
+                "subject_kind": subject_kind,
+                "subject_id": str(subject_id),
+                "oracle_id": str(oracle_id),
+                "oracle_version": oracle_version,
+                "workspace_id": str(workspace_id),
+                "revision_fingerprint": revision_fingerprint,
+                "render_url_override": render_url_override,
+            }
+        )
+    )
+
+
 def _outcome_check_spec(
     outcome: ObservableOutcome, *, is_negative_case: bool
 ) -> CheckSpec:
@@ -442,6 +469,8 @@ class VerificationRunnerService:
                 task_id=task.task_id,
                 task_attempt_id=worker_run.task_attempt_id,
                 worker_run_id=worker_run.run_id,
+                subject_kind="WORKER_RUN",
+                subject_id=worker_run.run_id,
                 workspace_id=workspace.workspace_id,
                 oracle_id=oracle.oracle_id,
                 sequence=sequence,
@@ -504,7 +533,11 @@ class VerificationRunnerService:
                     run_id=run.verification_run_id,
                     outcome=outcome,
                     is_negative_case=False,
-                    worker_run=worker_run,
+                    independence_subject={
+                        "generator_worker_profile_id": worker_run.worker_profile_id,
+                        "generator_subject_kind": "WORKER_RUN",
+                        "generator_subject_id": str(worker_run.run_id),
+                    },
                     workspace=workspace,
                     integrated_revision=integrated_revision,
                     guardrail=guardrail,
@@ -522,7 +555,11 @@ class VerificationRunnerService:
                     run_id=run.verification_run_id,
                     outcome=outcome,
                     is_negative_case=True,
-                    worker_run=worker_run,
+                    independence_subject={
+                        "generator_worker_profile_id": worker_run.worker_profile_id,
+                        "generator_subject_kind": "WORKER_RUN",
+                        "generator_subject_id": str(worker_run.run_id),
+                    },
                     workspace=workspace,
                     integrated_revision=integrated_revision,
                     guardrail=guardrail,
@@ -799,6 +836,251 @@ class VerificationRunnerService:
 
         return await self._run_uow(uow, tenant_id, project_id, _op)
 
+    async def run_workspace_revision(
+        self,
+        *,
+        task: Task,
+        workspace: Workspace,
+        oracle: AcceptanceOracle,
+        subject_kind: str,
+        subject_id: UUID,
+        revision_fingerprint: str,
+        render_url_override: str | None,
+        idempotency_key: str,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> VerificationRun:
+        """Verify a governed non-worker revision with the ordinary DDE checks.
+
+        Frontend candidate edits do not have a WorkerRun or TaskAttempt. Blueprint
+        Rev 3 section 17.1 nevertheless requires their task/change-packet revision
+        to produce ordinary VerificationRun/Evidence. This entry point reuses the
+        same guardrails, check execution, evidence writer and evaluator as `run()`
+        while deliberately skipping worker-attempt recovery/telemetry mutations.
+        """
+        if subject_kind != "FRONTEND_CANDIDATE":
+            raise DdeError(
+                "POLICY_DENIED",
+                "unsupported non-worker verification subject",
+                details={"subject_kind": subject_kind},
+            )
+        if oracle.task_id != task.task_id:
+            raise DdeError(
+                "POLICY_DENIED",
+                "AcceptanceOracle does not belong to this task",
+                details={
+                    "task_id": str(task.task_id),
+                    "oracle_task_id": str(oracle.task_id),
+                },
+            )
+        if (
+            workspace.tenant_id != task.tenant_id
+            or workspace.project_id != task.project_id
+        ):
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "verification workspace does not belong to the task project",
+                details={"workspace_id": str(workspace.workspace_id)},
+            )
+        if workspace.status != "READY":
+            raise DdeError(
+                "POLICY_DENIED",
+                "candidate verification requires a READY workspace",
+                details={
+                    "workspace_id": str(workspace.workspace_id),
+                    "status": workspace.status,
+                },
+            )
+        if not revision_fingerprint:
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "candidate verification requires a revision fingerprint",
+            )
+
+        tenant_id = task.tenant_id
+        project_id = task.project_id
+        request_hash = _subject_run_request_hash(
+            task_id=task.task_id,
+            subject_kind=subject_kind,
+            subject_id=subject_id,
+            oracle_id=oracle.oracle_id,
+            oracle_version=oracle.oracle_version,
+            workspace_id=workspace.workspace_id,
+            revision_fingerprint=revision_fingerprint,
+            render_url_override=render_url_override,
+        )
+
+        async def _op(active: PostgresUnitOfWork) -> VerificationRun:
+            record, is_new = await self._commands.begin(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                uow=active,
+            )
+            if not is_new:
+                return self._replay_or_raise(record)
+
+            sequence = await self._run_repository.next_subject_sequence(
+                active.connection,
+                subject_kind=subject_kind,
+                subject_id=subject_id,
+            )
+            now = self._clock.now()
+            run = VerificationRun(
+                verification_run_id=uuid7(),
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=task.mission_id,
+                task_id=task.task_id,
+                task_attempt_id=None,
+                worker_run_id=None,
+                subject_kind="FRONTEND_CANDIDATE",
+                subject_id=subject_id,
+                workspace_id=workspace.workspace_id,
+                oracle_id=oracle.oracle_id,
+                sequence=sequence,
+                status="RUNNING",
+                confidence=0.0,
+                check_results=[],
+                outcome_results=[],
+                negative_case_results=[],
+                evidence_refs=[],
+                started_at=now,
+                ended_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+            await self._run_repository.insert_run(active.connection, run)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type="VerificationRunStarted",
+                aggregate_type="verification_run",
+                aggregate_id=run.verification_run_id,
+                mission_id=task.mission_id,
+                task_id=task.task_id,
+                payload={
+                    "oracle_id": str(oracle.oracle_id),
+                    "subject_kind": subject_kind,
+                    "subject_id": str(subject_id),
+                    "revision_fingerprint": revision_fingerprint,
+                    "render_url_override": render_url_override,
+                },
+                uow=active,
+            )
+
+            check_results: list[CheckResult] = []
+            outcome_results: list[ObservableOutcomeResult] = []
+            negative_results: list[ObservableOutcomeResult] = []
+            evidence_refs: list[UUID] = []
+            guardrail = await self._assess_guardrails(
+                active, task=task, oracle=oracle, workspace=workspace
+            )
+            prototype_check = await self._assess_prototypes(workspace=workspace)
+            subject_flags: dict[str, object] = {
+                "generator_subject_kind": subject_kind,
+                "generator_subject_id": str(subject_id),
+            }
+            for outcome in oracle.observable_outcomes:
+                result, outcome_result, evidence = await self._execute_outcome(
+                    active,
+                    task=task,
+                    oracle=oracle,
+                    run_id=run.verification_run_id,
+                    outcome=outcome,
+                    is_negative_case=False,
+                    independence_subject=subject_flags,
+                    workspace=workspace,
+                    integrated_revision=revision_fingerprint,
+                    render_url_override=render_url_override,
+                    guardrail=guardrail,
+                    prototype_check=prototype_check,
+                )
+                check_results.append(result)
+                outcome_results.append(outcome_result)
+                evidence_refs.append(evidence.evidence_id)
+            for outcome in oracle.negative_cases:
+                result, outcome_result, evidence = await self._execute_outcome(
+                    active,
+                    task=task,
+                    oracle=oracle,
+                    run_id=run.verification_run_id,
+                    outcome=outcome,
+                    is_negative_case=True,
+                    independence_subject=subject_flags,
+                    workspace=workspace,
+                    integrated_revision=revision_fingerprint,
+                    render_url_override=render_url_override,
+                    guardrail=guardrail,
+                    prototype_check=prototype_check,
+                )
+                check_results.append(result)
+                negative_results.append(outcome_result)
+                evidence_refs.append(evidence.evidence_id)
+
+            status, confidence = _evaluate(
+                outcome_results=outcome_results,
+                negative_results=negative_results,
+                minimum_confidence=oracle.minimum_confidence,
+                guardrail=guardrail,
+                prototype_check=prototype_check,
+                check_durations_ms=[item.duration_ms for item in check_results],
+            )
+            ended_at = self._clock.now()
+            next_status = transition(run.status, status, VERIFICATION_RUN_TRANSITIONS)
+            fields: dict[str, object] = {
+                "status": next_status,
+                "confidence": confidence,
+                "check_results": [
+                    item.model_dump(mode="json") for item in check_results
+                ],
+                "outcome_results": [
+                    item.model_dump(mode="json") for item in outcome_results
+                ],
+                "negative_case_results": [
+                    item.model_dump(mode="json") for item in negative_results
+                ],
+                "evidence_refs": [str(item) for item in evidence_refs],
+                "ended_at": ended_at,
+                "updated_at": ended_at,
+            }
+            rowcount = await self._run_repository.update_run(
+                active.connection, run.verification_run_id, fields=fields
+            )
+            if rowcount != 1:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "Unknown verification run",
+                    details={"verification_run_id": str(run.verification_run_id)},
+                )
+            finished = await self._require_run(active, run.verification_run_id)
+            await self._events.append(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_type=f"VerificationRun{next_status.title()}",
+                aggregate_type="verification_run",
+                aggregate_id=finished.verification_run_id,
+                mission_id=task.mission_id,
+                task_id=task.task_id,
+                payload={
+                    "status": next_status,
+                    "confidence": confidence,
+                    "subject_kind": subject_kind,
+                    "subject_id": str(subject_id),
+                },
+                uow=active,
+            )
+            await self._commands.complete(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                command_id=record.command_id,
+                result=finished.model_dump(mode="json"),
+                uow=active,
+            )
+            return finished
+
+        return await self._run_uow(uow, tenant_id, project_id, _op)
+
     async def _assess_guardrails(
         self,
         active: PostgresUnitOfWork,
@@ -982,9 +1264,10 @@ class VerificationRunnerService:
         run_id: UUID,
         outcome: ObservableOutcome,
         is_negative_case: bool,
-        worker_run: WorkerRun,
+        independence_subject: dict[str, object],
         workspace: Workspace,
         integrated_revision: str,
+        render_url_override: str | None = None,
         guardrail: TestScopeAssessment,
         prototype_check: PrototypeAssessment,
     ) -> tuple[CheckResult, ObservableOutcomeResult, Evidence]:
@@ -999,6 +1282,7 @@ class VerificationRunnerService:
             android=self._android,
             database=self._database,
             visual_critic=self._visual_critic,
+            render_url_override=render_url_override,
         )
         evaluated_at = self._clock.now()
         outcome_status = _outcome_status(
@@ -1014,7 +1298,7 @@ class VerificationRunnerService:
         independence_flags = merge_prototype_flags(
             merge_flags(
                 {
-                    "generator_worker_profile_id": worker_run.worker_profile_id,
+                    **independence_subject,
                     "verifier": "engine.verification.runner",
                     "independent": True,
                 },

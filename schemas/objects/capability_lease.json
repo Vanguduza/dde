@@ -2,46 +2,68 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/capability_lease.json",
   "title": "CapabilityLease",
-  "description": "Chapter 9.2's CapabilityLease -- the real authority boundary deciding whether a caller may invoke a capability at all (distinct from Chapter 10.3's WriteScopeLease, which governs which paths an already-authorized operation may touch). Owned by engine.capabilities (Chapter 3.8: 'Lease manager'). Chapter 3.8: 'Status only; scope immutable' -- every field but status/denied_reason/revoked_at/revocation_reason/updated_at is fixed at request time, matching Chapter 3.9 step 11 ('CapabilityLeases issued, bound to the run') issuing a lease only once a WorkerRun already exists.",
+  "description": "Chapter 9.2's CapabilityLease -- the real authority boundary deciding whether a caller may invoke a capability at all (distinct from Chapter 10.3's WriteScopeLease, which governs which paths an already-authorized operation may touch). Owned by engine.capabilities (Chapter 3.8: 'Lease manager'). Scope is immutable after request. Worker-origin execution binds worker_run_id and must pass WorkerRun kill-flag enforcement; engine-owned non-worker verification subjects may leave worker_run_id null but must checkout an explicitly identified lease through the non-worker enforcement path, which refuses WorkerRun-bound leases.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
     "table": "capability_leases",
     "order": 195,
-    "pk": ["lease_id"],
+    "pk": [
+      "lease_id"
+    ],
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
     "foreign_keys": [
       {
         "name": "capability_leases_tenant_id_fkey",
-        "columns": ["tenant_id"],
+        "columns": [
+          "tenant_id"
+        ],
         "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
+        "ref_columns": [
+          "tenant_id"
+        ]
       },
       {
         "name": "capability_leases_project_id_fkey",
-        "columns": ["project_id"],
+        "columns": [
+          "project_id"
+        ],
         "ref_table": "projects",
-        "ref_columns": ["project_id"]
+        "ref_columns": [
+          "project_id"
+        ]
       },
       {
         "name": "capability_leases_mission_id_fkey",
-        "columns": ["mission_id"],
+        "columns": [
+          "mission_id"
+        ],
         "ref_table": "missions",
-        "ref_columns": ["mission_id"]
+        "ref_columns": [
+          "mission_id"
+        ]
       },
       {
         "name": "capability_leases_task_id_fkey",
-        "columns": ["task_id"],
+        "columns": [
+          "task_id"
+        ],
         "ref_table": "tasks",
-        "ref_columns": ["task_id"]
+        "ref_columns": [
+          "task_id"
+        ]
       },
       {
         "name": "capability_leases_execution_plan_id_fkey",
-        "columns": ["execution_plan_id"],
+        "columns": [
+          "execution_plan_id"
+        ],
         "ref_table": "execution_plans",
-        "ref_columns": ["plan_id"]
+        "ref_columns": [
+          "plan_id"
+        ]
       }
     ]
   },
@@ -68,40 +90,130 @@
     "updated_at"
   ],
   "properties": {
-    "lease_id": { "type": "string", "format": "uuid" },
-    "tenant_id": { "type": "string", "format": "uuid" },
-    "project_id": { "type": "string", "format": "uuid" },
-    "mission_id": { "type": "string", "format": "uuid" },
-    "task_id": { "type": "string", "format": "uuid" },
-    "execution_plan_id": { "type": "string", "format": "uuid" },
+    "lease_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "execution_plan_id": {
+      "type": "string",
+      "format": "uuid"
+    },
     "worker_run_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "environment_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
-    "capability_id": { "type": "string" },
-    "capability_version": { "type": "string" },
-    "resource_scope": { "type": "object", "additionalProperties": true },
-    "operation_scope": { "type": "string" },
-    "constraints": { "type": "object", "additionalProperties": true },
-    "issued_by_policy_version": { "type": "string" },
-    "issued_at": { "type": "string", "format": "date-time" },
-    "expires_at": { "type": "string", "format": "date-time" },
-    "revocable": { "type": "boolean" },
-    "status": { "type": "string" },
+    "capability_id": {
+      "type": "string"
+    },
+    "capability_version": {
+      "type": "string"
+    },
+    "resource_scope": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "operation_scope": {
+      "type": "string"
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "issued_by_policy_version": {
+      "type": "string"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revocable": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string"
+    },
     "denied_reason": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "revoked_at": {
-      "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "revocation_reason": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
-    "lease_hash": { "type": "string" },
-    "requested_by": { "type": "string" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "lease_hash": {
+      "type": "string"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
   }
 }

@@ -231,6 +231,21 @@ class VerificationRunRepository:
         )
         return int(result.scalar_one()) + 1
 
+    async def next_subject_sequence(
+        self,
+        connection: AsyncConnection,
+        *,
+        subject_kind: str,
+        subject_id: UUID,
+    ) -> int:
+        result = await connection.execute(
+            select(func.coalesce(func.max(verification_runs.c.sequence), 0)).where(
+                verification_runs.c.subject_kind == subject_kind,
+                verification_runs.c.subject_id == subject_id,
+            )
+        )
+        return int(result.scalar_one()) + 1
+
 
 class EvidenceRepository:
     """Reads and writes rows for `evidence` (Chapter 11.7: append-only)."""

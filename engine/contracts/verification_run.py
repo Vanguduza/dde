@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -40,9 +41,10 @@ class ObservableOutcomeResult(BaseModel):
 
 class VerificationRun(BaseModel):
     """
-    Independent verification run over durable artifacts (Chapter 11.1). Append-only
-    result: once terminal, a row is never mutated again; a re-verification creates a new
-    run.
+    Independent verification run over durable artifacts (Chapter 11.1 / Blueprint 17.1).
+    A run is task/revision/oracle bound and may originate from a completed WorkerRun or
+    a governed Frontend candidate revision. Append-only result: once terminal, a row is
+    never mutated again; a re-verification creates a new run.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -52,8 +54,10 @@ class VerificationRun(BaseModel):
     project_id: UUID
     mission_id: UUID
     task_id: UUID
-    task_attempt_id: UUID
-    worker_run_id: UUID
+    task_attempt_id: UUID | None = None
+    worker_run_id: UUID | None = None
+    subject_kind: Literal["WORKER_RUN", "FRONTEND_CANDIDATE"] | None = None
+    subject_id: UUID | None = None
     workspace_id: UUID
     oracle_id: UUID
     sequence: int

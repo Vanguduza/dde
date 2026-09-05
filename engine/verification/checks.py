@@ -107,6 +107,7 @@ async def run_check(
     android: AndroidCapability | None = None,
     database: DatabaseCapability | None = None,
     visual_critic: VisualCriticCapability | None = None,
+    render_url_override: str | None = None,
 ) -> CheckResult:
     """Execute one real check. `test`/`invariant` run via
     `WorkspaceService.execute()`. `api_probe`/`visual_diff`/`silhouette` run
@@ -117,12 +118,21 @@ async def run_check(
     if spec.kind == "api_probe":
         return await _run_api_probe(spec, browser=browser)
     if spec.kind == "visual_diff":
-        return await _run_visual_diff(workspace, spec, browser=browser)
+        return await _run_visual_diff(
+            workspace,
+            spec,
+            browser=browser,
+            render_url_override=render_url_override,
+        )
     if spec.kind == "silhouette":
-        return await _run_silhouette(spec, browser=browser)
+        return await _run_silhouette(
+            _render_bound_spec(spec, render_url_override), browser=browser
+        )
     if spec.kind == "visual_critique":
         return await _run_visual_critique(
-            spec, browser=browser, visual_critic=visual_critic
+            _render_bound_spec(spec, render_url_override),
+            browser=browser,
+            visual_critic=visual_critic,
         )
     if spec.kind == "security_scan":
         return await _run_security_scan(workspace, spec, security=security)
@@ -147,6 +157,27 @@ async def run_check(
         duration_ms=result.duration_ms,
         timed_out=result.timed_out,
         status=status,
+    )
+
+
+def _render_bound_spec(spec: CheckSpec, render_url_override: str | None) -> CheckSpec:
+    """Bind a visual oracle to the exact runtime revision being verified.
+
+    AcceptanceOracle stays immutable: only the render URL is rebound. Any
+    authored expect-text value in command[1] is retained. The effective URL is
+    then captured in CheckResult.command/Evidence, so candidate verification
+    cannot silently judge an accepted or stale page.
+    """
+    if not render_url_override:
+        return spec
+    tail = spec.command[1:] if spec.command else []
+    return CheckSpec(
+        outcome_id=spec.outcome_id,
+        statement=spec.statement,
+        kind=spec.kind,
+        ref=spec.ref,
+        command=[render_url_override, *tail],
+        is_negative_case=spec.is_negative_case,
     )
 
 
@@ -420,6 +451,7 @@ async def _run_visual_diff(
     spec: CheckSpec,
     *,
     browser: BrowserCapability | None,
+    render_url_override: str | None = None,
 ) -> CheckResult:
     if browser is None:
         raise DdeError(
@@ -458,9 +490,10 @@ async def _run_visual_diff(
             details={"golden_path": str(golden_path)},
         )
 
+    effective_url = render_url_override or visual.url
     capture = await browser.screenshot(
         BrowserCaptureSpec(
-            url=visual.url,
+            url=effective_url,
             viewport_width=visual.viewport_width,
             viewport_height=visual.viewport_height,
             expect_text=visual.expect_text,
@@ -499,6 +532,7 @@ async def _run_visual_diff(
         diff_written = diff_rel
 
     evidence = {
+        "render_url": effective_url,
         "actual_path": actual_rel,
         "golden_path": visual.golden_path,
         "diff_path": diff_written,

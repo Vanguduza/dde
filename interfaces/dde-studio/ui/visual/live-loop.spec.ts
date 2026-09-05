@@ -49,6 +49,20 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("live-preview-surface")).toBeVisible();
   });
 
+  test("verification evidence is visible in QA and never inferred from request state", async ({
+    page,
+  }) => {
+    const candidate = page.getByTestId(
+      "candidate-verification-00000000-0000-0000-0000-000000000020",
+    );
+    await expect(candidate).toHaveText("VERIFY PASSED");
+    await page.getByTestId("mode-qa").click();
+    await expect(page.getByTestId("qa-mode")).toBeVisible();
+    await expect(page.getByTestId("qa-check-silhouette")).toContainText("PASSED");
+    await expect(page.getByTestId("qa-check-visual_critique")).toContainText("PASSED");
+    await expect(page.getByTestId("qa-mode")).toContainText("Evidence: 2");
+  });
+
   test("stable pxg selection resolves a real Inspector descriptor", async ({ page }) => {
     const frame = page.frameLocator("iframe.dde-preview-frame");
     const hero = frame.locator('[data-dde-pxg-key="screens/checkout#hero"]');
@@ -63,6 +77,12 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(spacing).toBeVisible();
     await expect(spacing).toHaveAttribute("data-writable", "true");
     await expect(spacing.locator("select")).toHaveValue("space2");
+    await expect(page.getByTestId("inspector-verification-evidence")).toContainText(
+      "Current screen evidence: PASSED",
+    );
+    await expect(page.getByTestId("inspector-verification-evidence")).toContainText(
+      "visual_critique · PASSED",
+    );
   });
 
   test("View source resolves the descriptor source through the host bridge", async ({ page }) => {
@@ -99,7 +119,7 @@ test.describe("DDE-069 code-backed workbench loop", () => {
       page.getByTestId(
         "candidate-verification-00000000-0000-0000-0000-000000000020",
       ),
-    ).toHaveText("VERIFY PENDING");
+    ).toHaveText("VERIFY PASSED");
 
     const commands = await page.evaluate(() => {
       const bridge = (
@@ -111,6 +131,11 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     });
     expect(commands).toContain("frontend.mutation.apply");
     expect(commands).toContain("frontend.preview.start");
-    expect(commands.filter((item) => item === "frontend.preview.set_state").length).toBeGreaterThanOrEqual(2);
+    expect(
+      commands.filter((item) => item === "frontend.preview.set_state").length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(
+      commands.filter((item) => item === "frontend.verification.run").length,
+    ).toBeGreaterThanOrEqual(2);
   });
 });

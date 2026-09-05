@@ -27,9 +27,11 @@ let previewSessionId = `preview-${previewNumber}`;
 let previewState: "LOADING" | "LIVE" | "STALE" = "LOADING";
 let candidateState = freshCandidate ? "GENERATED" : "READY";
 let spacing = "space2";
-let verificationRequestState: "PENDING" | "SUPERSEDED" | null =
+let verificationRequestState: "PENDING" | "PASSED" | "FAILED" | "BLOCKED" | "SUPERSEDED" | null =
   freshCandidate ? null : "PENDING";
 let verificationRequestNumber = 1;
+let verificationRunId: string | null = null;
+let verificationRunStatus: string | null = null;
 
 function snapshot(): FrontendStudioSnapshot {
   return {
@@ -153,6 +155,28 @@ function snapshot(): FrontendStudioSnapshot {
             verificationRequestState === null
               ? []
               : ["silhouette", "visual_critique"],
+          verificationRunId,
+          verificationRunStatus,
+          verificationConfidence: verificationRunStatus === "PASSED" ? 1 : null,
+          verificationChecks:
+            verificationRunStatus === "PASSED"
+              ? [
+                  {
+                    checkRef: "screens/checkout:silhouette",
+                    kind: "silhouette",
+                    status: "PASSED",
+                    detail: null,
+                  },
+                  {
+                    checkRef: "screens/checkout:visual_critique",
+                    kind: "visual_critique",
+                    status: "PASSED",
+                    detail: null,
+                  },
+                ]
+              : [],
+          verificationEvidenceRefs:
+            verificationRunStatus === "PASSED" ? ["evidence-1", "evidence-2"] : [],
         },
       ],
     },
@@ -238,6 +262,25 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
       verificationRequiredKinds: ["silhouette", "visual_critique"],
     };
   }
+  if (command.commandType === "frontend.verification.run") {
+    const expected = `verification-request-${verificationRequestNumber}`;
+    if (command.parameters.verification_request_id !== expected) {
+      throw new Error("verification command targeted a stale request");
+    }
+    verificationRequestState = "PASSED";
+    candidateState = "VERIFIED";
+    verificationRunId = `verification-run-${verificationRequestNumber}`;
+    verificationRunStatus = "PASSED";
+    return {
+      verificationRequestId: expected,
+      requestState: "PASSED",
+      requestReason: "DDE-068 verification passed",
+      verificationRunId,
+      verificationRunStatus: "PASSED",
+      candidateId,
+      candidateState,
+    };
+  }
   if (command.commandType === "frontend.mutation.apply") {
     const rows = command.parameters.mutations as Array<Record<string, unknown>>;
     const payload = rows[0]?.payload as Record<string, unknown>;
@@ -245,6 +288,8 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
     candidateState = "DIRTY";
     previewState = "STALE";
     verificationRequestState = "SUPERSEDED";
+    verificationRunId = null;
+    verificationRunStatus = null;
     return {
       candidateState,
       fullyApplied: true,
@@ -271,6 +316,8 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
     previewState = "LOADING";
     candidateState = "READY";
     verificationRequestState = null;
+    verificationRunId = null;
+    verificationRunStatus = null;
     return {
       previewSessionId,
       state: "LOADING",
@@ -292,6 +339,7 @@ const bridge = new TestHostBridge({
     "frontend.preview.set_state": commandPayload,
     "frontend.mutation.apply": commandPayload,
     "frontend.preview.start": commandPayload,
+    "frontend.verification.run": commandPayload,
   },
 });
 

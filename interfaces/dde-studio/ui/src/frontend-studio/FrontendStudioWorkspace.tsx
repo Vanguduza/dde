@@ -54,6 +54,8 @@ export interface WorkspaceProps {
   readonly preview: PreviewDocument | null;
   readonly previewError: string | null;
   readonly previewBusy: boolean;
+  readonly verificationBusy: boolean;
+  readonly verificationError: string | null;
   readonly selection: PreviewSelection | null;
   readonly onStartPreview: () => void;
   readonly onPreviewSignal: (signal: PreviewRuntimeSignal) => void;
@@ -75,6 +77,8 @@ export function FrontendStudioWorkspace({
   preview,
   previewError,
   previewBusy,
+  verificationBusy,
+  verificationError,
   selection,
   onStartPreview,
   onPreviewSignal,
@@ -93,6 +97,8 @@ export function FrontendStudioWorkspace({
       <div className="dde-canvas" data-testid="canvas">
         {mode === "coverage" ? (
           <CoverageMode snapshot={snapshot} />
+        ) : mode === "qa" ? (
+          <QaMode snapshot={snapshot} activeCandidateId={activeCandidateId} />
         ) : mode === "design" ? (
           <DesignMode
             activeCandidateId={activeCandidateId}
@@ -116,6 +122,8 @@ export function FrontendStudioWorkspace({
         snapshot={snapshot}
         activeCandidateId={activeCandidateId}
         onActiveCandidateChange={onActiveCandidateChange}
+        verificationBusy={verificationBusy}
+        verificationError={verificationError}
       />
     </div>
   );
@@ -126,7 +134,7 @@ const MODE_REASON: Record<StudioMode, string> = {
   coverage: "",
   architecture:
     "The PXG graph view is DDE-069 M12. The graph itself is real — see Coverage — but this rendering is not built.",
-  qa: "The QA finding inventory read is DDE-069 M17. Verification evidence exists and gates promotion; this aggregation view does not.",
+  qa: "Verification evidence summary is implemented; Screen Audit findings land in the next DDE-069 packet.",
   source: "The design-source registry is DDE-069 M8. No source adapter is wired yet.",
 };
 
@@ -470,14 +478,93 @@ function CoverageMode({
   );
 }
 
+function QaMode({
+  snapshot,
+  activeCandidateId,
+}: {
+  readonly snapshot: FrontendStudioSnapshot | null;
+  readonly activeCandidateId: string | null;
+}) {
+  if (!snapshot) {
+    return <Unavailable availability="UNAVAILABLE" reason="Verification inventory is loading." />;
+  }
+  const cards = snapshot.candidates.cards.filter(
+    (candidate) =>
+      candidate.verificationRequestId !== null || candidate.verificationRunId !== null,
+  );
+  if (!cards.length) {
+    return (
+      <Unavailable
+        availability="EMPTY"
+        reason="No candidate verification request or run exists yet."
+      />
+    );
+  }
+  return (
+    <div className="dde-coverage-mode" data-testid="qa-mode">
+      <h2 className="dde-panel-heading">Candidate verification</h2>
+      <p className="dde-muted">
+        Real DDE-068 request, check and evidence state. PENDING/BLOCKED/SUPERSEDED are
+        not verdicts.
+      </p>
+      {cards.map((candidate) => (
+        <section
+          key={candidate.candidateId}
+          className="dde-qa-candidate"
+          data-testid={`qa-candidate-${candidate.candidateId}`}
+          data-active={candidate.candidateId === activeCandidateId}
+        >
+          <div className="dde-qa-heading">
+            <strong>{candidate.title}</strong>
+            <span>{candidate.verificationRequestState ?? "NOT REQUESTED"}</span>
+            <span>{candidate.verificationRunStatus ?? "NO RUN"}</span>
+          </div>
+          {candidate.verificationChecks.length ? (
+            <table className="dde-table">
+              <thead>
+                <tr>
+                  <th scope="col">Check</th>
+                  <th scope="col">Kind</th>
+                  <th scope="col">State</th>
+                  <th scope="col">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidate.verificationChecks.map((check) => (
+                  <tr key={check.checkRef} data-testid={`qa-check-${check.kind}`}>
+                    <td>{check.checkRef}</td>
+                    <td>{check.kind}</td>
+                    <td data-state={check.status}>{check.status}</td>
+                    <td>{check.detail ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="dde-muted">No completed check results are attached.</p>
+          )}
+          <p className="dde-muted">
+            Evidence: {candidate.verificationEvidenceRefs.length} · confidence {" "}
+            {candidate.verificationConfidence ?? "—"}
+          </p>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 function CandidateStrip({
   snapshot,
   activeCandidateId,
   onActiveCandidateChange,
+  verificationBusy,
+  verificationError,
 }: {
   readonly snapshot: FrontendStudioSnapshot | null;
   readonly activeCandidateId: string | null;
   readonly onActiveCandidateChange: (candidateId: string) => void;
+  readonly verificationBusy: boolean;
+  readonly verificationError: string | null;
 }) {
   const cards = snapshot?.candidates.cards ?? [];
   if (!snapshot) {
@@ -505,6 +592,12 @@ function CandidateStrip({
           candidate={candidate}
           active={candidate.candidateId === activeCandidateId}
           onSelect={() => onActiveCandidateChange(candidate.candidateId)}
+          verificationBusy={
+            verificationBusy && candidate.candidateId === activeCandidateId
+          }
+          verificationError={
+            candidate.candidateId === activeCandidateId ? verificationError : null
+          }
         />
       ))}
     </div>
@@ -515,10 +608,14 @@ function CandidateCard({
   candidate,
   active,
   onSelect,
+  verificationBusy,
+  verificationError,
 }: {
   readonly candidate: CandidateCardSnapshot;
   readonly active: boolean;
   readonly onSelect: () => void;
+  readonly verificationBusy: boolean;
+  readonly verificationError: string | null;
 }) {
   return (
     <button
@@ -541,10 +638,17 @@ function CandidateCard({
         data-testid={`candidate-verification-${candidate.candidateId}`}
         title={candidate.verificationRequestReason ?? undefined}
       >
-        {candidate.verificationRequestState
-          ? `VERIFY ${candidate.verificationRequestState}`
-          : "NOT EVALUATED"}
+        {verificationBusy
+          ? "VERIFYING…"
+          : candidate.verificationRequestState
+            ? `VERIFY ${candidate.verificationRequestState}`
+            : "NOT EVALUATED"}
       </span>
+      {verificationError ? (
+        <span className="dde-candidate-detail" role="alert">
+          Verification command failed: {verificationError}
+        </span>
+      ) : null}
       {candidate.previewStateDetail ? (
         <span className="dde-candidate-detail">{candidate.previewStateDetail}</span>
       ) : null}

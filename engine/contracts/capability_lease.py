@@ -13,11 +13,11 @@ class CapabilityLease(BaseModel):
     Chapter 9.2's CapabilityLease -- the real authority boundary deciding whether a
     caller may invoke a capability at all (distinct from Chapter 10.3's WriteScopeLease,
     which governs which paths an already-authorized operation may touch). Owned by
-    engine.capabilities (Chapter 3.8: 'Lease manager'). Chapter 3.8: 'Status only; scope
-    immutable' -- every field but
-    status/denied_reason/revoked_at/revocation_reason/updated_at is fixed at request
-    time, matching Chapter 3.9 step 11 ('CapabilityLeases issued, bound to the run')
-    issuing a lease only once a WorkerRun already exists.
+    engine.capabilities (Chapter 3.8: 'Lease manager'). Scope is immutable after
+    request. Worker-origin execution binds worker_run_id and must pass WorkerRun kill-
+    flag enforcement; engine-owned non-worker verification subjects may leave
+    worker_run_id null but must checkout an explicitly identified lease through the non-
+    worker enforcement path, which refuses WorkerRun-bound leases.
     """
 
     model_config = ConfigDict(extra="forbid")

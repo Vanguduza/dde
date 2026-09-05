@@ -340,10 +340,10 @@ mission-scoped Frontend Gateway reads are implemented. The canonical central
 VS Code React workbench is now bound to that foundation for existing
 code-backed candidates: browser-attested LIVE, stable `pxg_key` selection,
 descriptor-driven token edit, preview invalidation and rerender are proven in
-React/Playwright. Fresh candidate source-workspace onboarding and durable
-DDE-068 verification-request scheduling are implemented. Production
-PostgreSQL-backed workbench E2E, execution of pending candidate verification
-requests into real VerificationRuns, React Chat UI, Screen Audit and M8 Source
+React/Playwright. Fresh candidate source-workspace onboarding, durable
+DDE-068 verification requests, candidate-origin VerificationRun execution and
+current request/run/check evidence in QA/Inspector are implemented. Production
+PostgreSQL-backed workbench E2E, React Chat UI, Screen Audit and M8 Source
 Intelligence are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
@@ -454,14 +454,29 @@ neither is a completion claim under v2.
   persists PENDING or BLOCKED without manufacturing a verdict. A later mutation
   supersedes outstanding requests before rerender. Schema/migration `0028`.
   Evidence: `docs/evidence/dde-069/SOURCE_AND_VERIFICATION_REQUESTS.md`.
+- **Candidate DDE-068 execution + visible evidence** — schema/migration `0029`
+  widens `VerificationRun` lineage to the Blueprint §17.1 subject model without
+  fabricating WorkerRuns: worker-origin runs retain their WorkerRun/TaskAttempt
+  lineage, while Frontend candidate runs use `subject_kind=FRONTEND_CANDIDATE`.
+  `CandidateVerificationExecutionService` validates the exact latest LIVE
+  preview/hash, rebinds only the runtime render URL while preserving immutable
+  AcceptanceOracle/golden definitions, leases `capability.browser` and the
+  narrow EDR-0017 `capability.visual_critique` through a non-worker checkout
+  path that explicitly refuses WorkerRun-bound leases, and executes the shared
+  DDE-068 runner/evidence writer. `frontend.verification.run` is mission-scoped.
+  Promotion now consumes only the VerificationRun currently attached to that
+  candidate, so historical task passes cannot approve edited code. React
+  automatically executes a new PENDING request once per LIVE hash; Candidate
+  cards, QA and Inspector expose current request/run/check/evidence state and
+  never turn PENDING/BLOCKED/SUPERSEDED into VERIFIED. Evidence:
+  `docs/evidence/dde-069/CANDIDATE_VERIFICATION_EXECUTION.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / not started:** M8 source adapters, provenance and candidate
 scoring; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
 prototype HTML; production VS Code → Gateway → PostgreSQL live-loop evidence
-(current host has no database/Redis runtime); execution of PENDING candidate
-verification requests into real DDE-068 VerificationRuns (the durable request
-queue is landed, but no non-WorkerRun executor exists yet); exact viewport
+(current host has no database/Redis runtime; the new PostgreSQL candidate-run
+persistence test is therefore present but UNAVAILABLE locally); exact viewport
 `set_state`, resize handles and Inspector tab-specific golden contracts not yet
 matched by the current generic controls; the React Frontend Chat
 composer/context surface; mandatory Screen Audit
@@ -737,33 +752,29 @@ DDE-068 is `COMPLETE_EVIDENCED`, but DDE-069 can still overclaim frontend qualit
 
 Unless newer implementation evidence exists:
 
-**Mission:** DDE-069 — real Frontend Studio vertical slice.
+**Mission:** DDE-069 — React Frontend Chat control plane.
 
-The existing-candidate live React loop and fresh-source onboarding are now
-composed and browser-proven, and each hash-confirmed LIVE preview creates a
-durable verification request over the screen's existing DDE-068 bindings. Do
-not rebuild those paths. The next dependency is to execute those requests
-without fabricating a WorkerRun or duplicating DDE-068:
+The live candidate loop, fresh source onboarding, hash-bound DDE-068 request
+scheduling, candidate-origin VerificationRun execution and QA/Inspector evidence
+projection are now composed. Do not rebuild them. Production PostgreSQL E2E is
+still unavailable on this host and remains BOUND.
 
-1. extend/refactor the verification execution boundary so a candidate LIVE
-   revision can consume its bound AcceptanceOracle and candidate workspace
-   without a synthetic WorkerRun;
-2. make request transitions PENDING → RUNNING → PASSED/FAILED/BLOCKED consume
-   the real DDE-068 check/evidence machinery and attach the resulting real
-   VerificationRun to the candidate;
-3. keep mutations superseding outstanding requests/evidence and require a new
-   LIVE/hash-bound request after rerender;
-4. expose current request/run evidence in QA/Inspector without treating PENDING
-   as VERIFIED;
-5. execute a real VS Code → Gateway → PostgreSQL user-flow gate when a database
-   runtime is available; until then production E2E remains BOUND, never VERIFIED.
+Next:
 
-Once candidate DDE-068 re-execution is green, bind the existing Frontend Chat
-backend to the React composer/context surface, then implement the mandatory
-Screen Audit domain and incremental projections before Coverage/QA/Architecture
-audit UI.
-Pixel-reference conformance remains fail-closed under AD-039 and does not block
-functional implementation.
+1. bind the existing `engine.studio.chat` backend to a real React composer and
+   conversation history surface;
+2. keep one shared context: mission/project/screen/candidate/selected `pxg_key`/
+   viewport/contract/PXG/coverage/current verification;
+3. route deterministic edits through the existing MutationRequest/Planner and
+   show typed refusals for ambiguity/unavailability;
+4. keep `/design` in the same conversation but typed unavailable until a
+   certified provider transport exists;
+5. browser-prove chat edit → mutation → rerender → new DDE-068 verification.
+
+After Chat is green, read `SCREEN_AUDIT_ENGINE.md` in full and implement the
+mandatory Screen Audit domain + incremental invalidation/projections, then M8
+Source Intelligence. Pixel-reference conformance remains fail-closed under
+AD-039 and does not block functional implementation.
 
 ---
 
