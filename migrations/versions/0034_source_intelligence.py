@@ -35,6 +35,15 @@ def _scope_fks() -> tuple[sa.ForeignKeyConstraint, sa.ForeignKeyConstraint]:
 
 
 def upgrade() -> None:
+    # The regenerated stage-1 bundle already contains M8 Source Intelligence
+    # on a fresh database. Preserve the historical additive path only when the
+    # marker table is absent.
+    conn = op.get_bind()
+    if (
+        conn.execute(sa.text("SELECT to_regclass('public.design_sources')")).scalar()
+        is not None
+    ):
+        return
     op.create_table(
         "design_sources",
         sa.Column("source_id", sa.Uuid(), primary_key=True),

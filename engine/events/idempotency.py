@@ -20,6 +20,7 @@ proceeding against a different logical command.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 from typing import TypeVar
@@ -43,6 +44,19 @@ T = TypeVar("T")
 #: permits a duplicate mutation, so this value is a policy-versioned
 #: constant, not a tuning knob."
 COMMAND_IDEMPOTENCY_RETENTION_V1 = timedelta(days=30)
+
+
+def _json_safe(value: object) -> object:
+    """Return a PostgreSQL-JSONB-safe copy of an idempotency result.
+
+    Command payloads can legitimately carry typed UUID/datetime identities from
+    deeper domain services. The ledger persists their wire representation; it
+    must never make an otherwise successful mutation fail while serializing its
+    replay result. This follows the repository-wide JSONB persistence convention.
+    """
+    if isinstance(value, (list, dict)):
+        return json.loads(json.dumps(value, default=str))
+    return value
 
 
 class CommandLedgerRepository:
@@ -102,7 +116,7 @@ class CommandLedgerRepository:
         await connection.execute(
             command_idempotency.update()
             .where(command_idempotency.c.command_id == command_id)
-            .values(status=status, result=result, updated_at=updated_at)
+            .values(status=status, result=_json_safe(result), updated_at=updated_at)
         )
 
 

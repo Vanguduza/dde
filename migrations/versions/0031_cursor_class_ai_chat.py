@@ -34,6 +34,19 @@ def _rls(table: str) -> None:
 
 
 def upgrade() -> None:
+    # Migration 0001 intentionally replays the current generated schema bundle.
+    # On a fresh database that bundle already contains the Cursor-class Chat
+    # tables/columns, so this historical additive migration must no-op rather
+    # than attempt to add them twice. Historical databases at 0030 do not have
+    # this marker table and still execute the original upgrade path.
+    conn = op.get_bind()
+    if (
+        conn.execute(
+            text("SELECT to_regclass('public.frontend_chat_attachments')")
+        ).scalar()
+        is not None
+    ):
+        return
     op.execute(text("ALTER TABLE frontend_conversations ADD COLUMN title text"))
     op.execute(
         text(

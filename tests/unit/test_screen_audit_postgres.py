@@ -78,13 +78,13 @@ async def test_screen_audit_full_incremental_and_exception_lifecycle() -> None:
         )
         finding_types = {item.finding_type for item in matrix.findings}
         assert "REQUIRED_STATE_MISSING" in finding_types
-        assert "REQUIRED_SCREEN_VERIFICATION_NOT_CURRENT" in finding_types
+        assert "MANDATORY_VISUAL_VERIFICATION_NOT_CURRENT" in finding_types
         assert matrix.summary.currentness == "CURRENT"
 
         visual = next(
             item
             for item in matrix.findings
-            if item.finding_type == "REQUIRED_SCREEN_VERIFICATION_NOT_CURRENT"
+            if item.finding_type == "MANDATORY_VISUAL_VERIFICATION_NOT_CURRENT"
         )
         with pytest.raises(DdeError, match="decision"):
             await audit.accept_exception(

@@ -33,6 +33,15 @@ def _rls(table: str) -> None:
 
 
 def upgrade() -> None:
+    # The regenerated stage-1 bundle already contains Screen Audit on a fresh
+    # database. Only historical databases that lack the marker table need the
+    # additive migration below.
+    conn = op.get_bind()
+    if (
+        conn.execute(sa.text("SELECT to_regclass('public.screen_audit_runs')")).scalar()
+        is not None
+    ):
+        return
     op.create_table(
         "screen_audit_runs",
         sa.Column("audit_run_id", sa.Uuid(), primary_key=True),

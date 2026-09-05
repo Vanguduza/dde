@@ -94,3 +94,16 @@ PostgreSQL E2E is unavailable, 21st remains externally blocked, and several visi
 controls still need their exact golden grammar (for example Explorer source status dots,
 clickable score explanation, named-source attribution presentation, target-blend slider
 grammar and the Inspector Source/code tab).
+
+## PostgreSQL/Redis closure addendum — 2026-09-05
+
+The earlier `UNAVAILABLE` host state above is superseded for PostgreSQL/Redis by real isolated-runtime evidence.
+
+- PostgreSQL 16.15 and Redis 7.0.15 run in an isolated DDE-only LXD container.
+- Fresh Alembic migration reaches `0034 (head)` after repairing regenerated-schema migration idempotency.
+- `tests/unit/test_source_intelligence_postgres.py`: **1/1 PASS**.
+- Broader DDE-069 PostgreSQL/Redis focused suite: **34/34 PASS**.
+- Real Redis stream publication and Gateway Redis readiness: **PASS**.
+- Real persistence exposed and closed UUID→JSONB defects in Chat turn context and the generic command-idempotency ledger.
+
+This addendum does not certify 21st, Claude `/design`, or R2. Those remain separately gated by exact external transport/credential evidence. Full detail: `docs/evidence/dde-069/POSTGRES_REDIS_CLOSURE.md`.

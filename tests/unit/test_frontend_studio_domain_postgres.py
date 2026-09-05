@@ -379,12 +379,22 @@ async def test_read_projection_reports_unknown_rather_than_zero() -> None:
         assert groups["components"].count.value == 0
         assert groups["components"].count.availability is Availability.EMPTY
 
-        for key in ("sources", "templates", "locks"):
+        # M8 owns sources/templates now: an uninitialized registry is a real
+        # capability in NOT_CONFIGURED state, not a missing implementation.
+        for key in ("sources", "templates"):
             count = groups[key].count
             assert count.known is False, key
             assert count.value is None, key
-            assert count.availability is Availability.NOT_IMPLEMENTED, key
+            assert count.availability is Availability.NOT_CONFIGURED, key
             assert count.reason
+
+        # Lock inventory is still a later read projection and stays explicitly
+        # unimplemented rather than rendering a plausible zero.
+        lock_count = groups["locks"].count
+        assert lock_count.known is False
+        assert lock_count.value is None
+        assert lock_count.availability is Availability.NOT_IMPLEMENTED
+        assert lock_count.reason
 
         # No coverage has been computed, so the ring has no number.
         assert snapshot.coverage.weighted_percent is None

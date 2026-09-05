@@ -33,6 +33,17 @@ def _rls(table: str) -> None:
 
 
 def upgrade() -> None:
+    # Fresh databases receive the current generated schema from migration 0001.
+    # Preserve incremental upgrades while making replay against that bundle
+    # idempotent, matching the established 0024-0026 migration pattern.
+    conn = op.get_bind()
+    if (
+        conn.execute(
+            text("SELECT to_regclass('public.ai_conversation_policies')")
+        ).scalar()
+        is not None
+    ):
+        return
     op.execute(
         text(
             "CREATE TABLE ai_conversation_policies (\n    policy_id uuid NOT NULL,\n    tenant_id uuid NOT NULL,\n    project_id uuid NOT NULL,\n    name text NOT NULL,\n    reasoning_effort text NOT NULL,\n    permission_profile text NOT NULL,\n    toolset_ids jsonb NOT NULL DEFAULT '[]'::jsonb,\n    allowed_capability_ids jsonb NOT NULL DEFAULT '[]'::jsonb,\n    denied_capability_ids jsonb NOT NULL DEFAULT '[]'::jsonb,\n    fallback_chain jsonb NOT NULL DEFAULT '[]'::jsonb,\n    max_turns integer,\n    context_token_budget integer NOT NULL,\n    cost_budget_usd numeric,\n    quality_priority integer NOT NULL,\n    latency_priority integer NOT NULL,\n    independent_review_required boolean NOT NULL,\n    created_by uuid,\n    lock_version integer NOT NULL DEFAULT 1,\n    created_at timestamptz NOT NULL,\n    updated_at timestamptz NOT NULL,\n    PRIMARY KEY (policy_id),\n    UNIQUE (project_id, name),\n    CHECK (context_token_budget > 0),\n    CHECK (quality_priority BETWEEN 0 AND 100 AND latency_priority BETWEEN 0 AND 100)\n);"

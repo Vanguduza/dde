@@ -398,8 +398,8 @@ async def test_chat_and_design_through_the_command_boundary(tmp_path) -> None:
             assert refused.status_code == 403, refused.text
             assert refused.json()["error_code"] == "CAPABILITY_UNAVAILABLE"
 
-            # The same ask through chat records a turn carrying the same
-            # refusal, rather than failing silently or inventing an answer.
+            # Chat has two independent fail-closed gates. ASK is read-only, so
+            # it refuses before provider capability is even considered.
             conversation = await send("frontend.chat.open", {})
             assert conversation.status_code == 202, conversation.text
             conversation_id = conversation.json()["payload"]["conversation_id"]
@@ -411,6 +411,28 @@ async def test_chat_and_design_through_the_command_boundary(tmp_path) -> None:
                     "selected_node_keys": ["screens/checkout"],
                 },
             )
+            ask_turn = await send(
+                "frontend.chat.send",
+                {
+                    "conversation_id": conversation_id,
+                    "text": "/design three hero alternatives",
+                },
+            )
+            assert ask_turn.status_code == 202, ask_turn.text
+            ask_payload = ask_turn.json()["payload"]
+            assert ask_payload["intent"] == "DESIGN_DIVERGENT"
+            assert ask_payload["outcome"] == "REFUSED"
+            assert ask_payload["refusal_code"] == "MODE_READ_ONLY"
+            assert ask_payload["produced_refs"] == []
+
+            # Once the user explicitly chooses EXECUTE, the next independent
+            # gate is provider certification. It remains typed unavailable and
+            # never falls back to broad Claude Code execution.
+            mode = await send(
+                "frontend.chat.set_mode",
+                {"conversation_id": conversation_id, "mode": "EXECUTE"},
+            )
+            assert mode.status_code == 202, mode.text
             turn = await send(
                 "frontend.chat.send",
                 {

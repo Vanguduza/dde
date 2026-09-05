@@ -1562,6 +1562,13 @@ class FrontendChatService:
                 created_at=now,
                 updated_at=now,
             )
+            # JSONB must receive the wire-safe representation, not arbitrary
+            # Python objects from authority adapters. In particular, EXECUTE
+            # context may contain UUID identities that Pydantic preserves in
+            # Python mode but PostgreSQL's JSON serializer cannot encode.
+            json_context = record.model_dump(mode="json", include={"resolved_context"})[
+                "resolved_context"
+            ]
             await uow.connection.execute(
                 frontend_conversation_turns.insert().values(
                     **record.model_dump(
@@ -1571,7 +1578,7 @@ class FrontendChatService:
                             "attachment_ids",
                         }
                     ),
-                    resolved_context=record.resolved_context,
+                    resolved_context=json_context,
                     produced_refs=list(produced),
                     attachment_ids=[str(item) for item in attachment_ids],
                 )
