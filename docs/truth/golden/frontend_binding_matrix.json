@@ -8296,33 +8296,35 @@
         "NOT_RENDERED",
         "RENDER_FAILED"
       ],
-      "note": "Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state.",
+      "note": "Candidate thumbnails now render exact code-backed PreviewDocument content; production E2E remains BOUND.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state."
+          "note": "Code-backed PreviewService and CandidateBoardSnapshot now expose current rendered preview state/document identity; unavailable/render failures remain explicit."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Code-backed PreviewService and CandidateBoardSnapshot now expose current rendered preview state/document identity; unavailable/render failures remain explicit."
         },
         "COMMAND": {
           "applicable": false,
@@ -8334,53 +8336,85 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state."
+          "note": "Code-backed PreviewService and CandidateBoardSnapshot now expose current rendered preview state/document identity; unavailable/render failures remain explicit."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Candidate card renders a miniature iframe from the exact current PreviewDocument rather than a fabricated thumbnail."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "React requests the real preview document through DdeHostBridge; production Gateway/PostgreSQL browser E2E remains unavailable on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Browser proof uses TestHostBridge-backed real PreviewDocument semantics; production database-backed E2E remains open."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Rendered candidate thumbnail is asserted structurally from the exact preview document; pixel-reference certification is handled separately by AD-039."
         }
       }
     },
@@ -8527,7 +8561,7 @@
       "failure_states": [
         "UNSCORED"
       ],
-      "note": "M8 classification now exists; candidate-dock closure must add the required score explanation interaction.",
+      "note": "Clickable evidence-backed score explanation is implemented; final status remains BOUND pending production E2E.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -8584,16 +8618,19 @@
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Classification renders, but the golden clickable score-explanation affordance is not implemented yet."
+          "note": "Classification is a clickable details/summary affordance exposing dimensions, evidence refs and hard failures without inventing explanation."
         },
         "WIRED": {
           "applicable": true,
@@ -8601,15 +8638,17 @@
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "engine/studio/source/scoring.py",
-            "engine/studio/source/service.py",
-            "engine/studio/reads.py"
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/reads.py",
+            "engine/studio/source/scoring.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Classification consumes the score projection; explanation interaction is not yet wired."
+          "note": "Explanation consumes persisted score projection; production database-backed browser E2E remains unavailable."
         },
         "E2E": {
           "applicable": true,
@@ -8617,29 +8656,32 @@
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "engine/studio/source/scoring.py",
-            "engine/studio/source/service.py",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
             "engine/studio/reads.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
-            "tests/unit/test_source_intelligence_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Classification is browser-rendered via TestHostBridge; production E2E and explanation interaction remain open."
+          "note": "Candidate-dock browser test proves the explanation interaction through TestHostBridge; production E2E remains open."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "GOOD/UNSCORED classification is rendered, but the clickable explanation grammar remains incomplete."
+          "note": "Classification is a clickable details/summary affordance exposing dimensions, evidence refs and hard failures without inventing explanation."
         }
       }
     },
@@ -8710,41 +8752,73 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Candidate card renders the projected count of APPLIED structural mutations."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/mutations/projection.py",
+            "engine/studio/mutations/executor.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Read projection derives change count from mutation history; production browser/PostgreSQL E2E remains unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
             "engine/studio/mutations/projection.py",
-            "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/mutations/executor.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Browser proves real projected count semantics via TestHostBridge; production E2E remains open."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "The card visibly renders \u201cN changes\u201d from projected mutation history."
         }
       }
     },
@@ -8759,7 +8833,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Accepted-current card is honest; final locked grammar waits on effective lock inventory.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -8807,41 +8881,69 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Accepted Current card is rendered from durable PXG revision; effective lock inventory remains explicitly unknown rather than fabricated LOCKED."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Current revision is bound; lock inventory projection is still absent."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py",
-            "engine/studio/mutations/projection.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Browser proves accepted-current truth but cannot prove the required locked chip while lock inventory is not projected."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Current card is present; golden Current (Locked) state remains incomplete until effective locks are projected."
         }
       }
     },
@@ -9010,33 +9112,35 @@
       "failure_states": [
         "NOT_RENDERED"
       ],
-      "note": "Compare requires two rendered candidates (DDE-069 M9).",
+      "note": "Candidate compare is implemented for two real LIVE preview documents; production E2E remains BOUND.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Compare requires two rendered candidates (DDE-069 M9)."
+          "note": "Two independently read LIVE PreviewDocuments are sufficient for compare state; unavailable/stale candidates remain excluded."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Two independently read LIVE PreviewDocuments are sufficient for compare state; unavailable/stale candidates remain excluded."
         },
         "COMMAND": {
           "applicable": false,
@@ -9048,53 +9152,85 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Compare requires two rendered candidates (DDE-069 M9)."
+          "note": "Two independently read LIVE PreviewDocuments are sufficient for compare state; unavailable/stale candidates remain excluded."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Compare mode renders two real LIVE preview documents side by side."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Compare reads candidate preview documents through the host bridge; production database browser path remains unproven."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/preview_runtime/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Browser compare scenario is TestHostBridge-backed; production PostgreSQL E2E remains open."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Side-by-side real preview documents are structurally asserted."
         }
       }
     },
@@ -9183,43 +9319,71 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Candidate card exposes an explicit Promote action only when current verification/score evidence is promotable; blockers remain visible."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Promote sends frontend.candidate.promote through DdeHostBridge and refreshes accepted state; production DB browser path remains unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/promotion.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Browser proves governed command routing and accepted revision refresh via TestHostBridge; PostgreSQL E2E remains open."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/ui/src/styles/global.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Promote control and hard-failure refusal state are visibly asserted."
         }
       }
     },

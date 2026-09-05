@@ -10,9 +10,9 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 54 |
+| `UNBOUND` | 49 |
 | `TYPED_UNAVAILABLE` | 6 |
-| `BOUND` | 34 |
+| `BOUND` | 39 |
 | `VERIFIED` | 5 |
 | **total** | **99** |
 
@@ -173,21 +173,22 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
 | CA-01 | Candidate cards | `VERIFIED` | `BOUND` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
-| CA-02 | Candidate thumbnail | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CA-02 | Candidate thumbnail | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-03 | Candidate score | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| CA-04 | Score classification | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| CA-05 | Change count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CA-06 | Current (Locked) card | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CA-04 | Score classification | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| CA-05 | Change count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| CA-06 | Current (Locked) card | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | CA-07 | Try live | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CA-08 | Compare | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CA-09 | Promote / accept | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CA-08 | Compare | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| CA-09 | Promote / accept | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 
 Notes:
 
-- **CA-02** — Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state.
+- **CA-02** — Candidate thumbnails now render exact code-backed PreviewDocument content; production E2E remains BOUND.
 - **CA-03** — M8 CandidateScorecard is implemented and evidence-backed; final status remains BOUND pending production E2E.
-- **CA-04** — M8 classification now exists; candidate-dock closure must add the required score explanation interaction.
-- **CA-08** — Compare requires two rendered candidates (DDE-069 M9).
+- **CA-04** — Clickable evidence-backed score explanation is implemented; final status remains BOUND pending production E2E.
+- **CA-06** — Accepted-current card is honest; final locked grammar waits on effective lock inventory.
+- **CA-08** — Candidate compare is implemented for two real LIVE preview documents; production E2E remains BOUND.
 
 ## Source Blend
 

@@ -36,6 +36,8 @@ from engine.contracts.workspace import Workspace
 from engine.studio.candidates.service import CandidateService
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageRead, CoverageService
+from engine.studio.mutations.executor import MutationExecutor
+from engine.studio.mutations.projection import change_count
 from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.pxg.service import PxgGraph, PxgService
 from engine.studio.source.service import SOURCE_SPECS, SourceIntelligenceService
@@ -262,6 +264,7 @@ class CandidateCardSnapshot:
     preview_session_id: str | None
     preview_state: str | None
     preview_state_detail: str | None
+    change_count: int
     verification_request_id: str | None
     verification_request_state: str | None
     verification_request_reason: str | None
@@ -274,6 +277,7 @@ class CandidateCardSnapshot:
     score_state: str
     score: float | None
     score_classification: str
+    score_dimensions: dict[str, object]
     score_hard_failures: tuple[str, ...]
     score_evidence_refs: tuple[str, ...]
 
@@ -332,6 +336,7 @@ class FrontendReadService:
         previews: PreviewService | None = None,
         workspaces: WorkspaceService | None = None,
         verification_requests: CandidateVerificationRequestService | None = None,
+        mutations: MutationExecutor | None = None,
         sources: SourceIntelligenceService | None = None,
         build_version: str | None = None,
     ) -> None:
@@ -348,6 +353,9 @@ class FrontendReadService:
             verification_requests or CandidateVerificationRequestService(engine)
         )
         self._verification_runs = VerificationRunRepository()
+        self._mutations = mutations or MutationExecutor(
+            engine, candidates=self._candidates
+        )
         self._sources = sources or SourceIntelligenceService(engine)
         self._build_version = build_version
 
@@ -546,6 +554,11 @@ class FrontendReadService:
                 project_id=project_id,
                 candidate_id=candidate.candidate_id,
             )
+            mutation_history = await self._mutations.history(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate.candidate_id,
+            )
             cards.append(
                 CandidateCardSnapshot(
                     candidate_id=str(candidate.candidate_id),
@@ -564,6 +577,7 @@ class FrontendReadService:
                     ),
                     preview_state=preview.state if preview else None,
                     preview_state_detail=preview.state_detail if preview else None,
+                    change_count=change_count(mutation_history),
                     verification_request_id=(
                         str(verification_request.verification_request_id)
                         if verification_request
@@ -614,6 +628,7 @@ class FrontendReadService:
                     if score and score.overall_score is not None
                     else None,
                     score_classification=score.classification if score else "UNSCORED",
+                    score_dimensions=dict(score.dimensions) if score else {},
                     score_hard_failures=tuple(score.hard_failures) if score else (),
                     score_evidence_refs=tuple(score.evidence_refs) if score else (),
                 )

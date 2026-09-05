@@ -129,7 +129,7 @@ body {
   position: fixed;
   z-index: 40;
   right: max(var(--dde-gutter), 12px);
-  bottom: calc(var(--dde-statusbar-height) + max(var(--dde-gutter), 12px));
+  bottom: calc(var(--dde-statusbar-height) + var(--dde-candidate-strip-height) + max(var(--dde-gutter), 12px));
   left: calc(var(--dde-rail-width) + max(var(--dde-gutter), 12px));
   pointer-events: none;
 }

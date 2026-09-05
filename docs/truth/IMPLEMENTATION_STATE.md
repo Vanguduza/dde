@@ -494,7 +494,7 @@ neither is a completion claim under v2.
   not stale accepted-product audits; promotion does. The dogfood reconciler keeps
   the independent 99-control ledger and records disagreement rather than forcing
   agreement. After M8 evidence reconciliation the current derived ledger is
-  **5 VERIFIED / 34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND**. Evidence:
+  **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND**. Evidence:
   `docs/evidence/dde-069/SCREEN_AUDIT_ENGINE.md`.
 - **M8 Source Intelligence — PARTIAL CHECKPOINT** — migration `0034` and
   `engine/studio/source/` add the common DesignSourceAdapter boundary, persisted
@@ -519,6 +519,7 @@ neither is a completion claim under v2.
   34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND**. Live PostgreSQL execution and real
   certified 21st transport remain unavailable, so M8 is not production-certified. Evidence:
   `docs/evidence/dde-069/M8_SOURCE_INTELLIGENCE_CHECKPOINT.md`.
+- **Candidate dock functional closure** — accepted-current truth, exact code-backed candidate miniatures, real mutation change counts, clickable evidence-backed score explanations, two-LIVE-preview compare and explicit governed promotion are now implemented. Universal DDE Chat no longer overlaps/intercepts the permanent candidate strip. Full workbench Playwright is **46/46** and extension tests **77/77**. `CA-07` remains open for the distinct DesignArtifact → `frontend.design.try_live` path, and `CA-06` remains BOUND until effective lock inventory exists. The reconciled ledger is **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND**. Evidence: `docs/evidence/dde-069/CANDIDATE_DOCK_CLOSURE.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / not started:** M8 live PostgreSQL persistence proof and external

@@ -86,6 +86,8 @@ export function DdeStudioApp({
   const [applyingProperty, setApplyingProperty] = useState<string | null>(null);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [promotionBusyCandidateId, setPromotionBusyCandidateId] = useState<string | null>(null);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
   const verificationStarted = useRef<Set<string>>(new Set());
   const [chatThread, setChatThread] = useState<FrontendChatThread | null>(null);
   const [chatLoading, setChatLoading] = useState(true);
@@ -306,24 +308,34 @@ export function DdeStudioApp({
     [activeCandidateId, snapshot],
   );
 
-  const loadPreviewDocument = useCallback(
-    async (previewSessionId: string) => {
-      setPreviewError(null);
-      setPreviewBrowserReady(false);
+  const readPreviewDocument = useCallback(
+    async (previewSessionId: string): Promise<PreviewDocument | null> => {
       try {
-        const document = await bridge.requestRead<PreviewDocument>({
+        return await bridge.requestRead<PreviewDocument>({
           resource: "frontend.preview.document",
           parameters: { previewSessionId },
         });
-        setPreview(document);
-        return document;
-      } catch (error) {
-        setPreview(null);
-        setPreviewError(error instanceof Error ? error.message : String(error));
+      } catch {
         return null;
       }
     },
     [bridge],
+  );
+
+  const loadPreviewDocument = useCallback(
+    async (previewSessionId: string) => {
+      setPreviewError(null);
+      setPreviewBrowserReady(false);
+      const document = await readPreviewDocument(previewSessionId);
+      if (!document) {
+        setPreview(null);
+        setPreviewError("Preview document is unavailable.");
+        return null;
+      }
+      setPreview(document);
+      return document;
+    },
+    [readPreviewDocument],
   );
 
   useEffect(() => {
@@ -634,6 +646,73 @@ export function DdeStudioApp({
     sourceWorkspaceId,
     viewport,
   ]);
+
+  const tryCandidateLive = useCallback(async (candidateId: string) => {
+    const candidate = snapshot?.candidates.cards.find((item) => item.candidateId === candidateId);
+    if (!candidate || !screenKey) {
+      setPreviewError("Select a real candidate and screen before trying it live.");
+      return;
+    }
+    setMode("design");
+    setActiveCandidateId(candidateId);
+    setPromotionError(null);
+    if (candidate.previewSessionId) {
+      await loadPreviewDocument(candidate.previewSessionId);
+      return;
+    }
+    if (!candidate.workspaceId) {
+      setPreviewError("This candidate needs a READY source workspace. Select it in the Canvas before starting the code-backed preview.");
+      return;
+    }
+    setPreviewBusy(true);
+    setPreviewError(null);
+    try {
+      const acceptance = await sendFrontendCommand("frontend.preview.start", {
+        candidate_id: candidateId,
+        screen_key: screenKey,
+        viewport,
+      });
+      const sessionId = payloadString(acceptance, "previewSessionId");
+      const state = payloadString(acceptance, "state") ?? "UNAVAILABLE";
+      const detail = payloadString(acceptance, "stateDetail");
+      if (!sessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
+        setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
+        await refreshSnapshot();
+        return;
+      }
+      await refreshSnapshot();
+      await loadPreviewDocument(sessionId);
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPreviewBusy(false);
+    }
+  }, [loadPreviewDocument, refreshSnapshot, screenKey, sendFrontendCommand, snapshot, viewport]);
+
+  const promoteCandidate = useCallback(async (candidateId: string) => {
+    setActiveCandidateId(candidateId);
+    setPromotionBusyCandidateId(candidateId);
+    setPromotionError(null);
+    try {
+      await sendFrontendCommand("frontend.candidate.promote", { candidate_id: candidateId });
+      setPreview(null);
+      setPreviewBrowserReady(false);
+      setSelection(null);
+      setSelectedKey(null);
+      const [nextSnapshot, nextAudit] = await Promise.all([
+        refreshSnapshot(),
+        bridge.requestRead<ScreenAuditMatrix>({ resource: "frontend.audit.matrix" }).catch(() => null),
+      ]);
+      if (nextAudit) setAuditMatrix(nextAudit);
+      if (!nextSnapshot.candidates.cards.some((item) => item.candidateId === candidateId)) {
+        setActiveCandidateId(nextSnapshot.candidates.cards[0]?.candidateId ?? null);
+      }
+    } catch (error) {
+      setPromotionError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPromotionBusyCandidateId(null);
+    }
+  }, [bridge, refreshSnapshot, sendFrontendCommand]);
 
   const handleChatSend = useCallback(
     async (text: string): Promise<boolean> => {
@@ -1091,8 +1170,13 @@ export function DdeStudioApp({
             previewBusy={previewBusy}
             verificationBusy={verificationBusy}
             verificationError={verificationError}
+            promotionBusyCandidateId={promotionBusyCandidateId}
+            promotionError={promotionError}
             selection={selection}
             onStartPreview={() => void startPreview()}
+            onLoadPreviewDocument={readPreviewDocument}
+            onTryCandidateLive={(candidateId) => void tryCandidateLive(candidateId)}
+            onPromoteCandidate={(candidateId) => void promoteCandidate(candidateId)}
             onPreviewSignal={(signal) => void handlePreviewSignal(signal)}
           />
         )

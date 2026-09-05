@@ -267,6 +267,7 @@ export interface CandidateCardSnapshot {
   readonly previewSessionId: string | null;
   readonly previewState: PreviewState | null;
   readonly previewStateDetail: string | null;
+  readonly changeCount: number;
   readonly verificationRequestId: string | null;
   readonly verificationRequestState: string | null;
   readonly verificationRequestReason: string | null;
@@ -279,6 +280,7 @@ export interface CandidateCardSnapshot {
   readonly scoreState: string;
   readonly score: number | null;
   readonly scoreClassification: string;
+  readonly scoreDimensions: Readonly<Record<string, unknown>>;
   readonly scoreHardFailures: readonly string[];
   readonly scoreEvidenceRefs: readonly string[];
 }

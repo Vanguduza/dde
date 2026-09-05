@@ -15,6 +15,7 @@ import type {
   FrontendChatThread,
   FrontendChatTurn,
   FrontendStudioSnapshot,
+  CandidateCardSnapshot,
   InspectorDescriptor,
   PreviewDocument,
   ScreenAuditMatrix,
@@ -31,9 +32,13 @@ import "../src/styles/panels.css";
 const missionId = "00000000-0000-0000-0000-000000000010";
 const projectId = "00000000-0000-0000-0000-000000000001";
 const candidateId = "00000000-0000-0000-0000-000000000020";
+const compareCandidateId = "00000000-0000-0000-0000-000000000021";
 const pxgKey = "screens/checkout#hero";
 const urlParams = new URLSearchParams(window.location.search);
 const freshCandidate = urlParams.get("fresh") === "1";
+const promotableCandidate = urlParams.get("promotable") === "1";
+const compareCandidates = urlParams.get("compare") === "1";
+const scoreHardFailure = urlParams.get("hardfail") === "1";
 const withAcceptedProvenance = urlParams.get("provenance") === "1";
 const sourceA = "00000000-0000-0000-0000-000000000041";
 const sourceB = "00000000-0000-0000-0000-000000000042";
@@ -43,13 +48,14 @@ let candidateWorkspaceId: string | null = freshCandidate
 let previewNumber = 1;
 let previewSessionId = `preview-${previewNumber}`;
 let previewState: "LOADING" | "LIVE" | "STALE" = "LOADING";
-let candidateState = freshCandidate ? "GENERATED" : "READY";
+let acceptedRevision = 4;
+let candidateState = promotableCandidate ? "PROMOTABLE" : (freshCandidate ? "GENERATED" : "READY");
 let spacing = "space2";
 let verificationRequestState: "PENDING" | "PASSED" | "FAILED" | "BLOCKED" | "SUPERSEDED" | null =
-  freshCandidate ? null : "PENDING";
+  promotableCandidate ? "PASSED" : (freshCandidate ? null : "PENDING");
 let verificationRequestNumber = 1;
-let verificationRunId: string | null = null;
-let verificationRunStatus: string | null = null;
+let verificationRunId: string | null = promotableCandidate ? "verification-run-promotable" : null;
+let verificationRunStatus: string | null = promotableCandidate ? "PASSED" : null;
 let previousSpacing = spacing;
 let chatConversation: FrontendChatConversation | null = null;
 let chatTurns: FrontendChatTurn[] = [];
@@ -88,7 +94,7 @@ let sourceProvenance: FrontendProvenanceRecord[] = withAcceptedProvenance
     }]
   : [];
 let sourceTargetBlend: FrontendSourceBlendPreference | null = null;
-let candidateScoreComputed = false;
+let candidateScoreComputed = promotableCandidate;
 let chatAttachments: FrontendChatAttachment[] = [];
 let chatPlans: FrontendChatPlan[] = [];
 let chatActivities: FrontendChatActivity[] = [
@@ -325,11 +331,11 @@ function snapshot(): FrontendStudioSnapshot {
   return {
     projectId,
     observedAt: new Date().toISOString(),
-    pxgRevision: 4,
+    pxgRevision: acceptedRevision,
     contractVersion: 2,
     explorer: {
       projectId,
-      pxgRevision: 4,
+      pxgRevision: acceptedRevision,
       groups: [
         { key: "screens", title: "Screens", count: { value: 1, availability: "AVAILABLE" } },
         { key: "journeys", title: "Journeys", count: { value: 0, availability: "EMPTY" } },
@@ -357,8 +363,8 @@ function snapshot(): FrontendStudioSnapshot {
       summaryState: "PARTIAL",
       weightedPercent: null,
       contractVersion: 2,
-      pxgRevision: 4,
-      currentPxgRevision: 4,
+      pxgRevision: acceptedRevision,
+      currentPxgRevision: acceptedRevision,
       stale: false,
       dimensionStates: [["screen", "ASSESSED"]],
       blockingFindingCount: 0,
@@ -374,7 +380,7 @@ function snapshot(): FrontendStudioSnapshot {
     },
     sync: {
       state: candidateState === "DIRTY" ? "PENDING" : "SYNCED",
-      durablePxgRevision: 4,
+      durablePxgRevision: acceptedRevision,
       pendingMutationCount: candidateState === "DIRTY" ? 1 : 0,
       durableRevisionAt: new Date().toISOString(),
       buildVersion: "dde-studio test",
@@ -431,7 +437,7 @@ function snapshot(): FrontendStudioSnapshot {
       reason: "21st=NOT_CONFIGURED (21st MCP/provider transport is not configured)",
     },
     candidates: {
-      count: { value: 1, availability: "AVAILABLE" },
+      count: { value: compareCandidates ? 2 : 1, availability: "AVAILABLE" },
       cards: [
         {
           candidateId,
@@ -440,7 +446,7 @@ function snapshot(): FrontendStudioSnapshot {
           origin: "DIRECT_EDIT",
           workspaceId: candidateWorkspaceId,
           basePxgRevision: 4,
-          currentPxgRevision: 4,
+          currentPxgRevision: acceptedRevision,
           stale: false,
           scopeKeys: ["screens/checkout"],
           previewSessionId: freshCandidate && !candidateWorkspaceId ? null : previewSessionId,
@@ -449,6 +455,7 @@ function snapshot(): FrontendStudioSnapshot {
             freshCandidate && !candidateWorkspaceId
               ? null
               : `fixture ${previewState.toLowerCase()}`,
+          changeCount: spacing === "space2" ? 0 : 1,
           verificationRequestId:
             verificationRequestState === null
               ? null
@@ -484,26 +491,67 @@ function snapshot(): FrontendStudioSnapshot {
               : [],
           verificationEvidenceRefs:
             verificationRunStatus === "PASSED" ? ["evidence-1", "evidence-2"] : [],
-          scoreState: candidateScoreComputed ? "SCORED" : "UNSCORED",
-          score: candidateScoreComputed ? 88 : null,
-          scoreClassification: candidateScoreComputed ? "GOOD" : "UNSCORED",
-          scoreHardFailures: [],
+          scoreState: scoreHardFailure ? "BLOCKED" : (candidateScoreComputed ? "SCORED" : "UNSCORED"),
+          score: scoreHardFailure ? null : (candidateScoreComputed ? 88 : null),
+          scoreClassification: scoreHardFailure ? "BLOCKED" : (candidateScoreComputed ? "GOOD" : "UNSCORED"),
+          scoreDimensions: candidateScoreComputed
+            ? Object.fromEntries(
+                [
+                  "product_fit",
+                  "feature_coverage",
+                  "design_system_fit",
+                  "responsive_fit",
+                  "accessibility_fit",
+                  "architecture_fit",
+                  "dependency_posture",
+                  "security_posture",
+                  "license_confidence",
+                  "provenance_confidence",
+                ].map((name) => [name, { score: 88, evidence_refs: [`fixture:${name}`] }]),
+              )
+            : { missing_dimensions: ["product_fit", "feature_coverage"] },
+          scoreHardFailures: scoreHardFailure ? ["LICENSE_INCOMPATIBLE"] : [],
           scoreEvidenceRefs: candidateScoreComputed ? ["verification:evidence-1", "candidate-coverage:screen"] : [],
         },
+        ...(compareCandidates ? [compareCandidateCard()] : []),
       ],
     },
     degradedReasons: [],
   };
 }
 
-function previewDocument(): PreviewDocument {
+function compareCandidateCard(): CandidateCardSnapshot {
+  return {
+    candidateId: compareCandidateId, title: "Checkout alternate", state: "READY", origin: "SOURCE_IMPORT",
+    workspaceId: "00000000-0000-0000-0000-000000000031", basePxgRevision: 4, currentPxgRevision: acceptedRevision, stale: false,
+    scopeKeys: ["screens/checkout"], previewSessionId: "preview-compare", previewState: "LIVE", previewStateDetail: "fixture live", changeCount: 2,
+    verificationRequestId: null, verificationRequestState: null, verificationRequestReason: null, verificationRequiredKinds: [],
+    verificationRunId: null, verificationRunStatus: null, verificationConfidence: null, verificationChecks: [], verificationEvidenceRefs: [],
+    scoreState: "UNSCORED", score: null, scoreClassification: "UNSCORED", scoreDimensions: { missing_dimensions: ["feature_coverage"] },
+    scoreHardFailures: [], scoreEvidenceRefs: [],
+  };
+}
+
+function previewDocument(sessionId = previewSessionId): PreviewDocument {
+  if (sessionId === "preview-compare") {
+    return {
+      previewSessionId: sessionId,
+      candidateId: compareCandidateId,
+      workspaceId: "00000000-0000-0000-0000-000000000031",
+      screenKey: "screens/checkout", state: "LIVE", viewport: "1440", route: "/checkout",
+      candidatePxgRevision: acceptedRevision, sourceRevision: "fixture-compare",
+      documentPath: ".dde/preview/preview-compare.html", contentHash: "hash-preview-compare",
+      stateDetail: "fixture live",
+      content: '<!doctype html><html><body><div style="padding:16px">Compare candidate</div></body></html>',
+    };
+  }
   const contentHash = `hash-${previewSessionId}-${spacing}`;
   const content = `<!doctype html><html><body>
 <div data-dde-pxg-key="${pxgKey}" data-spacing="${spacing}" style="padding:16px">Hero ${spacing}</div>
 <script>(()=>{const meta={previewSessionId:${JSON.stringify(previewSessionId)},contentHash:${JSON.stringify(contentHash)}};const send=(kind,payload={})=>parent.postMessage({type:'dde.preview',kind,...meta,...payload},'*');document.addEventListener('pointerdown',(event)=>{const target=event.target.closest('[data-dde-pxg-key]');if(!target)return;const r=target.getBoundingClientRect();send('selection',{pxgKey:target.getAttribute('data-dde-pxg-key'),geometry:{x:r.x,y:r.y,width:r.width,height:r.height}})},true);addEventListener('DOMContentLoaded',()=>send('ready'),{once:true});})();</script>
 </body></html>`;
   return {
-    previewSessionId,
+    previewSessionId: sessionId,
     candidateId,
     workspaceId: candidateWorkspaceId ?? "00000000-0000-0000-0000-000000000030",
     screenKey: "screens/checkout",
@@ -1018,8 +1066,10 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
   if (command.commandType === "frontend.preview.set_state") {
     if (command.parameters.state === "LIVE") {
       previewState = "LIVE";
-      verificationRequestNumber += 1;
-      verificationRequestState = "PENDING";
+      if (!promotableCandidate) {
+        verificationRequestNumber += 1;
+        verificationRequestState = "PENDING";
+      }
     }
     return {
       previewSessionId,
@@ -1069,6 +1119,12 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
         `verification-request-${verificationRequestNumber}`,
       ],
     };
+  }
+  if (command.commandType === "frontend.candidate.promote") {
+    if (candidateState !== "PROMOTABLE") throw new Error(`promotion gate denied: candidate state ${candidateState}`);
+    candidateState = "PROMOTED";
+    acceptedRevision += 1;
+    return { candidateId, state: candidateState, promotedAt: new Date().toISOString(), provenanceProjectionState: "CURRENT", provenanceRecordCount: 1, auditState: "CURRENT" };
   }
   if (command.commandType === "frontend.preview.start") {
     if (freshCandidate && !candidateWorkspaceId) {
@@ -1130,7 +1186,7 @@ const bridge = new TestHostBridge({
     "frontend.chat.models": { models: chatModels },
     "frontend.chat.context": () => chatBudget(),
     "frontend.chat.changes": () => ({ ...chatChanges }),
-    "frontend.preview.document": () => previewDocument(),
+    "frontend.preview.document": (query: DdeReadQuery) => previewDocument(String(query.parameters?.previewSessionId ?? previewSessionId)),
     "frontend.inspector.describe": () => inspector(),
   },
   commands: {
@@ -1170,6 +1226,7 @@ const bridge = new TestHostBridge({
     "frontend.preview.set_state": commandPayload,
     "frontend.mutation.apply": commandPayload,
     "frontend.preview.start": commandPayload,
+    "frontend.candidate.promote": commandPayload,
     "frontend.verification.run": commandPayload,
   },
 });

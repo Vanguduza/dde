@@ -76,8 +76,13 @@ export interface WorkspaceProps {
   readonly previewBusy: boolean;
   readonly verificationBusy: boolean;
   readonly verificationError: string | null;
+  readonly promotionBusyCandidateId: string | null;
+  readonly promotionError: string | null;
   readonly selection: PreviewSelection | null;
   readonly onStartPreview: () => void;
+  readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
+  readonly onTryCandidateLive: (candidateId: string) => void;
+  readonly onPromoteCandidate: (candidateId: string) => void;
   readonly onPreviewSignal: (signal: PreviewRuntimeSignal) => void;
 }
 
@@ -111,8 +116,13 @@ export function FrontendStudioWorkspace({
   previewBusy,
   verificationBusy,
   verificationError,
+  promotionBusyCandidateId,
+  promotionError,
   selection,
   onStartPreview,
+  onLoadPreviewDocument,
+  onTryCandidateLive,
+  onPromoteCandidate,
   onPreviewSignal,
 }: WorkspaceProps) {
   return (
@@ -173,6 +183,11 @@ export function FrontendStudioWorkspace({
         onActiveCandidateChange={onActiveCandidateChange}
         verificationBusy={verificationBusy}
         verificationError={verificationError}
+        promotionBusyCandidateId={promotionBusyCandidateId}
+        promotionError={promotionError}
+        onLoadPreviewDocument={onLoadPreviewDocument}
+        onTryCandidateLive={onTryCandidateLive}
+        onPromoteCandidate={onPromoteCandidate}
       />
     </div>
   );
@@ -900,14 +915,39 @@ function CandidateStrip({
   onActiveCandidateChange,
   verificationBusy,
   verificationError,
+  promotionBusyCandidateId,
+  promotionError,
+  onLoadPreviewDocument,
+  onTryCandidateLive,
+  onPromoteCandidate,
 }: {
   readonly snapshot: FrontendStudioSnapshot | null;
   readonly activeCandidateId: string | null;
   readonly onActiveCandidateChange: (candidateId: string) => void;
   readonly verificationBusy: boolean;
   readonly verificationError: string | null;
+  readonly promotionBusyCandidateId: string | null;
+  readonly promotionError: string | null;
+  readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
+  readonly onTryCandidateLive: (candidateId: string) => void;
+  readonly onPromoteCandidate: (candidateId: string) => void;
 }) {
+  const [compareCandidateId, setCompareCandidateId] = useState<string | null>(null);
   const cards = snapshot?.candidates.cards ?? [];
+  const activeCandidate = cards.find((item) => item.candidateId === activeCandidateId) ?? null;
+  const compareCandidate = cards.find((item) => item.candidateId === compareCandidateId) ?? null;
+
+  useEffect(() => {
+    if (
+      compareCandidateId &&
+      (!compareCandidate ||
+        compareCandidate.candidateId === activeCandidateId ||
+        compareCandidate.previewState !== "LIVE")
+    ) {
+      setCompareCandidateId(null);
+    }
+  }, [activeCandidateId, compareCandidate, compareCandidateId]);
+
   if (!snapshot) {
     return (
       <div className="dde-candidate-strip" data-testid="candidate-strip">
@@ -915,24 +955,69 @@ function CandidateStrip({
       </div>
     );
   }
-  if (!cards.length) {
-    return (
-      <div className="dde-candidate-strip" data-testid="candidate-strip">
+
+  const comparisonReady = Boolean(
+    activeCandidate?.previewState === "LIVE" && activeCandidate.previewSessionId,
+  );
+
+  return (
+    <div className="dde-candidate-strip" data-testid="candidate-strip">
+      {activeCandidate && compareCandidate ? (
+        <CandidateCompare
+          left={activeCandidate}
+          right={compareCandidate}
+          onLoadPreviewDocument={onLoadPreviewDocument}
+          onClose={() => setCompareCandidateId(null)}
+        />
+      ) : null}
+      <article className="dde-candidate-card dde-current-card" data-testid="candidate-current">
+        <div className="dde-candidate-thumbnail dde-current-thumbnail" aria-hidden="true">
+          <span>PXG</span>
+          <strong>r{snapshot.pxgRevision}</strong>
+        </div>
+        <div className="dde-candidate-card-body">
+          <span className="dde-candidate-title">Current</span>
+          <span className="dde-candidate-meta">Accepted revision · PXG r{snapshot.pxgRevision}</span>
+          <span className="dde-chip" data-state="PASS">ACCEPTED</span>
+          <span
+            className="dde-chip"
+            data-state="UNKNOWN"
+            data-testid="candidate-current-lock-state"
+            title="Effective lock inventory is not projected by FrontendReadService yet."
+          >
+            LOCK STATE —
+          </span>
+        </div>
+      </article>
+      {!cards.length ? (
         <Unavailable
           availability="EMPTY"
           reason="No frontend candidates exist in this project. No placeholder candidate is fabricated."
         />
-      </div>
-    );
-  }
-  return (
-    <div className="dde-candidate-strip" data-testid="candidate-strip">
+      ) : null}
       {cards.map((candidate) => (
         <CandidateCard
           key={candidate.candidateId}
           candidate={candidate}
           active={candidate.candidateId === activeCandidateId}
           onSelect={() => onActiveCandidateChange(candidate.candidateId)}
+          onLoadPreviewDocument={onLoadPreviewDocument}
+          onTryLive={() => onTryCandidateLive(candidate.candidateId)}
+          onCompare={() => {
+            onActiveCandidateChange(activeCandidateId ?? candidate.candidateId);
+            setCompareCandidateId(candidate.candidateId);
+          }}
+          compareDisabled={
+            !comparisonReady ||
+            candidate.candidateId === activeCandidateId ||
+            candidate.previewState !== "LIVE" ||
+            !candidate.previewSessionId
+          }
+          onPromote={() => onPromoteCandidate(candidate.candidateId)}
+          promotionBusy={promotionBusyCandidateId === candidate.candidateId}
+          promotionError={
+            candidate.candidateId === activeCandidateId ? promotionError : null
+          }
           verificationBusy={
             verificationBusy && candidate.candidateId === activeCandidateId
           }
@@ -949,63 +1034,223 @@ function CandidateCard({
   candidate,
   active,
   onSelect,
+  onLoadPreviewDocument,
+  onTryLive,
+  onCompare,
+  compareDisabled,
+  onPromote,
+  promotionBusy,
+  promotionError,
   verificationBusy,
   verificationError,
 }: {
   readonly candidate: CandidateCardSnapshot;
   readonly active: boolean;
   readonly onSelect: () => void;
+  readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
+  readonly onTryLive: () => void;
+  readonly onCompare: () => void;
+  readonly compareDisabled: boolean;
+  readonly onPromote: () => void;
+  readonly promotionBusy: boolean;
+  readonly promotionError: string | null;
   readonly verificationBusy: boolean;
   readonly verificationError: string | null;
 }) {
+  const promotable = candidate.state === "PROMOTABLE" && !candidate.stale;
+  const scoreDimensions = scoreDimensionRows(candidate.scoreDimensions);
   return (
-    <button
-      type="button"
+    <article
       className="dde-candidate-card"
       data-testid={`candidate-${candidate.candidateId}`}
       data-active={active}
-      onClick={onSelect}
     >
-      <span className="dde-candidate-title">{candidate.title}</span>
-      <span className="dde-candidate-meta">
-        {candidate.state}
-        {candidate.stale ? " · STALE" : ""}
-      </span>
-      <span className="dde-candidate-preview-state">
-        {candidate.previewState ?? "NO PREVIEW"}
-      </span>
-      <span
-        className="dde-candidate-score"
-        data-testid={`candidate-score-${candidate.candidateId}`}
-        data-state={candidate.scoreState}
-        title={candidate.scoreHardFailures.join(", ") || undefined}
-      >
-        {candidate.score === null
-          ? candidate.scoreClassification
-          : `${Math.round(candidate.score)}% · ${candidate.scoreClassification}`}
-        {candidate.scoreEvidenceRefs.length
-          ? ` · ${candidate.scoreEvidenceRefs.length} evidence`
-          : ""}
-      </span>
-      <span
-        className="dde-candidate-verification-state"
-        data-testid={`candidate-verification-${candidate.candidateId}`}
-        title={candidate.verificationRequestReason ?? undefined}
-      >
-        {verificationBusy
-          ? "VERIFYING…"
-          : candidate.verificationRequestState
-            ? `VERIFY ${candidate.verificationRequestState}`
-            : "NOT EVALUATED"}
-      </span>
-      {verificationError ? (
-        <span className="dde-candidate-detail" role="alert">
-          Verification command failed: {verificationError}
+      <CandidateThumbnail
+        candidate={candidate}
+        onLoadPreviewDocument={onLoadPreviewDocument}
+      />
+      <div className="dde-candidate-card-body">
+        <button
+          type="button"
+          className="dde-candidate-title dde-candidate-select"
+          onClick={onSelect}
+          aria-pressed={active}
+        >
+          {candidate.title}
+        </button>
+        <span className="dde-candidate-meta">
+          {candidate.state}{candidate.stale ? " · STALE" : ""} · {candidate.changeCount} {candidate.changeCount === 1 ? "change" : "changes"}
         </span>
-      ) : null}
-      {candidate.previewStateDetail ? (
-        <span className="dde-candidate-detail">{candidate.previewStateDetail}</span>
-      ) : null}
-    </button>
+        <details className="dde-candidate-score-details">
+          <summary
+            className="dde-candidate-score"
+            data-testid={`candidate-score-${candidate.candidateId}`}
+            data-state={candidate.scoreState}
+          >
+            {candidate.score === null
+              ? candidate.scoreClassification
+              : `${Math.round(candidate.score)}% · ${candidate.scoreClassification}`}
+            {candidate.scoreEvidenceRefs.length
+              ? ` · ${candidate.scoreEvidenceRefs.length} evidence`
+              : ""}
+          </summary>
+          <div className="dde-candidate-score-popover" data-testid={`candidate-score-explanation-${candidate.candidateId}`}>
+            <strong>Score evidence</strong>
+            {scoreDimensions.length ? (
+              <ul>{scoreDimensions.map((item) => <li key={item}>{item}</li>)}</ul>
+            ) : <p>No complete score dimensions are available.</p>}
+            {candidate.scoreHardFailures.length ? (
+              <div data-state="BLOCKED">
+                <strong>Hard failures</strong>
+                <ul>{candidate.scoreHardFailures.map((item) => <li key={item}>{item}</li>)}</ul>
+              </div>
+            ) : null}
+            {candidate.scoreEvidenceRefs.length ? (
+              <small>{candidate.scoreEvidenceRefs.join(" · ")}</small>
+            ) : <small>No score evidence refs.</small>}
+          </div>
+        </details>
+        <span
+          className="dde-candidate-verification-state"
+          data-testid={`candidate-verification-${candidate.candidateId}`}
+          title={candidate.verificationRequestReason ?? undefined}
+        >
+          {verificationBusy
+            ? "VERIFYING…"
+            : candidate.verificationRequestState
+              ? `VERIFY ${candidate.verificationRequestState}`
+              : "NOT EVALUATED"}
+        </span>
+        {candidate.scoreHardFailures.length ? (
+          <span className="dde-candidate-hard-failure" data-testid={`candidate-hard-failure-${candidate.candidateId}`}>
+            BLOCKED · {candidate.scoreHardFailures.join(" · ")}
+          </span>
+        ) : null}
+        {verificationError ? <span className="dde-candidate-detail" role="alert">Verification command failed: {verificationError}</span> : null}
+        {promotionError ? <span className="dde-candidate-detail" role="alert">Promotion blocked: {promotionError}</span> : null}
+        <div className="dde-candidate-actions">
+          <button type="button" className="dde-action" onClick={onSelect}>Select</button>
+          <button
+            type="button"
+            className="dde-action"
+            data-testid={`candidate-try-live-${candidate.candidateId}`}
+            onClick={onTryLive}
+          >
+            Try Live
+          </button>
+          <button
+            type="button"
+            className="dde-action"
+            data-testid={`candidate-compare-${candidate.candidateId}`}
+            disabled={compareDisabled}
+            title={compareDisabled ? "Compare requires this candidate and the active candidate to have real LIVE previews." : undefined}
+            onClick={onCompare}
+          >
+            Compare
+          </button>
+          <button
+            type="button"
+            className="dde-action dde-action-primary"
+            data-testid={`candidate-promote-${candidate.candidateId}`}
+            disabled={!promotable || promotionBusy}
+            title={!promotable ? `Promotion requires current PROMOTABLE state; current state is ${candidate.state}${candidate.stale ? " and stale" : ""}.` : undefined}
+            onClick={onPromote}
+          >
+            {promotionBusy ? "Promoting…" : "Promote"}
+          </button>
+        </div>
+      </div>
+    </article>
   );
+}
+
+function CandidateThumbnail({
+  candidate,
+  onLoadPreviewDocument,
+  large = false,
+}: {
+  readonly candidate: CandidateCardSnapshot;
+  readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
+  readonly large?: boolean;
+}) {
+  const [document, setDocument] = useState<PreviewDocument | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setDocument(null);
+    setError(null);
+    if (!candidate.previewSessionId || candidate.previewState !== "LIVE") return;
+    onLoadPreviewDocument(candidate.previewSessionId)
+      .then((value) => { if (!cancelled) setDocument(value); })
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : String(reason));
+      });
+    return () => { cancelled = true; };
+  }, [candidate.previewSessionId, candidate.previewState, onLoadPreviewDocument]);
+
+  return (
+    <div
+      className={`dde-candidate-thumbnail${large ? " dde-candidate-thumbnail-large" : ""}`}
+      data-testid={`candidate-thumbnail-${candidate.candidateId}`}
+      data-state={document ? "RENDERED" : (candidate.previewState ?? "NOT_RENDERED")}
+      title={error ?? candidate.previewStateDetail ?? undefined}
+    >
+      {document ? (
+        <iframe
+          title={`Rendered candidate thumbnail ${candidate.title}`}
+          sandbox=""
+          srcDoc={document.content}
+        />
+      ) : (
+        <span>{error ? "UNAVAILABLE" : (candidate.previewState ?? "NOT RENDERED")}</span>
+      )}
+    </div>
+  );
+}
+
+function CandidateCompare({
+  left,
+  right,
+  onLoadPreviewDocument,
+  onClose,
+}: {
+  readonly left: CandidateCardSnapshot;
+  readonly right: CandidateCardSnapshot;
+  readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
+  readonly onClose: () => void;
+}) {
+  return (
+    <section className="dde-candidate-compare" data-testid="candidate-compare-mode" aria-label="Candidate comparison">
+      <div className="dde-candidate-compare-header">
+        <strong>Compare real LIVE candidates</strong>
+        <button type="button" className="dde-action" onClick={onClose}>Close</button>
+      </div>
+      <div className="dde-candidate-compare-grid">
+        {[left, right].map((candidate) => (
+          <article key={candidate.candidateId}>
+            <strong>{candidate.title}</strong>
+            <span>{candidate.changeCount} {candidate.changeCount === 1 ? "change" : "changes"}</span>
+            <CandidateThumbnail candidate={candidate} onLoadPreviewDocument={onLoadPreviewDocument} large />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function scoreDimensionRows(dimensions: Readonly<Record<string, unknown>>): string[] {
+  const rows: string[] = [];
+  for (const [name, value] of Object.entries(dimensions)) {
+    if (name === "missing_dimensions" && Array.isArray(value)) {
+      rows.push(`Missing: ${value.map(String).join(", ")}`);
+      continue;
+    }
+    if (!value || typeof value !== "object") continue;
+    const score = (value as Record<string, unknown>).score;
+    const refs = (value as Record<string, unknown>).evidence_refs;
+    if (typeof score === "number") {
+      rows.push(`${name}: ${Math.round(score)}% · ${Array.isArray(refs) ? refs.length : 0} evidence`);
+    }
+  }
+  return rows;
 }

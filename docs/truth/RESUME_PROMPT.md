@@ -813,10 +813,12 @@ packaging and diff hygiene passed. Do not infer production DB/provider proof fro
 `DDE_DATABASE_URL`/`DDE_REDIS_URL` remain absent on the current host and live 21st must
 remain unavailable unless an exact certified MCP source capability is present.
 
+Candidate dock closure after `b75524c`: exact PreviewDocument miniatures, real mutation counts, score explanation, two-LIVE compare and governed Promote are implemented; the full workbench suite is 46/46 and extension suite 77/77. `CA-07` still waits on the distinct certified DesignArtifact Try-live path and `CA-06` waits on effective lock inventory. Evidence: `docs/evidence/dde-069/CANDIDATE_DOCK_CLOSURE.md`.
+
 Latest continuation state after reconstructing `0a39299`:
 1. M8 checkpoint gates were re-run: 49 focused Python tests, 41 workbench Playwright tests, 77 extension tests and real 89-file / 1.57 MB VSIX packaging are green;
 2. `tests/unit/test_source_intelligence_postgres.py` now specifies the PostgreSQL source lifecycle and is collected, but execution is UNAVAILABLE because `DDE_DATABASE_URL` is unset;
 3. live 21st remains NOT_CONFIGURED / NOT_CERTIFIED with no direct-network fallback;
-4. the 99-control ledger is reconciled to **5 VERIFIED / 34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND**;
+4. the 99-control ledger is reconciled to **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND**;
 5. the next unblocked implementation packet is **candidate dock golden closure**, followed by Inspector, canvas toolbar/canvas, and top-bar/explorer/status closure;
 6. preserve AD-039 golden-image fail-closed state and the `/design` certified-transport blocker throughout.
