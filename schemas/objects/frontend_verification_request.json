@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_verification_request.json",
+  "title": "FrontendVerificationRequest",
+  "description": "DDE-069 durable request to re-run the existing DDE-068 acceptance bindings against one exact LIVE candidate preview. This record schedules and exposes verification work; it never manufactures a VerificationRun or verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_verification_requests",
+    "order": 312,
+    "pk": [
+      "verification_request_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "preview_session_id"
+      ]
+    ],
+    "checks": [
+      {
+        "name": "frontend_verification_requests_state_known",
+        "expression": "state IN ('PENDING', 'BLOCKED', 'RUNNING', 'PASSED', 'FAILED', 'SUPERSEDED')"
+      },
+      {
+        "name": "frontend_verification_requests_revision_valid",
+        "expression": "candidate_pxg_revision >= 0"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_verification_requests_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_verification_requests_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_verification_requests_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "frontend_verification_requests_candidate_id_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "frontend_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "frontend_verification_requests_preview_session_id_fkey",
+        "columns": [
+          "preview_session_id"
+        ],
+        "ref_table": "frontend_preview_sessions",
+        "ref_columns": [
+          "preview_session_id"
+        ]
+      },
+      {
+        "name": "frontend_verification_requests_task_id_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "verification_request_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "preview_session_id",
+    "screen_key",
+    "viewport",
+    "candidate_pxg_revision",
+    "required_kinds",
+    "state",
+    "verification_run_ids",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "verification_request_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "preview_session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "screen_key": {
+      "type": "string"
+    },
+    "viewport": {
+      "type": "string"
+    },
+    "candidate_pxg_revision": {
+      "type": "integer"
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "acceptance_oracle_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "BLOCKED",
+        "RUNNING",
+        "PASSED",
+        "FAILED",
+        "SUPERSEDED"
+      ]
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "verification_run_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

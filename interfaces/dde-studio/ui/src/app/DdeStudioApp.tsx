@@ -50,6 +50,7 @@ export function DdeStudioApp({
   const [viewport, setViewport] = useState("1440");
   const [screenKey, setScreenKey] = useState<string | null>(null);
   const [activeCandidateId, setActiveCandidateId] = useState<string | null>(null);
+  const [sourceWorkspaceId, setSourceWorkspaceId] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewDocument | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -104,6 +105,33 @@ export function DdeStudioApp({
         : (snapshot.candidates.cards[0]?.candidateId ?? null),
     );
   }, [snapshot]);
+
+  useEffect(() => {
+    if (!snapshot || !activeCandidateId) {
+      setSourceWorkspaceId(null);
+      return;
+    }
+    const candidate = snapshot.candidates.cards.find(
+      (item) => item.candidateId === activeCandidateId,
+    );
+    if (candidate?.workspaceId) {
+      setSourceWorkspaceId(null);
+      return;
+    }
+    const inventory = snapshot.sourceWorkspaces;
+    setSourceWorkspaceId((current) => {
+      if (inventory.selectionState === "UNIQUE") {
+        return inventory.autoSelectedWorkspaceId;
+      }
+      if (
+        current &&
+        inventory.options.some((option) => option.workspaceId === current)
+      ) {
+        return current;
+      }
+      return null;
+    });
+  }, [activeCandidateId, snapshot]);
 
   const activeCandidate = useMemo(
     () =>
@@ -202,16 +230,32 @@ export function DdeStudioApp({
       setPreviewError("Select both a real candidate and a PXG screen before previewing.");
       return;
     }
+    const needsSourceWorkspace = !activeCandidate?.workspaceId;
+    if (needsSourceWorkspace && !sourceWorkspaceId) {
+      const inventory = snapshot?.sourceWorkspaces;
+      setPreviewError(
+        inventory?.reason ??
+          "Select a READY source workspace before materializing this candidate.",
+      );
+      return;
+    }
     setPreviewBusy(true);
     setPreviewError(null);
     setSelection(null);
     setPreviewBrowserReady(false);
     try {
-      const acceptance = await sendFrontendCommand("frontend.preview.start", {
+      const parameters: Record<string, unknown> = {
         candidate_id: activeCandidateId,
         screen_key: screenKey,
         viewport,
-      });
+      };
+      if (needsSourceWorkspace && sourceWorkspaceId) {
+        parameters.source_workspace_id = sourceWorkspaceId;
+      }
+      const acceptance = await sendFrontendCommand(
+        "frontend.preview.start",
+        parameters,
+      );
       const sessionId = payloadString(acceptance, "previewSessionId");
       const state = payloadString(acceptance, "state") ?? "UNAVAILABLE";
       const detail = payloadString(acceptance, "stateDetail");
@@ -230,11 +274,14 @@ export function DdeStudioApp({
       setPreviewBusy(false);
     }
   }, [
+    activeCandidate,
     activeCandidateId,
     loadPreviewDocument,
     refreshSnapshot,
     screenKey,
     sendFrontendCommand,
+    snapshot,
+    sourceWorkspaceId,
     viewport,
   ]);
 
@@ -391,6 +438,10 @@ export function DdeStudioApp({
             }}
             activeCandidateId={activeCandidateId}
             onActiveCandidateChange={setActiveCandidateId}
+            requiresSourceWorkspace={Boolean(activeCandidate && !activeCandidate.workspaceId)}
+            sourceWorkspaces={snapshot?.sourceWorkspaces ?? null}
+            sourceWorkspaceId={sourceWorkspaceId}
+            onSourceWorkspaceChange={setSourceWorkspaceId}
             preview={displayedPreview}
             previewError={previewError}
             previewBusy={previewBusy}

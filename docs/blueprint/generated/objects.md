@@ -657,3 +657,11 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: true
+
+## FrontendVerificationRequest
+
+- table: `frontend_verification_requests`
+- primary key: verification_request_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true

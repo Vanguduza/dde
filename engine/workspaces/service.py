@@ -620,6 +620,27 @@ class WorkspaceService:
 
         return await self._run(uow, workspace.tenant_id, workspace.project_id, _op)
 
+    async def list_project_workspaces(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> tuple[Workspace, ...]:
+        """Return real project workspaces in repository order.
+
+        This is intentionally generic. Frontend Studio decides which READY
+        rows are admissible as preview sources; the workspace owner does not
+        encode Frontend-specific policy.
+        """
+
+        async def _op(active: PostgresUnitOfWork) -> tuple[Workspace, ...]:
+            return await self._repository.list_project_workspaces(
+                active.connection, project_id
+            )
+
+        return await self._run(uow, tenant_id, project_id, _op)
+
     async def get_workspace(
         self,
         *,

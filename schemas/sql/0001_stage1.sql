@@ -1707,6 +1707,33 @@ CREATE TABLE frontend_preview_sessions (
     CHECK (candidate_pxg_revision >= 0)
 );
 
+CREATE TABLE frontend_verification_requests (
+    verification_request_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    candidate_id uuid NOT NULL,
+    preview_session_id uuid NOT NULL,
+    screen_key text NOT NULL,
+    viewport text NOT NULL,
+    candidate_pxg_revision integer NOT NULL,
+    source_revision text,
+    content_hash text,
+    task_id uuid,
+    acceptance_oracle_version text,
+    required_kinds jsonb NOT NULL DEFAULT '[]'::jsonb,
+    state text NOT NULL,
+    reason text,
+    verification_run_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (verification_request_id),
+    UNIQUE (preview_session_id),
+    CHECK (state IN ('PENDING', 'BLOCKED', 'RUNNING', 'PASSED', 'FAILED', 'SUPERSEDED')),
+    CHECK (candidate_pxg_revision >= 0)
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -2081,6 +2108,13 @@ ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_m
 ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
 ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
 
+ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
+ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_preview_session_id_fkey FOREIGN KEY (preview_session_id) REFERENCES frontend_preview_sessions (preview_session_id);
+ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -2408,3 +2442,7 @@ CREATE POLICY frontend_conversation_turns_tenant_isolation ON frontend_conversat
 ALTER TABLE frontend_preview_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_preview_sessions FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_preview_sessions_tenant_isolation ON frontend_preview_sessions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_verification_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_verification_requests FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_verification_requests_tenant_isolation ON frontend_verification_requests USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

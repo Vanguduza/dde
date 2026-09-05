@@ -254,3 +254,28 @@ frontend_preview_sessions = Table(
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
     Column("source_path", Text, nullable=True),
 )
+
+frontend_verification_requests = Table(
+    "frontend_verification_requests",
+    metadata,
+    Column("verification_request_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("mission_id", Uuid(as_uuid=True), nullable=True),
+    Column("candidate_id", Uuid(as_uuid=True), nullable=False),
+    Column("preview_session_id", Uuid(as_uuid=True), nullable=False, unique=True),
+    Column("screen_key", Text, nullable=False),
+    Column("viewport", Text, nullable=False),
+    Column("candidate_pxg_revision", Integer, nullable=False),
+    Column("source_revision", Text, nullable=True),
+    Column("content_hash", Text, nullable=True),
+    Column("task_id", Uuid(as_uuid=True), nullable=True),
+    Column("acceptance_oracle_version", Text, nullable=True),
+    Column("required_kinds", JSONB, nullable=False),
+    Column("state", Text, nullable=False),
+    Column("reason", Text, nullable=True),
+    Column("verification_run_ids", JSONB, nullable=False),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)

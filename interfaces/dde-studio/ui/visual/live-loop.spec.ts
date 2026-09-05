@@ -8,6 +8,39 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("dde-shell")).toBeVisible();
   });
 
+  test("fresh candidate requires explicit READY source selection when ambiguous", async ({
+    page,
+  }) => {
+    await page.goto(`${FIXTURE}?fresh=1`);
+    const start = page.getByTestId("start-preview");
+    await expect(start).toBeDisabled();
+    const source = page.getByTestId("source-workspace-select");
+    await expect(source).toBeVisible();
+    await expect(source).toHaveValue("");
+    await source.selectOption("00000000-0000-0000-0000-000000000042");
+    await expect(start).toBeEnabled();
+    await start.click();
+    await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    const parameters = await page.evaluate(() => {
+      const bridge = (
+        window as unknown as {
+          __ddeTestBridge: {
+            sentCommands: Array<{
+              commandType: string;
+              parameters: Record<string, unknown>;
+            }>;
+          };
+        }
+      ).__ddeTestBridge;
+      return bridge.sentCommands.find(
+        (command) => command.commandType === "frontend.preview.start",
+      )?.parameters;
+    });
+    expect(parameters?.source_workspace_id).toBe(
+      "00000000-0000-0000-0000-000000000042",
+    );
+  });
+
   test("browser handshake is required before LIVE is shown", async ({ page }) => {
     const badge = page.getByTestId("preview-badge");
     await expect(badge).toBeVisible();
@@ -62,6 +95,11 @@ test.describe("DDE-069 code-backed workbench loop", () => {
       page.frameLocator("iframe.dde-preview-frame").locator('[data-dde-pxg-key="screens/checkout#hero"]'),
     ).toContainText("Hero space4");
     await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    await expect(
+      page.getByTestId(
+        "candidate-verification-00000000-0000-0000-0000-000000000020",
+      ),
+    ).toHaveText("VERIFY PENDING");
 
     const commands = await page.evaluate(() => {
       const bridge = (

@@ -16,11 +16,20 @@ const missionId = "00000000-0000-0000-0000-000000000010";
 const projectId = "00000000-0000-0000-0000-000000000001";
 const candidateId = "00000000-0000-0000-0000-000000000020";
 const pxgKey = "screens/checkout#hero";
+const freshCandidate = new URLSearchParams(window.location.search).get("fresh") === "1";
+const sourceA = "00000000-0000-0000-0000-000000000041";
+const sourceB = "00000000-0000-0000-0000-000000000042";
+let candidateWorkspaceId: string | null = freshCandidate
+  ? null
+  : "00000000-0000-0000-0000-000000000030";
 let previewNumber = 1;
 let previewSessionId = `preview-${previewNumber}`;
 let previewState: "LOADING" | "LIVE" | "STALE" = "LOADING";
-let candidateState = "READY";
+let candidateState = freshCandidate ? "GENERATED" : "READY";
 let spacing = "space2";
+let verificationRequestState: "PENDING" | "SUPERSEDED" | null =
+  freshCandidate ? null : "PENDING";
+let verificationRequestNumber = 1;
 
 function snapshot(): FrontendStudioSnapshot {
   return {
@@ -82,6 +91,36 @@ function snapshot(): FrontendStudioSnapshot {
     screens: [
       { pxgKey: "screens/checkout", title: "Checkout", route: "/checkout", childKeys: [pxgKey] },
     ],
+    sourceWorkspaces: freshCandidate
+      ? {
+          options: [
+            {
+              workspaceId: sourceA,
+              currentRevision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              missionId,
+              purpose: "worker_source",
+              createdAt: new Date().toISOString(),
+            },
+            {
+              workspaceId: sourceB,
+              currentRevision: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              missionId,
+              purpose: "worker_source",
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          selectionState: "AMBIGUOUS",
+          autoSelectedWorkspaceId: null,
+          availability: "AVAILABLE",
+          reason: "Multiple READY source workspaces exist; explicit selection is required.",
+        }
+      : {
+          options: [],
+          selectionState: "EMPTY",
+          autoSelectedWorkspaceId: null,
+          availability: "EMPTY",
+          reason: "No source selection is needed after candidate materialization.",
+        },
     candidates: {
       count: { value: 1, availability: "AVAILABLE" },
       cards: [
@@ -90,14 +129,30 @@ function snapshot(): FrontendStudioSnapshot {
           title: "Checkout spacing refinement",
           state: candidateState,
           origin: "DIRECT_EDIT",
-          workspaceId: "00000000-0000-0000-0000-000000000030",
+          workspaceId: candidateWorkspaceId,
           basePxgRevision: 4,
           currentPxgRevision: 4,
           stale: false,
           scopeKeys: ["screens/checkout"],
-          previewSessionId,
-          previewState,
-          previewStateDetail: `fixture ${previewState.toLowerCase()}`,
+          previewSessionId: freshCandidate && !candidateWorkspaceId ? null : previewSessionId,
+          previewState: freshCandidate && !candidateWorkspaceId ? null : previewState,
+          previewStateDetail:
+            freshCandidate && !candidateWorkspaceId
+              ? null
+              : `fixture ${previewState.toLowerCase()}`,
+          verificationRequestId:
+            verificationRequestState === null
+              ? null
+              : `verification-request-${verificationRequestNumber}`,
+          verificationRequestState,
+          verificationRequestReason:
+            verificationRequestState === "SUPERSEDED"
+              ? "candidate changed; DDE-068 rerun required"
+              : null,
+          verificationRequiredKinds:
+            verificationRequestState === null
+              ? []
+              : ["silhouette", "visual_critique"],
         },
       ],
     },
@@ -114,7 +169,7 @@ function previewDocument(): PreviewDocument {
   return {
     previewSessionId,
     candidateId,
-    workspaceId: "00000000-0000-0000-0000-000000000030",
+    workspaceId: candidateWorkspaceId ?? "00000000-0000-0000-0000-000000000030",
     screenKey: "screens/checkout",
     state: previewState,
     viewport: "1440",
@@ -168,12 +223,19 @@ function inspector(): InspectorDescriptor {
 
 function commandPayload(command: DdeCommand): Record<string, unknown> {
   if (command.commandType === "frontend.preview.set_state") {
-    if (command.parameters.state === "LIVE") previewState = "LIVE";
+    if (command.parameters.state === "LIVE") {
+      previewState = "LIVE";
+      verificationRequestNumber += 1;
+      verificationRequestState = "PENDING";
+    }
     return {
       previewSessionId,
       state: previewState,
       stateDetail: "browser loaded exact code-backed candidate source",
       contentHash: previewDocument().contentHash,
+      verificationRequestId: `verification-request-${verificationRequestNumber}`,
+      verificationRequestState,
+      verificationRequiredKinds: ["silhouette", "visual_critique"],
     };
   }
   if (command.commandType === "frontend.mutation.apply") {
@@ -182,19 +244,33 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
     spacing = String(payload.value);
     candidateState = "DIRTY";
     previewState = "STALE";
+    verificationRequestState = "SUPERSEDED";
     return {
       candidateState,
       fullyApplied: true,
       applied: [{ mutationId: "mutation-1", sequence: 1, operation: "SET_PROPERTY", targetKey: pxgKey }],
       refused: [],
       invalidatedPreviewSessionIds: [previewSessionId],
+      supersededVerificationRequestIds: [
+        `verification-request-${verificationRequestNumber}`,
+      ],
     };
   }
   if (command.commandType === "frontend.preview.start") {
+    if (freshCandidate && !candidateWorkspaceId) {
+      const sourceWorkspaceId = command.parameters.source_workspace_id;
+      if (sourceWorkspaceId !== sourceA && sourceWorkspaceId !== sourceB) {
+        throw new Error(
+          "fresh candidate requires an explicitly selected source workspace",
+        );
+      }
+      candidateWorkspaceId = "00000000-0000-0000-0000-000000000030";
+    }
     previewNumber += 1;
     previewSessionId = `preview-${previewNumber}`;
     previewState = "LOADING";
     candidateState = "READY";
+    verificationRequestState = null;
     return {
       previewSessionId,
       state: "LOADING",

@@ -108,6 +108,22 @@ export type PreviewState =
   | "UNAVAILABLE"
   | "STOPPED";
 
+export interface SourceWorkspaceOption {
+  readonly workspaceId: string;
+  readonly currentRevision: string;
+  readonly missionId: string | null;
+  readonly purpose: string | null;
+  readonly createdAt: string;
+}
+
+export interface SourceWorkspaceInventory {
+  readonly options: readonly SourceWorkspaceOption[];
+  readonly selectionState: "EMPTY" | "UNIQUE" | "AMBIGUOUS";
+  readonly autoSelectedWorkspaceId: string | null;
+  readonly availability: Availability;
+  readonly reason?: string | null;
+}
+
 export interface CandidateCardSnapshot {
   readonly candidateId: string;
   readonly title: string;
@@ -121,6 +137,10 @@ export interface CandidateCardSnapshot {
   readonly previewSessionId: string | null;
   readonly previewState: PreviewState | null;
   readonly previewStateDetail: string | null;
+  readonly verificationRequestId: string | null;
+  readonly verificationRequestState: string | null;
+  readonly verificationRequestReason: string | null;
+  readonly verificationRequiredKinds: readonly string[];
 }
 
 export interface CandidateBoardSnapshot {
@@ -197,6 +217,7 @@ export interface FrontendStudioSnapshot {
   readonly sync: StudioSyncSnapshot;
   readonly attention: AttentionCenterSnapshot;
   readonly screens: readonly ScreenNode[];
+  readonly sourceWorkspaces: SourceWorkspaceInventory;
   readonly candidates: CandidateBoardSnapshot;
   readonly degradedReasons: readonly string[];
 }

@@ -62,6 +62,7 @@ from engine.studio.mutations.planner import MutationRequest
 from engine.studio.preview_runtime.service import PreviewService, PreviewState
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.tokens_catalog import BASE_KINDS
+from engine.studio.verification_requests import CandidateVerificationRequestService
 from engine.truth.db import open_unit_of_work
 from engine.verification.repository import VerificationRunRepository
 from engine.workers.repository import WorkerRunRepository
@@ -157,6 +158,11 @@ class FrontendStudioService:
             workspaces=self._workspaces,
             candidates=candidates,
             mutations=mutations,
+        )
+
+    def _verification_requests(self) -> CandidateVerificationRequestService:
+        return CandidateVerificationRequestService(
+            self._engine, mutations=self._mutation_executor()
         )
 
     def _screens(self) -> ScreenAcceptanceService:
@@ -612,12 +618,24 @@ class FrontendStudioService:
             requests=_mutation_requests(parameters),
         )
         invalidated: tuple[FrontendPreviewSession, ...] = ()
+        superseded_requests: tuple[UUID, ...] = ()
         if outcome.applied:
             invalidated = await self._preview_service().invalidate_candidate(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 candidate_id=candidate_id,
                 detail="governed mutation changed the candidate; rerender required",
+            )
+            superseded_requests = (
+                await self._verification_requests().supersede_for_candidate(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    candidate_id=candidate_id,
+                    reason=(
+                        "governed mutation changed the candidate; DDE-068 "
+                        "verification must run against the new preview"
+                    ),
+                )
             )
         return {
             "candidate_state": outcome.candidate_state.value,
@@ -643,6 +661,9 @@ class FrontendStudioService:
             "fully_applied": outcome.fully_applied,
             "invalidated_preview_session_ids": [
                 str(item.preview_session_id) for item in invalidated
+            ],
+            "superseded_verification_request_ids": [
+                str(item) for item in superseded_requests
             ],
             "side_effect_class": "WORKSPACE_LOCAL",
         }
@@ -721,7 +742,22 @@ class FrontendStudioService:
                 retryable=False,
                 details={"state": state.value},
             )
-        return _preview_payload(session)
+        payload = _preview_payload(session)
+        if PreviewState(session.state) is PreviewState.LIVE:
+            request = await self._verification_requests().schedule_live_preview(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                preview=session,
+            )
+            payload.update(
+                {
+                    "verification_request_id": str(request.verification_request_id),
+                    "verification_request_state": request.state,
+                    "verification_required_kinds": list(request.required_kinds),
+                    "verification_request_reason": request.reason,
+                }
+            )
+        return payload
 
     async def stop_preview(
         self,

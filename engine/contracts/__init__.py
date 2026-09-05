@@ -51,6 +51,7 @@ from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
 from engine.contracts.frontend_lock import FrontendLock
 from engine.contracts.frontend_mutation import FrontendMutation
 from engine.contracts.frontend_preview_session import FrontendPreviewSession
+from engine.contracts.frontend_verification_request import FrontendVerificationRequest
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
 from engine.contracts.integration_proposal import IntegrationProposal
@@ -146,6 +147,7 @@ __all__ = [
     "FrontendLock",
     "FrontendMutation",
     "FrontendPreviewSession",
+    "FrontendVerificationRequest",
     "GraphAmendment",
     "Healthz",
     "IntegrationProposal",

@@ -96,6 +96,13 @@ const SNAPSHOT: FrontendStudioSnapshot = {
     buildVersion: "dde-studio 0.1.0",
   },
   screens: [],
+  sourceWorkspaces: {
+    options: [],
+    selectionState: "EMPTY",
+    autoSelectedWorkspaceId: null,
+    availability: "EMPTY",
+    reason: "No READY source workspace is available in the structural fixture.",
+  },
   candidates: { cards: [], count: { value: 0, availability: "EMPTY" } },
   attention: {
     items: [

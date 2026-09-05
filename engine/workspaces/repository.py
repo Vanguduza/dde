@@ -38,6 +38,18 @@ class WorkspaceRepository:
             return None
         return Workspace.model_validate(dict(row))
 
+    async def list_project_workspaces(
+        self, connection: AsyncConnection, project_id: UUID
+    ) -> tuple[Workspace, ...]:
+        result = await connection.execute(
+            select(workspaces)
+            .where(workspaces.c.project_id == project_id)
+            .order_by(workspaces.c.created_at.desc())
+        )
+        return tuple(
+            Workspace.model_validate(dict(row)) for row in result.mappings().all()
+        )
+
     async def update_workspace(
         self,
         connection: AsyncConnection,

@@ -4,6 +4,7 @@ import type {
   CandidateCardSnapshot,
   FrontendStudioSnapshot,
   PreviewDocument,
+  SourceWorkspaceInventory,
   StudioMode,
 } from "../state/projections";
 
@@ -46,6 +47,10 @@ export interface WorkspaceProps {
   readonly onScreenChange: (value: string) => void;
   readonly activeCandidateId: string | null;
   readonly onActiveCandidateChange: (candidateId: string) => void;
+  readonly requiresSourceWorkspace: boolean;
+  readonly sourceWorkspaces: SourceWorkspaceInventory | null;
+  readonly sourceWorkspaceId: string | null;
+  readonly onSourceWorkspaceChange: (workspaceId: string) => void;
   readonly preview: PreviewDocument | null;
   readonly previewError: string | null;
   readonly previewBusy: boolean;
@@ -63,6 +68,10 @@ export function FrontendStudioWorkspace({
   onScreenChange,
   activeCandidateId,
   onActiveCandidateChange,
+  requiresSourceWorkspace,
+  sourceWorkspaces,
+  sourceWorkspaceId,
+  onSourceWorkspaceChange,
   preview,
   previewError,
   previewBusy,
@@ -87,6 +96,10 @@ export function FrontendStudioWorkspace({
         ) : mode === "design" ? (
           <DesignMode
             activeCandidateId={activeCandidateId}
+            requiresSourceWorkspace={requiresSourceWorkspace}
+            sourceWorkspaces={sourceWorkspaces}
+            sourceWorkspaceId={sourceWorkspaceId}
+            onSourceWorkspaceChange={onSourceWorkspaceChange}
             preview={preview}
             previewError={previewError}
             previewBusy={previewBusy}
@@ -198,6 +211,10 @@ function CanvasToolbar({
 
 function DesignMode({
   activeCandidateId,
+  requiresSourceWorkspace,
+  sourceWorkspaces,
+  sourceWorkspaceId,
+  onSourceWorkspaceChange,
   preview,
   previewError,
   previewBusy,
@@ -207,6 +224,10 @@ function DesignMode({
   onPreviewSignal,
 }: {
   readonly activeCandidateId: string | null;
+  readonly requiresSourceWorkspace: boolean;
+  readonly sourceWorkspaces: SourceWorkspaceInventory | null;
+  readonly sourceWorkspaceId: string | null;
+  readonly onSourceWorkspaceChange: (workspaceId: string) => void;
   readonly preview: PreviewDocument | null;
   readonly previewError: string | null;
   readonly previewBusy: boolean;
@@ -224,6 +245,7 @@ function DesignMode({
     );
   }
   if (!preview) {
+    const sourceBlocked = requiresSourceWorkspace && !sourceWorkspaceId;
     return (
       <div className="dde-preview-empty" data-testid="preview-empty">
         {previewError ? (
@@ -231,11 +253,23 @@ function DesignMode({
         ) : (
           <p className="dde-muted">This candidate has no loaded preview document.</p>
         )}
+        {requiresSourceWorkspace ? (
+          <SourceWorkspacePicker
+            inventory={sourceWorkspaces}
+            value={sourceWorkspaceId}
+            onChange={onSourceWorkspaceChange}
+          />
+        ) : null}
         <button
           type="button"
           className="dde-action"
           data-testid="start-preview"
-          disabled={previewBusy}
+          disabled={previewBusy || sourceBlocked}
+          title={
+            sourceBlocked
+              ? (sourceWorkspaces?.reason ?? "A READY source workspace is required.")
+              : undefined
+          }
           onClick={onStartPreview}
         >
           {previewBusy ? "Building preview…" : "Start code-backed preview"}
@@ -250,6 +284,49 @@ function DesignMode({
       selection={selection}
       onSignal={onPreviewSignal}
     />
+  );
+}
+
+function SourceWorkspacePicker({
+  inventory,
+  value,
+  onChange,
+}: {
+  readonly inventory: SourceWorkspaceInventory | null;
+  readonly value: string | null;
+  readonly onChange: (workspaceId: string) => void;
+}) {
+  if (!inventory || inventory.selectionState === "EMPTY") {
+    return (
+      <Unavailable
+        availability={inventory?.availability ?? "UNAVAILABLE"}
+        reason={inventory?.reason ?? "Source workspace inventory is unavailable."}
+      />
+    );
+  }
+  return (
+    <label className="dde-source-workspace-picker">
+      <span>Source workspace</span>
+      <select
+        className="dde-viewport"
+        data-testid="source-workspace-select"
+        aria-label="Candidate source workspace"
+        value={value ?? ""}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {inventory.selectionState === "AMBIGUOUS" ? (
+          <option value="">Select READY source…</option>
+        ) : null}
+        {inventory.options.map((option) => (
+          <option key={option.workspaceId} value={option.workspaceId}>
+            {option.purpose ?? "project workspace"} · {option.currentRevision.slice(0, 8)}
+          </option>
+        ))}
+      </select>
+      {inventory.selectionState === "AMBIGUOUS" && inventory.reason ? (
+        <span className="dde-muted">{inventory.reason}</span>
+      ) : null}
+    </label>
   );
 }
 
@@ -458,6 +535,15 @@ function CandidateCard({
       </span>
       <span className="dde-candidate-preview-state">
         {candidate.previewState ?? "NO PREVIEW"}
+      </span>
+      <span
+        className="dde-candidate-verification-state"
+        data-testid={`candidate-verification-${candidate.candidateId}`}
+        title={candidate.verificationRequestReason ?? undefined}
+      >
+        {candidate.verificationRequestState
+          ? `VERIFY ${candidate.verificationRequestState}`
+          : "NOT EVALUATED"}
       </span>
       {candidate.previewStateDetail ? (
         <span className="dde-candidate-detail">{candidate.previewStateDetail}</span>

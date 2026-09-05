@@ -32,11 +32,14 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.pxg_node import PxgNode
+from engine.contracts.workspace import Workspace
 from engine.studio.candidates.service import CandidateService
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageRead, CoverageService
 from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.pxg.service import PxgGraph, PxgService
+from engine.studio.verification_requests import CandidateVerificationRequestService
+from engine.workspaces.service import WorkspaceService
 
 
 class Availability(StrEnum):
@@ -196,6 +199,24 @@ class AttentionCenterSnapshot:
 
 
 @dataclass(frozen=True)
+class SourceWorkspaceOption:
+    workspace_id: str
+    current_revision: str
+    mission_id: str | None
+    purpose: str | None
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class SourceWorkspaceInventory:
+    options: tuple[SourceWorkspaceOption, ...]
+    selection_state: str
+    auto_selected_workspace_id: str | None
+    availability: Availability
+    reason: str | None = None
+
+
+@dataclass(frozen=True)
 class CandidateCardSnapshot:
     candidate_id: str
     title: str
@@ -209,6 +230,10 @@ class CandidateCardSnapshot:
     preview_session_id: str | None
     preview_state: str | None
     preview_state_detail: str | None
+    verification_request_id: str | None
+    verification_request_state: str | None
+    verification_request_reason: str | None
+    verification_required_kinds: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -231,6 +256,7 @@ class FrontendStudioSnapshot:
     sync: StudioSyncSnapshot
     attention: AttentionCenterSnapshot
     screens: tuple[ScreenNode, ...]
+    source_workspaces: SourceWorkspaceInventory
     candidates: CandidateBoardSnapshot
     degraded_reasons: tuple[str, ...] = field(default_factory=tuple)
 
@@ -271,6 +297,8 @@ class FrontendReadService:
         coverage: CoverageService | None = None,
         candidates: CandidateService | None = None,
         previews: PreviewService | None = None,
+        workspaces: WorkspaceService | None = None,
+        verification_requests: CandidateVerificationRequestService | None = None,
         build_version: str | None = None,
     ) -> None:
         self._engine = engine
@@ -281,6 +309,10 @@ class FrontendReadService:
         )
         self._candidates = candidates or CandidateService(engine, pxg=self._pxg)
         self._previews = previews or PreviewService(engine, candidates=self._candidates)
+        self._workspaces = workspaces or WorkspaceService(engine)
+        self._verification_requests = (
+            verification_requests or CandidateVerificationRequestService(engine)
+        )
         self._build_version = build_version
 
     async def snapshot(
@@ -300,6 +332,9 @@ class FrontendReadService:
         if coverage.availability is not Availability.AVAILABLE and coverage.reason:
             degraded.append(coverage.reason)
         candidates = await self.candidate_board(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        source_workspaces = await self.source_workspace_inventory(
             tenant_id=tenant_id, project_id=project_id
         )
 
@@ -322,6 +357,7 @@ class FrontendReadService:
             ),
             attention=attention,
             screens=screen_tree(graph),
+            source_workspaces=source_workspaces,
             candidates=candidates,
             degraded_reasons=tuple(degraded),
         )
@@ -331,6 +367,14 @@ class FrontendReadService:
     ) -> tuple[ScreenNode, ...]:
         graph = await self._pxg.load(tenant_id=tenant_id, project_id=project_id)
         return screen_tree(graph)
+
+    async def source_workspace_inventory(
+        self, *, tenant_id: UUID, project_id: UUID
+    ) -> SourceWorkspaceInventory:
+        rows = await self._workspaces.list_project_workspaces(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        return build_source_workspace_inventory(rows)
 
     async def candidate_board(
         self, *, tenant_id: UUID, project_id: UUID
@@ -343,6 +387,13 @@ class FrontendReadService:
                 tenant_id=tenant_id,
                 project_id=project_id,
                 candidate_id=candidate.candidate_id,
+            )
+            verification_request = (
+                await self._verification_requests.latest_for_candidate(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    candidate_id=candidate.candidate_id,
+                )
             )
             cards.append(
                 CandidateCardSnapshot(
@@ -362,11 +413,80 @@ class FrontendReadService:
                     ),
                     preview_state=preview.state if preview else None,
                     preview_state_detail=preview.state_detail if preview else None,
+                    verification_request_id=(
+                        str(verification_request.verification_request_id)
+                        if verification_request
+                        else None
+                    ),
+                    verification_request_state=(
+                        verification_request.state if verification_request else None
+                    ),
+                    verification_request_reason=(
+                        verification_request.reason if verification_request else None
+                    ),
+                    verification_required_kinds=(
+                        tuple(verification_request.required_kinds)
+                        if verification_request
+                        else ()
+                    ),
                 )
             )
         return CandidateBoardSnapshot(
             cards=tuple(cards), count=CountValue.of(len(cards))
         )
+
+
+def build_source_workspace_inventory(
+    rows: tuple[Workspace, ...] | list[Workspace],
+) -> SourceWorkspaceInventory:
+    admitted = tuple(
+        row
+        for row in rows
+        if row.status == "READY"
+        and row.current_revision is not None
+        and row.policy.get("purpose") != "frontend_candidate_preview"
+    )
+    options = tuple(
+        SourceWorkspaceOption(
+            workspace_id=str(row.workspace_id),
+            current_revision=str(row.current_revision),
+            mission_id=str(row.mission_id) if row.mission_id else None,
+            purpose=(
+                str(row.policy.get("purpose"))
+                if isinstance(row.policy.get("purpose"), str)
+                else None
+            ),
+            created_at=row.created_at,
+        )
+        for row in admitted
+    )
+    if not options:
+        return SourceWorkspaceInventory(
+            options=(),
+            selection_state="EMPTY",
+            auto_selected_workspace_id=None,
+            availability=Availability.EMPTY,
+            reason=(
+                "No READY non-candidate project workspace with a durable "
+                "revision is available."
+            ),
+        )
+    if len(options) == 1:
+        return SourceWorkspaceInventory(
+            options=options,
+            selection_state="UNIQUE",
+            auto_selected_workspace_id=options[0].workspace_id,
+            availability=Availability.AVAILABLE,
+        )
+    return SourceWorkspaceInventory(
+        options=options,
+        selection_state="AMBIGUOUS",
+        auto_selected_workspace_id=None,
+        availability=Availability.AVAILABLE,
+        reason=(
+            "Multiple READY source workspaces exist; explicit selection is required."
+        ),
+    )
 
 
 def screen_tree(graph: PxgGraph) -> tuple[ScreenNode, ...]:

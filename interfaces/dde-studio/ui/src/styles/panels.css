@@ -734,3 +734,15 @@
   border-radius: 999px;
   background: var(--dde-surface-muted);
 }
+
+.dde-source-workspace-picker {
+  display: grid;
+  gap: var(--dde-gap-dense);
+  min-width: min(520px, 100%);
+  font-size: var(--dde-text-12);
+  color: var(--dde-text-secondary);
+}
+
+.dde-source-workspace-picker .dde-muted {
+  font-size: var(--dde-text-11);
+}
