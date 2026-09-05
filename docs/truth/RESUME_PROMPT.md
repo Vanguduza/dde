@@ -150,9 +150,9 @@ Verify the following known gaps before deciding they still exist:
 4. **DDE-068 candidate request execution is implemented.** A hash-confirmed LIVE preview persists a request over the candidate's effective PXG and existing AcceptanceOracle; `frontend.verification.run` executes it through the shared DDE-068 runner as a typed `FRONTEND_CANDIDATE` subject, with real browser/visual-critic capability leases, real VerificationRun/Evidence, stale-run protection and current evidence projection in QA/Inspector. PENDING/BLOCKED/SUPERSEDED remain non-verdict states. Production PostgreSQL E2E remains unavailable on this host.
 5. **The Cursor-class Chat has been universalized as DDE Chat and its AI Conversation Fabric is implemented on runnable surfaces.** `engine.chat` owns durable multi-conversation history, Ask/Plan/Execute, attachments, plans, activities, checkpoints, workspace review and universal mission/task/workspace/worker/verification/artifact context. Frontend Studio contributes PXG/Contract/coverage/candidate state only through its context adapter. `dde.chat.*` and `/missions/{mission}/chat/...` are canonical; old `frontend.chat.*` contracts are compatibility aliases. Provider/session federation, ACP, Fabric policy/memory/context/skill/team/research/automation/hook/claim/experience authorities and MCP surfaces exist. Shared DDE memory stores structured authority/index metadata in PostgreSQL and non-ephemeral bodies/compaction archives in scoped content-addressed storage (R2 when configured, local fallback). Hermes ACP is DDE-managed under verified `--ignore-rules` isolation to prevent duplicate provider-private memory injection. Conversation context is policy-budgeted across protected live authority, explicit refs, APPROVED ranked memory and bounded history with durable PRE/POST compaction snapshots. Browser proof is 33/33 and extension transport 77/77 at the latest tranche; production PostgreSQL/Redis and live R2 E2E are unavailable on the current host.
 6. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
-7. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
+7. **Source intelligence (M8)** — the common adapter/domain/Gateway/Chat/React vertical slice is implemented and conservatively reconciled into the binding ledger. A PostgreSQL lifecycle specification now exists, but live PostgreSQL execution and real certified 21st execution remain unavailable on this host; do not rebuild the landed M8 architecture or call unavailable infrastructure passed.
 8. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
-9. **The binding ledger is v2 and currently projects 5 VERIFIED / 23 BOUND / 5 TYPED_UNAVAILABLE / 66 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; treat newer evidence as authoritative if it has landed.
+9. **The binding ledger is v2 and currently projects 5 VERIFIED / 34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; do not upgrade controls from backend presence alone.
 
 Do not declare M7/M9/M10 or DDE-069 complete from domain implementation alone.
 
@@ -251,10 +251,10 @@ Do not rebuild that path. Evidence is in
 `docs/evidence/dde-069/REACT_FRONTEND_CHAT.md` and
 `docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md`.
 
-The next missing dependency is the mandatory Screen Audit & Experience
-Completeness Engine. Read `docs/truth/SCREEN_AUDIT_ENGINE.md` in full before
-editing implementation. Build domain/persistence/read/command authority first,
-then incremental invalidation and UI projections. Required outcomes include:
+The mandatory Screen Audit & Experience Completeness Engine has now landed. Read
+`docs/truth/SCREEN_AUDIT_ENGINE.md` before changing it, but do not rebuild its
+domain/persistence/read/command authority, incremental invalidation or existing UI
+projections. Verify regressions only. Its implemented outcomes include:
 
 - canonical ScreenAuditRun / ScreenAuditScreenRecord / ScreenAuditFinding /
   ScreenAuditEvidence / ScreenAuditResolution;
@@ -552,9 +552,11 @@ The current vertical slice supports:
 - Screen Audit source-provenance evidence;
 - universal Chat governed source search.
 
-Do not claim M8 complete until production PostgreSQL persistence is proven, the real
-external provider/certification state is exercised where available, all relevant 99-control
-ledger rows are reconciled from evidence, and the full package gates are green.
+M8-dependent ledger rows have now been reconciled from evidence and the local package
+gates are green. Do not claim production M8 certification until live PostgreSQL persistence
+is executed successfully and the real external provider/certification state is exercised
+where available. Current host absence remains UNAVAILABLE/BLOCKED_EXTERNAL, not failure
+and not PASS.
 
 ---
 
@@ -811,11 +813,10 @@ packaging and diff hygiene passed. Do not infer production DB/provider proof fro
 `DDE_DATABASE_URL`/`DDE_REDIS_URL` remain absent on the current host and live 21st must
 remain unavailable unless an exact certified MCP source capability is present.
 
-Immediate continuation after reconstructing HEAD:
-1. run the full M8 + full workbench/extension/package gate;
-2. add/finish PostgreSQL M8 lifecycle tests and execute them only where infrastructure exists;
-3. inspect all `frontend.source.*` reads/commands and the React Source mode against M8 truth;
-4. reconcile the 99-control binding ledger conservatively from new evidence;
-5. close only source-dependent golden controls genuinely proven;
-6. continue remaining candidate dock / Inspector / canvas toolbar / top-bar controls;
-7. preserve AD-039 golden-image fail-closed state and `/design` certified-transport blocker.
+Latest continuation state after reconstructing `0a39299`:
+1. M8 checkpoint gates were re-run: 49 focused Python tests, 41 workbench Playwright tests, 77 extension tests and real 89-file / 1.57 MB VSIX packaging are green;
+2. `tests/unit/test_source_intelligence_postgres.py` now specifies the PostgreSQL source lifecycle and is collected, but execution is UNAVAILABLE because `DDE_DATABASE_URL` is unset;
+3. live 21st remains NOT_CONFIGURED / NOT_CERTIFIED with no direct-network fallback;
+4. the 99-control ledger is reconciled to **5 VERIFIED / 34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND**;
+5. the next unblocked implementation packet is **candidate dock golden closure**, followed by Inspector, canvas toolbar/canvas, and top-bar/explorer/status closure;
+6. preserve AD-039 golden-image fail-closed state and the `/design` certified-transport blocker throughout.

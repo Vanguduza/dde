@@ -10,9 +10,9 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 66 |
-| `TYPED_UNAVAILABLE` | 5 |
-| `BOUND` | 23 |
+| `UNBOUND` | 54 |
+| `TYPED_UNAVAILABLE` | 6 |
+| `BOUND` | 34 |
 | `VERIFIED` | 5 |
 | **total** | **99** |
 
@@ -57,13 +57,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | EX-05 | Journeys group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-06 | Components group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-07 | Sources group | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `TYPED_UNAVAILABLE` |
-| EX-08 | DDE Library source | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-09 | 21st MCP source | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-10 | Donor Sources | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-11 | Internal Components | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-12 | Source numeric badges | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
+| EX-08 | DDE Library source | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| EX-09 | 21st MCP source | `VERIFIED` | `VERIFIED` | `VERIFIED` | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `BLOCKED_EXTERNAL` | `BOUND` | `TYPED_UNAVAILABLE` |
+| EX-10 | Donor Sources | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| EX-11 | Internal Components | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-12 | Source numeric badges | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | EX-13 | Templates group | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
-| EX-14 | Template entries | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| EX-14 | Template entries | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-15 | Locks group + count | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-16 | Style Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | EX-17 | Section Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -76,10 +76,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 Notes:
 
 - **EX-07** — DesignSourceRegistry is DDE-069 M8. The explorer group is listed with an UNKNOWN count (Availability.NOT_IMPLEMENTED) rather than hidden or shown as zero.
-- **EX-08** — Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.
-- **EX-09** — 21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.
-- **EX-12** — Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number.
+- **EX-08** — M8 implements DDE Library inventory/search/fetch/admission. Explorer status-dot grammar and production PostgreSQL E2E remain open.
+- **EX-09** — M8 implements a fail-closed 21st MCP adapter. Live provider execution remains externally blocked; no direct-network fallback exists.
+- **EX-10** — Existing Donor Lab remains authoritative and is now projected through M8 Source Intelligence; exact Explorer status-dot grammar remains open.
+- **EX-11** — M8 project-native adapter now supplies the real component inventory; final status remains BOUND pending production E2E.
+- **EX-12** — M8 replaces the prior placeholder source counts with real provider counts or typed unknown/degraded state.
 - **EX-13** — TemplateRecommendationService is DDE-069 M8; the group reports NOT_IMPLEMENTED.
+- **EX-14** — M8 implements durable template recommendations; golden Explorer nesting remains to be closed.
 - **EX-15** — LockService is implemented. The current FrontendReadService still exposes the Locks group as an unavailable count; a real LockInventory projection is required before this read is complete.
 - **EX-22** — Generated screens now carry mandatory visual_critique bindings whose rubric includes accessibility, so evidence has a real producer; the QaFindingInventory read that aggregates it is DDE-069 M17. Until then the badge renders Not evaluated rather than a fabricated AA.
 
@@ -171,8 +174,8 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 |---|---|---|---|---|---|---|---|---|---|---|
 | CA-01 | Candidate cards | `VERIFIED` | `BOUND` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-02 | Candidate thumbnail | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CA-03 | Candidate score | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CA-04 | Score classification | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CA-03 | Candidate score | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| CA-04 | Score classification | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | CA-05 | Change count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CA-06 | Current (Locked) card | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CA-07 | Try live | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -182,8 +185,8 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 Notes:
 
 - **CA-02** — Thumbnails require the preview runtime (DDE-069 M9); the card shows a typed NOT_RENDERED state.
-- **CA-03** — No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92).
-- **CA-04** — Classification derives from a score that does not exist yet; the chip renders 'Not scored'.
+- **CA-03** — M8 CandidateScorecard is implemented and evidence-backed; final status remains BOUND pending production E2E.
+- **CA-04** — M8 classification now exists; candidate-dock closure must add the required score explanation interaction.
 - **CA-08** — Compare requires two rendered candidates (DDE-069 M9).
 
 ## Source Blend
@@ -192,13 +195,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#88-source-blend`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| SB-01 | Actual attribution | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| SB-02 | Target blend slider | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| SB-01 | Actual attribution | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| SB-02 | Target blend slider | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 
 Notes:
 
-- **SB-01** — SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8.
-- **SB-02** — The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend.
+- **SB-01** — M8 implements actual provenance attribution. Target preferences do not rewrite history; named-source presentation remains open.
+- **SB-02** — M8 implements target blend as a future-generation preference. Golden slider grammar remains for UI closure.
 
 ## Inspector
 
@@ -212,13 +215,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 | IN-04 | Behaviour tab | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-05 | Responsive tab | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-06 | Lock tab | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-07 | Source / code tab | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| IN-07 | Source / code tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | IN-08 | Type: Stack | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-09 | Direction | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-10 | Gap (px + token) | `VERIFIED` | `UNBOUND` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-11 | Padding (px + token) | `VERIFIED` | `UNBOUND` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-12 | Behaviour: animation | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-13 | Provenance section | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| IN-13 | Provenance section | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | IN-14 | View Source | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | IN-15 | Accessibility badge | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | IN-16 | Responsive breakpoint buttons | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -226,6 +229,8 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 Notes:
 
 - **IN-01** — InspectorDescriptor and mission-scoped read transport are implemented. The existing React panel still receives selectedKey=null, so no UI completion is claimed.
+- **IN-07** — Real source mapping/reveal exists; Inspector golden closure must convert it into the required Source/code tab.
+- **IN-13** — M8 accepted provenance is now visible in Inspector; final status remains BOUND pending production E2E.
 - **IN-15** — Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated.
 
 ## Status bar

@@ -492,8 +492,9 @@ neither is a completion claim under v2.
   real audit overlays; Inspector renders selected-screen audit dimensions; universal
   DDE Chat answers audit queries and resolves `@finding`. Candidate-local edits do
   not stale accepted-product audits; promotion does. The dogfood reconciler keeps
-  the independent 99-control ledger unchanged at 5/23/5/66 and records any future
-  disagreement rather than forcing agreement. Evidence:
+  the independent 99-control ledger and records disagreement rather than forcing
+  agreement. After M8 evidence reconciliation the current derived ledger is
+  **5 VERIFIED / 34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND**. Evidence:
   `docs/evidence/dde-069/SCREEN_AUDIT_ENGINE.md`.
 - **M8 Source Intelligence — PARTIAL CHECKPOINT** — migration `0034` and
   `engine/studio/source/` add the common DesignSourceAdapter boundary, persisted
@@ -507,16 +508,22 @@ neither is a completion claim under v2.
   governed source search. React Source mode exposes provider degradation, explicit
   search/inspect/fetch/admission stages, template honesty, candidate score evidence,
   actual attribution, target blend and Inspector provenance. Screen Audit consumes
-  persisted provenance. Focused checkpoint: 35 Python tests plus 14 targeted Playwright
-  scenarios, generator/binding drift, Ruff, mypy and both TypeScript surfaces green.
-  This is not final M8 closure: live PostgreSQL persistence and a real certified 21st
-  transport are unavailable on this host, and the 99-control ledger has not yet been
-  reconciled/promoted from this evidence. Evidence:
+  persisted provenance. Cold-start re-verification reproduced contracts/binding drift,
+  Ruff and mypy; **49 focused Python tests**, the full **41-test workbench Playwright**
+  suite, **77 extension tests** and a real **89-file / 1.57 MB VSIX** are green. A new
+  PostgreSQL lifecycle specification (`tests/unit/test_source_intelligence_postgres.py`)
+  now covers search → persisted run → fetch → sandbox/admission → provenance → score →
+  promotion → accepted provenance → audit invalidation/re-evaluation. It is collected
+  but **UNAVAILABLE** on this host because `DDE_DATABASE_URL` is unset; it is not counted
+  as passed. The 99-control ledger has been conservatively reconciled to **5 VERIFIED /
+  34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND**. Live PostgreSQL execution and real
+  certified 21st transport remain unavailable, so M8 is not production-certified. Evidence:
   `docs/evidence/dde-069/M8_SOURCE_INTELLIGENCE_CHECKPOINT.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
-**Still incomplete / not started:** M8 production persistence/provider certification
-and binding-ledger closure; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
+**Still incomplete / not started:** M8 live PostgreSQL persistence proof and external
+provider certification; remaining golden-control UI/production-E2E closure; general
+React/Vite/Expo PreviewRuntimeAdapters beyond admitted
 prototype HTML; production VS Code → Gateway → PostgreSQL live-loop/audit evidence
 (current host has no database/Redis runtime; PostgreSQL specifications are present
 but UNAVAILABLE locally); exact viewport `set_state`, resize handles and Inspector

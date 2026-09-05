@@ -2322,91 +2322,154 @@
         "UNAVAILABLE",
         "EMPTY"
       ],
-      "note": "Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.",
+      "note": "M8 implements DDE Library inventory/search/fetch/admission. Explorer status-dot grammar and production PostgreSQL E2E remain open.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED."
+          "note": "M8 implements the governed provider-neutral source domain; provider discovery is separate from certification."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Source inventory/read models return durable provider state and honest counts/degradation."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "A backend operation exists, but this ledger has no complete Gateway contract proof for the named command."
+          "note": "frontend.source.search is registered through Gateway scope/dispatch and source policy."
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "Internal source adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED."
+          "note": "DDE Library lifecycle and health states are implemented; empty/unavailable remain explicit."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "DDE Library is rendered in Explorer/Source mode, but the Explorer row still lacks the golden status-dot grammar."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "React consumes bridge source inventory/search, but current browser proof uses TestHostBridge rather than live Gateway/PostgreSQL."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "A PostgreSQL lifecycle specification now exists but cannot run on this host because DDE_DATABASE_URL is unset."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Rendered source identity/state is structurally covered; Explorer status-dot conformance remains incomplete and AD-039 pixel reference is absent."
         }
       }
     },
@@ -2425,91 +2488,154 @@
         "PROVIDER_OFFLINE",
         "NOT_ADMITTED"
       ],
-      "note": "21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED.",
+      "note": "M8 implements a fail-closed 21st MCP adapter. Live provider execution remains externally blocked; no direct-network fallback exists.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED."
+          "note": "M8 implements the governed provider-neutral source domain; provider discovery is separate from certification."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Source inventory/read models return durable provider state and honest counts/degradation."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "A backend operation exists, but this ledger has no complete Gateway contract proof for the named command."
+          "note": "frontend.source.search is registered through Gateway scope/dispatch and source policy."
         },
         "STATE": {
           "applicable": true,
           "status": "TYPED_UNAVAILABLE",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "21st adapter is DDE-069 M8; the group reports NOT_IMPLEMENTED."
+          "note": "21st is intentionally NOT_CONFIGURED/NOT_CERTIFIED without an exact certified MCP endpoint and credential."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "21st is rendered with honest NOT_CONFIGURED state, but the Explorer row still lacks the golden status-dot grammar."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "React consumes the governed source inventory; live certified external execution is unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BLOCKED_EXTERNAL",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Live 21st E2E requires PostgreSQL-backed endpoint certification plus owner-provided valid provider auth; neither is available on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "NOT_CONFIGURED degradation is rendered and asserted; Explorer status-dot grammar remains incomplete."
         }
       }
     },
@@ -2527,7 +2653,7 @@
         "APPROVAL_REQUIRED",
         "SOURCE_CLASS_FORBIDS"
       ],
-      "note": "",
+      "note": "Existing Donor Lab remains authoritative and is now projected through M8 Source Intelligence; exact Explorer status-dot grammar remains open.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -2599,44 +2725,74 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Donor Sources is now projected into Explorer/Source mode, but the Explorer status-dot grammar is not complete."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
-        },
-        "E2E": {
-          "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/donor/discovery_service.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
             "engine/studio/frontend.py",
             "engine/gateway/commands.py",
             "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_donor_discovery.py",
-            "tests/unit/test_donor_discovery_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Source projection is wired through the common inventory path; browser proof is TestHostBridge-backed."
+        },
+        "E2E": {
+          "applicable": true,
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
+          ],
+          "evidence_refs": [],
+          "note": "The source path is browser-covered but live PostgreSQL M8 lifecycle execution is unavailable on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Donor source identity/state is rendered, but exact Explorer status-dot grammar remains open."
         }
       }
     },
@@ -2653,7 +2809,7 @@
       "failure_states": [
         "EMPTY"
       ],
-      "note": "",
+      "note": "M8 project-native adapter now supplies the real component inventory; final status remains BOUND pending production E2E.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -2665,11 +2821,22 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Project-native component inventory is derived from accepted PXG through the project-native source adapter."
         },
         "COMMAND": {
           "applicable": false,
@@ -2681,43 +2848,93 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Project-native counts are real and preserve EMPTY/unknown semantics."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Explorer renders Internal Components with the projected count."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "The React count consumes the source inventory projection; production Gateway/PostgreSQL browser proof remains unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "TestHostBridge proves the interaction shape; the PostgreSQL lifecycle spec is not runnable on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "The nested Internal Components item and real count are asserted in the M8 browser suite."
         }
       }
     },
@@ -2736,31 +2953,45 @@
         "STALE",
         "ERROR"
       ],
-      "note": "Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number.",
+      "note": "M8 replaces the prior placeholder source counts with real provider counts or typed unknown/degraded state.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number."
+          "note": "M8 owns provider item counts and typed degradation state."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "SourceInventorySnapshot exposes real provider item counts or typed unknown CountValue."
         },
         "COMMAND": {
           "applicable": false,
@@ -2772,69 +3003,93 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "Source inventories are DDE-069 M8; badges render an em-dash from CountValue.unknown rather than a fabricated number."
+          "note": "UNKNOWN/NOT_CONFIGURED/DEGRADED counts remain explicit and are never fabricated."
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
-            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The surface is rendered but does not yet satisfy the full golden control contract."
+          "note": "Explorer and Source mode render numeric counts or an em-dash from typed CountValue state."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
-            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Partial presentation is not wired to the full declared behavior."
+          "note": "Rendered counts consume bridge-projected source inventory; production browser E2E is not yet proven."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
             "engine/studio/reads.py",
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
-            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "note": "TestHostBridge covers real/unknown count rendering; PostgreSQL-backed browser path remains unavailable."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
-            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "note": "M8 browser assertions prove real source counts and typed unavailable presentation."
         }
       }
     },
@@ -2973,7 +3228,7 @@
       "failure_states": [
         "EMPTY"
       ],
-      "note": "",
+      "note": "M8 implements durable template recommendations; golden Explorer nesting remains to be closed.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -2985,11 +3240,22 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "TemplateInventory is persisted/read from M8 FrontendTemplate records."
         },
         "COMMAND": {
           "applicable": false,
@@ -3001,43 +3267,93 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Recommendations preserve RECOMMENDED/REJECTED and missing-admission hard failures."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Template recommendations render in Source mode, but Explorer does not yet render the golden nested template-entry grammar."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Recommend/read are bridge-wired; production PostgreSQL browser path remains unproven."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "TestHostBridge covers recommendation/admission transitions; live PostgreSQL is unavailable."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Template recommendation cards are asserted, but exact nested Explorer entry conformance remains open."
         }
       }
     },
@@ -8082,33 +8398,37 @@
         "UNSCORED",
         "PARTIAL"
       ],
-      "note": "No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92).",
+      "note": "M8 CandidateScorecard is implemented and evidence-backed; final status remains BOUND pending production E2E.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92)."
+          "note": "M8 implements persisted evidence-backed FrontendCandidateScore and deterministic scoring rules."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "CandidateBoardSnapshot reads the latest durable candidate score without inventing one."
         },
         "COMMAND": {
           "applicable": false,
@@ -8120,53 +8440,77 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "No CandidateScorecard exists; DDE-069 M8/M17 work. Cards render 'Not scored' rather than a fabricated percentage (FRONTEND_STUDIO_REV3 section 17.2 forbids hardcoded 84/76/92)."
+          "note": "SCORED/UNSCORED/BLOCKED and classification are deterministic; missing evidence yields UNSCORED."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Candidate cards render a numeric evidence-backed score or UNSCORED classification."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Candidate score is consumed from the board read model; production browser/PostgreSQL E2E is unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Browser evidence is TestHostBridge-backed; PostgreSQL lifecycle spec is present but cannot run here."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "M8 browser test asserts the score and evidence count; no fabricated percentage is used."
         }
       }
     },
@@ -8183,33 +8527,37 @@
       "failure_states": [
         "UNSCORED"
       ],
-      "note": "Classification derives from a score that does not exist yet; the chip renders 'Not scored'.",
+      "note": "M8 classification now exists; candidate-dock closure must add the required score explanation interaction.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "Classification derives from a score that does not exist yet; the chip renders 'Not scored'."
+          "note": "M8 implements persisted evidence-backed FrontendCandidateScore and deterministic scoring rules."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "CandidateBoardSnapshot reads the latest durable candidate score without inventing one."
         },
         "COMMAND": {
           "applicable": false,
@@ -8221,53 +8569,77 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "Classification derives from a score that does not exist yet; the chip renders 'Not scored'."
+          "note": "SCORED/UNSCORED/BLOCKED and classification are deterministic; missing evidence yields UNSCORED."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Classification renders, but the golden clickable score-explanation affordance is not implemented yet."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Classification consumes the score projection; explanation interaction is not yet wired."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Classification is browser-rendered via TestHostBridge; production E2E and explanation interaction remain open."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "GOOD/UNSCORED classification is rendered, but the clickable explanation grammar remains incomplete."
         }
       }
     },
@@ -8864,39 +9236,39 @@
       "failure_states": [
         "ATTRIBUTION_UNCOMPUTABLE"
       ],
-      "note": "SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8.",
+      "note": "M8 implements actual provenance attribution. Target preferences do not rewrite history; named-source presentation remains open.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8."
+          "note": "M8 persists provenance separately from target-generation preferences."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Accepted/candidate provenance is readable by subject and retains optional attribution weight."
         },
         "COMMAND": {
           "applicable": false,
@@ -8908,59 +9280,80 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "SourceBlend attribution needs the provenance service over source adapters (DDE-069 M8). Named sources without computed percentages is the honest interim, per section 8.8."
+          "note": "Uncomputable attribution remains weight unknown rather than a fabricated percentage."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Actual attribution renders durable records/weights, but source display names are not yet resolved in the golden grammar."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Selection provenance is read through the bridge; production browser/PostgreSQL E2E remains unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "TestHostBridge proves attribution projection and target-blend independence; live PostgreSQL is unavailable."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Percent/unknown attribution is rendered, but named-source golden presentation remains incomplete."
         }
       }
     },
@@ -8970,116 +9363,147 @@
       "feature": "Target blend slider",
       "visual_contract": "Generation preference control",
       "read_model": "SourceBlendTarget",
-      "command": "frontend.design.request (blend target)",
+      "command": "frontend.source.target_blend.set",
       "state_transition": "next generation preference recorded",
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend.",
+      "note": "M8 implements target blend as a future-generation preference. Golden slider grammar remains for UI closure.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend."
+          "note": "M8 owns durable FrontendSourceBlendPreference records independent of provenance."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Active target blend is read by exact scope with project fallback."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "A backend operation exists, but this ledger has no complete Gateway contract proof for the named command."
+          "note": "frontend.source.target_blend.set is Gateway-registered and records only future-generation preference."
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
           ],
           "evidence_refs": [],
-          "note": "The target-blend preference is accepted by the design request path but has no UI control until M8 gives it real sources to blend."
+          "note": "Target blend normalization is deterministic and never mutates historical attribution."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "A functional generation-preference control exists, but the golden slider grammar is not yet matched."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Apply sends frontend.source.target_blend.set and refreshes persisted preference; production browser E2E remains unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/service.py",
+            "engine/studio/source/adapters.py",
+            "engine/studio/source/repository.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/scopes.py"
           ],
           "test_refs": [
-            "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "TestHostBridge proves future-preference semantics; live PostgreSQL is unavailable."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "The control is rendered and validated, but uses numeric inputs rather than the final golden slider grammar."
         }
       }
     },
@@ -9767,7 +10191,7 @@
         "SOURCE_MAPPING_UNAVAILABLE",
         "ACCESS_DENIED"
       ],
-      "note": "",
+      "note": "Real source mapping/reveal exists; Inspector golden closure must convert it into the required Source/code tab.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -9779,11 +10203,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/frontend.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Inspector descriptor resolves sourcePath from stable PXG/source mapping."
         },
         "COMMAND": {
           "applicable": false,
@@ -9795,43 +10225,75 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/frontend.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Missing mapping is explicit SOURCE_MAPPING_UNAVAILABLE; access remains host-policy governed."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Source path + View source reveal are functional, but Source/code is still a generic section rather than the required Inspector tab."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/inspector.py",
+            "engine/studio/frontend.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "View source invokes the host revealFile bridge; production VS Code interaction is not an end-to-end test here."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/inspector.py",
+            "engine/studio/frontend.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "TestHostBridge proves descriptor-to-reveal wiring; production host E2E is not yet evidenced."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Source mapping renders, but golden tab grammar is incomplete."
         }
       }
     },
@@ -10409,7 +10871,7 @@
         "UNKNOWN_PROVENANCE",
         "LICENCE_UNKNOWN"
       ],
-      "note": "",
+      "note": "M8 accepted provenance is now visible in Inspector; final status remains BOUND pending production E2E.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -10421,11 +10883,19 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Inspector provenance reads durable subject-scoped M8 provenance records."
         },
         "COMMAND": {
           "applicable": false,
@@ -10437,43 +10907,80 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_source_intelligence.py",
+            "tests/contract/test_frontend_studio_gateway.py"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Unknown provenance and licence/security states remain explicit."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Inspector renders provenance usage, artifact/source identity, licence, security and honest weight state."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Selection changes drive provenance reads through the host bridge; production PostgreSQL browser E2E is unavailable."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/provenance.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/frontend.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "TestHostBridge proves accepted provenance reaches Inspector; live PostgreSQL lifecycle spec is unavailable on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "M8 browser test asserts accepted provenance, OPEN_REUSE and attribution in Inspector."
         }
       }
     },
