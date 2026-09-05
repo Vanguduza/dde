@@ -10,11 +10,11 @@ from uuid import UUID
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.chat.models import CLAUDE_CODE_PROFILE, FrontendChatModelCatalog
+from engine.chat.plans import FrontendChatPlanService
+from engine.chat.storage import ChatObjectStore, storage_key_for_chat_object
 from engine.core.command_identity import logical_command_hash
 from engine.core.errors import DdeError
-from engine.studio.chat.models import CLAUDE_CODE_PROFILE, FrontendChatModelCatalog
-from engine.studio.chat.plans import FrontendChatPlanService
-from engine.studio.chat.storage import ChatObjectStore, storage_key_for_chat_object
 from engine.workspaces import git
 
 TENANT = UUID("00000000-0000-0000-0000-000000000001")
@@ -80,25 +80,23 @@ def test_chat_object_store_is_content_addressed_and_project_jailed(
     assert oversized.value.error_code == "ATTACHMENT_TOO_LARGE"
 
 
-def test_chat_object_store_rejects_hash_collision(tmp_path: Path) -> None:
+def test_chat_object_store_rejects_false_content_hash(tmp_path: Path) -> None:
     store = ChatObjectStore(root=tmp_path)
-    key_hash = "f" * 64
-    store.put(
-        tenant_id=TENANT, project_id=PROJECT, content_hash=key_hash, content=b"one"
-    )
     with pytest.raises(DdeError) as exc:
         store.put(
-            tenant_id=TENANT, project_id=PROJECT, content_hash=key_hash, content=b"two"
+            tenant_id=TENANT,
+            project_id=PROJECT,
+            content_hash="f" * 64,
+            content=b"one",
         )
     assert exc.value.error_code == "VERSION_CONFLICT"
+    assert "do not match content hash" in exc.value.message
 
 
 def test_model_catalog_never_upgrades_cli_presence_into_unapproved_availability(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        "engine.studio.chat.models.shutil.which", lambda _: "/usr/bin/claude"
-    )
+    monkeypatch.setattr("engine.chat.models.shutil.which", lambda _: "/usr/bin/claude")
     catalog = FrontendChatModelCatalog()
     claude = next(
         item for item in catalog.options() if item.option_id == CLAUDE_CODE_PROFILE

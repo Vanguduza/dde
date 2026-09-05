@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/frontend_conversation.json",
   "title": "FrontendConversation",
-  "description": "DDE-069 DDE Code / Frontend Studio durable AI conversation control plane. Owned by engine.studio.chat. It carries explicit project/workspace/frontend context, Cursor-class Ask/Plan/Execute mode, model selection, branch lineage and pinned references. A model is replaceable; DDE owns history, authority, plans and evidence.",
+  "description": "DDE-069 universal DDE Chat durable conversation control plane. Canonical domain owner: engine.chat. It carries mission/task/workspace/worker/verification/artifact context for every DDE workspace, with Frontend Studio candidate/screen/PXG selection as an optional context adapter. Cursor-class Ask/Plan/Execute, model/provider selection, branch lineage and pinned references are DDE-owned and provider-replaceable.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -94,6 +94,56 @@
         "ref_columns": [
           "plan_id"
         ]
+      },
+      {
+        "name": "frontend_conversations_policy_id_fkey",
+        "columns": [
+          "policy_id"
+        ],
+        "ref_table": "ai_conversation_policies",
+        "ref_columns": [
+          "policy_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_active_worker_session_id_fkey",
+        "columns": [
+          "active_worker_session_id"
+        ],
+        "ref_table": "worker_sessions",
+        "ref_columns": [
+          "worker_session_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_active_task_id_fkey",
+        "columns": [
+          "active_task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_active_worker_run_id_fkey",
+        "columns": [
+          "active_worker_run_id"
+        ],
+        "ref_table": "worker_runs",
+        "ref_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_active_verification_run_id_fkey",
+        "columns": [
+          "active_verification_run_id"
+        ],
+        "ref_table": "verification_runs",
+        "ref_columns": [
+          "verification_run_id"
+        ]
       }
     ],
     "checks": [
@@ -104,6 +154,10 @@
       {
         "name": "frontend_conversations_mode_known",
         "expression": "mode IN ('ASK', 'PLAN', 'EXECUTE')"
+      },
+      {
+        "name": "frontend_conversations_context_domain_known",
+        "expression": "context_domain IS NULL OR context_domain IN ('DDE','MISSION','TASK','FRONTEND_STUDIO','QUALITY','RESEARCH','DECISIONS','FLEET','EVIDENCE')"
       }
     ]
   },
@@ -304,6 +358,97 @@
     "updated_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "policy_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "active_worker_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_domain": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "DDE",
+            "MISSION",
+            "TASK",
+            "FRONTEND_STUDIO",
+            "QUALITY",
+            "RESEARCH",
+            "DECISIONS",
+            "FLEET",
+            "EVIDENCE"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Universal DDE Chat context domain. Frontend Studio is one optional context adapter, not the conversation owner."
+    },
+    "active_task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current task context, when Chat is focused on a task."
+    },
+    "active_worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current WorkerRun context, when Chat is supervising or reviewing execution."
+    },
+    "active_verification_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current VerificationRun context, when Chat is inspecting quality/evidence."
+    },
+    "active_artifact_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional typed/reference-form artifact focus such as evidence, EDR, finding, research artifact or generated deliverable."
     }
   }
 }

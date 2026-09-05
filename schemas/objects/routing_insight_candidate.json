@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/routing_insight_candidate.json",
+  "title": "RoutingInsightCandidate",
+  "description": "Hermes/evaluator routing insight candidate. Never mutates routing policy directly.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "routing_insight_candidates",
+    "order": 335,
+    "pk": [
+      "insight_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "routing_insight_candidates_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "routing_insight_candidates_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "routing_insight_candidates_promoted_by_fkey",
+        "columns": [
+          "promoted_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "insight_id",
+    "tenant_id",
+    "project_id",
+    "source_kind",
+    "source_ref",
+    "proposal",
+    "evidence_refs",
+    "confidence",
+    "state",
+    "evaluation_refs",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "insight_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_kind": {
+      "type": "string",
+      "enum": [
+        "HERMES",
+        "EVALUATOR",
+        "HUMAN",
+        "OTHER"
+      ]
+    },
+    "source_ref": {
+      "type": "string"
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "CANDIDATE",
+        "OFFLINE_REPLAY",
+        "HOLDOUT",
+        "SHADOW",
+        "CANARY",
+        "PROMOTED",
+        "REJECTED",
+        "SUPERSEDED"
+      ]
+    },
+    "evaluation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "promoted_policy_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "promoted_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "promoted_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -498,6 +498,28 @@ By explicit owner direction, DDE-069 extends the existing `FrontendConversation`
 
 ---
 
+---
+
+## AD-043 — DDE Chat is universal; product studios are context adapters
+
+**Status:** USER-LOCKED PRODUCT DECISION (2026-09-05).
+
+By explicit owner direction, the Cursor-class conversation surface is the universal DDE Chat rather than a Frontend-Studio-owned chat. `engine.chat` is the canonical domain owner; `dde.chat.*` and `/missions/{mission}/chat/...` are canonical external contracts. `engine.studio.chat`, `frontend.chat.*` and `/frontend/chat(s)` remain compatibility aliases during migration. Frontend Studio contributes candidate/screen/PXG/coverage/verification context through an adapter only when `context_domain=FRONTEND_STUDIO`; mission/task/quality/research/decision/evidence conversations do not load frontend state merely to converse. The shell hosts one global DDE Chat overlay without changing the locked Frontend Studio grid geometry.
+
+**Consequence:** conversation history, plans, attachments, provider sessions, memory, research and checkpoints belong to DDE, not to any product module. No future DDE workspace should create a parallel chat history or private conversation authority.
+
+---
+
+## AD-044 — Shared DDE memory and token management use Postgres authority plus scoped durable objects
+
+**Status:** USER-LOCKED PRODUCT DECISION (2026-09-05); live R2 deployment evidence remains environment-dependent.
+
+DDE owns cross-provider memory. PostgreSQL stores scoped memory authority/index metadata and promotion lineage; non-ephemeral full bodies and context/compaction archives are content-addressed in the scoped DDE object layer, using Cloudflare R2 when configured and local content-addressed storage as the development fallback. Strict R2 mode fails closed when credentials are absent. Provider-private memory cannot silently become Project Truth or be injected alongside DDE memory.
+
+Hermes ACP is launched by DDE under the installed runtime's verified `--ignore-rules` isolation mode, which suppresses automatic Hermes memory/rules/preloaded-skill injection while preserving provider configuration. Universal Chat allocates the policy token budget across protected live DDE state, explicit refs, APPROVED ranked memory and bounded recent history; older history is compacted into durable PRE/POST snapshots with visible omissions.
+
+**Consequence:** providers reason over one inspectable DDE context package. Hermes, Claude, Codex, GPT-class and future providers benefit from the same approved memories without duplicating context or paying repeatedly for full transcript replay. R2 credentials remain runtime secrets and are never propagated into provider prompts, memory rows or conversation records.
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.
@@ -515,3 +537,12 @@ The same gate states that DDE-068 is the next sequential mission and that accept
 5. Update `DEV_PLAN_REV3.md` and `IMPLEMENTATION_STATE.md` if sequencing/current state changed.
 
 Do not use this file to bypass the EDR process.
+## AD-042 — AI Conversation Fabric is DDE-owned and provider-federated
+
+**Status:** USER-LOCKED PRODUCT DECISION (2026-09-05); runtime certification remains evidence-gated.
+
+By explicit owner direction, the Cursor-class Chat expands into the provider-neutral AI Conversation Fabric in `docs/truth/AI_CONVERSATION_FABRIC.md`. DDE owns canonical conversation history, policy, memory authority, context snapshots, provider/session lineage, skills, teams, research artifacts, hooks, schedules, usage/evidence and provider-capacity observations. Claude Code, Codex, Hermes, ACP/MCP agents and future providers remain replaceable runtimes.
+
+This decision accelerates shared conversation-facing primitives already planned for DDE-073/DDE-075/DDE-076, but does **not** waive those missions' original provider-runtime, Hermes experience-intelligence or fleet-certification acceptance gates. Discovered capability is not certified capability. Existing EDR-0001/EDR-0017 approval boundaries and Gateway/Capability/Workspace/Verification authority remain unchanged.
+
+**Consequence:** a provider may reason, stream, resume, fork, use admitted skills, or spawn bounded children only through the Fabric's persisted policy/session/interop authority. Provider private memory, hidden tool execution, dangerous permission bypass flags, silent fallback and self-promoted memory/skills are non-conformant.

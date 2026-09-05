@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_claim.json",
+  "title": "AiClaim",
+  "description": "Per-turn epistemic annotation distinguishing fact/source/inference/proposal/unknown.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_claims",
+    "order": 333,
+    "pk": [
+      "claim_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_claims_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_claims_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_claims_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "ai_claims_turn_id_fkey",
+        "columns": [
+          "turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "claim_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "turn_id",
+    "claim_text",
+    "epistemic_class",
+    "source_refs",
+    "verification_state",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "turn_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "claim_text": {
+      "type": "string"
+    },
+    "epistemic_class": {
+      "type": "string",
+      "enum": [
+        "REPOSITORY_FACT",
+        "EXTERNAL_SOURCE",
+        "INFERENCE",
+        "PROPOSAL",
+        "UNKNOWN"
+      ]
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification_state": {
+      "type": "string",
+      "enum": [
+        "UNVERIFIED",
+        "SUPPORTED",
+        "CONTRADICTED",
+        "SUPERSEDED"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -492,6 +492,183 @@ TOOL_DECLARATIONS: tuple[McpToolDeclaration, ...] = (
 )
 
 
+FABRIC_TOOL_DECLARATIONS: tuple[McpToolDeclaration, ...] = (
+    McpToolDeclaration(
+        name="dde_get_ai_fabric",
+        version="1.0.0",
+        description="Read DDE AI Conversation Fabric state for a mission/conversation.",
+        tool_class="AI Fabric",
+        input_schema=_object_schema(
+            required=["mission_id"],
+            properties={
+                "mission_id": _UUID,
+                "conversation_id": {"anyOf": [_UUID, {"type": "null"}]},
+            },
+        ),
+        output_schema=_object_schema(
+            required=["fabric"], properties={"fabric": {"type": "object"}}
+        ),
+        required_scopes=("mission.read",),
+        mutation="none",
+        idempotency_required=False,
+        target_resource="mission",
+        audit_event_type="McpToolRead",
+        error_codes=("FORBIDDEN", "TENANT_SCOPE_VIOLATION", "SESSION_EXPIRED"),
+        execution="sync",
+        gateway_backed=True,
+    ),
+    McpToolDeclaration(
+        name="dde_send_frontend_chat",
+        version="1.0.0",
+        description="Send a governed DDE Frontend Chat turn.",
+        tool_class="AI Fabric",
+        input_schema=_object_schema(
+            required=["mission_id", "conversation_id", "text", "idempotency_key"],
+            properties={
+                "mission_id": _UUID,
+                "conversation_id": _UUID,
+                "text": _STRING,
+                "attachment_ids": {"type": "array", "items": _UUID},
+                "approval_id": {"anyOf": [_UUID, {"type": "null"}]},
+                "idempotency_key": _STRING,
+            },
+        ),
+        output_schema=_object_schema(
+            required=["command_id", "status"],
+            properties={
+                "command_id": _UUID,
+                "status": _STRING,
+                "payload": {"type": "object"},
+            },
+        ),
+        required_scopes=("mission.control",),
+        mutation="controlled",
+        idempotency_required=True,
+        target_resource="mission",
+        audit_event_type="McpToolMutationAccepted",
+        error_codes=(
+            "FORBIDDEN",
+            "SESSION_EXPIRED",
+            "PROVIDER_UNAVAILABLE",
+            "APPROVAL_REQUIRED",
+        ),
+        execution="async",
+        gateway_backed=True,
+    ),
+    McpToolDeclaration(
+        name="dde_memory_recall",
+        version="1.0.0",
+        description=(
+            "Recall approved shared DDE memory for a conversation under a bounded "
+            "token budget. Providers receive excerpts, never R2/database credentials."
+        ),
+        tool_class="AI Memory",
+        input_schema=_object_schema(
+            required=["mission_id", "conversation_id", "query"],
+            properties={
+                "mission_id": _UUID,
+                "conversation_id": _UUID,
+                "query": _STRING,
+                "budget_tokens": {"type": "integer", "minimum": 128, "maximum": 16000},
+            },
+        ),
+        output_schema=_object_schema(
+            required=["memory", "estimated_tokens", "budget_tokens"],
+            properties={
+                "memory": {"type": "array", "items": {"type": "object"}},
+                "estimated_tokens": {"type": "integer"},
+                "budget_tokens": {"type": "integer"},
+            },
+        ),
+        required_scopes=("mission.read",),
+        mutation="none",
+        idempotency_required=False,
+        target_resource="conversation",
+        audit_event_type="McpToolRead",
+        error_codes=("FORBIDDEN", "TENANT_SCOPE_VIOLATION", "SESSION_EXPIRED"),
+        execution="sync",
+        gateway_backed=True,
+    ),
+    McpToolDeclaration(
+        name="dde_memory_propose",
+        version="1.0.0",
+        description=(
+            "Propose advisory shared DDE memory from a provider. The proposal enters "
+            "CANDIDATE state and cannot self-promote to authoritative memory."
+        ),
+        tool_class="AI Memory",
+        input_schema=_object_schema(
+            required=[
+                "mission_id",
+                "conversation_id",
+                "content",
+                "idempotency_key",
+            ],
+            properties={
+                "mission_id": _UUID,
+                "conversation_id": _UUID,
+                "content": _STRING,
+                "scope_kind": {"type": "string", "enum": ["CONVERSATION", "MISSION"]},
+                "source_refs": {"type": "array", "items": _STRING},
+                "provider_profile_id": {"anyOf": [_STRING, {"type": "null"}]},
+                "idempotency_key": _STRING,
+            },
+        ),
+        output_schema=_object_schema(
+            required=["command_id", "status"],
+            properties={
+                "command_id": _UUID,
+                "status": _STRING,
+                "payload": {"type": "object"},
+            },
+        ),
+        required_scopes=("mission.control",),
+        mutation="controlled",
+        idempotency_required=True,
+        target_resource="conversation",
+        audit_event_type="McpToolMutationAccepted",
+        error_codes=("FORBIDDEN", "SESSION_EXPIRED", "POLICY_DENIED"),
+        execution="async",
+        gateway_backed=True,
+    ),
+    McpToolDeclaration(
+        name="dde_fabric_command",
+        version="1.0.0",
+        description="Submit an explicitly registered AI Conversation Fabric command.",
+        tool_class="AI Fabric",
+        input_schema=_object_schema(
+            required=["mission_id", "command_type", "parameters", "idempotency_key"],
+            properties={
+                "mission_id": _UUID,
+                "command_type": _STRING,
+                "parameters": {"type": "object"},
+                "idempotency_key": _STRING,
+            },
+        ),
+        output_schema=_object_schema(
+            required=["command_id", "status"],
+            properties={
+                "command_id": _UUID,
+                "status": _STRING,
+                "payload": {"type": "object"},
+            },
+        ),
+        required_scopes=("mission.control",),
+        mutation="controlled",
+        idempotency_required=True,
+        target_resource="mission",
+        audit_event_type="McpToolMutationAccepted",
+        error_codes=("FORBIDDEN", "SESSION_EXPIRED", "POLICY_DENIED"),
+        execution="async",
+        gateway_backed=True,
+    ),
+)
+FABRIC_TOOL_NAMES: frozenset[str] = frozenset(
+    tool.name for tool in FABRIC_TOOL_DECLARATIONS
+)
+TOOL_DECLARATIONS = (*TOOL_DECLARATIONS, *FABRIC_TOOL_DECLARATIONS)
+
+
 TOOL_BY_NAME: dict[str, McpToolDeclaration] = {
     tool.name: tool for tool in TOOL_DECLARATIONS
 }

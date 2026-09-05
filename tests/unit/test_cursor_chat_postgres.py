@@ -6,11 +6,11 @@ import pytest
 
 from engine.events.service import EventService
 from engine.missions.service import MissionService
-from engine.studio.chat.activity import FrontendChatActivityService
-from engine.studio.chat.attachments import FrontendChatAttachmentService
-from engine.studio.chat.plans import FrontendChatPlanService
-from engine.studio.chat.service import FrontendChatService
-from engine.studio.chat.storage import ChatObjectStore
+from engine.chat.activity import FrontendChatActivityService
+from engine.chat.attachments import FrontendChatAttachmentService
+from engine.chat.plans import FrontendChatPlanService
+from engine.chat.service import FrontendChatService
+from engine.chat.storage import ChatObjectStore
 from tests.support.db import new_engine, seed_tenant
 
 

@@ -11,8 +11,9 @@ from pydantic import BaseModel, ConfigDict
 
 class FrontendChatCheckpoint(BaseModel):
     """
-    DDE-069 conversation/workspace checkpoint for Chat branch/recovery. Distinct from
-    WorkerRun recovery Checkpoint and never substitutes for it.
+    DDE-069 universal DDE Chat checkpoint for conversation/workspace context and
+    branch/recovery. Distinct from WorkerRun recovery Checkpoint and never substitutes
+    for it.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -35,3 +36,4 @@ class FrontendChatCheckpoint(BaseModel):
     created_by: UUID | None = None
     created_at: datetime
     updated_at: datetime
+    conversation_context: dict[str, object] | None = None

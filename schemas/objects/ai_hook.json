@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_hook.json",
+  "title": "AiHook",
+  "description": "Governed conversation/provider/tool lifecycle hook. Hooks propose actions and cannot bypass Gateway authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_hooks",
+    "order": 332,
+    "pk": [
+      "hook_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_hooks_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_hooks_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_hooks_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "ai_hooks_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "hook_id",
+    "tenant_id",
+    "project_id",
+    "name",
+    "event_kind",
+    "action_kind",
+    "condition",
+    "action_payload",
+    "state",
+    "trigger_count",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "hook_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "event_kind": {
+      "type": "string",
+      "enum": [
+        "BEFORE_TURN",
+        "AFTER_TURN",
+        "BEFORE_CONTEXT",
+        "AFTER_CONTEXT",
+        "BEFORE_PROVIDER",
+        "AFTER_PROVIDER",
+        "BEFORE_TOOL",
+        "AFTER_TOOL",
+        "BEFORE_MUTATION",
+        "AFTER_MUTATION",
+        "BEFORE_VERIFICATION",
+        "AFTER_VERIFICATION",
+        "BEFORE_PROMOTION",
+        "BEFORE_COMPACTION",
+        "AFTER_COMPACTION",
+        "SESSION_START",
+        "SESSION_END",
+        "SUBAGENT_START",
+        "SUBAGENT_END"
+      ]
+    },
+    "action_kind": {
+      "type": "string",
+      "enum": [
+        "RECORD_ACTIVITY",
+        "CREATE_CHECKPOINT",
+        "PROPOSE_MEMORY",
+        "PROPOSE_COMMAND",
+        "RUN_SKILL"
+      ]
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "action_payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "PAUSED",
+        "DISABLED"
+      ]
+    },
+    "last_triggered_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "trigger_count": {
+      "type": "integer"
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

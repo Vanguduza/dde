@@ -93,7 +93,9 @@ test.describe("Cursor-class DDE AI Chat", () => {
     await page.getByLabel("Pin context reference").fill("file:src/Checkout.tsx");
     await page.getByRole("button", { name: "Pin" }).click();
     await expect(page.getByTestId("chat-context-panel")).toContainText("file:src/Checkout.tsx");
-    await expect(page.getByTestId("chat-context-panel")).toContainText("512 / 24,000 tokens");
+    await expect(page.getByTestId("chat-managed-token-budget")).toContainText("3,120 / 24,000 tokens");
+    await expect(page.getByTestId("chat-token-allocation")).toContainText("memory 18");
+    await expect(page.getByTestId("chat-context-snapshot")).toContainText("archive R2");
 
     await page.getByTestId("chat-mode-plan").click();
     await page.getByRole("tab", { name: "checkpoints" }).click();

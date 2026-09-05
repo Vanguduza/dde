@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_memory_item.json",
+  "title": "AiMemoryItem",
+  "description": "Scoped provenance-labelled universal DDE memory. Full durable bodies are content-addressed in DDE object storage (R2 when configured); PostgreSQL retains bounded recall preview, scope/trust/index metadata and storage lineage. Provider proposals enter CANDIDATE and never self-promote.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_memory_items",
+    "order": 326,
+    "pk": [
+      "memory_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_memory_items_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_memory_items_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_memory_items_approved_by_fkey",
+        "columns": [
+          "approved_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      },
+      {
+        "name": "ai_memory_items_supersedes_memory_id_fkey",
+        "columns": [
+          "supersedes_memory_id"
+        ],
+        "ref_table": "ai_memory_items",
+        "ref_columns": [
+          "memory_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "memory_id",
+    "tenant_id",
+    "project_id",
+    "scope_kind",
+    "scope_ref",
+    "trust_class",
+    "status",
+    "content",
+    "content_hash",
+    "content_size_bytes",
+    "token_estimate",
+    "storage_backend",
+    "source_type",
+    "source_refs",
+    "metadata",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "memory_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scope_kind": {
+      "type": "string",
+      "enum": [
+        "USER",
+        "ORGANIZATION",
+        "PROJECT",
+        "REPOSITORY",
+        "MISSION",
+        "CONVERSATION",
+        "EPHEMERAL"
+      ]
+    },
+    "scope_ref": {
+      "type": "string"
+    },
+    "trust_class": {
+      "type": "string",
+      "enum": [
+        "AUTHORITY",
+        "DERIVED",
+        "ADVISORY",
+        "UNKNOWN"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "CANDIDATE",
+        "APPROVED",
+        "REJECTED",
+        "SUPERSEDED"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "description": "Bounded inline recall preview. When storage_key is non-null, the verified full body is read from DDE durable object storage."
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "SHA-256 of the full UTF-8 memory body."
+    },
+    "content_size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "token_estimate": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Deterministic ~4 UTF-8 characters/token estimate for allocation telemetry."
+    },
+    "storage_backend": {
+      "type": "string",
+      "enum": [
+        "INLINE",
+        "LOCAL",
+        "R2"
+      ]
+    },
+    "storage_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Scoped content-addressed key for the full body; never a provider credential or raw filesystem path."
+    },
+    "source_type": {
+      "type": "string"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "proposed_by_profile_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approved_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approved_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersedes_memory_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fresh_until": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

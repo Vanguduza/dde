@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_research_artifact.json",
+  "title": "AiResearchArtifact",
+  "description": "Cited deep-research/compare/council artifact with preserved sources, hypotheses and unresolved questions.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_research_artifacts",
+    "order": 330,
+    "pk": [
+      "research_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_research_artifacts_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_research_artifacts_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_research_artifacts_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "ai_research_artifacts_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "ai_research_artifacts_created_from_turn_id_fkey",
+        "columns": [
+          "created_from_turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "research_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "mode",
+    "question",
+    "scope",
+    "state",
+    "source_ledger",
+    "findings",
+    "hypotheses",
+    "unresolved_questions",
+    "result_refs",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "research_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_from_turn_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "DEEP_RESEARCH",
+        "COMPARE",
+        "COUNCIL"
+      ]
+    },
+    "question": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "RESEARCHING",
+        "SYNTHESIZING",
+        "COMPLETED",
+        "BLOCKED",
+        "CANCELLED"
+      ]
+    },
+    "source_ledger": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ResearchSource"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "unresolved_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "ResearchSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_kind",
+        "ref",
+        "authority",
+        "retrieved_at"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string"
+        },
+        "source_kind": {
+          "type": "string",
+          "enum": [
+            "WEB",
+            "FILE",
+            "REPOSITORY",
+            "DDE_TRUTH",
+            "DATABASE",
+            "HUMAN"
+          ]
+        },
+        "ref": {
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authority": {
+          "type": "string",
+          "enum": [
+            "PRIMARY",
+            "SECONDARY",
+            "COMMUNITY",
+            "INTERNAL",
+            "UNKNOWN"
+          ]
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "content_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

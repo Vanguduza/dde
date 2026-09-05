@@ -24,6 +24,16 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.broker.capture import StaticSecretCaptureService
+from engine.chat.activity import FrontendChatActivityService
+from engine.chat.attachments import FrontendChatAttachmentService
+from engine.chat.checkpoints import FrontendChatCheckpointService
+from engine.chat.context_manager import DdeConversationContextManager
+from engine.chat.context_refs import FrontendChatContextService, budget_dict
+from engine.chat.facade import DdeChatCommandFacade
+from engine.chat.models import FrontendChatModelCatalog
+from engine.chat.plans import FrontendChatPlanService
+from engine.chat.service import FrontendChatService
+from engine.chat.workspace_review import FrontendChatWorkspaceReviewService
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
@@ -34,6 +44,9 @@ from engine.core.command_identity import logical_command_hash
 from engine.core.errors import DdeError
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
+from engine.fabric.facade import AiConversationFabricFacade
+from engine.fabric.memory import MemoryService
+from engine.fabric.reads import FabricReadService
 from engine.gateway.scopes import (
     MISSION_CONTROL_TARGETS,
     required_scope,
@@ -51,14 +64,6 @@ from engine.missions.service import MissionService
 from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
 from engine.studio.candidates.service import CandidateService
-from engine.studio.chat.activity import FrontendChatActivityService
-from engine.studio.chat.attachments import FrontendChatAttachmentService
-from engine.studio.chat.checkpoints import FrontendChatCheckpointService
-from engine.studio.chat.context_refs import FrontendChatContextService, budget_dict
-from engine.studio.chat.models import FrontendChatModelCatalog
-from engine.studio.chat.plans import FrontendChatPlanService
-from engine.studio.chat.service import FrontendChatService
-from engine.studio.chat.workspace_review import FrontendChatWorkspaceReviewService
 from engine.studio.frontend import FrontendStudioService
 from engine.studio.inspector import InspectorService
 from engine.studio.preview_runtime.service import PreviewService
@@ -263,7 +268,11 @@ class CommandDispatcher:
             return await self._inspect_opensandbox(command, tenant_id, project_id)
         if command_type == "device.heartbeat":
             return await self._device_heartbeat(command, tenant_id, project_id)
-        if command_type.startswith("frontend."):
+        if (
+            command_type.startswith("frontend.")
+            or command_type.startswith("dde.chat.")
+            or command_type.startswith("dde.fabric.")
+        ):
             return await self._frontend(command, tenant_id, project_id, command_type)
         raise DdeError(
             "FORBIDDEN",
@@ -508,6 +517,52 @@ class CommandDispatcher:
     def _studio(self) -> FrontendStudioService:
         return FrontendStudioService(self._engine)
 
+    async def _dde_chat(
+        self,
+        command: Command,
+        tenant_id: UUID,
+        project_id: UUID,
+        command_type: str,
+    ) -> CommandAcceptance:
+        payload = await DdeChatCommandFacade(self._engine).execute(
+            command_type=command_type,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=command.target_id,
+            principal_id=command.principal_id,
+            parameters=command.parameters,
+        )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="mission",
+            target_id=command.target_id,
+            payload=payload,
+        )
+
+    async def _dde_fabric(
+        self,
+        command: Command,
+        tenant_id: UUID,
+        project_id: UUID,
+        command_type: str,
+    ) -> CommandAcceptance:
+        payload = await AiConversationFabricFacade(self._engine).execute(
+            command_type=command_type,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=command.target_id,
+            principal_id=command.principal_id,
+            parameters=command.parameters,
+        )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type="mission",
+            target_id=command.target_id,
+            payload=payload,
+        )
+
     async def _frontend(
         self,
         command: Command,
@@ -521,7 +576,16 @@ class CommandDispatcher:
         params = command.parameters
         mission_id = command.target_id
         key = command.idempotency_key
-        if command_type == "frontend.intake.compile_prompt":
+        if command_type.startswith("frontend.fabric."):
+            payload = await AiConversationFabricFacade(self._engine).execute(
+                command_type=command_type,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.intake.compile_prompt":
             payload = await studio.compile_prompt(parameters=params)
         elif command_type == "frontend.donors.run_discovery":
             payload = await studio.run_discovery(
@@ -1255,7 +1319,92 @@ class GatewayCommandService:
             refs=refs,
             budget_tokens=budget_tokens,
         )
-        return budget_dict(result)
+        payload = budget_dict(result)
+        chat = FrontendChatService(self._engine)
+        history = await chat.history(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        latest_context: dict[str, object] = {}
+        if history:
+            raw = history[-1].resolved_context
+            if isinstance(raw, dict):
+                latest_context = raw
+        latest_snapshot = await FabricReadService(self._engine).context.latest(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        payload.update(
+            {
+                "allocation": latest_context.get("token_management"),
+                "memory_context": latest_context.get("memory_context", []),
+                "history_context": latest_context.get("history_context", []),
+                "history_summary": latest_context.get("history_summary"),
+                "managed_omitted_refs": latest_context.get("context_omitted_refs", []),
+                "managed_omission_reasons": latest_context.get(
+                    "context_omission_reasons", {}
+                ),
+                "context_snapshot": (
+                    latest_snapshot.model_dump(mode="json")
+                    if latest_snapshot is not None
+                    else None
+                ),
+            }
+        )
+        return payload
+
+    async def read_dde_chat_memory_recall(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+        query: str,
+        budget_tokens: int = 4_000,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        conversation = await FrontendChatService(self._engine).get_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        recall = await MemoryService(self._engine).recall(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            query=query,
+            scopes=DdeConversationContextManager._memory_scopes(conversation),
+            budget_tokens=budget_tokens,
+        )
+        return {
+            "memory": [
+                {
+                    "memory_id": str(item.memory_id),
+                    "scope_kind": item.scope_kind,
+                    "scope_ref": item.scope_ref,
+                    "trust_class": item.trust_class,
+                    "source_type": item.source_type,
+                    "text": item.text,
+                    "estimated_tokens": item.estimated_tokens,
+                    "score": item.score,
+                    "truncated": item.truncated,
+                    "source_refs": list(item.source_refs),
+                }
+                for item in recall.items
+            ],
+            "estimated_tokens": recall.estimated_tokens,
+            "budget_tokens": recall.budget_tokens,
+            "considered": recall.considered,
+            "omitted_memory_ids": [str(item) for item in recall.omitted_memory_ids],
+        }
 
     async def complete_frontend_chat_attachment_upload(
         self,
@@ -1340,6 +1489,95 @@ class GatewayCommandService:
             conversation_id=conversation_id,
         )
         return session, mission
+
+    async def read_frontend_fabric_snapshot(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID | None = None,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        if conversation_id is not None:
+            await FrontendChatService(self._engine).get_conversation(
+                tenant_id=session.tenant_id,
+                project_id=mission.project_id,
+                mission_id=mission_id,
+                conversation_id=conversation_id,
+            )
+        return await FabricReadService(self._engine).project_snapshot(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+
+    async def read_frontend_fabric_memory(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        scope_kind: str,
+        scope_ref: str,
+        status: str | None = None,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        rows = await FabricReadService(self._engine).memory_scope(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            scope_kind=scope_kind,
+            scope_ref=scope_ref,
+            status=status,
+        )
+        return {"memory": rows}
+
+    async def read_frontend_fabric_claims(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID, turn_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        rows = await FabricReadService(self._engine).claims_for_turn(
+            tenant_id=session.tenant_id, project_id=mission.project_id, turn_id=turn_id
+        )
+        return {"claims": rows}
+
+    async def read_frontend_fabric_experience(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        task_id: UUID | None = None,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        rows = await FabricReadService(self._engine).experience_records(
+            tenant_id=session.tenant_id, project_id=mission.project_id, task_id=task_id
+        )
+        return {"experience": rows}
+
+    async def read_frontend_fabric_insights(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        state: str | None = None,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        rows = await FabricReadService(self._engine).routing_insights(
+            tenant_id=session.tenant_id, project_id=mission.project_id, state=state
+        )
+        return {"insights": rows}
 
     async def read_frontend_preview(
         self,

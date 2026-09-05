@@ -486,43 +486,6 @@ CREATE TABLE routing_simulation_runs (
     PRIMARY KEY (run_id)
 );
 
-CREATE TABLE experience_records (
-    experience_id uuid NOT NULL,
-    tenant_id uuid NOT NULL,
-    project_id uuid NOT NULL,
-    mission_id uuid,
-    task_id uuid,
-    route_decision_id uuid,
-    task_attempt_id uuid,
-    verification_run_id uuid,
-    routing_simulation_run_id uuid,
-    outcome_id uuid,
-    experience_origin text NOT NULL,
-    routing_policy_version text NOT NULL,
-    candidate_set_hash text NOT NULL,
-    selection_propensity numeric NOT NULL,
-    prediction_vector jsonb NOT NULL DEFAULT '{}'::jsonb,
-    observed_outcome_vector jsonb NOT NULL DEFAULT '{}'::jsonb,
-    verification_confidence numeric NOT NULL,
-    failure_attribution text NOT NULL,
-    attribution_confidence numeric NOT NULL,
-    holdout_partition text NOT NULL,
-    promotion_evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
-    drift_snapshot_id uuid,
-    learning_run_id uuid,
-    eligible_for_routing_training boolean NOT NULL,
-    eligibility_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
-    down_weighted boolean NOT NULL,
-    promotion_state text NOT NULL,
-    created_at timestamptz NOT NULL,
-    updated_at timestamptz NOT NULL,
-    PRIMARY KEY (experience_id),
-    UNIQUE (verification_run_id),
-    UNIQUE (routing_simulation_run_id),
-    CHECK ((experience_origin <> 'simulation' OR eligible_for_routing_training = false)),
-    CHECK (((experience_origin = 'real' AND verification_run_id IS NOT NULL) OR (experience_origin = 'simulation' AND routing_simulation_run_id IS NOT NULL)))
-);
-
 CREATE TABLE learned_routing_policies (
     policy_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1462,6 +1425,107 @@ CREATE TABLE audit_events (
     PRIMARY KEY (audit_event_id)
 );
 
+CREATE TABLE ai_conversation_policies (
+    policy_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    name text NOT NULL,
+    reasoning_effort text NOT NULL,
+    permission_profile text NOT NULL,
+    toolset_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    allowed_capability_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    denied_capability_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    fallback_chain jsonb NOT NULL DEFAULT '[]'::jsonb,
+    max_turns integer,
+    context_token_budget integer NOT NULL,
+    cost_budget_usd numeric,
+    quality_priority integer NOT NULL,
+    latency_priority integer NOT NULL,
+    independent_review_required boolean NOT NULL,
+    created_by uuid,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (policy_id),
+    UNIQUE (project_id, name),
+    CHECK (context_token_budget > 0),
+    CHECK (quality_priority BETWEEN 0 AND 100 AND latency_priority BETWEEN 0 AND 100)
+);
+
+CREATE TABLE agent_interop_endpoints (
+    endpoint_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    harness_id text NOT NULL,
+    protocol text NOT NULL,
+    executable_or_uri text NOT NULL,
+    installation_version text,
+    discovery_state text NOT NULL,
+    certification_state text NOT NULL,
+    discovered_capabilities jsonb NOT NULL DEFAULT '{}'::jsonb,
+    certified_capabilities jsonb NOT NULL DEFAULT '{}'::jsonb,
+    certification_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    health_state text NOT NULL,
+    config_hash text,
+    last_probe_at timestamptz,
+    last_error text,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (endpoint_id),
+    UNIQUE (project_id, harness_id, protocol, executable_or_uri)
+);
+
+CREATE TABLE worker_sessions (
+    worker_session_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    task_id uuid,
+    endpoint_id uuid NOT NULL,
+    worker_profile_id text,
+    provider_session_ref text,
+    requested_model_id text,
+    serving_model_id text,
+    workspace_id uuid,
+    state text NOT NULL,
+    capability_snapshot jsonb NOT NULL DEFAULT '{}'::jsonb,
+    context_package_hash text,
+    tool_policy_hash text,
+    session_config_hash text NOT NULL,
+    parent_session_id uuid,
+    forked_from_session_id uuid,
+    last_error text,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    last_activity_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (worker_session_id)
+);
+
+CREATE TABLE provider_capacity_snapshots (
+    snapshot_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    endpoint_id uuid NOT NULL,
+    provider_id text NOT NULL,
+    state text NOT NULL,
+    reset_at timestamptz,
+    reset_source text,
+    confidence numeric NOT NULL,
+    active_concurrency integer,
+    max_concurrency integer,
+    latency_ms integer,
+    recent_failures integer NOT NULL,
+    input_cost_per_million numeric,
+    output_cost_per_million numeric,
+    quota_metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    observed_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (snapshot_id)
+);
+
 CREATE TABLE frontend_contracts (
     contract_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -1673,9 +1737,17 @@ CREATE TABLE frontend_conversations (
     lock_version integer NOT NULL DEFAULT 1,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
+    policy_id uuid,
+    active_worker_session_id uuid,
+    context_domain text,
+    active_task_id uuid,
+    active_worker_run_id uuid,
+    active_verification_run_id uuid,
+    active_artifact_ref text,
     PRIMARY KEY (conversation_id),
     CHECK (status IN ('OPEN', 'ARCHIVED')),
-    CHECK (mode IN ('ASK', 'PLAN', 'EXECUTE'))
+    CHECK (mode IN ('ASK', 'PLAN', 'EXECUTE')),
+    CHECK (context_domain IS NULL OR context_domain IN ('DDE','MISSION','TASK','FRONTEND_STUDIO','QUALITY','RESEARCH','DECISIONS','FLEET','EVIDENCE'))
 );
 
 CREATE TABLE frontend_conversation_turns (
@@ -1853,6 +1925,7 @@ CREATE TABLE frontend_chat_checkpoints (
     created_by uuid,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
+    conversation_context jsonb,
     PRIMARY KEY (checkpoint_id)
 );
 
@@ -1875,6 +1948,265 @@ CREATE TABLE frontend_chat_change_reviews (
     PRIMARY KEY (review_id),
     UNIQUE (conversation_id, workspace_id, path, diff_hash),
     CHECK (decision IN ('PENDING','ACCEPTED','REVERTED'))
+);
+
+CREATE TABLE ai_provider_invocations (
+    invocation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    turn_id uuid,
+    worker_session_id uuid,
+    endpoint_id uuid NOT NULL,
+    fallback_parent_id uuid,
+    requested_profile_id text,
+    requested_model_id text,
+    serving_model_id text,
+    reasoning_effort text NOT NULL,
+    state text NOT NULL,
+    prompt_hash text NOT NULL,
+    context_hash text NOT NULL,
+    policy_hash text NOT NULL,
+    approval_id uuid,
+    worker_run_id uuid,
+    input_tokens integer,
+    output_tokens integer,
+    cache_tokens integer,
+    reasoning_tokens integer,
+    cost_usd numeric,
+    latency_ms integer,
+    result_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    error_code text,
+    error_detail text,
+    created_at timestamptz NOT NULL,
+    started_at timestamptz,
+    completed_at timestamptz,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (invocation_id)
+);
+
+CREATE TABLE ai_memory_items (
+    memory_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    scope_kind text NOT NULL,
+    scope_ref text NOT NULL,
+    trust_class text NOT NULL,
+    status text NOT NULL,
+    content text NOT NULL,
+    content_hash text NOT NULL,
+    content_size_bytes integer NOT NULL,
+    token_estimate integer NOT NULL,
+    storage_backend text NOT NULL,
+    storage_key text,
+    source_type text NOT NULL,
+    source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    proposed_by_profile_id text,
+    approved_by uuid,
+    approved_at timestamptz,
+    supersedes_memory_id uuid,
+    fresh_until timestamptz,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (memory_id)
+);
+
+CREATE TABLE ai_context_snapshots (
+    context_snapshot_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    turn_id uuid,
+    predecessor_snapshot_id uuid,
+    reason text NOT NULL,
+    summary text,
+    retained_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    omitted_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    omission_reasons jsonb NOT NULL DEFAULT '{}'::jsonb,
+    item_manifest jsonb NOT NULL DEFAULT '[]'::jsonb,
+    estimated_tokens integer NOT NULL,
+    budget_tokens integer NOT NULL,
+    context_hash text NOT NULL,
+    archive_storage_backend text,
+    archive_storage_key text,
+    archive_hash text,
+    archive_size_bytes integer,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (context_snapshot_id)
+);
+
+CREATE TABLE ai_skills (
+    skill_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    slug text NOT NULL,
+    version text NOT NULL,
+    title text NOT NULL,
+    description text NOT NULL,
+    instructions text NOT NULL,
+    source_kind text NOT NULL,
+    source_ref text,
+    provenance_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    license text,
+    manifest_hash text NOT NULL,
+    required_capability_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    toolset_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    evaluation_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    certified_by uuid,
+    certified_at timestamptz,
+    parent_skill_id uuid,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (skill_id),
+    UNIQUE (project_id, slug, version)
+);
+
+CREATE TABLE ai_agent_teams (
+    team_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    mission_id uuid,
+    strategy text NOT NULL,
+    state text NOT NULL,
+    manager_profile_id text,
+    max_depth integer NOT NULL,
+    max_children integer NOT NULL,
+    aggregate_budget jsonb NOT NULL DEFAULT '{}'::jsonb,
+    members jsonb NOT NULL DEFAULT '[]'::jsonb,
+    result_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (team_id)
+);
+
+CREATE TABLE ai_research_artifacts (
+    research_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    mission_id uuid,
+    created_from_turn_id uuid,
+    mode text NOT NULL,
+    question text NOT NULL,
+    scope jsonb NOT NULL DEFAULT '{}'::jsonb,
+    state text NOT NULL,
+    source_ledger jsonb NOT NULL DEFAULT '[]'::jsonb,
+    findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    hypotheses jsonb NOT NULL DEFAULT '[]'::jsonb,
+    unresolved_questions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    confidence numeric,
+    result_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (research_id)
+);
+
+CREATE TABLE ai_automations (
+    automation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    mission_id uuid,
+    name text NOT NULL,
+    schedule_kind text NOT NULL,
+    schedule_expression text NOT NULL,
+    timezone text NOT NULL,
+    action_kind text NOT NULL,
+    action_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    state text NOT NULL,
+    next_run_at timestamptz,
+    last_run_at timestamptz,
+    last_result_ref text,
+    run_count integer NOT NULL,
+    created_by uuid,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (automation_id)
+);
+
+CREATE TABLE ai_hooks (
+    hook_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid,
+    name text NOT NULL,
+    event_kind text NOT NULL,
+    action_kind text NOT NULL,
+    condition jsonb NOT NULL DEFAULT '{}'::jsonb,
+    action_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    state text NOT NULL,
+    last_triggered_at timestamptz,
+    trigger_count integer NOT NULL,
+    created_by uuid,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (hook_id)
+);
+
+CREATE TABLE ai_claims (
+    claim_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    turn_id uuid NOT NULL,
+    claim_text text NOT NULL,
+    epistemic_class text NOT NULL,
+    confidence numeric,
+    source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    verification_state text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (claim_id)
+);
+
+CREATE TABLE experience_records (
+    experience_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    task_id uuid,
+    worker_run_id uuid,
+    worker_session_id uuid,
+    task_signature jsonb NOT NULL DEFAULT '{}'::jsonb,
+    worker_configuration jsonb NOT NULL DEFAULT '{}'::jsonb,
+    outcome jsonb NOT NULL DEFAULT '{}'::jsonb,
+    economics jsonb NOT NULL DEFAULT '{}'::jsonb,
+    failure_signatures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    verification_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    authority_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (experience_id)
+);
+
+CREATE TABLE routing_insight_candidates (
+    insight_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    source_kind text NOT NULL,
+    source_ref text NOT NULL,
+    proposal jsonb NOT NULL DEFAULT '{}'::jsonb,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    confidence numeric NOT NULL,
+    state text NOT NULL,
+    evaluation_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    promoted_policy_ref text,
+    promoted_by uuid,
+    promoted_at timestamptz,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (insight_id)
 );
 
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
@@ -1981,13 +2313,6 @@ ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_f
 
 ALTER TABLE routing_simulation_runs ADD CONSTRAINT routing_simulation_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE routing_simulation_runs ADD CONSTRAINT routing_simulation_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_route_decision_id_fkey FOREIGN KEY (route_decision_id) REFERENCES route_decisions (decision_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_verification_run_id_fkey FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_routing_simulation_run_id_fkey FOREIGN KEY (routing_simulation_run_id) REFERENCES routing_simulation_runs (run_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_outcome_id_fkey FOREIGN KEY (outcome_id) REFERENCES routing_decision_outcomes (outcome_id);
 
 ALTER TABLE learned_routing_policies ADD CONSTRAINT learned_routing_policies_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE learned_routing_policies ADD CONSTRAINT learned_routing_policies_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -2203,6 +2528,26 @@ ALTER TABLE command_idempotency ADD CONSTRAINT command_idempotency_project_id_fk
 ALTER TABLE audit_events ADD CONSTRAINT audit_events_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE audit_events ADD CONSTRAINT audit_events_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
+ALTER TABLE ai_conversation_policies ADD CONSTRAINT ai_conversation_policies_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_conversation_policies ADD CONSTRAINT ai_conversation_policies_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_conversation_policies ADD CONSTRAINT ai_conversation_policies_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+
+ALTER TABLE agent_interop_endpoints ADD CONSTRAINT agent_interop_endpoints_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE agent_interop_endpoints ADD CONSTRAINT agent_interop_endpoints_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_endpoint_id_fkey FOREIGN KEY (endpoint_id) REFERENCES agent_interop_endpoints (endpoint_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_parent_session_id_fkey FOREIGN KEY (parent_session_id) REFERENCES worker_sessions (worker_session_id);
+ALTER TABLE worker_sessions ADD CONSTRAINT worker_sessions_forked_from_session_id_fkey FOREIGN KEY (forked_from_session_id) REFERENCES worker_sessions (worker_session_id);
+
+ALTER TABLE provider_capacity_snapshots ADD CONSTRAINT provider_capacity_snapshots_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE provider_capacity_snapshots ADD CONSTRAINT provider_capacity_snapshots_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE provider_capacity_snapshots ADD CONSTRAINT provider_capacity_snapshots_endpoint_id_fkey FOREIGN KEY (endpoint_id) REFERENCES agent_interop_endpoints (endpoint_id);
+
 ALTER TABLE frontend_contracts ADD CONSTRAINT frontend_contracts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE frontend_contracts ADD CONSTRAINT frontend_contracts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_contracts ADD CONSTRAINT frontend_contracts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
@@ -2245,6 +2590,11 @@ ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_parent_
 ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_branched_from_turn_id_fkey FOREIGN KEY (branched_from_turn_id) REFERENCES frontend_conversation_turns (turn_id);
 ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
 ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_plan_id_fkey FOREIGN KEY (active_plan_id) REFERENCES frontend_chat_plans (plan_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES ai_conversation_policies (policy_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_worker_session_id_fkey FOREIGN KEY (active_worker_session_id) REFERENCES worker_sessions (worker_session_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_task_id_fkey FOREIGN KEY (active_task_id) REFERENCES tasks (task_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_worker_run_id_fkey FOREIGN KEY (active_worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_verification_run_id_fkey FOREIGN KEY (active_verification_run_id) REFERENCES verification_runs (verification_run_id);
 
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -2299,6 +2649,70 @@ ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_rev
 ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
 ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
 ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES principals (principal_id);
+
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES frontend_conversation_turns (turn_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_worker_session_id_fkey FOREIGN KEY (worker_session_id) REFERENCES worker_sessions (worker_session_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_endpoint_id_fkey FOREIGN KEY (endpoint_id) REFERENCES agent_interop_endpoints (endpoint_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_fallback_parent_id_fkey FOREIGN KEY (fallback_parent_id) REFERENCES ai_provider_invocations (invocation_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_approval_id_fkey FOREIGN KEY (approval_id) REFERENCES approvals (approval_id);
+ALTER TABLE ai_provider_invocations ADD CONSTRAINT ai_provider_invocations_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+
+ALTER TABLE ai_memory_items ADD CONSTRAINT ai_memory_items_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_memory_items ADD CONSTRAINT ai_memory_items_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_memory_items ADD CONSTRAINT ai_memory_items_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES principals (principal_id);
+ALTER TABLE ai_memory_items ADD CONSTRAINT ai_memory_items_supersedes_memory_id_fkey FOREIGN KEY (supersedes_memory_id) REFERENCES ai_memory_items (memory_id);
+
+ALTER TABLE ai_context_snapshots ADD CONSTRAINT ai_context_snapshots_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_context_snapshots ADD CONSTRAINT ai_context_snapshots_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_context_snapshots ADD CONSTRAINT ai_context_snapshots_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_context_snapshots ADD CONSTRAINT ai_context_snapshots_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES frontend_conversation_turns (turn_id);
+ALTER TABLE ai_context_snapshots ADD CONSTRAINT ai_context_snapshots_predecessor_snapshot_id_fkey FOREIGN KEY (predecessor_snapshot_id) REFERENCES ai_context_snapshots (context_snapshot_id);
+
+ALTER TABLE ai_skills ADD CONSTRAINT ai_skills_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_skills ADD CONSTRAINT ai_skills_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_skills ADD CONSTRAINT ai_skills_certified_by_fkey FOREIGN KEY (certified_by) REFERENCES principals (principal_id);
+ALTER TABLE ai_skills ADD CONSTRAINT ai_skills_parent_skill_id_fkey FOREIGN KEY (parent_skill_id) REFERENCES ai_skills (skill_id);
+
+ALTER TABLE ai_agent_teams ADD CONSTRAINT ai_agent_teams_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_agent_teams ADD CONSTRAINT ai_agent_teams_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_agent_teams ADD CONSTRAINT ai_agent_teams_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_agent_teams ADD CONSTRAINT ai_agent_teams_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE ai_research_artifacts ADD CONSTRAINT ai_research_artifacts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_research_artifacts ADD CONSTRAINT ai_research_artifacts_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_research_artifacts ADD CONSTRAINT ai_research_artifacts_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_research_artifacts ADD CONSTRAINT ai_research_artifacts_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE ai_research_artifacts ADD CONSTRAINT ai_research_artifacts_created_from_turn_id_fkey FOREIGN KEY (created_from_turn_id) REFERENCES frontend_conversation_turns (turn_id);
+
+ALTER TABLE ai_automations ADD CONSTRAINT ai_automations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_automations ADD CONSTRAINT ai_automations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_automations ADD CONSTRAINT ai_automations_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_automations ADD CONSTRAINT ai_automations_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE ai_automations ADD CONSTRAINT ai_automations_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+
+ALTER TABLE ai_hooks ADD CONSTRAINT ai_hooks_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_hooks ADD CONSTRAINT ai_hooks_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_hooks ADD CONSTRAINT ai_hooks_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_hooks ADD CONSTRAINT ai_hooks_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+
+ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES frontend_conversation_turns (turn_id);
+
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_worker_session_id_fkey FOREIGN KEY (worker_session_id) REFERENCES worker_sessions (worker_session_id);
+
+ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_promoted_by_fkey FOREIGN KEY (promoted_by) REFERENCES principals (principal_id);
 
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
@@ -2403,10 +2817,6 @@ CREATE POLICY routing_decision_outcomes_tenant_isolation ON routing_decision_out
 ALTER TABLE routing_simulation_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routing_simulation_runs FORCE ROW LEVEL SECURITY;
 CREATE POLICY routing_simulation_runs_tenant_isolation ON routing_simulation_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
-
-ALTER TABLE experience_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE experience_records FORCE ROW LEVEL SECURITY;
-CREATE POLICY experience_records_tenant_isolation ON experience_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE learned_routing_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learned_routing_policies FORCE ROW LEVEL SECURITY;
@@ -2580,6 +2990,22 @@ ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
 CREATE POLICY audit_events_tenant_isolation ON audit_events USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid));
 
+ALTER TABLE ai_conversation_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_conversation_policies FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_conversation_policies_tenant_isolation ON ai_conversation_policies USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE agent_interop_endpoints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_interop_endpoints FORCE ROW LEVEL SECURITY;
+CREATE POLICY agent_interop_endpoints_tenant_isolation ON agent_interop_endpoints USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE worker_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE worker_sessions FORCE ROW LEVEL SECURITY;
+CREATE POLICY worker_sessions_tenant_isolation ON worker_sessions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE provider_capacity_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_capacity_snapshots FORCE ROW LEVEL SECURITY;
+CREATE POLICY provider_capacity_snapshots_tenant_isolation ON provider_capacity_snapshots USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
 ALTER TABLE frontend_contracts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_contracts FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_contracts_tenant_isolation ON frontend_contracts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
@@ -2651,3 +3077,47 @@ CREATE POLICY frontend_chat_checkpoints_tenant_isolation ON frontend_chat_checkp
 ALTER TABLE frontend_chat_change_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_chat_change_reviews FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_chat_change_reviews_tenant_isolation ON frontend_chat_change_reviews USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_provider_invocations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_provider_invocations FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_provider_invocations_tenant_isolation ON ai_provider_invocations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_memory_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_memory_items FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_memory_items_tenant_isolation ON ai_memory_items USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_context_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_context_snapshots FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_context_snapshots_tenant_isolation ON ai_context_snapshots USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_skills FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_skills_tenant_isolation ON ai_skills USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_agent_teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_agent_teams FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_agent_teams_tenant_isolation ON ai_agent_teams USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_research_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_research_artifacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_research_artifacts_tenant_isolation ON ai_research_artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_automations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_automations FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_automations_tenant_isolation ON ai_automations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_hooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_hooks FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_hooks_tenant_isolation ON ai_hooks USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE ai_claims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_claims FORCE ROW LEVEL SECURITY;
+CREATE POLICY ai_claims_tenant_isolation ON ai_claims USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE experience_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE experience_records FORCE ROW LEVEL SECURITY;
+CREATE POLICY experience_records_tenant_isolation ON experience_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE routing_insight_candidates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE routing_insight_candidates FORCE ROW LEVEL SECURITY;
+CREATE POLICY routing_insight_candidates_tenant_isolation ON routing_insight_candidates USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

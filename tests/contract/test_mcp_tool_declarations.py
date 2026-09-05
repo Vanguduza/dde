@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from interfaces.mcp.registry import (
     CHAPTER_15_6_TOOL_NAMES,
+    FABRIC_TOOL_NAMES,
     TOOL_BY_NAME,
     TOOL_DECLARATIONS,
     McpToolDeclaration,
@@ -35,7 +36,8 @@ _REQUIRED_METADATA = (
 
 def test_every_chapter_15_6_tool_is_declared() -> None:
     declared = {tool.name for tool in TOOL_DECLARATIONS}
-    assert declared == CHAPTER_15_6_TOOL_NAMES
+    assert declared - FABRIC_TOOL_NAMES == CHAPTER_15_6_TOOL_NAMES
+    assert FABRIC_TOOL_NAMES <= declared
 
 
 def test_tool_names_are_unique() -> None:

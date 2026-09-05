@@ -229,6 +229,15 @@ export interface FrontendChatConversation {
   readonly modelProfileId: string | null;
   readonly activeWorkspaceId: string | null;
   readonly activePlanId: string | null;
+  readonly policyId: string | null;
+  readonly activeWorkerSessionId: string | null;
+  readonly contextDomain:
+    | "DDE" | "MISSION" | "TASK" | "FRONTEND_STUDIO" | "QUALITY"
+    | "RESEARCH" | "DECISIONS" | "FLEET" | "EVIDENCE" | null;
+  readonly activeTaskId: string | null;
+  readonly activeWorkerRunId: string | null;
+  readonly activeVerificationRunId: string | null;
+  readonly activeArtifactRef: string | null;
   readonly parentConversationId: string | null;
   readonly branchedFromTurnId: string | null;
   readonly pinnedContextRefs: readonly string[];
@@ -238,6 +247,10 @@ export interface FrontendChatConversation {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
+
+/** Canonical name; FrontendChatConversation remains a wire compatibility alias. */
+export type DdeChatConversation = FrontendChatConversation;
+export type DdeChatMode = FrontendChatMode;
 
 export interface FrontendChatTurn {
   readonly turnId: string;
@@ -375,6 +388,40 @@ export interface FrontendChatModelOption {
   readonly capabilities: readonly string[];
 }
 
+export interface FrontendChatTokenAllocation {
+  readonly budgetTokens: number;
+  readonly usedTokens: number;
+  readonly utilization: number;
+  readonly promptTokens: number;
+  readonly liveContextTokens: number;
+  readonly systemReserveTokens: number;
+}
+
+export interface FrontendChatMemoryContextItem {
+  readonly memoryId: string;
+  readonly scopeKind: string;
+  readonly scopeRef: string;
+  readonly trustClass: string;
+  readonly sourceType: string;
+  readonly text: string;
+  readonly estimatedTokens: number;
+  readonly score: number;
+  readonly truncated: boolean;
+  readonly storageBackend: string;
+  readonly sourceRefs: readonly string[];
+}
+
+export interface FrontendChatContextSnapshotProjection {
+  readonly contextSnapshotId: string;
+  readonly reason: string;
+  readonly estimatedTokens: number;
+  readonly budgetTokens: number;
+  readonly archiveStorageBackend: string | null;
+  readonly archiveStorageKey: string | null;
+  readonly archiveHash: string | null;
+  readonly archiveSizeBytes: number | null;
+}
+
 export interface FrontendChatContextBudget {
   readonly estimatedTokens: number;
   readonly budgetTokens: number;
@@ -382,6 +429,13 @@ export interface FrontendChatContextBudget {
   readonly omittedRefs: readonly string[];
   readonly omissionReasons: Readonly<Record<string, string>>;
   readonly items: readonly Readonly<Record<string, unknown>>[];
+  readonly allocation?: FrontendChatTokenAllocation | null;
+  readonly memoryContext?: readonly FrontendChatMemoryContextItem[];
+  readonly historyContext?: readonly Readonly<Record<string, unknown>>[];
+  readonly historySummary?: string | null;
+  readonly managedOmittedRefs?: readonly string[];
+  readonly managedOmissionReasons?: Readonly<Record<string, string>>;
+  readonly contextSnapshot?: FrontendChatContextSnapshotProjection | null;
 }
 
 export interface FrontendHostContext {

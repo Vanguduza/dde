@@ -16,6 +16,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.frontend_mutation import FrontendMutation
+from engine.fabric.lifecycle import FabricLifecycleService
 from engine.studio.mutations.executor import MutationExecutor, MutationOutcome
 from engine.studio.mutations.planner import MutationRequest
 from engine.studio.preview_runtime.service import PreviewService
@@ -52,6 +53,7 @@ class GovernedMutationService:
         executor: MutationExecutor | None = None,
         previews: PreviewService | None = None,
         verification_requests: CandidateVerificationRequestService | None = None,
+        lifecycle: FabricLifecycleService | None = None,
     ) -> None:
         self._engine = engine
         self._executor = executor or MutationExecutor(engine)
@@ -60,6 +62,7 @@ class GovernedMutationService:
             verification_requests
             or CandidateVerificationRequestService(engine, mutations=self._executor)
         )
+        self._lifecycle = lifecycle or FabricLifecycleService(engine)
 
     async def apply(
         self,
@@ -70,7 +73,22 @@ class GovernedMutationService:
         requests: list[MutationRequest],
         contract_version: int | None = None,
         design_system_hash: str | None = None,
+        conversation_id: UUID | None = None,
+        principal_id: UUID | None = None,
     ) -> GovernedMutationOutcome:
+        context = {
+            "candidate_id": str(candidate_id),
+            "request_count": len(requests),
+            "operations": [request.operation for request in requests],
+        }
+        await self._lifecycle.emit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_kind="BEFORE_MUTATION",
+            context=context,
+            conversation_id=conversation_id,
+            principal_id=principal_id,
+        )
         mutation = await self._executor.apply(
             tenant_id=tenant_id,
             project_id=project_id,
@@ -87,6 +105,19 @@ class GovernedMutationService:
                 project_id=project_id,
                 candidate_id=candidate_id,
             )
+        await self._lifecycle.emit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_kind="AFTER_MUTATION",
+            context={
+                **context,
+                "applied_count": len(mutation.applied),
+                "refused_count": len(mutation.refused),
+                "mutation_ids": [str(item.mutation_id) for item in mutation.applied],
+            },
+            conversation_id=conversation_id,
+            principal_id=principal_id,
+        )
         return GovernedMutationOutcome(mutation, invalidated, superseded)
 
     async def revert(
@@ -96,7 +127,21 @@ class GovernedMutationService:
         project_id: UUID,
         candidate_id: UUID,
         mutation_id: UUID,
+        conversation_id: UUID | None = None,
+        principal_id: UUID | None = None,
     ) -> GovernedRevertOutcome:
+        context: dict[str, object] = {
+            "candidate_id": str(candidate_id),
+            "revert_mutation_id": str(mutation_id),
+        }
+        await self._lifecycle.emit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_kind="BEFORE_MUTATION",
+            context=context,
+            conversation_id=conversation_id,
+            principal_id=principal_id,
+        )
         compensating = await self._executor.revert(
             tenant_id=tenant_id,
             project_id=project_id,
@@ -107,6 +152,17 @@ class GovernedMutationService:
             tenant_id=tenant_id,
             project_id=project_id,
             candidate_id=candidate_id,
+        )
+        await self._lifecycle.emit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_kind="AFTER_MUTATION",
+            context={
+                **context,
+                "compensating_mutation_id": str(compensating.mutation_id),
+            },
+            conversation_id=conversation_id,
+            principal_id=principal_id,
         )
         return GovernedRevertOutcome(compensating, invalidated, superseded)
 

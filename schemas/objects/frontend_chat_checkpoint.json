@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/frontend_chat_checkpoint.json",
   "title": "FrontendChatCheckpoint",
-  "description": "DDE-069 conversation/workspace checkpoint for Chat branch/recovery. Distinct from WorkerRun recovery Checkpoint and never substitutes for it.",
+  "description": "DDE-069 universal DDE Chat checkpoint for conversation/workspace context and branch/recovery. Distinct from WorkerRun recovery Checkpoint and never substitutes for it.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
@@ -214,6 +214,18 @@
     "updated_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "conversation_context": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Full DDE conversation focus at checkpoint time: domain, mission/task/workspace/worker/verification/artifact and optional workspace-adapter context."
     }
   }
 }

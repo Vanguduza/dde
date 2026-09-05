@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_automation.json",
+  "title": "AiAutomation",
+  "description": "Durable one-time/interval/cron/condition DDE conversation automation. Due work re-enters governed commands.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_automations",
+    "order": 331,
+    "pk": [
+      "automation_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_automations_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_automations_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_automations_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "ai_automations_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "ai_automations_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "automation_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "name",
+    "schedule_kind",
+    "schedule_expression",
+    "timezone",
+    "action_kind",
+    "action_payload",
+    "state",
+    "run_count",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "automation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "schedule_kind": {
+      "type": "string",
+      "enum": [
+        "ONCE",
+        "INTERVAL",
+        "CRON",
+        "CONDITION"
+      ]
+    },
+    "schedule_expression": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "action_kind": {
+      "type": "string",
+      "enum": [
+        "CHAT_PROMPT",
+        "COMMAND",
+        "VERIFICATION",
+        "SCREEN_AUDIT",
+        "RESEARCH"
+      ]
+    },
+    "action_payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "PAUSED",
+        "COMPLETED",
+        "CANCELLED",
+        "BLOCKED"
+      ]
+    },
+    "next_run_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_run_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_result_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run_count": {
+      "type": "integer"
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

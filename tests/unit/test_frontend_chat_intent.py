@@ -8,7 +8,7 @@ guessing in a design tool silently changes the user's work.
 
 from __future__ import annotations
 
-from engine.studio.chat.intent import (
+from engine.chat.intent import (
     DESIGN_INTENTS,
     ChatContext,
     Intent,

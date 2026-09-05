@@ -1,0 +1,381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_provider_invocation.json",
+  "title": "AiProviderInvocation",
+  "description": "One attributable provider/harness invocation, including fallback and usage lineage.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_provider_invocations",
+    "order": 325,
+    "pk": [
+      "invocation_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_provider_invocations_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_turn_id_fkey",
+        "columns": [
+          "turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_worker_session_id_fkey",
+        "columns": [
+          "worker_session_id"
+        ],
+        "ref_table": "worker_sessions",
+        "ref_columns": [
+          "worker_session_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_endpoint_id_fkey",
+        "columns": [
+          "endpoint_id"
+        ],
+        "ref_table": "agent_interop_endpoints",
+        "ref_columns": [
+          "endpoint_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_fallback_parent_id_fkey",
+        "columns": [
+          "fallback_parent_id"
+        ],
+        "ref_table": "ai_provider_invocations",
+        "ref_columns": [
+          "invocation_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_approval_id_fkey",
+        "columns": [
+          "approval_id"
+        ],
+        "ref_table": "approvals",
+        "ref_columns": [
+          "approval_id"
+        ]
+      },
+      {
+        "name": "ai_provider_invocations_worker_run_id_fkey",
+        "columns": [
+          "worker_run_id"
+        ],
+        "ref_table": "worker_runs",
+        "ref_columns": [
+          "run_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "invocation_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "endpoint_id",
+    "reasoning_effort",
+    "state",
+    "prompt_hash",
+    "context_hash",
+    "policy_hash",
+    "result_refs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "invocation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "turn_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "endpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "fallback_parent_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requested_profile_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requested_model_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "serving_model_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "enum": [
+        "FAST",
+        "NORMAL",
+        "DEEP",
+        "MAXIMUM"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "APPROVAL_REQUIRED",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "BLOCKED",
+        "UNAVAILABLE"
+      ]
+    },
+    "prompt_hash": {
+      "type": "string"
+    },
+    "context_hash": {
+      "type": "string"
+    },
+    "policy_hash": {
+      "type": "string"
+    },
+    "approval_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "input_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cache_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reasoning_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cost_usd": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latency_ms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error_detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

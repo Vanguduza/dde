@@ -9,6 +9,7 @@ import {
   type PreviewRuntimeSignal,
   type PreviewSelection,
 } from "../frontend-studio/FrontendStudioWorkspace";
+import { DdeChatComposer } from "../chat/DdeChatComposer";
 import { InspectorPanel } from "../frontend-studio/InspectorPanel";
 import { AppRail, type RailModule } from "../shell/AppRail";
 import { ContextSidebar } from "../shell/ContextSidebar";
@@ -926,16 +927,25 @@ export function DdeStudioApp({
             selection={selection}
             onStartPreview={() => void startPreview()}
             onPreviewSignal={(signal) => void handlePreviewSignal(signal)}
-            chatThread={chatThread}
-            chatLoading={chatLoading}
-            chatError={chatError}
-            chatBusy={chatBusy}
-            chatIncludeSelection={chatIncludeSelection}
-            onChatIncludeSelectionChange={setChatIncludeSelection}
-            onChatSend={handleChatSend}
-            chatCursor={chatCursor}
           />
         )
+      }
+      chat={
+        <DdeChatComposer
+          thread={chatThread}
+          loading={chatLoading}
+          error={chatError}
+          busy={chatBusy}
+          screenKey={screenKey}
+          candidateId={activeCandidateId}
+          candidateLabel={activeCandidate?.title ?? null}
+          selectedKey={selection?.pxgKey ?? null}
+          viewport={viewport}
+          includeSelection={chatIncludeSelection}
+          onIncludeSelectionChange={setChatIncludeSelection}
+          onSend={handleChatSend}
+          cursor={chatCursor}
+        />
       }
       inspector={
         <InspectorPanel

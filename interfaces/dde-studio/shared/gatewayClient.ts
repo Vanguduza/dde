@@ -192,19 +192,15 @@ export class GatewayApiClient {
     );
   }
 
-  async readFrontendChat(
+  async readDdeChat(
     sessionId: string,
     principalId: string,
     missionId: string,
   ): Promise<Record<string, unknown>> {
-    return this.get(
-      `/missions/${missionId}/frontend/chat`,
-      sessionId,
-      principalId,
-    );
+    return this.get(`/missions/${missionId}/chat/latest`, sessionId, principalId);
   }
 
-  async readFrontendChatResource(
+  async readDdeChatResource(
     sessionId: string,
     principalId: string,
     missionId: string,
@@ -213,15 +209,20 @@ export class GatewayApiClient {
   ): Promise<Record<string, unknown>> {
     const clean = suffix.replace(/^\/+/, "");
     const tail = query && [...query.keys()].length ? `?${query.toString()}` : "";
-    const path = clean.startsWith("?")
-      ? `/missions/${missionId}/frontend/chats${clean}`
-      : clean.length
-        ? `/missions/${missionId}/frontend/chats/${clean}${tail}`
-        : `/missions/${missionId}/frontend/chats${tail}`;
+    let path: string;
+    if (clean.startsWith("?")) {
+      path = `/missions/${missionId}/chat/conversations${clean}`;
+    } else if (clean === "models") {
+      path = `/missions/${missionId}/chat/models${tail}`;
+    } else if (clean.length) {
+      path = `/missions/${missionId}/chat/conversations/${clean}${tail}`;
+    } else {
+      path = `/missions/${missionId}/chat/conversations${tail}`;
+    }
     return this.get(path, sessionId, principalId);
   }
 
-  async uploadFrontendChatAttachment(
+  async uploadDdeChatAttachment(
     sessionId: string,
     principalId: string,
     missionId: string,
@@ -231,7 +232,7 @@ export class GatewayApiClient {
     idempotencyKey: string,
   ): Promise<Record<string, unknown>> {
     const response = await fetch(
-      `${this.getBasePath()}/missions/${missionId}/frontend/chats/${conversationId}/attachments/${attachmentId}/content`,
+      `${this.getBasePath()}/missions/${missionId}/chat/conversations/${conversationId}/attachments/${attachmentId}/content`,
       {
         method: "PUT",
         headers: {
@@ -245,6 +246,41 @@ export class GatewayApiClient {
       },
     );
     return this.parse<Record<string, unknown>>(response);
+  }
+
+  /** @deprecated Compatibility alias for pre-universal Frontend Studio Chat. */
+  async readFrontendChat(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.readDdeChat(sessionId, principalId, missionId);
+  }
+
+  /** @deprecated Compatibility alias for pre-universal Frontend Studio Chat. */
+  async readFrontendChatResource(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    suffix: string,
+    query?: URLSearchParams,
+  ): Promise<Record<string, unknown>> {
+    return this.readDdeChatResource(sessionId, principalId, missionId, suffix, query);
+  }
+
+  /** @deprecated Compatibility alias for pre-universal Frontend Studio Chat. */
+  async uploadFrontendChatAttachment(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    conversationId: string,
+    attachmentId: string,
+    bytes: Uint8Array,
+    idempotencyKey: string,
+  ): Promise<Record<string, unknown>> {
+    return this.uploadDdeChatAttachment(
+      sessionId, principalId, missionId, conversationId, attachmentId, bytes, idempotencyKey,
+    );
   }
 
   async readFrontendPreview(

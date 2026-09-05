@@ -11,10 +11,12 @@ from pydantic import BaseModel, ConfigDict
 
 class FrontendConversation(BaseModel):
     """
-    DDE-069 DDE Code / Frontend Studio durable AI conversation control plane. Owned by
-    engine.studio.chat. It carries explicit project/workspace/frontend context, Cursor-
-    class Ask/Plan/Execute mode, model selection, branch lineage and pinned references.
-    A model is replaceable; DDE owns history, authority, plans and evidence.
+    DDE-069 universal DDE Chat durable conversation control plane. Canonical domain
+    owner: engine.chat. It carries mission/task/workspace/worker/verification/artifact
+    context for every DDE workspace, with Frontend Studio candidate/screen/PXG selection
+    as an optional context adapter. Cursor-class Ask/Plan/Execute, model/provider
+    selection, branch lineage and pinned references are DDE-owned and provider-
+    replaceable.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -42,3 +44,23 @@ class FrontendConversation(BaseModel):
     lock_version: int
     created_at: datetime
     updated_at: datetime
+    policy_id: UUID | None = None
+    active_worker_session_id: UUID | None = None
+    context_domain: (
+        Literal[
+            "DDE",
+            "MISSION",
+            "TASK",
+            "FRONTEND_STUDIO",
+            "QUALITY",
+            "RESEARCH",
+            "DECISIONS",
+            "FLEET",
+            "EVIDENCE",
+        ]
+        | None
+    ) = None
+    active_task_id: UUID | None = None
+    active_worker_run_id: UUID | None = None
+    active_verification_run_id: UUID | None = None
+    active_artifact_ref: str | None = None

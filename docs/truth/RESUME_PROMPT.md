@@ -30,11 +30,12 @@ Read, in this order:
 4. `docs/truth/DEV_PLAN_REV3.md`
 5. `docs/truth/IMPLEMENTATION_STATE.md`
 6. `docs/truth/FRONTEND_STUDIO_REV3.md` — adopted Frontend Studio domain architecture (AD-036)
-7. `docs/truth/SCREEN_AUDIT_ENGINE.md` — user-locked DDE-069 Screen Audit / Experience Completeness extension; subordinate to `FRONTEND_STUDIO_REV3.md`, not a second architecture
-8. `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` and its generated source `docs/truth/golden/frontend_binding_matrix.json`
-9. `docs/evidence/dde-068/CLOSURE_MATRIX.md`
-10. relevant accepted EDR markdown pre-images under `docs/truth/edr/**` and the accepted Project Truth rows where no markdown pre-image exists
-11. relevant DDE-065..069 planning/chapter-gate documents under `docs/planning/**`
+7. `docs/truth/CURSOR_CLASS_AI_CHAT.md` and `docs/truth/AI_CONVERSATION_FABRIC.md` — universal DDE Chat, provider federation, shared memory/context and governed AI runtime
+8. `docs/truth/SCREEN_AUDIT_ENGINE.md` — user-locked DDE-069 Screen Audit / Experience Completeness extension; subordinate to `FRONTEND_STUDIO_REV3.md`, not a second architecture
+9. `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` and its generated source `docs/truth/golden/frontend_binding_matrix.json`
+10. `docs/evidence/dde-068/CLOSURE_MATRIX.md`
+11. relevant accepted EDR markdown pre-images under `docs/truth/edr/**` and the accepted Project Truth rows where no markdown pre-image exists
+12. relevant DDE-065..069 planning/chapter-gate documents under `docs/planning/**`
 
 Authority order remains:
 
@@ -147,7 +148,7 @@ Verify the following known gaps before deciding they still exist:
 2. **Fresh candidate onboarding is implemented.** Core projects real READY durable source workspaces, excludes candidate-preview worktrees, auto-selects only a unique source and requires explicit choice when ambiguous. No workspace id is guessed.
 3. **Production PostgreSQL workbench E2E is not evidenced on the current execution host.** React/Playwright proves composition through an explicit fail-closed TestHostBridge; keep production E2E BOUND until a real VS Code → Gateway → database run succeeds.
 4. **DDE-068 candidate request execution is implemented.** A hash-confirmed LIVE preview persists a request over the candidate's effective PXG and existing AcceptanceOracle; `frontend.verification.run` executes it through the shared DDE-068 runner as a typed `FRONTEND_CANDIDATE` subject, with real browser/visual-critic capability leases, real VerificationRun/Evidence, stale-run protection and current evidence projection in QA/Inspector. PENDING/BLOCKED/SUPERSEDED remain non-verdict states. Production PostgreSQL E2E remains unavailable on this host.
-5. **The React Frontend Chat control plane is implemented and browser-proven.** A mission-scoped read restores the persisted conversation/ordered turns; the permanent composer keeps selection/screen/candidate/viewport context, each turn records server-derived PXG/Contract/coverage/locks/runtime/verification context, deterministic edits and undo use the same governed mutation/invalidation path as Inspector, read-only coverage/QA/inspect requests use real projections, and `/design` stays in this same conversation while its provider is typed unavailable.
+5. **The Cursor-class Chat has been universalized as DDE Chat and its AI Conversation Fabric is implemented on runnable surfaces.** `engine.chat` owns durable multi-conversation history, Ask/Plan/Execute, attachments, plans, activities, checkpoints, workspace review and universal mission/task/workspace/worker/verification/artifact context. Frontend Studio contributes PXG/Contract/coverage/candidate state only through its context adapter. `dde.chat.*` and `/missions/{mission}/chat/...` are canonical; old `frontend.chat.*` contracts are compatibility aliases. Provider/session federation, ACP, Fabric policy/memory/context/skill/team/research/automation/hook/claim/experience authorities and MCP surfaces exist. Shared DDE memory stores structured authority/index metadata in PostgreSQL and non-ephemeral bodies/compaction archives in scoped content-addressed storage (R2 when configured, local fallback). Hermes ACP is DDE-managed under verified `--ignore-rules` isolation to prevent duplicate provider-private memory injection. Conversation context is policy-budgeted across protected live authority, explicit refs, APPROVED ranked memory and bounded history with durable PRE/POST compaction snapshots. Browser proof is 33/33 and extension transport 77/77 at the latest tranche; production PostgreSQL/Redis and live R2 E2E are unavailable on the current host.
 6. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
 7. **Source intelligence (M8)** — internal library / donor / 21st / templates / provenance / CandidateScorecard — remains substantially incomplete.
 8. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
@@ -234,7 +235,7 @@ real candidate board / READY source selection
 → browser hash handshake / Core-confirmed LIVE
 → real DDE-068 VerificationRun/Evidence
 → stable pxg_key selection
-→ Inspector or Frontend Chat governed mutation / undo
+→ Inspector or universal DDE Chat governed mutation / undo
 → old preview + verification evidence stale/superseded
 → rerender/new hash
 → new verification request/run/evidence

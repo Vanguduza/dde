@@ -20,7 +20,7 @@ import pytest
 
 from engine.core.errors import DdeError
 from engine.studio.candidates.service import CandidateService
-from engine.studio.chat.service import FrontendChatService
+from engine.chat.service import FrontendChatService
 from engine.studio.design.context import compile_context, design_system_snapshot
 from engine.studio.design.gateway import DesignGateway
 from engine.studio.design.providers import (

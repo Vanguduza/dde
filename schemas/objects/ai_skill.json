@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_skill.json",
+  "title": "AiSkill",
+  "description": "Versioned candidate/evaluated/certified skill supply-chain artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_skills",
+    "order": 328,
+    "pk": [
+      "skill_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "project_id",
+        "slug",
+        "version"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "ai_skills_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_skills_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_skills_certified_by_fkey",
+        "columns": [
+          "certified_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      },
+      {
+        "name": "ai_skills_parent_skill_id_fkey",
+        "columns": [
+          "parent_skill_id"
+        ],
+        "ref_table": "ai_skills",
+        "ref_columns": [
+          "skill_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "skill_id",
+    "tenant_id",
+    "project_id",
+    "slug",
+    "version",
+    "title",
+    "description",
+    "instructions",
+    "source_kind",
+    "provenance_refs",
+    "manifest_hash",
+    "required_capability_ids",
+    "toolset_ids",
+    "status",
+    "evaluation_refs",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "instructions": {
+      "type": "string"
+    },
+    "source_kind": {
+      "type": "string",
+      "enum": [
+        "DDE_NATIVE",
+        "HERMES",
+        "CLAUDE",
+        "CODEX",
+        "MCP",
+        "PLUGIN",
+        "USER",
+        "EXTERNAL"
+      ]
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provenance_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "license": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "manifest_hash": {
+      "type": "string"
+    },
+    "required_capability_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "toolset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "CANDIDATE",
+        "EVALUATING",
+        "CERTIFIED",
+        "REJECTED",
+        "RETIRED"
+      ]
+    },
+    "evaluation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "certified_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "certified_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parent_skill_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

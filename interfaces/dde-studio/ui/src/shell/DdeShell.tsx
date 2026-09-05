@@ -16,6 +16,7 @@ export interface DdeShellProps {
   readonly workspace: ReactNode;
   readonly inspector: ReactNode;
   readonly statusBar: ReactNode;
+  readonly chat?: ReactNode;
   readonly explorerCollapsed?: boolean;
   readonly inspectorCollapsed?: boolean;
 }
@@ -27,6 +28,7 @@ export function DdeShell({
   workspace,
   inspector,
   statusBar,
+  chat,
   explorerCollapsed = false,
   inspectorCollapsed = false,
 }: DdeShellProps) {
@@ -60,6 +62,11 @@ export function DdeShell({
       <footer className="dde-statusbar" data-testid="dde-statusbar">
         {statusBar}
       </footer>
+      {chat ? (
+        <div className="dde-chat-layer" data-testid="dde-chat-layer">
+          {chat}
+        </div>
+      ) : null}
     </div>
   );
 }

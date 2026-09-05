@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/provider_capacity_snapshot.json",
+  "title": "ProviderCapacitySnapshot",
+  "description": "Observed provider capacity/health/quota snapshot used as routing evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "provider_capacity_snapshots",
+    "order": 298,
+    "pk": [
+      "snapshot_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "provider_capacity_snapshots_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "provider_capacity_snapshots_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "provider_capacity_snapshots_endpoint_id_fkey",
+        "columns": [
+          "endpoint_id"
+        ],
+        "ref_table": "agent_interop_endpoints",
+        "ref_columns": [
+          "endpoint_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "snapshot_id",
+    "tenant_id",
+    "project_id",
+    "endpoint_id",
+    "provider_id",
+    "state",
+    "confidence",
+    "recent_failures",
+    "quota_metadata",
+    "observed_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "snapshot_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "endpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "AVAILABLE",
+        "DEGRADED",
+        "QUOTA_PRESSURE",
+        "RATE_LIMITED",
+        "EXHAUSTED",
+        "COOLDOWN_UNTIL_RESET",
+        "REPROMOTION_ELIGIBLE",
+        "AUTH_REQUIRED",
+        "UNHEALTHY"
+      ]
+    },
+    "reset_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reset_source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "active_concurrency": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "max_concurrency": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latency_ms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recent_failures": {
+      "type": "integer"
+    },
+    "input_cost_per_million": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_cost_per_million": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quota_metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

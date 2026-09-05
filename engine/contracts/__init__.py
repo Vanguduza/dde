@@ -3,6 +3,17 @@
 from __future__ import annotations
 
 from engine.contracts.acceptance_oracle import AcceptanceOracle
+from engine.contracts.agent_interop_endpoint import AgentInteropEndpoint
+from engine.contracts.ai_agent_team import AiAgentTeam
+from engine.contracts.ai_automation import AiAutomation
+from engine.contracts.ai_claim import AiClaim
+from engine.contracts.ai_context_snapshot import AiContextSnapshot
+from engine.contracts.ai_conversation_policy import AiConversationPolicy
+from engine.contracts.ai_hook import AiHook
+from engine.contracts.ai_memory_item import AiMemoryItem
+from engine.contracts.ai_provider_invocation import AiProviderInvocation
+from engine.contracts.ai_research_artifact import AiResearchArtifact
+from engine.contracts.ai_skill import AiSkill
 from engine.contracts.approval import Approval
 from engine.contracts.artifact import Artifact
 from engine.contracts.asserted_edge import AssertedEdge
@@ -75,6 +86,7 @@ from engine.contracts.product_constitution_version import ProductConstitutionVer
 from engine.contracts.product_environment import ProductEnvironment
 from engine.contracts.project import Project
 from engine.contracts.promotion_gate_run import PromotionGateRun
+from engine.contracts.provider_capacity_snapshot import ProviderCapacitySnapshot
 from engine.contracts.pxg_edge import PxgEdge
 from engine.contracts.pxg_node import PxgNode
 from engine.contracts.readyz import Readyz
@@ -83,6 +95,7 @@ from engine.contracts.requirement import Requirement
 from engine.contracts.route_decision import RouteDecision
 from engine.contracts.routing_activation_state import RoutingActivationState
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
+from engine.contracts.routing_insight_candidate import RoutingInsightCandidate
 from engine.contracts.routing_simulation_run import RoutingSimulationRun
 from engine.contracts.seed_dataset import SeedDataset
 from engine.contracts.standing_approval import StandingApproval
@@ -98,12 +111,24 @@ from engine.contracts.validation_report import ValidationReport
 from engine.contracts.verification_run import VerificationRun
 from engine.contracts.worker_event import WorkerEvent
 from engine.contracts.worker_run import WorkerRun
+from engine.contracts.worker_session import WorkerSession
 from engine.contracts.workload_class_cost_metrics import WorkloadClassCostMetrics
 from engine.contracts.workspace import Workspace
 from engine.contracts.write_scope_lease import WriteScopeLease
 
 __all__ = [
     "AcceptanceOracle",
+    "AgentInteropEndpoint",
+    "AiAgentTeam",
+    "AiAutomation",
+    "AiClaim",
+    "AiContextSnapshot",
+    "AiConversationPolicy",
+    "AiHook",
+    "AiMemoryItem",
+    "AiProviderInvocation",
+    "AiResearchArtifact",
+    "AiSkill",
     "Approval",
     "Artifact",
     "AssertedEdge",
@@ -176,6 +201,7 @@ __all__ = [
     "ProductEnvironment",
     "Project",
     "PromotionGateRun",
+    "ProviderCapacitySnapshot",
     "PxgEdge",
     "PxgNode",
     "Readyz",
@@ -184,6 +210,7 @@ __all__ = [
     "RouteDecision",
     "RoutingActivationState",
     "RoutingDecisionOutcome",
+    "RoutingInsightCandidate",
     "RoutingSimulationRun",
     "SeedDataset",
     "StandingApproval",
@@ -197,6 +224,7 @@ __all__ = [
     "VerificationRun",
     "WorkerEvent",
     "WorkerRun",
+    "WorkerSession",
     "WorkloadClassCostMetrics",
     "Workspace",
     "WriteScopeLease",

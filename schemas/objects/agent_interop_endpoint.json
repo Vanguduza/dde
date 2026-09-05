@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/agent_interop_endpoint.json",
+  "title": "AgentInteropEndpoint",
+  "description": "Version-specific provider/harness endpoint discovery and certification authority. Discovery is never certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "agent_interop_endpoints",
+    "order": 296,
+    "pk": [
+      "endpoint_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "project_id",
+        "harness_id",
+        "protocol",
+        "executable_or_uri"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "agent_interop_endpoints_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "agent_interop_endpoints_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "endpoint_id",
+    "tenant_id",
+    "project_id",
+    "harness_id",
+    "protocol",
+    "executable_or_uri",
+    "discovery_state",
+    "certification_state",
+    "discovered_capabilities",
+    "certified_capabilities",
+    "certification_refs",
+    "health_state",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "endpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "harness_id": {
+      "type": "string"
+    },
+    "protocol": {
+      "type": "string",
+      "enum": [
+        "NATIVE_CLI",
+        "NATIVE_SDK",
+        "ACP",
+        "MCP",
+        "HTTP",
+        "OPENAI_COMPATIBLE"
+      ]
+    },
+    "executable_or_uri": {
+      "type": "string"
+    },
+    "installation_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "discovery_state": {
+      "type": "string",
+      "enum": [
+        "UNDISCOVERED",
+        "DISCOVERED",
+        "UNAVAILABLE",
+        "ERROR"
+      ]
+    },
+    "certification_state": {
+      "type": "string",
+      "enum": [
+        "DISCOVERED",
+        "SMOKE_TESTED",
+        "CONTRACT_TESTED",
+        "SHADOW",
+        "CERTIFIED",
+        "STALE",
+        "REJECTED"
+      ]
+    },
+    "discovered_capabilities": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "certified_capabilities": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "certification_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "health_state": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "HEALTHY",
+        "DEGRADED",
+        "UNHEALTHY",
+        "AUTH_REQUIRED"
+      ]
+    },
+    "config_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_probe_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -212,6 +212,76 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "frontend.coverage.recompute": "mission",
 }
 
+#: AI Conversation Fabric commands are explicit and mission-scoped. The dispatcher
+#: may share one prefix branch only because required_scope() has already admitted the
+#: exact command from this set; unknown frontend.fabric.* strings still fail closed.
+LEGACY_FABRIC_COMMAND_TYPES: Final[frozenset[str]] = frozenset(
+    {
+        "frontend.fabric.policy.create",
+        "frontend.fabric.policy.bind",
+        "frontend.fabric.interop.discover",
+        "frontend.fabric.interop.register",
+        "frontend.fabric.interop.certify",
+        "frontend.fabric.capacity.record",
+        "frontend.fabric.session.open",
+        "frontend.fabric.session.bind",
+        "frontend.fabric.session.fork",
+        "frontend.fabric.session.transition",
+        "frontend.fabric.provider.invoke",
+        "frontend.fabric.memory.propose",
+        "frontend.fabric.memory.approve",
+        "frontend.fabric.memory.reject",
+        "frontend.fabric.memory.supersede",
+        "frontend.fabric.context.snapshot",
+        "frontend.fabric.skill.propose",
+        "frontend.fabric.skill.begin_evaluation",
+        "frontend.fabric.skill.certify",
+        "frontend.fabric.skill.reject",
+        "frontend.fabric.team.create",
+        "frontend.fabric.team.add_member",
+        "frontend.fabric.team.transition_member",
+        "frontend.fabric.team.transition",
+        "frontend.fabric.research.create",
+        "frontend.fabric.research.add_source",
+        "frontend.fabric.research.update",
+        "frontend.fabric.research.complete",
+        "frontend.fabric.research.to_plan",
+        "frontend.fabric.automation.create",
+        "frontend.fabric.automation.set_state",
+        "frontend.fabric.automation.record_result",
+        "frontend.fabric.hook.create",
+        "frontend.fabric.hook.set_state",
+        "frontend.fabric.hook.record_trigger",
+        "frontend.fabric.claim.annotate",
+        "frontend.fabric.experience.record",
+        "frontend.fabric.insight.propose",
+        "frontend.fabric.insight.advance",
+    }
+)
+DDE_FABRIC_COMMAND_TYPES: Final[frozenset[str]] = frozenset(
+    command.replace("frontend.fabric.", "dde.fabric.", 1)
+    for command in LEGACY_FABRIC_COMMAND_TYPES
+)
+FABRIC_COMMAND_TYPES: Final[frozenset[str]] = frozenset(
+    {*LEGACY_FABRIC_COMMAND_TYPES, *DDE_FABRIC_COMMAND_TYPES}
+)
+
+LEGACY_FRONTEND_CHAT_COMMAND_TYPES: Final[frozenset[str]] = frozenset(
+    command for command in COMMAND_SCOPES if command.startswith("frontend.chat.")
+)
+DDE_CHAT_COMMAND_TYPES: Final[frozenset[str]] = frozenset(
+    command.replace("frontend.chat.", "dde.chat.", 1)
+    for command in LEGACY_FRONTEND_CHAT_COMMAND_TYPES
+)
+
+COMMAND_SCOPES.update({command: "mission.control" for command in FABRIC_COMMAND_TYPES})
+COMMAND_TARGET_TYPE.update({command: "mission" for command in FABRIC_COMMAND_TYPES})
+COMMAND_SCOPES.update(
+    {command: "mission.control" for command in DDE_CHAT_COMMAND_TYPES}
+)
+COMMAND_TARGET_TYPE.update({command: "mission" for command in DDE_CHAT_COMMAND_TYPES})
+
+
 #: Mission control command -> target mission status (Chapter 4.8).
 MISSION_CONTROL_TARGETS: Final[dict[str, str]] = {
     "mission.pause": "PAUSED",

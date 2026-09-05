@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/worker_session.json",
+  "title": "WorkerSession",
+  "description": "Blueprint \u00a79 durable long-lived harness/session lineage; WorkerRun remains one bounded attempt.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "worker_sessions",
+    "order": 297,
+    "pk": [
+      "worker_session_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "worker_sessions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_task_id_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_endpoint_id_fkey",
+        "columns": [
+          "endpoint_id"
+        ],
+        "ref_table": "agent_interop_endpoints",
+        "ref_columns": [
+          "endpoint_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_workspace_id_fkey",
+        "columns": [
+          "workspace_id"
+        ],
+        "ref_table": "workspaces",
+        "ref_columns": [
+          "workspace_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_parent_session_id_fkey",
+        "columns": [
+          "parent_session_id"
+        ],
+        "ref_table": "worker_sessions",
+        "ref_columns": [
+          "worker_session_id"
+        ]
+      },
+      {
+        "name": "worker_sessions_forked_from_session_id_fkey",
+        "columns": [
+          "forked_from_session_id"
+        ],
+        "ref_table": "worker_sessions",
+        "ref_columns": [
+          "worker_session_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "worker_session_id",
+    "tenant_id",
+    "project_id",
+    "endpoint_id",
+    "state",
+    "capability_snapshot",
+    "session_config_hash",
+    "lock_version",
+    "created_at",
+    "last_activity_at",
+    "updated_at"
+  ],
+  "properties": {
+    "worker_session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "endpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "worker_profile_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider_session_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requested_model_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "serving_model_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "OPENING",
+        "ACTIVE",
+        "PAUSED",
+        "DETACHED",
+        "RESUMING",
+        "FAILED",
+        "CLOSED"
+      ]
+    },
+    "capability_snapshot": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "context_package_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tool_policy_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "session_config_hash": {
+      "type": "string"
+    },
+    "parent_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "forked_from_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

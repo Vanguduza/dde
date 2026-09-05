@@ -123,3 +123,30 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Universal DDE Chat overlays the shell without changing golden grid geometry. */
+.dde-chat-layer {
+  position: fixed;
+  z-index: 40;
+  right: max(var(--dde-gutter), 12px);
+  bottom: calc(var(--dde-statusbar-height) + max(var(--dde-gutter), 12px));
+  left: calc(var(--dde-rail-width) + max(var(--dde-gutter), 12px));
+  pointer-events: none;
+}
+
+.dde-chat-layer > .dde-chat {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  margin: 0 auto;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (max-width: 899px) {
+  .dde-chat-layer {
+    right: 6px;
+    left: calc(var(--dde-rail-width) + 6px);
+  }
+}

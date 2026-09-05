@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_context_snapshot.json",
+  "title": "AiContextSnapshot",
+  "description": "Inspectable universal DDE context/compaction snapshot with retained/omitted provenance and content-addressed durable archive (R2 when configured).",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_context_snapshots",
+    "order": 327,
+    "pk": [
+      "context_snapshot_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "ai_context_snapshots_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_context_snapshots_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_context_snapshots_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "ai_context_snapshots_turn_id_fkey",
+        "columns": [
+          "turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      },
+      {
+        "name": "ai_context_snapshots_predecessor_snapshot_id_fkey",
+        "columns": [
+          "predecessor_snapshot_id"
+        ],
+        "ref_table": "ai_context_snapshots",
+        "ref_columns": [
+          "context_snapshot_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "context_snapshot_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "reason",
+    "retained_refs",
+    "omitted_refs",
+    "omission_reasons",
+    "item_manifest",
+    "estimated_tokens",
+    "budget_tokens",
+    "context_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "context_snapshot_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "turn_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "predecessor_snapshot_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "TURN",
+        "CHECKPOINT",
+        "PRE_COMPACTION",
+        "POST_COMPACTION",
+        "RESUME",
+        "PROVIDER_HANDOFF"
+      ]
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "retained_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "omitted_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "omission_reasons": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "item_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "estimated_tokens": {
+      "type": "integer"
+    },
+    "budget_tokens": {
+      "type": "integer"
+    },
+    "context_hash": {
+      "type": "string"
+    },
+    "archive_storage_backend": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "LOCAL",
+            "R2"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "archive_storage_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "archive_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "archive_size_bytes": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

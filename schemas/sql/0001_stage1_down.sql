@@ -1,5 +1,16 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS routing_insight_candidates CASCADE;
+DROP TABLE IF EXISTS experience_records CASCADE;
+DROP TABLE IF EXISTS ai_claims CASCADE;
+DROP TABLE IF EXISTS ai_hooks CASCADE;
+DROP TABLE IF EXISTS ai_automations CASCADE;
+DROP TABLE IF EXISTS ai_research_artifacts CASCADE;
+DROP TABLE IF EXISTS ai_agent_teams CASCADE;
+DROP TABLE IF EXISTS ai_skills CASCADE;
+DROP TABLE IF EXISTS ai_context_snapshots CASCADE;
+DROP TABLE IF EXISTS ai_memory_items CASCADE;
+DROP TABLE IF EXISTS ai_provider_invocations CASCADE;
 DROP TABLE IF EXISTS frontend_chat_change_reviews CASCADE;
 DROP TABLE IF EXISTS frontend_chat_checkpoints CASCADE;
 DROP TABLE IF EXISTS frontend_chat_activities CASCADE;
@@ -18,6 +29,10 @@ DROP TABLE IF EXISTS frontend_coverage_snapshots CASCADE;
 DROP TABLE IF EXISTS pxg_edges CASCADE;
 DROP TABLE IF EXISTS pxg_nodes CASCADE;
 DROP TABLE IF EXISTS frontend_contracts CASCADE;
+DROP TABLE IF EXISTS provider_capacity_snapshots CASCADE;
+DROP TABLE IF EXISTS worker_sessions CASCADE;
+DROP TABLE IF EXISTS agent_interop_endpoints CASCADE;
+DROP TABLE IF EXISTS ai_conversation_policies CASCADE;
 DROP TABLE IF EXISTS audit_events CASCADE;
 DROP TABLE IF EXISTS command_idempotency CASCADE;
 DROP TABLE IF EXISTS outbox CASCADE;
@@ -61,7 +76,6 @@ DROP TABLE IF EXISTS execution_environments CASCADE;
 DROP TABLE IF EXISTS context_activation_state CASCADE;
 DROP TABLE IF EXISTS routing_activation_state CASCADE;
 DROP TABLE IF EXISTS learned_routing_policies CASCADE;
-DROP TABLE IF EXISTS experience_records CASCADE;
 DROP TABLE IF EXISTS routing_simulation_runs CASCADE;
 DROP TABLE IF EXISTS routing_decision_outcomes CASCADE;
 DROP TABLE IF EXISTS route_decisions CASCADE;

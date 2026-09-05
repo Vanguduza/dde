@@ -102,7 +102,11 @@ describe("Frontend Studio Gateway transport", () => {
     );
     assert.equal(
       seen[0]?.url,
-      "http://core.test/v1/missions/mission/frontend/chats/conversation/plans",
+      "http://core.test/v1/missions/mission/chat/conversations/conversation/plans",
+    );
+    assert.equal(
+      seen[1]?.url,
+      "http://core.test/v1/missions/mission/chat/conversations/conversation/attachments/attachment/content",
     );
     assert.equal(seen[1]?.method, "PUT");
     assert.equal(seen[1]?.headers.get("X-Idempotency-Key"), "upload-key-1");

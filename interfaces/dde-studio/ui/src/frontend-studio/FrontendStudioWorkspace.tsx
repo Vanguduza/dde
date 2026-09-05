@@ -1,9 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Unavailable } from "../components/Honest";
-import { FrontendChatComposer, type CursorChatController } from "./FrontendChatComposer";
 import type {
   CandidateCardSnapshot,
-  FrontendChatThread,
   FrontendStudioSnapshot,
   PreviewDocument,
   SourceWorkspaceInventory,
@@ -61,14 +59,6 @@ export interface WorkspaceProps {
   readonly selection: PreviewSelection | null;
   readonly onStartPreview: () => void;
   readonly onPreviewSignal: (signal: PreviewRuntimeSignal) => void;
-  readonly chatThread: FrontendChatThread | null;
-  readonly chatLoading: boolean;
-  readonly chatError: string | null;
-  readonly chatBusy: boolean;
-  readonly chatIncludeSelection: boolean;
-  readonly onChatIncludeSelectionChange: (value: boolean) => void;
-  readonly onChatSend: (text: string) => Promise<boolean>;
-  readonly chatCursor: CursorChatController;
 }
 
 export function FrontendStudioWorkspace({
@@ -92,18 +82,7 @@ export function FrontendStudioWorkspace({
   selection,
   onStartPreview,
   onPreviewSignal,
-  chatThread,
-  chatLoading,
-  chatError,
-  chatBusy,
-  chatIncludeSelection,
-  onChatIncludeSelectionChange,
-  onChatSend,
-  chatCursor,
 }: WorkspaceProps) {
-  const activeCandidate = snapshot?.candidates.cards.find(
-    (candidate) => candidate.candidateId === activeCandidateId,
-  );
   return (
     <div className="dde-workspace-inner" data-mode={mode}>
       <CanvasToolbar
@@ -145,21 +124,6 @@ export function FrontendStudioWorkspace({
         onActiveCandidateChange={onActiveCandidateChange}
         verificationBusy={verificationBusy}
         verificationError={verificationError}
-      />
-      <FrontendChatComposer
-        thread={chatThread}
-        loading={chatLoading}
-        error={chatError}
-        busy={chatBusy}
-        screenKey={screenKey}
-        candidateId={activeCandidateId}
-        candidateLabel={activeCandidate?.title ?? null}
-        selectedKey={selection?.pxgKey ?? null}
-        viewport={viewport}
-        includeSelection={chatIncludeSelection}
-        onIncludeSelectionChange={onChatIncludeSelectionChange}
-        onSend={onChatSend}
-        cursor={chatCursor}
       />
     </div>
   );

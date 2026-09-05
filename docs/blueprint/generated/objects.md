@@ -210,14 +210,6 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
-## ExperienceRecord
-
-- table: `experience_records`
-- primary key: experience_id
-- tenant scoped: true
-- project scoped: true
-- lock_version: false
-
 ## LearnedRoutingPolicy
 
 - table: `learned_routing_policies`
@@ -562,6 +554,38 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: false
 - lock_version: false
 
+## AiConversationPolicy
+
+- table: `ai_conversation_policies`
+- primary key: policy_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AgentInteropEndpoint
+
+- table: `agent_interop_endpoints`
+- primary key: endpoint_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## WorkerSession
+
+- table: `worker_sessions`
+- primary key: worker_session_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## ProviderCapacitySnapshot
+
+- table: `provider_capacity_snapshots`
+- primary key: snapshot_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## FrontendContract
 
 - table: `frontend_contracts`
@@ -702,6 +726,94 @@ Generated from `schemas/objects`. Do not edit.
 
 - table: `frontend_chat_change_reviews`
 - primary key: review_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiProviderInvocation
+
+- table: `ai_provider_invocations`
+- primary key: invocation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AiMemoryItem
+
+- table: `ai_memory_items`
+- primary key: memory_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiContextSnapshot
+
+- table: `ai_context_snapshots`
+- primary key: context_snapshot_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AiSkill
+
+- table: `ai_skills`
+- primary key: skill_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiAgentTeam
+
+- table: `ai_agent_teams`
+- primary key: team_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiResearchArtifact
+
+- table: `ai_research_artifacts`
+- primary key: research_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiAutomation
+
+- table: `ai_automations`
+- primary key: automation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiHook
+
+- table: `ai_hooks`
+- primary key: hook_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## AiClaim
+
+- table: `ai_claims`
+- primary key: claim_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ExperienceRecord
+
+- table: `experience_records`
+- primary key: experience_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## RoutingInsightCandidate
+
+- table: `routing_insight_candidates`
+- primary key: insight_id
 - tenant scoped: true
 - project scoped: true
 - lock_version: true

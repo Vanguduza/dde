@@ -103,14 +103,19 @@ test.describe("DDE-069 code-backed workbench loop", () => {
   });
 
   test("Frontend Chat is permanent and exposes live scope context", async ({ page }) => {
-    const chat = page.getByTestId("frontend-chat");
+    const chat = page.getByTestId("dde-chat");
     await expect(chat).toBeVisible();
     await expect(page.getByTestId("chat-input")).toBeVisible();
     const chrome = await chat.evaluate((element) => {
       const style = getComputedStyle(element);
       return { position: style.position, borderRadius: style.borderRadius };
     });
-    expect(chrome).toEqual({ position: "absolute", borderRadius: "12px" });
+    const shellLayer = await page.getByTestId("dde-chat-layer").evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { position: style.position, pointerEvents: style.pointerEvents };
+    });
+    expect(chrome).toEqual({ position: "relative", borderRadius: "12px" });
+    expect(shellLayer).toEqual({ position: "fixed", pointerEvents: "none" });
     await expect(page.getByTestId("chat-context-chips")).toContainText("Checkout");
     await expect(page.getByTestId("chat-context-chips")).toContainText("Desktop 1440");
 

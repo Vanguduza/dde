@@ -21,6 +21,14 @@ from uuid import UUID
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.chat.activity import FrontendChatActivityService
+from engine.chat.attachments import FrontendChatAttachmentService
+from engine.chat.checkpoints import FrontendChatCheckpointService
+from engine.chat.context_refs import FrontendChatContextService
+from engine.chat.models import FrontendChatModelCatalog
+from engine.chat.plans import FrontendChatPlanService
+from engine.chat.service import FrontendChatService
+from engine.chat.workspace_review import FrontendChatWorkspaceReviewService
 from engine.contracts.frontend_contract import Obligation
 from engine.contracts.pxg_node import SourceRef
 from engine.contracts.verification_run import VerificationRun
@@ -49,14 +57,6 @@ from engine.studio.canvas import (
     parse_manifest,
     screen_relative_path,
 )
-from engine.studio.chat.activity import FrontendChatActivityService
-from engine.studio.chat.attachments import FrontendChatAttachmentService
-from engine.studio.chat.checkpoints import FrontendChatCheckpointService
-from engine.studio.chat.context_refs import FrontendChatContextService
-from engine.studio.chat.models import FrontendChatModelCatalog
-from engine.studio.chat.plans import FrontendChatPlanService
-from engine.studio.chat.service import FrontendChatService
-from engine.studio.chat.workspace_review import FrontendChatWorkspaceReviewService
 from engine.studio.compiler import compile_generation_prompt
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageService
@@ -552,6 +552,13 @@ class FrontendStudioService:
             mode=str(parameters.get("mode") or "ASK"),
             model_profile_id=_optional_str(parameters, "model_profile_id"),
             active_workspace_id=_optional_uuid(parameters, "active_workspace_id"),
+            context_domain="FRONTEND_STUDIO",
+            active_task_id=_optional_uuid(parameters, "active_task_id"),
+            active_worker_run_id=_optional_uuid(parameters, "active_worker_run_id"),
+            active_verification_run_id=_optional_uuid(
+                parameters, "active_verification_run_id"
+            ),
+            active_artifact_ref=_optional_str(parameters, "active_artifact_ref"),
             created_by=principal_id,
         )
         return {
@@ -598,6 +605,19 @@ class FrontendStudioService:
             viewport=_optional_str(parameters, "viewport"),
             active_workspace_id=_optional_uuid(parameters, "active_workspace_id"),
             set_active_workspace="active_workspace_id" in parameters,
+            context_domain=_optional_str(parameters, "context_domain")
+            or "FRONTEND_STUDIO",
+            set_context_domain=True,
+            active_task_id=_optional_uuid(parameters, "active_task_id"),
+            set_active_task="active_task_id" in parameters,
+            active_worker_run_id=_optional_uuid(parameters, "active_worker_run_id"),
+            set_active_worker_run="active_worker_run_id" in parameters,
+            active_verification_run_id=_optional_uuid(
+                parameters, "active_verification_run_id"
+            ),
+            set_active_verification_run="active_verification_run_id" in parameters,
+            active_artifact_ref=_optional_str(parameters, "active_artifact_ref"),
+            set_active_artifact="active_artifact_ref" in parameters,
         )
         return {
             "conversation_id": str(conversation.conversation_id),
@@ -638,6 +658,11 @@ class FrontendStudioService:
             attachment_ids=tuple(
                 _as_uuid(item, "attachment_ids")
                 for item in _raw_list(parameters, "attachment_ids")
+            ),
+            approval_id=(
+                _as_uuid(parameters["approval_id"], "approval_id")
+                if parameters.get("approval_id") is not None
+                else None
             ),
         )
         return {
@@ -2206,7 +2231,7 @@ def _optional_mapping(
 
 
 def _workspace_changes_payload(changes: object) -> dict[str, object]:
-    from engine.studio.chat.workspace_review import WorkspaceChanges
+    from engine.chat.workspace_review import WorkspaceChanges
 
     if not isinstance(changes, WorkspaceChanges):
         raise DdeError("VALIDATION_FAILED", "invalid workspace changes projection")

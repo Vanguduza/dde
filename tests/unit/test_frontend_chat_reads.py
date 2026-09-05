@@ -10,9 +10,9 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.chat.intent import Classification, Intent
+from engine.chat.service import FrontendChatService
 from engine.contracts.frontend_conversation import FrontendConversation
-from engine.studio.chat.intent import Classification, Intent
-from engine.studio.chat.service import FrontendChatService
 from engine.studio.inspector import InspectorService
 from engine.studio.locks.service import LockService
 from engine.studio.reads import FrontendReadService

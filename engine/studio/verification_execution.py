@@ -29,6 +29,7 @@ from engine.contracts.verification_run import VerificationRun
 from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
 from engine.events.service import EventService
+from engine.fabric.lifecycle import FabricLifecycleService
 from engine.missions.attempts import TaskAttemptService
 from engine.missions.service import MissionService
 from engine.studio.candidates.lifecycle import CandidateState
@@ -80,6 +81,7 @@ class CandidateVerificationExecutionService:
         android: AndroidCapability | None = None,
         database: DatabaseCapability | None = None,
         runner_factory: Callable[..., VerificationRunnerService] | None = None,
+        lifecycle: FabricLifecycleService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -97,6 +99,7 @@ class CandidateVerificationExecutionService:
         self._android = android
         self._database = database
         self._runner_factory = runner_factory or VerificationRunnerService
+        self._lifecycle = lifecycle or FabricLifecycleService(engine)
 
     async def execute(
         self,
@@ -155,6 +158,17 @@ class CandidateVerificationExecutionService:
             )
             raise
 
+        await self._lifecycle.emit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_kind="BEFORE_VERIFICATION",
+            context={
+                "mission_id": str(mission_id),
+                "verification_request_id": str(verification_request_id),
+                "candidate_id": str(request.candidate_id),
+                "content_hash": request.content_hash,
+            },
+        )
         try:
             browser, critic = await self._capabilities(
                 tenant_id=tenant_id,
@@ -206,6 +220,17 @@ class CandidateVerificationExecutionService:
                     target=CandidateState.BLOCKED,
                     detail=blocked.reason,
                 )
+            await self._lifecycle.emit(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                event_kind="AFTER_VERIFICATION",
+                context={
+                    "verification_request_id": str(verification_request_id),
+                    "candidate_id": str(request.candidate_id),
+                    "state": "BLOCKED",
+                    "reason": blocked.reason,
+                },
+            )
             return CandidateVerificationExecution(blocked, None, latest)
 
         terminal = "PASSED" if run.status == "PASSED" else "FAILED"
@@ -229,6 +254,13 @@ class CandidateVerificationExecutionService:
                 project_id=project_id,
                 candidate_id=request.candidate_id,
             )
+            await self._emit_after_verification(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request=terminal_request,
+                run=run,
+                candidate=latest,
+            )
             return CandidateVerificationExecution(terminal_request, run, latest)
 
         target = (
@@ -242,6 +274,13 @@ class CandidateVerificationExecutionService:
         if CandidateState(latest.state) is not CandidateState.VERIFYING:
             # Never overwrite a concurrent lifecycle owner. The request/run remain
             # evidence, but no current-verdict attachment is made.
+            await self._emit_after_verification(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request=terminal_request,
+                run=run,
+                candidate=latest,
+            )
             return CandidateVerificationExecution(terminal_request, run, latest)
         candidate = await self._candidates.transition(
             tenant_id=tenant_id,
@@ -251,7 +290,37 @@ class CandidateVerificationExecutionService:
             detail=terminal_request.reason,
             verification_run_id=run.verification_run_id,
         )
+        await self._emit_after_verification(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            request=terminal_request,
+            run=run,
+            candidate=candidate,
+        )
         return CandidateVerificationExecution(terminal_request, run, candidate)
+
+    async def _emit_after_verification(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        request: FrontendVerificationRequest,
+        run: VerificationRun,
+        candidate: FrontendCandidate,
+    ) -> None:
+        await self._lifecycle.emit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            event_kind="AFTER_VERIFICATION",
+            context={
+                "verification_request_id": str(request.verification_request_id),
+                "verification_run_id": str(run.verification_run_id),
+                "candidate_id": str(candidate.candidate_id),
+                "request_state": request.state,
+                "run_status": run.status,
+                "candidate_state": candidate.state,
+            },
+        )
 
     async def _block_before_run(
         self, request: FrontendVerificationRequest, exc: DdeError

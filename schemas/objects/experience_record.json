@@ -2,153 +2,195 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/experience_record.json",
   "title": "ExperienceRecord",
-  "description": "Chapter 6.8 learning eligibility record. Owned by engine.learning (Chapter 3.8: created by the outcome processor; mutable after creation is promotion state only). An ExperienceRecord is eligible for routing training only when experience_origin=real, verification_confidence is above threshold, failure_attribution is route_attributable or none, and the outcome is terminal (no in-flight or superseded attempt). Simulation-origin rows are excluded by construction (Chapter 6.4) -- eligible_for_routing_training is forced false and a table CHECK refuses any other value. promotion_state is the only field a governed mutation may change after insert (queue/consume/supersede/block); learning_run_id, drift_snapshot_id and promotion_evidence_refs travel with that mutation so DDE-058 can attach a learner without rewriting observational fields.",
+  "description": "Blueprint \u00a76.3 authoritative DDE execution-experience record; semantic copies may be fed to Hermes.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
     "table": "experience_records",
-    "order": 133,
-    "pk": ["experience_id"],
+    "order": 334,
+    "pk": [
+      "experience_id"
+    ],
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
-    "uniques": [["verification_run_id"], ["routing_simulation_run_id"]],
-    "checks": [
-      {
-        "name": "experience_records_origin_eligibility",
-        "expression": "(experience_origin <> 'simulation' OR eligible_for_routing_training = false)"
-      },
-      {
-        "name": "experience_records_origin_source",
-        "expression": "((experience_origin = 'real' AND verification_run_id IS NOT NULL) OR (experience_origin = 'simulation' AND routing_simulation_run_id IS NOT NULL))"
-      }
-    ],
+    "uniques": [],
     "foreign_keys": [
       {
         "name": "experience_records_tenant_id_fkey",
-        "columns": ["tenant_id"],
+        "columns": [
+          "tenant_id"
+        ],
         "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
+        "ref_columns": [
+          "tenant_id"
+        ]
       },
       {
         "name": "experience_records_project_id_fkey",
-        "columns": ["project_id"],
+        "columns": [
+          "project_id"
+        ],
         "ref_table": "projects",
-        "ref_columns": ["project_id"]
+        "ref_columns": [
+          "project_id"
+        ]
       },
       {
-        "name": "experience_records_route_decision_id_fkey",
-        "columns": ["route_decision_id"],
-        "ref_table": "route_decisions",
-        "ref_columns": ["decision_id"]
+        "name": "experience_records_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
       },
       {
-        "name": "experience_records_verification_run_id_fkey",
-        "columns": ["verification_run_id"],
-        "ref_table": "verification_runs",
-        "ref_columns": ["verification_run_id"]
+        "name": "experience_records_task_id_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
       },
       {
-        "name": "experience_records_routing_simulation_run_id_fkey",
-        "columns": ["routing_simulation_run_id"],
-        "ref_table": "routing_simulation_runs",
-        "ref_columns": ["run_id"]
+        "name": "experience_records_worker_run_id_fkey",
+        "columns": [
+          "worker_run_id"
+        ],
+        "ref_table": "worker_runs",
+        "ref_columns": [
+          "run_id"
+        ]
       },
       {
-        "name": "experience_records_outcome_id_fkey",
-        "columns": ["outcome_id"],
-        "ref_table": "routing_decision_outcomes",
-        "ref_columns": ["outcome_id"]
+        "name": "experience_records_worker_session_id_fkey",
+        "columns": [
+          "worker_session_id"
+        ],
+        "ref_table": "worker_sessions",
+        "ref_columns": [
+          "worker_session_id"
+        ]
       }
-    ]
+    ],
+    "checks": []
   },
   "required": [
     "experience_id",
     "tenant_id",
     "project_id",
-    "experience_origin",
-    "routing_policy_version",
-    "candidate_set_hash",
-    "selection_propensity",
-    "prediction_vector",
-    "observed_outcome_vector",
-    "verification_confidence",
-    "failure_attribution",
-    "attribution_confidence",
-    "holdout_partition",
-    "promotion_evidence_refs",
-    "eligible_for_routing_training",
-    "eligibility_reasons",
-    "down_weighted",
-    "promotion_state",
+    "task_signature",
+    "worker_configuration",
+    "outcome",
+    "economics",
+    "failure_signatures",
+    "verification_refs",
+    "authority_refs",
     "created_at",
     "updated_at"
   ],
   "properties": {
-    "experience_id": { "type": "string", "format": "uuid" },
-    "tenant_id": { "type": "string", "format": "uuid" },
-    "project_id": { "type": "string", "format": "uuid" },
-    "mission_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "task_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "route_decision_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "task_attempt_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "verification_run_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "routing_simulation_run_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "outcome_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
-    },
-    "experience_origin": { "type": "string", "enum": ["real", "simulation"] },
-    "routing_policy_version": { "type": "string" },
-    "candidate_set_hash": { "type": "string" },
-    "selection_propensity": { "type": "number" },
-    "prediction_vector": { "type": "object", "additionalProperties": true },
-    "observed_outcome_vector": { "type": "object", "additionalProperties": true },
-    "verification_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-    "failure_attribution": {
+    "experience_id": {
       "type": "string",
-      "enum": [
-        "none",
-        "route_attributable",
-        "context",
-        "environment",
-        "tool",
-        "specification",
-        "upstream",
-        "inconclusive"
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
       ]
     },
-    "attribution_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-    "holdout_partition": { "type": "string", "enum": ["train", "holdout"] },
-    "promotion_evidence_refs": {
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_signature": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "worker_configuration": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "economics": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "failure_signatures": {
       "type": "array",
-      "items": { "type": "string", "format": "uuid" }
+      "items": {
+        "type": "string"
+      }
     },
-    "drift_snapshot_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    "verification_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
-    "learning_run_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+    "authority_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
-    "eligible_for_routing_training": { "type": "boolean" },
-    "eligibility_reasons": { "type": "array", "items": { "type": "string" } },
-    "down_weighted": { "type": "boolean" },
-    "promotion_state": {
+    "created_at": {
       "type": "string",
-      "enum": ["unpromoted", "queued_for_learning", "consumed", "superseded", "blocked"]
+      "format": "date-time"
     },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
   }
 }

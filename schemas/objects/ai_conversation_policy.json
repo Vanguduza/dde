@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/ai_conversation_policy.json",
+  "title": "AiConversationPolicy",
+  "description": "DDE-owned reusable conversation reasoning/permission/tool/fallback/budget policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "ai_conversation_policies",
+    "order": 295,
+    "pk": [
+      "policy_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "project_id",
+        "name"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "ai_conversation_policies_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "ai_conversation_policies_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "ai_conversation_policies_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "ai_conversation_policies_context_positive",
+        "expression": "context_token_budget > 0"
+      },
+      {
+        "name": "ai_conversation_policies_priority_range",
+        "expression": "quality_priority BETWEEN 0 AND 100 AND latency_priority BETWEEN 0 AND 100"
+      }
+    ]
+  },
+  "required": [
+    "policy_id",
+    "tenant_id",
+    "project_id",
+    "name",
+    "reasoning_effort",
+    "permission_profile",
+    "toolset_ids",
+    "allowed_capability_ids",
+    "denied_capability_ids",
+    "fallback_chain",
+    "context_token_budget",
+    "quality_priority",
+    "latency_priority",
+    "independent_review_required",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "enum": [
+        "FAST",
+        "NORMAL",
+        "DEEP",
+        "MAXIMUM"
+      ]
+    },
+    "permission_profile": {
+      "type": "string",
+      "enum": [
+        "READ_ONLY",
+        "WORKSPACE_EDIT",
+        "AUTONOMOUS_LOCAL",
+        "APPROVAL_GATED"
+      ]
+    },
+    "toolset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_capability_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "denied_capability_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fallback_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "max_turns": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_token_budget": {
+      "type": "integer"
+    },
+    "cost_budget_usd": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quality_priority": {
+      "type": "integer"
+    },
+    "latency_priority": {
+      "type": "integer"
+    },
+    "independent_review_required": {
+      "type": "boolean"
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

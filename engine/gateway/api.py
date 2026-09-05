@@ -66,6 +66,12 @@ _HTTP_STATUS = {
     # VERSION_CONFLICT, and the fix is to re-read and replan.
     "STALE_REVISION": 409,
     "BUDGET_EXCEEDED": 409,
+    "APPROVAL_REQUIRED": 403,
+    "EVIDENCE_MISSING": 409,
+    "PROVIDER_UNAVAILABLE": 503,
+    "PROVIDER_ERROR": 502,
+    "PROVIDER_TIMEOUT": 504,
+    "RESOURCE_EXHAUSTION": 413,
 }
 
 
@@ -162,6 +168,7 @@ async def read_frontend_snapshot(
     )
 
 
+@router.get("/missions/{mission_id}/chat/latest")
 @router.get("/missions/{mission_id}/frontend/chat")
 async def read_frontend_chat(
     mission_id: UUID,
@@ -174,6 +181,7 @@ async def read_frontend_chat(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations")
 @router.get("/missions/{mission_id}/frontend/chats")
 async def read_frontend_chats(
     mission_id: UUID,
@@ -192,6 +200,7 @@ async def read_frontend_chats(
     )
 
 
+@router.get("/missions/{mission_id}/chat/models")
 @router.get("/missions/{mission_id}/frontend/chats/models")
 async def read_frontend_chat_models(
     mission_id: UUID,
@@ -204,6 +213,7 @@ async def read_frontend_chat_models(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}")
 async def read_frontend_chat_by_id(
     mission_id: UUID,
@@ -220,6 +230,7 @@ async def read_frontend_chat_by_id(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/attachments")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/attachments")
 async def read_frontend_chat_attachments(
     mission_id: UUID,
@@ -236,6 +247,9 @@ async def read_frontend_chat_attachments(
     )
 
 
+@router.put(
+    "/missions/{mission_id}/chat/conversations/{conversation_id}/attachments/{attachment_id}/content"
+)
 @router.put(
     "/missions/{mission_id}/frontend/chats/{conversation_id}/attachments/{attachment_id}/content"
 )
@@ -259,6 +273,7 @@ async def upload_frontend_chat_attachment(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/plans")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/plans")
 async def read_frontend_chat_plans(
     mission_id: UUID,
@@ -275,6 +290,7 @@ async def read_frontend_chat_plans(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/activities")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/activities")
 async def read_frontend_chat_activities(
     mission_id: UUID,
@@ -291,6 +307,7 @@ async def read_frontend_chat_activities(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/checkpoints")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/checkpoints")
 async def read_frontend_chat_checkpoints(
     mission_id: UUID,
@@ -307,6 +324,7 @@ async def read_frontend_chat_checkpoints(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/changes")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/changes")
 async def read_frontend_chat_changes(
     mission_id: UUID,
@@ -323,6 +341,7 @@ async def read_frontend_chat_changes(
     )
 
 
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/context")
 @router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/context")
 async def read_frontend_chat_context(
     mission_id: UUID,
@@ -341,6 +360,110 @@ async def read_frontend_chat_context(
         conversation_id=conversation_id,
         refs=parsed_refs,
         budget_tokens=budget_tokens,
+    )
+
+
+@router.get("/missions/{mission_id}/chat/conversations/{conversation_id}/memory/recall")
+async def read_dde_chat_memory_recall(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    query: str,
+    budget_tokens: int = 4_000,
+) -> dict[str, object]:
+    return await _services(request).commands.read_dde_chat_memory_recall(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+        query=query,
+        budget_tokens=budget_tokens,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/fabric")
+async def read_frontend_fabric(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    conversation_id: UUID | None = None,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_fabric_snapshot(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/fabric/memory")
+async def read_frontend_fabric_memory(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    scope_kind: str,
+    scope_ref: str,
+    status: str | None = None,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_fabric_memory(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        scope_kind=scope_kind,
+        scope_ref=scope_ref,
+        status=status,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/fabric/claims/{turn_id}")
+async def read_frontend_fabric_claims(
+    mission_id: UUID,
+    turn_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_fabric_claims(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        turn_id=turn_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/fabric/experience")
+async def read_frontend_fabric_experience(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    task_id: UUID | None = None,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_fabric_experience(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        task_id=task_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/fabric/insights")
+async def read_frontend_fabric_insights(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    state: str | None = None,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_fabric_insights(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        state=state,
     )
 
 
