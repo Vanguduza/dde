@@ -2337,6 +2337,182 @@ CREATE TABLE routing_insight_candidates (
     PRIMARY KEY (insight_id)
 );
 
+CREATE TABLE design_sources (
+    source_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    provider_key text NOT NULL,
+    display_name text NOT NULL,
+    source_class text NOT NULL,
+    adapter_kind text NOT NULL,
+    priority integer NOT NULL,
+    status text NOT NULL,
+    health_detail text,
+    capabilities jsonb NOT NULL DEFAULT '[]'::jsonb,
+    config jsonb NOT NULL DEFAULT '{}'::jsonb,
+    item_count integer,
+    last_checked_at timestamptz,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (source_id),
+    CHECK (priority >= 0),
+    CHECK (lock_version >= 1)
+);
+
+CREATE TABLE design_source_search_runs (
+    search_run_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    query text NOT NULL,
+    provider_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    requested_capabilities jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    result_count integer NOT NULL,
+    degradation jsonb NOT NULL DEFAULT '{}'::jsonb,
+    started_at timestamptz NOT NULL,
+    completed_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (search_run_id),
+    CHECK (result_count >= 0)
+);
+
+CREATE TABLE design_source_artifacts (
+    artifact_id uuid NOT NULL,
+    source_id uuid NOT NULL,
+    search_run_id uuid,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    provider_artifact_key text NOT NULL,
+    artifact_kind text NOT NULL,
+    title text NOT NULL,
+    source_uri text,
+    version_ref text,
+    content_hash text,
+    content_object_ref text,
+    content_object_backend text,
+    content_size_bytes integer,
+    framework text,
+    supported_archetypes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    dependency_manifest jsonb NOT NULL DEFAULT '[]'::jsonb,
+    license_state text NOT NULL,
+    license_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    security_state text NOT NULL,
+    accessibility_state text NOT NULL,
+    compatibility_state text NOT NULL,
+    retrieval_state text NOT NULL,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (artifact_id)
+);
+
+CREATE TABLE design_source_admissions (
+    admission_id uuid NOT NULL,
+    artifact_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    content_hash text NOT NULL,
+    compiler_version text NOT NULL,
+    framework_state text NOT NULL,
+    license_state text NOT NULL,
+    dependency_state text NOT NULL,
+    security_state text NOT NULL,
+    accessibility_state text NOT NULL,
+    design_system_state text NOT NULL,
+    token_mapping_report jsonb NOT NULL DEFAULT '{}'::jsonb,
+    unsupported_behaviors jsonb NOT NULL DEFAULT '[]'::jsonb,
+    hard_failures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    validation_obligations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    state text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (admission_id)
+);
+
+CREATE TABLE frontend_provenance_records (
+    provenance_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    subject_kind text NOT NULL,
+    subject_ref text NOT NULL,
+    source_id uuid,
+    artifact_id uuid,
+    admission_id uuid,
+    usage_kind text NOT NULL,
+    attribution_weight numeric,
+    source_revision text,
+    license_state text NOT NULL,
+    security_state text NOT NULL,
+    decision_ref text,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (provenance_id),
+    CHECK (attribution_weight IS NULL OR (attribution_weight >= 0 AND attribution_weight <= 1))
+);
+
+CREATE TABLE frontend_templates (
+    template_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    source_artifact_id uuid,
+    title text NOT NULL,
+    source_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    supported_archetypes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    expected_screen_coverage numeric,
+    score_summary jsonb NOT NULL DEFAULT '{}'::jsonb,
+    hard_failures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    status text NOT NULL,
+    content_hash text,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (template_id),
+    CHECK (expected_screen_coverage IS NULL OR (expected_screen_coverage >= 0 AND expected_screen_coverage <= 1))
+);
+
+CREATE TABLE frontend_candidate_scores (
+    score_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    sequence integer NOT NULL,
+    verification_run_id uuid,
+    score_state text NOT NULL,
+    overall_score numeric,
+    classification text NOT NULL,
+    dimensions jsonb NOT NULL DEFAULT '{}'::jsonb,
+    hard_failures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    computed_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (score_id),
+    CHECK (sequence >= 1),
+    CHECK (overall_score IS NULL OR (overall_score >= 0 AND overall_score <= 100))
+);
+
+CREATE TABLE frontend_source_blend_preferences (
+    preference_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    scope_key text NOT NULL,
+    weights jsonb NOT NULL DEFAULT '{}'::jsonb,
+    status text NOT NULL,
+    content_hash text NOT NULL,
+    created_by uuid,
+    supersedes_id uuid,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (preference_id),
+    CHECK (lock_version >= 1),
+    CHECK (status IN ('ACTIVE','SUPERSEDED'))
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -2866,6 +3042,43 @@ ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates
 ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_promoted_by_fkey FOREIGN KEY (promoted_by) REFERENCES principals (principal_id);
 
+ALTER TABLE design_sources ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_sources ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE design_source_search_runs ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_source_search_runs ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE design_source_search_runs ADD CONSTRAINT mission_fk FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+
+ALTER TABLE design_source_artifacts ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_source_artifacts ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE design_source_artifacts ADD CONSTRAINT source_fk FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
+ALTER TABLE design_source_artifacts ADD CONSTRAINT search_fk FOREIGN KEY (search_run_id) REFERENCES design_source_search_runs (search_run_id);
+
+ALTER TABLE design_source_admissions ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_source_admissions ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE design_source_admissions ADD CONSTRAINT artifact_fk FOREIGN KEY (artifact_id) REFERENCES design_source_artifacts (artifact_id);
+
+ALTER TABLE frontend_provenance_records ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_provenance_records ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_provenance_records ADD CONSTRAINT source_fk FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
+ALTER TABLE frontend_provenance_records ADD CONSTRAINT artifact_fk FOREIGN KEY (artifact_id) REFERENCES design_source_artifacts (artifact_id);
+ALTER TABLE frontend_provenance_records ADD CONSTRAINT admission_fk FOREIGN KEY (admission_id) REFERENCES design_source_admissions (admission_id);
+
+ALTER TABLE frontend_templates ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_templates ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_templates ADD CONSTRAINT artifact_fk FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+
+ALTER TABLE frontend_candidate_scores ADD CONSTRAINT tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_candidate_scores ADD CONSTRAINT project_fk FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_candidate_scores ADD CONSTRAINT candidate_fk FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
+ALTER TABLE frontend_candidate_scores ADD CONSTRAINT verification_fk FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
+
+ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_mission_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_supersedes_fkey FOREIGN KEY (supersedes_id) REFERENCES frontend_source_blend_preferences (preference_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -3293,3 +3506,35 @@ CREATE POLICY experience_records_tenant_isolation ON experience_records USING (t
 ALTER TABLE routing_insight_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routing_insight_candidates FORCE ROW LEVEL SECURITY;
 CREATE POLICY routing_insight_candidates_tenant_isolation ON routing_insight_candidates USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_sources FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_sources_tenant_isolation ON design_sources USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_source_search_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_source_search_runs FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_source_search_runs_tenant_isolation ON design_source_search_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_source_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_source_artifacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_source_artifacts_tenant_isolation ON design_source_artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_source_admissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_source_admissions FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_source_admissions_tenant_isolation ON design_source_admissions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_provenance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_provenance_records FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_provenance_records_tenant_isolation ON frontend_provenance_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_templates FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_templates_tenant_isolation ON frontend_templates USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_candidate_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_candidate_scores FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_candidate_scores_tenant_isolation ON frontend_candidate_scores USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_source_blend_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_source_blend_preferences FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_source_blend_preferences_tenant_isolation ON frontend_source_blend_preferences USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

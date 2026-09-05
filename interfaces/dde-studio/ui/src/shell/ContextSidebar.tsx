@@ -45,7 +45,7 @@ export function ContextSidebar({
           <GroupRow
             key={group.key}
             group={group}
-            selected={group.key === selectedGroup}
+            selectedKey={selectedGroup}
             onSelect={onSelectGroup}
           />
         ))}
@@ -58,13 +58,14 @@ export function ContextSidebar({
 
 function GroupRow({
   group,
-  selected,
+  selectedKey,
   onSelect,
 }: {
   readonly group: ExplorerGroup;
-  readonly selected: boolean;
+  readonly selectedKey: string | null;
   readonly onSelect: (key: string) => void;
 }) {
+  const selected = group.key === selectedKey;
   const unavailable = group.count.value === null;
   return (
     <li>
@@ -80,6 +81,18 @@ function GroupRow({
         <span className="dde-explorer-group-title">{group.title}</span>
         <Count value={group.count} />
       </button>
+      {group.children?.length ? (
+        <ul className="dde-explorer-children" data-testid={`explorer-children-${group.key}`}>
+          {group.children.map((child) => (
+            <GroupRow
+              key={child.key}
+              group={child}
+              selectedKey={selectedKey}
+              onSelect={onSelect}
+            />
+          ))}
+        </ul>
+      ) : null}
     </li>
   );
 }

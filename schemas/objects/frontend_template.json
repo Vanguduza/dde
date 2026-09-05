@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_template.json",
+  "title": "FrontendTemplate",
+  "description": "DDE-069 M8 normalized template/foundation recommendation. A template with hard failures may be inspected but cannot be locked or promoted into accepted production.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_templates",
+    "order": 341,
+    "pk": [
+      "template_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "checks": [
+      {
+        "name": "frontend_template_coverage_valid",
+        "expression": "expected_screen_coverage IS NULL OR (expected_screen_coverage >= 0 AND expected_screen_coverage <= 1)"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "artifact_fk",
+        "columns": [
+          "source_artifact_id"
+        ],
+        "ref_table": "design_source_artifacts",
+        "ref_columns": [
+          "artifact_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "template_id",
+    "tenant_id",
+    "project_id",
+    "title",
+    "source_refs",
+    "supported_archetypes",
+    "score_summary",
+    "hard_failures",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_artifact_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supported_archetypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected_screen_coverage": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "score_summary": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "hard_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "RECOMMENDED",
+        "FAVORITED",
+        "LOCKED",
+        "REJECTED",
+        "UNAVAILABLE"
+      ]
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

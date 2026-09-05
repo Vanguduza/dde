@@ -193,6 +193,7 @@ def reconcile(
     graph: PxgGraph,
     *,
     passing_verifications: Mapping[str, frozenset[str]] | None = None,
+    source_provenance_refs: Mapping[str, tuple[str, ...]] | None = None,
     affected_keys: frozenset[str] | None = None,
 ) -> AuditComputation:
     """Reconcile required vs implemented screen experience deterministically.
@@ -202,6 +203,7 @@ def reconcile(
     emitted screen records for incremental runs but does not change rule meaning.
     """
     passed = passing_verifications or {}
+    provenance_by_key = source_provenance_refs or {}
     obligations = tuple(contract.obligations) if contract else ()
     screen_obligations = tuple(
         item for item in obligations if item.dimension == "screen"
@@ -266,8 +268,43 @@ def reconcile(
             )
         )
         states[key]["DRIFT"] = "PASS"
-        if node.source_refs:
+        screen_provenance: list[str] = []
+        for subject_key, refs in provenance_by_key.items():
+            if _screen_root(graph, subject_key, all_screen_keys) == key:
+                screen_provenance.extend(refs)
+        if screen_provenance:
             states[key]["SOURCE_PROVENANCE"] = "PASS"
+            evidence.extend(
+                AuditEvidenceDraft(
+                    key=f"provenance:{ref}",
+                    dimension="SOURCE_PROVENANCE",
+                    evidence_kind="PROVENANCE_RECORD",
+                    source_type="FrontendProvenanceRecord",
+                    source_ref=ref,
+                    pxg_key=key,
+                    assessment_state="PASS",
+                    metadata={"screen_key": key},
+                )
+                for ref in sorted(set(screen_provenance))
+            )
+        elif node.source_refs:
+            states[key]["SOURCE_PROVENANCE"] = "PARTIAL"
+            findings.append(
+                AuditFindingDraft(
+                    finding_type="SOURCE_MAPPING_WITHOUT_PROVENANCE",
+                    dimension="SOURCE_PROVENANCE",
+                    severity="WARNING",
+                    assessment_state="PARTIAL",
+                    message=(
+                        "Screen has source mapping but no persisted M8 provenance "
+                        "record; attribution remains partial."
+                    ),
+                    rule_id="source.provenance_recorded",
+                    pxg_key=key,
+                    dependency_keys=(key, "source:provenance"),
+                    evidence_keys=(f"pxg:{graph.revision}:{key}",),
+                )
+            )
         else:
             states[key]["SOURCE_PROVENANCE"] = "UNKNOWN"
             findings.append(
@@ -277,8 +314,8 @@ def reconcile(
                     severity="WARNING",
                     assessment_state="UNKNOWN",
                     message=(
-                        "Screen has no source reference in PXG; provenance is "
-                        "unknown rather than inferred."
+                        "Screen has no source reference or persisted provenance; "
+                        "provenance is unknown rather than inferred."
                     ),
                     rule_id="source.known",
                     pxg_key=key,

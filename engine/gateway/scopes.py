@@ -140,6 +140,17 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "frontend.audit.run": "mission.control",
     "frontend.audit.recompute_affected": "mission.control",
     "frontend.audit.accept_exception": "mission.control",
+    "frontend.source.initialize": "mission.control",
+    "frontend.source.search": "mission.control",
+    "frontend.source.inspect": "mission.control",
+    "frontend.source.fetch": "mission.control",
+    "frontend.source.sandbox": "mission.control",
+    "frontend.source.validate_sandbox": "mission.control",
+    "frontend.source.admit": "mission.control",
+    "frontend.source.provenance.record": "mission.control",
+    "frontend.source.templates.recommend": "mission.control",
+    "frontend.source.candidate.score": "mission.control",
+    "frontend.source.target_blend.set": "mission.control",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -216,6 +227,17 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "frontend.audit.run": "mission",
     "frontend.audit.recompute_affected": "mission",
     "frontend.audit.accept_exception": "mission",
+    "frontend.source.initialize": "mission",
+    "frontend.source.search": "mission",
+    "frontend.source.inspect": "mission",
+    "frontend.source.fetch": "mission",
+    "frontend.source.sandbox": "mission",
+    "frontend.source.validate_sandbox": "mission",
+    "frontend.source.admit": "mission",
+    "frontend.source.provenance.record": "mission",
+    "frontend.source.templates.recommend": "mission",
+    "frontend.source.candidate.score": "mission",
+    "frontend.source.target_blend.set": "mission",
 }
 
 #: AI Conversation Fabric commands are explicit and mission-scoped. The dispatcher

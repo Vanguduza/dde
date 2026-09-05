@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_source_admission.json",
+  "title": "DesignSourceAdmission",
+  "description": "DDE-069 M8 Design System Compiler/admission result pinned to exact source content. Hard failures block candidate use and cannot be averaged away by scores.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_source_admissions",
+    "order": 339,
+    "pk": [
+      "admission_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "artifact_fk",
+        "columns": [
+          "artifact_id"
+        ],
+        "ref_table": "design_source_artifacts",
+        "ref_columns": [
+          "artifact_id"
+        ]
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uq_source_admission_artifact_hash",
+        "columns": [
+          "artifact_id",
+          "content_hash",
+          "compiler_version"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "admission_id",
+    "artifact_id",
+    "tenant_id",
+    "project_id",
+    "content_hash",
+    "compiler_version",
+    "framework_state",
+    "license_state",
+    "dependency_state",
+    "security_state",
+    "accessibility_state",
+    "design_system_state",
+    "token_mapping_report",
+    "unsupported_behaviors",
+    "hard_failures",
+    "validation_obligations",
+    "state",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "admission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "artifact_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "compiler_version": {
+      "type": "string"
+    },
+    "framework_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "license_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "CONDITIONAL",
+        "UNKNOWN"
+      ]
+    },
+    "dependency_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "security_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "accessibility_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN"
+      ]
+    },
+    "design_system_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN"
+      ]
+    },
+    "token_mapping_report": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "unsupported_behaviors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hard_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation_obligations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "ADMITTED",
+        "REJECTED",
+        "BLOCKED"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

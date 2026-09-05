@@ -17,6 +17,7 @@ from engine.fabric.memory import MemoryService
 from engine.studio.audit.reads import ScreenAuditReadService
 from engine.studio.candidates.service import CandidateService
 from engine.studio.pxg.service import PxgService
+from engine.studio.source.service import SourceIntelligenceService
 from engine.truth.db import open_unit_of_work
 from engine.truth.repository import TruthRepository
 from engine.workspaces.paths import resolve_within_workspace
@@ -26,7 +27,7 @@ DEFAULT_CONTEXT_BUDGET_TOKENS = 32_000
 MAX_CONTEXT_FILE_BYTES = 256_000
 MAX_FOLDER_ENTRIES = 200
 _REF = re.compile(
-    r"(?<!\w)@(?P<kind>file|folder|screen|candidate|component|finding|plan|workspace|"
+    r"(?<!\w)@(?P<kind>file|folder|screen|candidate|component|finding|artifact|plan|workspace|"
     r"attachment|memory|requirement|edr):(?P<value>[^\s,;]+)",
     re.IGNORECASE,
 )
@@ -38,6 +39,7 @@ SUPPORTED_CONTEXT_KINDS = frozenset(
         "candidate",
         "component",
         "finding",
+        "artifact",
         "plan",
         "workspace",
         "attachment",
@@ -116,6 +118,7 @@ class FrontendChatContextService:
         self._memory = memory or MemoryService(engine)
         self._pxg = PxgService(engine)
         self._candidates = CandidateService(engine, pxg=self._pxg)
+        self._sources = SourceIntelligenceService(engine)
         self._truth = TruthRepository()
         self._audit = ScreenAuditReadService(engine)
 
@@ -363,6 +366,49 @@ class FrontendChatContextService:
                 text,
                 _tokens(text),
                 str(payload.get("version") or payload.get("updated_at") or ""),
+            )
+        if kind == "artifact":
+            try:
+                artifact_id = UUID(target)
+            except ValueError as exc:
+                raise DdeError(
+                    "VALIDATION_FAILED", "invalid source artifact context id"
+                ) from exc
+            artifact = await self._sources.artifact(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                artifact_id=artifact_id,
+            )
+            if artifact is None:
+                return ResolvedContextRef(
+                    normalized,
+                    kind,
+                    "UNAVAILABLE",
+                    "source artifact not found",
+                    None,
+                    0,
+                )
+            admission = await self._sources.admission_for_artifact(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                artifact_id=artifact_id,
+            )
+            text = json_dumps(
+                {
+                    "artifact": artifact.model_dump(mode="json"),
+                    "admission": (
+                        admission.model_dump(mode="json") if admission else None
+                    ),
+                }
+            )
+            return ResolvedContextRef(
+                normalized,
+                kind,
+                "AVAILABLE",
+                f"source artifact {artifact.title} ({artifact.retrieval_state})",
+                text,
+                _tokens(text),
+                artifact.content_hash or artifact.version_ref,
             )
         if kind == "finding":
             try:

@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_provenance_record.json",
+  "title": "FrontendProvenanceRecord",
+  "description": "DDE-069 M8 append-only source attribution for PXG nodes, candidates, templates and components. Actual attribution is evidence, never rewritten by target blend preferences.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_provenance_records",
+    "order": 340,
+    "pk": [
+      "provenance_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "checks": [
+      {
+        "name": "frontend_provenance_weight_valid",
+        "expression": "attribution_weight IS NULL OR (attribution_weight >= 0 AND attribution_weight <= 1)"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "source_fk",
+        "columns": [
+          "source_id"
+        ],
+        "ref_table": "design_sources",
+        "ref_columns": [
+          "source_id"
+        ]
+      },
+      {
+        "name": "artifact_fk",
+        "columns": [
+          "artifact_id"
+        ],
+        "ref_table": "design_source_artifacts",
+        "ref_columns": [
+          "artifact_id"
+        ]
+      },
+      {
+        "name": "admission_fk",
+        "columns": [
+          "admission_id"
+        ],
+        "ref_table": "design_source_admissions",
+        "ref_columns": [
+          "admission_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "provenance_id",
+    "tenant_id",
+    "project_id",
+    "subject_kind",
+    "subject_ref",
+    "usage_kind",
+    "license_state",
+    "security_state",
+    "metadata",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "provenance_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "subject_kind": {
+      "type": "string",
+      "enum": [
+        "PXG_NODE",
+        "CANDIDATE",
+        "TEMPLATE",
+        "COMPONENT",
+        "DESIGN_ARTIFACT"
+      ]
+    },
+    "subject_ref": {
+      "type": "string"
+    },
+    "source_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "artifact_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "admission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "usage_kind": {
+      "type": "string",
+      "enum": [
+        "REUSED",
+        "ADAPTED",
+        "INSPIRED",
+        "REFERENCE",
+        "GENERATED"
+      ]
+    },
+    "attribution_weight": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "license_state": {
+      "type": "string"
+    },
+    "security_state": {
+      "type": "string"
+    },
+    "decision_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

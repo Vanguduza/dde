@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_source_blend_preference.json",
+  "title": "FrontendSourceBlendPreference",
+  "description": "DDE-069 durable target source-blend preference for future candidate generation. It never rewrites actual provenance; weights are validated by SourceIntelligenceService and superseded append-only by scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_source_blend_preferences",
+    "order": 343,
+    "pk": [
+      "preference_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "frontend_source_blend_lock_positive",
+        "expression": "lock_version >= 1"
+      },
+      {
+        "name": "frontend_source_blend_status_known",
+        "expression": "status IN ('ACTIVE','SUPERSEDED')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_source_blend_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_source_blend_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_source_blend_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "frontend_source_blend_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      },
+      {
+        "name": "frontend_source_blend_supersedes_fkey",
+        "columns": [
+          "supersedes_id"
+        ],
+        "ref_table": "frontend_source_blend_preferences",
+        "ref_columns": [
+          "preference_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "preference_id",
+    "tenant_id",
+    "project_id",
+    "scope_key",
+    "weights",
+    "status",
+    "content_hash",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "preference_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scope_key": {
+      "type": "string"
+    },
+    "weights": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "SUPERSEDED"
+      ]
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersedes_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

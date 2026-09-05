@@ -50,6 +50,7 @@ from engine.studio.locks.service import LockService
 from engine.studio.mutations.governed import GovernedMutationService
 from engine.studio.mutations.planner import MutationRequest
 from engine.studio.reads import FrontendReadService
+from engine.studio.source.service import SourceIntelligenceService
 from engine.truth.db import open_unit_of_work
 from engine.workspaces.repository import WorkspaceRepository
 
@@ -87,6 +88,7 @@ class FrontendChatService:
         lifecycle: FabricLifecycleService | None = None,
         frontend_context: FrontendStudioChatContextAdapter | None = None,
         audit_reads: ScreenAuditReadService | None = None,
+        sources: SourceIntelligenceService | None = None,
     ) -> None:
         self._engine = engine
         self._mutations = mutations or GovernedMutationService(engine)
@@ -113,6 +115,7 @@ class FrontendChatService:
         self._frontend_context = frontend_context or FrontendStudioChatContextAdapter(
             engine, reads=self._reads, locks=self._locks
         )
+        self._sources = sources or SourceIntelligenceService(engine)
         self._audit_reads = audit_reads or ScreenAuditReadService(engine)
 
     async def open(
@@ -870,6 +873,7 @@ class FrontendChatService:
                 project_id=project_id,
                 conversation=conversation,
                 classification=classification,
+                text=text,
             )
         else:
             (
@@ -1210,6 +1214,7 @@ class FrontendChatService:
         project_id: UUID,
         conversation: FrontendConversation,
         classification: Classification,
+        text: str,
     ) -> tuple[str, str | None, str | None, str]:
         intent = classification.intent
         if intent is Intent.COVERAGE_QUERY:
@@ -1296,11 +1301,34 @@ class FrontendChatService:
             return "ANSWERED", None, None, message
 
         if intent is Intent.SEARCH_SOURCE:
-            detail = (
-                "Source Intelligence (DDE-069 M8) is not implemented; "
-                "the studio will not fabricate source search results"
+            query = _source_query(text)
+            result = await self._sources.search(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=conversation.mission_id,
+                query=query,
             )
-            return "REFUSED", "CAPABILITY_UNAVAILABLE", detail, detail
+            if result.run.status == "BLOCKED" and not result.artifacts:
+                detail = "source search is blocked: " + ", ".join(
+                    f"{key}={value.get('status', 'UNAVAILABLE')}"
+                    for key, value in result.run.degradation.items()
+                    if isinstance(value, dict)
+                )
+                return "REFUSED", "CAPABILITY_UNAVAILABLE", detail, detail
+            visible = result.artifacts[:5]
+            rows = ", ".join(
+                f"{item.title} [artifact:{item.artifact_id}]" for item in visible
+            )
+            message = (
+                f"Source search {result.run.status}: {len(result.artifacts)} result(s)"
+            )
+            if rows:
+                message += f"; {rows}"
+            if result.run.degradation:
+                message += "; degraded providers: " + ", ".join(
+                    sorted(result.run.degradation)
+                )
+            return "ANSWERED", None, None, message
 
         if intent is Intent.LOCK_CHANGE:
             detail = (
@@ -1700,3 +1728,12 @@ class FrontendChatService:
             )
             rows = result.mappings().all()
         return tuple(FrontendConversationTurn.model_validate(dict(row)) for row in rows)
+
+
+def _source_query(text: str) -> str:
+    import re
+
+    query = re.sub(
+        r"^\s*(?:find|search(?:\s+for)?|look\s+for)\s+", "", text, flags=re.I
+    ).strip()
+    return query or text.strip()

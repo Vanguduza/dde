@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_source_artifact.json",
+  "title": "DesignSourceArtifact",
+  "description": "DDE-069 M8 normalized source candidate. Indexed previews may lack bytes; fetched/admitted artifacts require a content hash and remain isolated from accepted production.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_source_artifacts",
+    "order": 338,
+    "pk": [
+      "artifact_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "source_fk",
+        "columns": [
+          "source_id"
+        ],
+        "ref_table": "design_sources",
+        "ref_columns": [
+          "source_id"
+        ]
+      },
+      {
+        "name": "search_fk",
+        "columns": [
+          "search_run_id"
+        ],
+        "ref_table": "design_source_search_runs",
+        "ref_columns": [
+          "search_run_id"
+        ]
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uq_source_artifact_provider_key",
+        "columns": [
+          "source_id",
+          "provider_artifact_key"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "artifact_id",
+    "source_id",
+    "tenant_id",
+    "project_id",
+    "provider_artifact_key",
+    "artifact_kind",
+    "title",
+    "supported_archetypes",
+    "dependency_manifest",
+    "license_state",
+    "license_ids",
+    "security_state",
+    "accessibility_state",
+    "compatibility_state",
+    "retrieval_state",
+    "metadata",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "search_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provider_artifact_key": {
+      "type": "string"
+    },
+    "artifact_kind": {
+      "type": "string",
+      "enum": [
+        "COMPONENT",
+        "TEMPLATE",
+        "THEME",
+        "FOUNDATION",
+        "DIRECTIVE",
+        "REFERENCE"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "source_uri": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_object_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Tenant/project-scoped durable object key for fetched source bytes. Never a public URL or credential."
+    },
+    "content_object_backend": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_size_bytes": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "framework": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supported_archetypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependency_manifest": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "license_state": {
+      "type": "string",
+      "enum": [
+        "OPEN_REUSE",
+        "CONDITIONAL_REUSE",
+        "REFERENCE_ONLY",
+        "REJECTED",
+        "UNKNOWN"
+      ]
+    },
+    "license_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "security_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "accessibility_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN"
+      ]
+    },
+    "compatibility_state": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "UNKNOWN"
+      ]
+    },
+    "retrieval_state": {
+      "type": "string",
+      "enum": [
+        "INDEXED",
+        "INSPECTED",
+        "FETCHED",
+        "ADMITTED",
+        "REJECTED",
+        "BLOCKED"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -1,5 +1,13 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS frontend_source_blend_preferences CASCADE;
+DROP TABLE IF EXISTS frontend_candidate_scores CASCADE;
+DROP TABLE IF EXISTS frontend_templates CASCADE;
+DROP TABLE IF EXISTS frontend_provenance_records CASCADE;
+DROP TABLE IF EXISTS design_source_admissions CASCADE;
+DROP TABLE IF EXISTS design_source_artifacts CASCADE;
+DROP TABLE IF EXISTS design_source_search_runs CASCADE;
+DROP TABLE IF EXISTS design_sources CASCADE;
 DROP TABLE IF EXISTS routing_insight_candidates CASCADE;
 DROP TABLE IF EXISTS experience_records CASCADE;
 DROP TABLE IF EXISTS ai_claims CASCADE;

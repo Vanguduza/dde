@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "description": "Versioned catalog of DDE-owned reusable frontend components and foundations. Every entry points at repository bytes and evidence; adapters must not invent entries.",
+  "components": [
+    {
+      "key": "dde.foundation.marketplace.v1",
+      "title": "DDE React Marketplace Foundation",
+      "artifact_kind": "FOUNDATION",
+      "source_path": "schemas/design/library/react_marketplace_foundation.tsx",
+      "version": "1",
+      "content_hash": "84afa53d6e9da43188a2640ecf7c47c251e155a0ad4f70d527acd06d8c2ddd2a",
+      "framework": "react",
+      "dependencies": ["react"],
+      "supported_archetypes": ["marketplace", "checkout", "catalog"],
+      "license_state": "OPEN_REUSE",
+      "license_id": "DDE-PROJECT-OWNED",
+      "security_state": "PASS",
+      "accessibility_state": "PASS",
+      "compatibility_state": "PASS",
+      "token_mapping_report": {"complete": true, "strategy": "semantic-structure-no-freehand-style"},
+      "evidence_refs": [
+        "schemas/design/library/react_marketplace_foundation.tsx",
+        "tests/unit/test_source_intelligence.py::test_dde_library_catalog_hashes_match_repository_bytes"
+      ]
+    }
+  ]
+}

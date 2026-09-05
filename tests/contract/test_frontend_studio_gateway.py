@@ -72,6 +72,17 @@ DDE_069_COMMANDS = (
     "frontend.audit.run",
     "frontend.audit.recompute_affected",
     "frontend.audit.accept_exception",
+    "frontend.source.initialize",
+    "frontend.source.search",
+    "frontend.source.inspect",
+    "frontend.source.fetch",
+    "frontend.source.sandbox",
+    "frontend.source.validate_sandbox",
+    "frontend.source.admit",
+    "frontend.source.provenance.record",
+    "frontend.source.templates.recommend",
+    "frontend.source.candidate.score",
+    "frontend.source.target_blend.set",
 )
 
 

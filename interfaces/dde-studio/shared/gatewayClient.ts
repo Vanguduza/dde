@@ -297,6 +297,69 @@ export class GatewayApiClient {
     );
   }
 
+  async readFrontendSources(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(`/missions/${missionId}/frontend/sources`, sessionId, principalId);
+  }
+
+  async readFrontendSourceArtifact(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    artifactId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/sources/artifacts/${artifactId}`,
+      sessionId,
+      principalId,
+    );
+  }
+
+  async readFrontendSourceProvenance(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    subjectKind: string,
+    subjectRef: string,
+  ): Promise<Record<string, unknown>> {
+    const query = new URLSearchParams({ subject_kind: subjectKind, subject_ref: subjectRef });
+    return this.get(
+      `/missions/${missionId}/frontend/sources/provenance?${query.toString()}`,
+      sessionId,
+      principalId,
+    );
+  }
+
+  async readFrontendSourceTargetBlend(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    scopeKey: string,
+  ): Promise<Record<string, unknown>> {
+    const query = new URLSearchParams({ scope_key: scopeKey });
+    return this.get(
+      `/missions/${missionId}/frontend/sources/target-blend?${query.toString()}`,
+      sessionId,
+      principalId,
+    );
+  }
+
+  async readFrontendCandidateScore(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    candidateId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/sources/candidates/${candidateId}/score`,
+      sessionId,
+      principalId,
+    );
+  }
+
   async readFrontendPreview(
     sessionId: string,
     principalId: string,

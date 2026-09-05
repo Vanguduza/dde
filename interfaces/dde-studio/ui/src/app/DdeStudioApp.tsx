@@ -34,6 +34,9 @@ import type {
   InspectorDescriptor,
   PreviewDocument,
   ScreenAuditMatrix,
+  SourceCatalogRead,
+  FrontendProvenanceRecord,
+  FrontendSourceBlendPreference,
   StudioMode,
 } from "../state/projections";
 
@@ -59,6 +62,11 @@ export function DdeStudioApp({
   const [hostContext, setHostContext] = useState<FrontendHostContext | null>(null);
   const [snapshot, setSnapshot] = useState<FrontendStudioSnapshot | null>(null);
   const [auditMatrix, setAuditMatrix] = useState<ScreenAuditMatrix | null>(null);
+  const [sourceCatalog, setSourceCatalog] = useState<SourceCatalogRead | null>(null);
+  const [sourceBusy, setSourceBusy] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [selectedProvenance, setSelectedProvenance] = useState<readonly FrontendProvenanceRecord[]>([]);
+  const [sourceTargetBlend, setSourceTargetBlend] = useState<FrontendSourceBlendPreference | null>(null);
   const [mode, setMode] = useState<StudioMode>("design");
   const [group, setGroup] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -101,6 +109,24 @@ export function DdeStudioApp({
     });
     setSnapshot(value);
     return value;
+  }, [bridge]);
+
+  const refreshSources = useCallback(async () => {
+    const value = await bridge.requestRead<SourceCatalogRead>({
+      resource: "frontend.sources.inventory",
+    });
+    setSourceCatalog(value);
+    setSourceError(null);
+    return value;
+  }, [bridge]);
+
+  const refreshSourceTargetBlend = useCallback(async (scopeKey: string) => {
+    const value = await bridge.requestRead<{ preference: FrontendSourceBlendPreference | null }>({
+      resource: "frontend.sources.target_blend",
+      parameters: { scopeKey },
+    });
+    setSourceTargetBlend(value.preference ?? null);
+    return value.preference ?? null;
   }, [bridge]);
 
   const refreshChat = useCallback(async () => {
@@ -187,12 +213,14 @@ export function DdeStudioApp({
       bridge.requestRead<FrontendHostContext>({ resource: "frontend.host.context" }),
       bridge.requestRead<FrontendStudioSnapshot>({ resource: "frontend.studio.snapshot" }),
       bridge.requestRead<ScreenAuditMatrix>({ resource: "frontend.audit.matrix" }).catch(() => null),
+      bridge.requestRead<SourceCatalogRead>({ resource: "frontend.sources.inventory" }).catch(() => null),
     ])
-      .then(([context, value, audit]) => {
+      .then(([context, value, audit, sources]) => {
         if (cancelled) return;
         setHostContext(context);
         setSnapshot(value);
         setAuditMatrix(audit);
+        setSourceCatalog(sources);
         setLoadError(null);
       })
       .catch((error: unknown) => {
@@ -346,6 +374,34 @@ export function DdeStudioApp({
     };
   }, [activeCandidateId, bridge, preview?.previewSessionId, selectedKey]);
 
+  useEffect(() => {
+    if (!selectedKey) {
+      setSelectedProvenance([]);
+      return;
+    }
+    let cancelled = false;
+    bridge.requestRead<{ provenance: readonly FrontendProvenanceRecord[] }>({
+      resource: "frontend.sources.provenance",
+      parameters: { subjectKind: "PXG_NODE", subjectRef: selectedKey },
+    }).then((value) => {
+      if (!cancelled) setSelectedProvenance(value.provenance ?? []);
+    }).catch(() => {
+      if (!cancelled) setSelectedProvenance([]);
+    });
+    return () => { cancelled = true; };
+  }, [bridge, selectedKey, snapshot?.pxgRevision]);
+
+  useEffect(() => {
+    const scopeKey = selectedKey ?? screenKey ?? "*";
+    let cancelled = false;
+    refreshSourceTargetBlend(scopeKey)
+      .catch(() => null)
+      .then((value) => {
+        if (!cancelled && value === null) setSourceTargetBlend(null);
+      });
+    return () => { cancelled = true; };
+  }, [refreshSourceTargetBlend, screenKey, selectedKey]);
+
   const sendFrontendCommand = useCallback(
     async (
       commandType: string,
@@ -415,6 +471,15 @@ export function DdeStudioApp({
       verification_request_id: requestId,
     })
       .then(async () => {
+        if (cancelled) return;
+        try {
+          await sendFrontendCommand("frontend.source.candidate.score", {
+            candidate_id: activeCandidate.candidateId,
+          });
+        } catch {
+          // Candidate scoring is derived evidence. Verification remains authoritative
+          // even when the optional score cannot yet be completed.
+        }
         if (!cancelled) await refreshSnapshot();
       })
       .catch((error: unknown) => {
@@ -429,6 +494,86 @@ export function DdeStudioApp({
       cancelled = true;
     };
   }, [activeCandidate, refreshSnapshot, sendFrontendCommand]);
+
+  const initializeSources = useCallback(async () => {
+    setSourceBusy(true);
+    setSourceError(null);
+    try {
+      await sendFrontendCommand("frontend.source.initialize", {});
+      await Promise.all([refreshSnapshot(), refreshSources()]);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSourceBusy(false);
+    }
+  }, [refreshSnapshot, refreshSources, sendFrontendCommand]);
+
+  const searchSources = useCallback(async (query: string) => {
+    setSourceBusy(true);
+    setSourceError(null);
+    try {
+      await sendFrontendCommand("frontend.source.search", { query });
+      await Promise.all([refreshSnapshot(), refreshSources()]);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSourceBusy(false);
+    }
+  }, [refreshSnapshot, refreshSources, sendFrontendCommand]);
+
+  const recommendTemplates = useCallback(async () => {
+    setSourceBusy(true);
+    setSourceError(null);
+    try {
+      await sendFrontendCommand("frontend.source.templates.recommend", {});
+      await Promise.all([refreshSnapshot(), refreshSources()]);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSourceBusy(false);
+    }
+  }, [refreshSnapshot, refreshSources, sendFrontendCommand]);
+
+  const setTargetBlend = useCallback(async (weights: Readonly<Record<string, number>>) => {
+    const scopeKey = selectedKey ?? screenKey ?? "*";
+    setSourceBusy(true);
+    setSourceError(null);
+    try {
+      await sendFrontendCommand("frontend.source.target_blend.set", {
+        scope_key: scopeKey,
+        weights,
+      });
+      await refreshSourceTargetBlend(scopeKey);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSourceBusy(false);
+    }
+  }, [refreshSourceTargetBlend, screenKey, selectedKey, sendFrontendCommand]);
+
+  const sourceArtifactAction = useCallback(async (
+    action: "inspect" | "fetch" | "sandbox" | "validate_sandbox" | "admit",
+    artifactId: string,
+  ) => {
+    setSourceBusy(true);
+    setSourceError(null);
+    try {
+      const parameters: Record<string, unknown> = { artifact_id: artifactId };
+      if (action === "sandbox") {
+        const scopeKey = selectedKey ?? screenKey;
+        if (!scopeKey) {
+          throw new Error("Select a PXG screen or element before sandbox-adapting a source.");
+        }
+        parameters.scope_keys = [scopeKey];
+      }
+      await sendFrontendCommand(`frontend.source.${action}`, parameters);
+      await Promise.all([refreshSnapshot(), refreshSources()]);
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSourceBusy(false);
+    }
+  }, [refreshSnapshot, refreshSources, screenKey, selectedKey, sendFrontendCommand]);
 
   const startPreview = useCallback(async () => {
     if (!activeCandidateId || !screenKey) {
@@ -531,6 +676,9 @@ export function DdeStudioApp({
         const outcome = payloadString(accepted, "outcome");
         await refreshChat();
         await refreshChatResources(conversationId);
+        if (intent === "SEARCH_SOURCE" && outcome === "ANSWERED") {
+          await refreshSources();
+        }
 
         if (
           chatThread?.conversation?.mode !== "PLAN" &&
@@ -563,6 +711,7 @@ export function DdeStudioApp({
       refreshChat,
       refreshChatResources,
       refreshSnapshot,
+      refreshSources,
       screenKey,
       selectedKey,
       sendFrontendCommand,
@@ -909,6 +1058,19 @@ export function DdeStudioApp({
             mode={mode}
             snapshot={snapshot}
             auditMatrix={auditMatrix}
+            sourceCatalog={sourceCatalog}
+            sourceBusy={sourceBusy}
+            sourceError={sourceError}
+            selectedProvenance={selectedProvenance}
+            targetBlend={sourceTargetBlend}
+            targetBlendScope={selectedKey ?? screenKey ?? "*"}
+            onTargetBlendChange={(weights) => void setTargetBlend(weights)}
+            onInitializeSources={() => void initializeSources()}
+            onSearchSources={(query) => void searchSources(query)}
+            onRecommendTemplates={() => void recommendTemplates()}
+            onSourceArtifactAction={(action, artifactId) =>
+              void sourceArtifactAction(action, artifactId)
+            }
             viewport={viewport}
             onViewportChange={setViewport}
             screenKey={screenKey}
@@ -962,6 +1124,7 @@ export function DdeStudioApp({
           applyingProperty={applyingProperty}
           candidate={activeCandidate}
           auditMatrix={auditMatrix}
+          provenance={selectedProvenance}
           onApply={(propertyName, value) =>
             void applyInspectorProperty(propertyName, value)
           }

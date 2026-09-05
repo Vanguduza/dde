@@ -529,22 +529,32 @@ Any disagreement between the audit and the 99-control ledger becomes a reconcili
 
 ---
 
-# 16. M8 Source Intelligence remains required
+# 16. M8 Source Intelligence — partial checkpoint, finish from repository
 
-Do not allow Screen Audit to replace source intelligence.
+Do not rebuild M8 from scratch. The current branch now contains migration `0034`,
+`engine/studio/source/`, generated source contracts, Gateway commands/reads, universal
+DDE Chat source search and React Source/candidate/Inspector integration. Implemented
+providers include project-native components, the repository-backed DDE library, existing
+Donor Lab artifacts and a 21st MCP adapter that fails closed without exact certified
+source capabilities.
 
-DDE-069 still needs the canonical M8 equivalents of:
+The current vertical slice supports:
 
-- internal DDE/component library adapter;
-- donor-source integration;
-- 21st / approved source adapter where still canonical;
-- template recommendation;
-- source provenance;
-- license/admission/security state;
-- design-system compilation;
-- CandidateScorecard where current Project Truth still requires it.
+- source inventory + health/degradation;
+- search → inspect → fetch → sandbox adapt → sandbox validate → admit;
+- Design System Compiler hard-failure dominance;
+- licence/security/accessibility/framework/dependency admission;
+- persisted provenance and accepted-PXG provenance carry-forward;
+- template recommendations that do not hide missing admission;
+- evidence-complete CandidateScorecard semantics;
+- actual source attribution vs separately persisted target blend;
+- promotion source/provenance gate;
+- Screen Audit source-provenance evidence;
+- universal Chat governed source search.
 
-Screen Audit should consume this evidence when available.
+Do not claim M8 complete until production PostgreSQL persistence is proven, the real
+external provider/certification state is exercised where available, all relevant 99-control
+ledger rows are reconciled from evidence, and the full package gates are green.
 
 ---
 
@@ -784,10 +794,28 @@ audit queries and live `@finding`. Dogfood reconciliation validates the independ
 99-control ledger and does not fabricate a production audit run when PostgreSQL is
 unavailable. Evidence: `docs/evidence/dde-069/SCREEN_AUDIT_ENGINE.md`.
 
-The next unblocked DDE-069 packet is **M8 Source Intelligence**: common
-DesignSourceAdapter contract, project/internal/DDE-library/donor/21st source inventory,
-provider health, inspected artifacts, Design System Compiler admission, provenance,
-template recommendations and evidence-backed candidate scorecards. External providers
-must remain typed unavailable when not configured; no provider result may write accepted
-production directly. Then use the dogfood 99-control gap list to close remaining golden
-controls.
+M8 Source Intelligence has now advanced beyond this earlier next-packet statement. The
+current branch contains the partial checkpoint described below. Do not rebuild its common
+adapter/domain/Gateway/Chat/React foundation; verify it, finish its production/provider
+proof and reconcile the binding ledger, then use the dogfood gap list for remaining
+golden controls.
+
+
+## DDE-069 M8 checkpoint — 2026-09-05
+
+The repository now contains a partial but broad M8 Source Intelligence implementation.
+Focused evidence at checkpoint time: 35 Python tests, 14 targeted M8 Playwright
+scenarios, the full 41-test workbench Playwright suite and 77 extension tests passed;
+schema generation/binding drift, Ruff, mypy, both TypeScript surfaces, real VSIX
+packaging and diff hygiene passed. Do not infer production DB/provider proof from those results.
+`DDE_DATABASE_URL`/`DDE_REDIS_URL` remain absent on the current host and live 21st must
+remain unavailable unless an exact certified MCP source capability is present.
+
+Immediate continuation after reconstructing HEAD:
+1. run the full M8 + full workbench/extension/package gate;
+2. add/finish PostgreSQL M8 lifecycle tests and execute them only where infrastructure exists;
+3. inspect all `frontend.source.*` reads/commands and the React Source mode against M8 truth;
+4. reconcile the 99-control binding ledger conservatively from new evidence;
+5. close only source-dependent golden controls genuinely proven;
+6. continue remaining candidate dock / Inspector / canvas toolbar / top-bar controls;
+7. preserve AD-039 golden-image fail-closed state and `/design` certified-transport blocker.

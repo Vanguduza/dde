@@ -69,6 +69,7 @@ from engine.studio.mutations.governed import GovernedMutationService
 from engine.studio.mutations.planner import MutationRequest
 from engine.studio.preview_runtime.service import PreviewService, PreviewState
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
+from engine.studio.source.service import SourceIntelligenceService
 from engine.studio.tokens_catalog import BASE_KINDS
 from engine.studio.verification_execution import CandidateVerificationExecutionService
 from engine.studio.verification_requests import CandidateVerificationRequestService
@@ -99,6 +100,7 @@ class FrontendStudioService:
         coverage: CoverageService | None = None,
         screens: ScreenAcceptanceService | None = None,
         audit: ScreenAuditService | None = None,
+        sources: SourceIntelligenceService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces or WorkspaceService(engine)
@@ -115,6 +117,7 @@ class FrontendStudioService:
         self._audit = audit or ScreenAuditService(
             engine, pxg=self._pxg, contracts=self._contracts
         )
+        self._sources = sources or SourceIntelligenceService(engine)
 
     def _missions(self) -> MissionService:
         return MissionService(self._engine, EventService(self._engine))
@@ -201,6 +204,7 @@ class FrontendStudioService:
             activities=self._chat_activities(),
             context=self._chat_context(),
             models=FrontendChatModelCatalog(),
+            sources=self._sources,
         )
 
     def _promotion_service(self) -> PromotionService:
@@ -211,6 +215,7 @@ class FrontendStudioService:
             locks=self._lock_service(),
             coverage=self._coverage,
             mutations=self._mutation_executor(),
+            sources=self._sources,
         )
 
     def _preview_service(self) -> PreviewService:
@@ -245,6 +250,265 @@ class FrontendStudioService:
         if self._screens_service is None:
             self._screens_service = ScreenAcceptanceService(self._engine, pxg=self._pxg)
         return self._screens_service
+
+    async def initialize_sources(
+        self, *, tenant_id: UUID, project_id: UUID
+    ) -> dict[str, object]:
+        sources = await self._sources.ensure_sources(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        return {
+            "sources": [item.model_dump(mode="json") for item in sources],
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def search_sources(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        result = await self._sources.search(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            query=_str(parameters, "query"),
+            provider_keys=_string_list(parameters, "provider_keys"),
+            requested_capabilities=(
+                _string_list(parameters, "requested_capabilities") or ("search",)
+            ),
+        )
+        return {
+            "search_run": result.run.model_dump(mode="json"),
+            "artifacts": [item.model_dump(mode="json") for item in result.artifacts],
+            "sources": [item.model_dump(mode="json") for item in result.sources],
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def inspect_source(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        artifact = await self._sources.inspect(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+        )
+        return {
+            "artifact": artifact.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def fetch_source(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        result = await self._sources.fetch(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+        )
+        return {
+            "artifact": result.artifact.model_dump(mode="json"),
+            "content_available": result.content is not None,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def sandbox_source(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        (
+            candidate,
+            workspace,
+            artifact,
+            relative_path,
+        ) = await self._sources.sandbox_adapt(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+            scope_keys=_string_list(parameters, "scope_keys"),
+        )
+        return {
+            "candidate": candidate.model_dump(mode="json"),
+            "workspace": workspace.model_dump(mode="json"),
+            "artifact": artifact.model_dump(mode="json"),
+            "sandbox_path": relative_path,
+            "accepted_state_mutated": False,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def validate_source_sandbox(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        admission, provenance = await self._sources.validate_sandbox(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+            allow_conditional_license=_bool(
+                parameters, "allow_conditional_license", default=False
+            ),
+        )
+        return {
+            "admission": admission.model_dump(mode="json"),
+            "provenance": provenance.model_dump(mode="json") if provenance else None,
+            "accepted_state_mutated": False,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def admit_source(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        admission = await self._sources.admit(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            artifact_id=_uuid(parameters, "artifact_id"),
+            project_frameworks=_string_list(parameters, "project_frameworks"),
+            allow_conditional_license=_bool(
+                parameters, "allow_conditional_license", default=False
+            ),
+        )
+        return {
+            "admission": admission.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def record_source_provenance(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        weight_raw = parameters.get("attribution_weight")
+        weight = float(weight_raw) if isinstance(weight_raw, (int, float)) else None
+        record = await self._sources.record_provenance(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            subject_kind=_str(parameters, "subject_kind"),
+            subject_ref=_str(parameters, "subject_ref"),
+            artifact_id=_uuid(parameters, "artifact_id"),
+            usage_kind=_str(parameters, "usage_kind"),
+            attribution_weight=weight,
+            decision_ref=_optional_str(parameters, "decision_ref"),
+        )
+        audit_payload: dict[str, object] | None = None
+        if record.subject_kind == "PXG_NODE":
+            await self._audit.invalidate_affected(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                affected_keys=(record.subject_ref,),
+            )
+            try:
+                audit = await self._audit.run(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    mission_id=mission_id,
+                    trigger="SOURCE_CHANGE",
+                    affected_keys=(record.subject_ref,),
+                )
+                audit_payload = {
+                    "audit_run_id": str(audit.run.audit_run_id),
+                    "audit_summary_state": audit.run.summary_state,
+                }
+            except Exception as exc:
+                audit_payload = {
+                    "audit_run_id": None,
+                    "audit_summary_state": "UNKNOWN",
+                    "audit_refresh_error": f"{type(exc).__name__}: {exc}",
+                }
+        return {
+            "provenance": record.model_dump(mode="json"),
+            "audit": audit_payload,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def recommend_source_templates(
+        self, *, tenant_id: UUID, project_id: UUID
+    ) -> dict[str, object]:
+        templates = await self._sources.recommend_templates(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        return {
+            "templates": [item.model_dump(mode="json") for item in templates],
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def score_source_candidate(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        score = await self._sources.compute_candidate_score(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=_uuid(parameters, "candidate_id"),
+        )
+        return {
+            "score": score.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_source_target_blend(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID | None,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        raw = parameters.get("weights")
+        if not isinstance(raw, dict):
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "target source blend requires an object of provider weights",
+            )
+        weights: dict[str, float] = {}
+        for key, value in raw.items():
+            if not isinstance(key, str) or not isinstance(value, (int, float)):
+                raise DdeError(
+                    "VALIDATION_FAILED",
+                    "target source blend weights must be numeric by provider key",
+                )
+            weights[key] = float(value)
+        preference = await self._sources.set_target_blend(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            scope_key=_optional_str(parameters, "scope_key") or "*",
+            weights=weights,
+            created_by=principal_id,
+        )
+        return {
+            "preference": preference.model_dump(mode="json"),
+            "actual_provenance_mutated": False,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
 
     async def compile_prompt(
         self, *, parameters: dict[str, object]
@@ -1443,6 +1707,35 @@ class FrontendStudioService:
             candidate_id=candidate_id,
             verification_runs=runs,
         )
+        provenance_projection: dict[str, object]
+        try:
+            accepted_graph = await self._pxg.load(
+                tenant_id=tenant_id, project_id=project_id
+            )
+            projected = await self._sources.carry_candidate_provenance_to_pxg(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate_id,
+                scope_keys=tuple(promoted.scope_keys),
+                accepted_revision=f"pxg:{accepted_graph.revision}",
+            )
+            provenance_projection = {
+                "provenance_projection_state": "CURRENT",
+                "provenance_record_count": len(projected),
+            }
+        except Exception as exc:
+            # Promotion has already changed accepted project truth. Do not claim it
+            # rolled back because this derived attribution projection degraded.
+            await self._audit.invalidate_affected(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                affected_keys=tuple(promoted.scope_keys),
+            )
+            provenance_projection = {
+                "provenance_projection_state": "DEGRADED",
+                "provenance_record_count": 0,
+                "provenance_projection_error": f"{type(exc).__name__}: {exc}",
+            }
         audit = await self._refresh_audit_after_accepted_change(
             tenant_id=tenant_id,
             project_id=project_id,
@@ -1456,6 +1749,7 @@ class FrontendStudioService:
             "promoted_at": promoted.promoted_at.isoformat()
             if promoted.promoted_at
             else None,
+            **provenance_projection,
             **audit,
             "side_effect_class": "WORKSPACE_LOCAL",
         }

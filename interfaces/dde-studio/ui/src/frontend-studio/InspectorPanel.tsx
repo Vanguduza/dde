@@ -6,6 +6,7 @@ import type {
   InspectorDescriptor,
   ScreenAuditMatrix,
   InspectorPropertyDescriptor,
+  FrontendProvenanceRecord,
 } from "../state/projections";
 
 export interface InspectorPanelProps {
@@ -17,6 +18,7 @@ export interface InspectorPanelProps {
   readonly applyingProperty: string | null;
   readonly candidate: CandidateCardSnapshot | null;
   readonly auditMatrix: ScreenAuditMatrix | null;
+  readonly provenance: readonly FrontendProvenanceRecord[];
   readonly onApply: (propertyName: string, value: string) => void;
 }
 
@@ -29,6 +31,7 @@ export function InspectorPanel({
   applyingProperty,
   candidate,
   auditMatrix,
+  provenance,
   onApply,
 }: InspectorPanelProps) {
   if (!selectedKey) {
@@ -114,8 +117,27 @@ export function InspectorPanel({
           <span className="dde-muted">No screen verification binding resolved.</span>
         )}
       </div>
+      <div className="dde-inspector-section" data-testid="inspector-provenance">
+        <h3>Provenance</h3>
+        {provenance.length ? (
+          provenance.map((record) => (
+            <div key={record.provenanceId} className="dde-source-attribution-row">
+              <strong>{record.usageKind}</strong>
+              <span>{record.licenseState} · {record.securityState}</span>
+              <code>{record.artifactId ?? record.sourceId ?? "project-native"}</code>
+              <span>
+                {record.attributionWeight === null
+                  ? "weight unknown"
+                  : `${Math.round(record.attributionWeight * 100)}%`}
+              </span>
+            </div>
+          ))
+        ) : (
+          <span className="dde-muted">No attributable external/source provenance.</span>
+        )}
+      </div>
       <div className="dde-inspector-section">
-        <h3>Source</h3>
+        <h3>Source / code</h3>
         {descriptor.sourcePath ? (
           <>
             <code>{descriptor.sourcePath}</code>

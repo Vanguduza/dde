@@ -18,6 +18,11 @@ import type {
   InspectorDescriptor,
   PreviewDocument,
   ScreenAuditMatrix,
+  SourceCatalogRead,
+  DesignSourceArtifact,
+  FrontendTemplate,
+  FrontendProvenanceRecord,
+  FrontendSourceBlendPreference,
 } from "../src/state/projections";
 import "../src/styles/tokens.css";
 import "../src/styles/global.css";
@@ -27,7 +32,9 @@ const missionId = "00000000-0000-0000-0000-000000000010";
 const projectId = "00000000-0000-0000-0000-000000000001";
 const candidateId = "00000000-0000-0000-0000-000000000020";
 const pxgKey = "screens/checkout#hero";
-const freshCandidate = new URLSearchParams(window.location.search).get("fresh") === "1";
+const urlParams = new URLSearchParams(window.location.search);
+const freshCandidate = urlParams.get("fresh") === "1";
+const withAcceptedProvenance = urlParams.get("provenance") === "1";
 const sourceA = "00000000-0000-0000-0000-000000000041";
 const sourceB = "00000000-0000-0000-0000-000000000042";
 let candidateWorkspaceId: string | null = freshCandidate
@@ -53,6 +60,35 @@ const chatPlanId = "00000000-0000-0000-0000-000000000060";
 const chatPlanStepId = "00000000-0000-0000-0000-000000000061";
 const attachmentId = "00000000-0000-0000-0000-000000000070";
 const activityId = "00000000-0000-0000-0000-000000000090";
+const projectNativeSourceId = "00000000-0000-0000-0000-000000000101";
+const ddeLibrarySourceId = "00000000-0000-0000-0000-000000000102";
+const twentyFirstSourceId = "00000000-0000-0000-0000-000000000103";
+const donorSourceId = "00000000-0000-0000-0000-000000000104";
+const sourceArtifactId = "00000000-0000-0000-0000-000000000111";
+const sandboxArtifactId = "00000000-0000-0000-0000-000000000115";
+let sandboxArtifact: DesignSourceArtifact | null = null;
+let sourceArtifactState: DesignSourceArtifact["retrievalState"] = "INDEXED";
+let sourceArtifacts: DesignSourceArtifact[] = [];
+let sourceTemplates: FrontendTemplate[] = [];
+let sourceProvenance: FrontendProvenanceRecord[] = withAcceptedProvenance
+  ? [{
+      provenanceId: "00000000-0000-0000-0000-000000000119",
+      subjectKind: "PXG_NODE",
+      subjectRef: pxgKey,
+      sourceId: ddeLibrarySourceId,
+      artifactId: sourceArtifactId,
+      admissionId: "00000000-0000-0000-0000-000000000113",
+      usageKind: "REUSED",
+      attributionWeight: 1,
+      sourceRevision: "accepted:pxg:12",
+      licenseState: "OPEN_REUSE",
+      securityState: "PASS",
+      decisionRef: null,
+      metadata: { promoted_from_candidate_id: candidateId },
+    }]
+  : [];
+let sourceTargetBlend: FrontendSourceBlendPreference | null = null;
+let candidateScoreComputed = false;
 let chatAttachments: FrontendChatAttachment[] = [];
 let chatPlans: FrontendChatPlan[] = [];
 let chatActivities: FrontendChatActivity[] = [
@@ -121,6 +157,68 @@ const chatBudget = (): FrontendChatContextBudget => ({
     archiveSizeBytes: 4096,
   },
 });
+
+function sourceCatalog(): SourceCatalogRead {
+  const now = new Date().toISOString();
+  return {
+    sources: [
+      { sourceId: projectNativeSourceId, providerKey: "project-native", displayName: "Internal Components", sourceClass: "PROJECT_NATIVE", adapterKind: "project", priority: 1, status: "AVAILABLE", healthDetail: "PXG revision 4; 3 component(s)", capabilities: ["search", "inspect", "reuse", "provenance"], itemCount: 3, lastCheckedAt: now },
+      { sourceId: ddeLibrarySourceId, providerKey: "dde-library", displayName: "DDE Library", sourceClass: "DDE_LIBRARY", adapterKind: "dde_library", priority: 4, status: "AVAILABLE", healthDetail: "0 approved DDE component(s)", capabilities: ["search", "inspect", "fetch", "provenance"], itemCount: 0, lastCheckedAt: now },
+      { sourceId: twentyFirstSourceId, providerKey: "21st", displayName: "21st MCP", sourceClass: "EXTERNAL_REGISTRY", adapterKind: "twenty_first", priority: 5, status: "NOT_CONFIGURED", healthDetail: "21st MCP/provider transport is not configured", capabilities: ["search", "inspect", "fetch", "license", "health"], itemCount: null, lastCheckedAt: now },
+      { sourceId: donorSourceId, providerKey: "donors", displayName: "Donor Sources", sourceClass: "DONOR", adapterKind: "donor", priority: 6, status: "AVAILABLE", healthDetail: "1 ingested donor artifact(s)", capabilities: ["search", "inspect", "reference", "provenance"], itemCount: 1, lastCheckedAt: now },
+    ],
+    artifacts: [...sourceArtifacts, ...(sandboxArtifact ? [sandboxArtifact] : [])],
+    templates: [...sourceTemplates],
+  };
+}
+
+function searchedArtifact(): DesignSourceArtifact {
+  return {
+    artifactId: sourceArtifactId,
+    sourceId: projectNativeSourceId,
+    searchRunId: "00000000-0000-0000-0000-000000000112",
+    providerArtifactKey: pxgKey,
+    artifactKind: "COMPONENT",
+    title: "Checkout Hero",
+    sourceUri: "src/Checkout.tsx",
+    versionRef: "workspace-revision",
+    contentHash: sourceArtifactState === "INDEXED" ? null : "a".repeat(64),
+    contentObjectRef: sourceArtifactState === "FETCHED" || sourceArtifactState === "ADMITTED" ? "source-artifacts/tenant/project/hash" : null,
+    contentObjectBackend: sourceArtifactState === "FETCHED" || sourceArtifactState === "ADMITTED" ? "LOCAL" : null,
+    contentSizeBytes: sourceArtifactState === "FETCHED" || sourceArtifactState === "ADMITTED" ? 128 : null,
+    framework: "react",
+    supportedArchetypes: ["checkout"],
+    dependencyManifest: [],
+    licenseState: "OPEN_REUSE",
+    licenseIds: ["MIT"],
+    securityState: "PASS",
+    accessibilityState: "PASS",
+    compatibilityState: "PASS",
+    retrievalState: sourceArtifactState,
+    metadata: { token_mapping_report: { status: "mapped" } },
+  };
+}
+
+function sandboxedArtifact(): DesignSourceArtifact {
+  const base = searchedArtifact();
+  return {
+    ...base,
+    artifactId: sandboxArtifactId,
+    searchRunId: null,
+    providerArtifactKey: `sandbox:${candidateId}:${base.providerArtifactKey}`,
+    title: `${base.title} · sandbox adaptation`,
+    sourceUri: `workspace://${candidateWorkspaceId}/.dde/source-adaptations/${candidateId}/source.tsx`,
+    versionRef: `sandbox:${candidateWorkspaceId}:${"a".repeat(64)}`,
+    retrievalState: sandboxArtifact?.retrievalState ?? "FETCHED",
+    metadata: {
+      ...base.metadata,
+      derived_from_artifact_id: sourceArtifactId,
+      sandbox_candidate_id: candidateId,
+      sandbox_workspace_id: candidateWorkspaceId,
+      sandbox_path: `.dde/source-adaptations/${candidateId}/source.tsx`,
+    },
+  };
+}
 
 function auditMatrix(): ScreenAuditMatrix {
   return {
@@ -239,12 +337,18 @@ function snapshot(): FrontendStudioSnapshot {
         {
           key: "sources",
           title: "Sources",
-          count: { value: null, availability: "NOT_IMPLEMENTED", reason: "M8 not implemented" },
+          count: { value: 4, availability: "AVAILABLE" },
+          children: [
+            { key: "source:project-native", title: "Internal Components", count: { value: 3, availability: "AVAILABLE" } },
+            { key: "source:dde-library", title: "DDE Library", count: { value: 0, availability: "EMPTY" } },
+            { key: "source:21st", title: "21st MCP", count: { value: null, availability: "NOT_CONFIGURED", reason: "21st MCP/provider transport is not configured" } },
+            { key: "source:donors", title: "Donor Sources", count: { value: 1, availability: "AVAILABLE" } },
+          ],
         },
         {
           key: "templates",
           title: "Templates",
-          count: { value: null, availability: "NOT_IMPLEMENTED", reason: "M8 not implemented" },
+          count: { value: 1, availability: "AVAILABLE" },
         },
         { key: "locks", title: "Locks", count: { value: 0, availability: "EMPTY" } },
       ],
@@ -313,6 +417,19 @@ function snapshot(): FrontendStudioSnapshot {
           availability: "EMPTY",
           reason: "No source selection is needed after candidate materialization.",
         },
+    sources: {
+      providers: [
+        { providerKey: "project-native", displayName: "Internal Components", sourceClass: "PROJECT_NATIVE", status: "AVAILABLE", healthDetail: "PXG revision 4; 3 component(s)", capabilities: ["search", "inspect", "reuse", "provenance"], itemCount: { value: 3, availability: "AVAILABLE" } },
+        { providerKey: "dde-library", displayName: "DDE Library", sourceClass: "DDE_LIBRARY", status: "AVAILABLE", healthDetail: "0 approved DDE component(s)", capabilities: ["search", "inspect", "fetch", "provenance"], itemCount: { value: 0, availability: "EMPTY" } },
+        { providerKey: "21st", displayName: "21st MCP", sourceClass: "EXTERNAL_REGISTRY", status: "NOT_CONFIGURED", healthDetail: "21st MCP/provider transport is not configured", capabilities: ["search", "inspect", "fetch", "license", "health"], itemCount: { value: null, availability: "NOT_CONFIGURED", reason: "21st MCP/provider transport is not configured" } },
+        { providerKey: "donors", displayName: "Donor Sources", sourceClass: "DONOR", status: "AVAILABLE", healthDetail: "1 ingested donor artifact(s)", capabilities: ["search", "inspect", "reference", "provenance"], itemCount: { value: 1, availability: "AVAILABLE" } },
+      ],
+      providerCount: { value: 4, availability: "AVAILABLE" },
+      artifactCount: { value: 2, availability: "DEGRADED", reason: "21st=NOT_CONFIGURED" },
+      templateCount: { value: 1, availability: "DEGRADED", reason: "21st=NOT_CONFIGURED" },
+      availability: "DEGRADED",
+      reason: "21st=NOT_CONFIGURED (21st MCP/provider transport is not configured)",
+    },
     candidates: {
       count: { value: 1, availability: "AVAILABLE" },
       cards: [
@@ -367,6 +484,11 @@ function snapshot(): FrontendStudioSnapshot {
               : [],
           verificationEvidenceRefs:
             verificationRunStatus === "PASSED" ? ["evidence-1", "evidence-2"] : [],
+          scoreState: candidateScoreComputed ? "SCORED" : "UNSCORED",
+          score: candidateScoreComputed ? 88 : null,
+          scoreClassification: candidateScoreComputed ? "GOOD" : "UNSCORED",
+          scoreHardFailures: [],
+          scoreEvidenceRefs: candidateScoreComputed ? ["verification:evidence-1", "candidate-coverage:screen"] : [],
         },
       ],
     },
@@ -436,6 +558,31 @@ function inspector(): InspectorDescriptor {
 }
 
 function commandPayload(command: DdeCommand): Record<string, unknown> {
+  if (command.commandType === "frontend.source.initialize") { return { sources: sourceCatalog().sources }; }
+  if (command.commandType === "frontend.source.search") { sourceArtifactState = "INDEXED"; sourceArtifacts = [searchedArtifact()]; return { searchRunId: "00000000-0000-0000-0000-000000000112", status: "PARTIAL", resultCount: 1, artifacts: sourceArtifacts, degradation: { "21st": "NOT_CONFIGURED" } }; }
+  if (command.commandType === "frontend.source.inspect") { sourceArtifactState = "INSPECTED"; sourceArtifacts = [searchedArtifact()]; return { artifact: sourceArtifacts[0] }; }
+  if (command.commandType === "frontend.source.fetch") { sourceArtifactState = "FETCHED"; sourceArtifacts = [searchedArtifact()]; return { artifact: sourceArtifacts[0] }; }
+  if (command.commandType === "frontend.source.sandbox") { sandboxArtifact = sandboxedArtifact(); return { candidate: { candidateId, origin: "SOURCE_IMPORT", state: "READY" }, workspace: { workspaceId: candidateWorkspaceId, status: "READY" }, artifact: sandboxArtifact, sandboxPath: sandboxArtifact.metadata.sandbox_path, acceptedStateMutated: false }; }
+  if (command.commandType === "frontend.source.validate_sandbox") { sandboxArtifact = { ...sandboxedArtifact(), retrievalState: "ADMITTED" }; sourceProvenance = [{ provenanceId: "00000000-0000-0000-0000-000000000116", subjectKind: "CANDIDATE", subjectRef: candidateId, sourceId: projectNativeSourceId, artifactId: sandboxArtifactId, admissionId: "00000000-0000-0000-0000-000000000117", usageKind: "ADAPTED", attributionWeight: 1, sourceRevision: sandboxArtifact.versionRef, licenseState: "OPEN_REUSE", securityState: "PASS", decisionRef: null, metadata: {} }]; return { admission: { admissionId: "00000000-0000-0000-0000-000000000117", artifactId: sandboxArtifactId, contentHash: "a".repeat(64), compilerVersion: "m8.compiler.v1", frameworkState: "PASS", licenseState: "PASS", dependencyState: "PASS", securityState: "PASS", accessibilityState: "PASS", designSystemState: "PASS", tokenMappingReport: { complete: true }, unsupportedBehaviors: [], hardFailures: [], validationObligations: [], state: "ADMITTED" }, provenance: sourceProvenance[0], acceptedStateMutated: false }; }
+  if (command.commandType === "frontend.source.admit") { sourceArtifactState = "ADMITTED"; sourceArtifacts = [searchedArtifact()]; return { admission: { admissionId: "00000000-0000-0000-0000-000000000113", artifactId: sourceArtifactId, contentHash: "a".repeat(64), compilerVersion: "m8.compiler.v1", frameworkState: "PASS", licenseState: "PASS", dependencyState: "PASS", securityState: "PASS", accessibilityState: "PASS", designSystemState: "PASS", tokenMappingReport: { status: "mapped" }, unsupportedBehaviors: [], hardFailures: [], validationObligations: [], state: "ADMITTED" } }; }
+  if (command.commandType === "frontend.source.templates.recommend") { sourceTemplates = [{ templateId: "00000000-0000-0000-0000-000000000114", sourceArtifactId, title: "Checkout Hero Foundation", sourceRefs: [`artifact:${sourceArtifactId}`], supportedArchetypes: ["checkout"], expectedScreenCoverage: null, scoreSummary: { admission_state: sourceArtifactState }, hardFailures: sourceArtifactState === "ADMITTED" ? [] : ["SOURCE_ADMISSION_REQUIRED"], status: sourceArtifactState === "ADMITTED" ? "RECOMMENDED" : "UNAVAILABLE", contentHash: "a".repeat(64) }]; return { templates: sourceTemplates }; }
+  if (command.commandType === "frontend.source.candidate.score") { candidateScoreComputed = true; return { score: { scoreState: "SCORED", overallScore: 88, classification: "GOOD", hardFailures: [], evidenceRefs: ["verification:evidence-1", "candidate-coverage:screen"] } }; }
+  if (command.commandType === "frontend.source.target_blend.set") {
+    const raw = command.parameters.weights as Record<string, number>;
+    const now = new Date().toISOString();
+    sourceTargetBlend = {
+      preferenceId: "00000000-0000-0000-0000-000000000118",
+      scopeKey: String(command.parameters.scope_key ?? "*"),
+      weights: { ...raw },
+      status: "ACTIVE",
+      contentHash: "b".repeat(64),
+      createdBy: "00000000-0000-0000-0000-0000000000aa",
+      supersedesId: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    return { preference: sourceTargetBlend, actualProvenanceMutated: false };
+  }
   if (command.commandType === "frontend.chat.open") {
     if (!chatConversation) {
       const now = new Date().toISOString();
@@ -658,6 +805,29 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
         resolvedContext: pair.user.resolvedContext,
         producedRefs: [],
         message: refusalDetail,
+      };
+    }
+    if (lower.startsWith("find ") || lower.startsWith("search ") || lower.startsWith("look for ")) {
+      sourceArtifactState = "INDEXED";
+      sourceArtifacts = [searchedArtifact()];
+      const message = `Source search PARTIAL: 1 result(s); Checkout Hero [artifact:${sourceArtifactId}]; degraded providers: 21st`;
+      const pair = appendChatPair(text, {
+        intent: "SEARCH_SOURCE",
+        outcome: "ANSWERED",
+        message,
+        producedRefs: [`artifact:${sourceArtifactId}`],
+      });
+      return {
+        turnId: pair.user.turnId,
+        replyTurnId: pair.studio.turnId,
+        sequence: pair.user.sequence,
+        intent: "SEARCH_SOURCE",
+        outcome: "ANSWERED",
+        refusalCode: null,
+        refusalDetail: null,
+        resolvedContext: pair.user.resolvedContext,
+        producedRefs: [`artifact:${sourceArtifactId}`],
+        message,
       };
     }
     if (lower === "undo" || lower.includes("revert")) {
@@ -942,6 +1112,11 @@ const bridge = new TestHostBridge({
     "frontend.audit.findings": () => ({ findings: auditMatrix().findings }),
     "frontend.audit.screen": () => ({ screen: auditMatrix().screens[0], findings: auditMatrix().findings }),
     "frontend.audit.evidence": () => ({ evidence: [] }),
+    "frontend.sources.inventory": () => sourceCatalog(),
+    "frontend.sources.artifact": () => ({ artifact: sourceArtifacts[0] ?? null, admission: sourceArtifactState === "ADMITTED" ? { admissionId: "00000000-0000-0000-0000-000000000113", artifactId: sourceArtifactId, contentHash: "a".repeat(64), compilerVersion: "m8.compiler.v1", frameworkState: "PASS", licenseState: "PASS", dependencyState: "PASS", securityState: "PASS", accessibilityState: "PASS", designSystemState: "PASS", tokenMappingReport: { status: "mapped" }, unsupportedBehaviors: [], hardFailures: [], validationObligations: [], state: "ADMITTED" } : null }),
+    "frontend.sources.provenance": () => ({ provenance: [...sourceProvenance] }),
+    "frontend.sources.target_blend": () => ({ preference: sourceTargetBlend }),
+    "frontend.sources.candidate_score": () => ({ score: candidateScoreComputed ? { scoreState: "SCORED", overallScore: 88, classification: "GOOD" } : null }),
     "frontend.chat.thread": () => chatThread(),
     "frontend.chat.thread.by_id": (query: DdeReadQuery) => {
       const id = String(query.parameters?.conversationId ?? "");
@@ -959,6 +1134,16 @@ const bridge = new TestHostBridge({
     "frontend.inspector.describe": () => inspector(),
   },
   commands: {
+    "frontend.source.initialize": commandPayload,
+    "frontend.source.search": commandPayload,
+    "frontend.source.inspect": commandPayload,
+    "frontend.source.fetch": commandPayload,
+    "frontend.source.sandbox": commandPayload,
+    "frontend.source.validate_sandbox": commandPayload,
+    "frontend.source.admit": commandPayload,
+    "frontend.source.templates.recommend": commandPayload,
+    "frontend.source.candidate.score": commandPayload,
+    "frontend.source.target_blend.set": commandPayload,
     "frontend.chat.open": commandPayload,
     "frontend.chat.set_context": commandPayload,
     "frontend.chat.set_mode": commandPayload,

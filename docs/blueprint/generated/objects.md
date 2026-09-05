@@ -857,3 +857,67 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: true
+
+## DesignSource
+
+- table: `design_sources`
+- primary key: source_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DesignSourceSearchRun
+
+- table: `design_source_search_runs`
+- primary key: search_run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DesignSourceArtifact
+
+- table: `design_source_artifacts`
+- primary key: artifact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DesignSourceAdmission
+
+- table: `design_source_admissions`
+- primary key: admission_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendProvenanceRecord
+
+- table: `frontend_provenance_records`
+- primary key: provenance_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendTemplate
+
+- table: `frontend_templates`
+- primary key: template_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendCandidateScore
+
+- table: `frontend_candidate_scores`
+- primary key: score_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendSourceBlendPreference
+
+- table: `frontend_source_blend_preferences`
+- primary key: preference_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true

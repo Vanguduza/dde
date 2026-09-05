@@ -40,6 +40,7 @@ from engine.studio.locks.resolution import covers_key
 from engine.studio.locks.service import LockService
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.pxg.service import NodeInput, PxgService
+from engine.studio.source.service import SourceIntelligenceService
 
 #: Evidence kinds whose absence blocks promotion for a frontend
 #: candidate. Kept in step with `screen_acceptance_defaults.json`'s
@@ -90,6 +91,7 @@ class PromotionService:
         locks: LockService | None = None,
         coverage: CoverageService | None = None,
         mutations: MutationExecutor | None = None,
+        sources: SourceIntelligenceService | None = None,
     ) -> None:
         self._engine = engine
         self._pxg = pxg or PxgService(engine)
@@ -99,6 +101,7 @@ class PromotionService:
         self._mutations = mutations or MutationExecutor(
             engine, pxg=self._pxg, locks=self._locks, candidates=self._candidates
         )
+        self._sources = sources or SourceIntelligenceService(engine)
 
     async def evaluate(
         self,
@@ -122,6 +125,9 @@ class PromotionService:
                 tenant_id=tenant_id, project_id=project_id, candidate=candidate
             ),
             _visual_gate(verification_runs),
+            await self._source_gate(
+                tenant_id=tenant_id, project_id=project_id, candidate=candidate
+            ),
         ]
         return PromotionDecision(
             candidate_id=candidate_id,
@@ -226,6 +232,17 @@ class PromotionService:
             nodes=nodes,
             remove_node_keys=removals,
         )
+
+    async def _source_gate(
+        self, *, tenant_id: UUID, project_id: UUID, candidate: FrontendCandidate
+    ) -> GateResult:
+        ready, detail = await self._sources.promotion_readiness(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate.candidate_id,
+            candidate_origin=candidate.origin,
+        )
+        return GateResult("source_provenance", ready, detail)
 
     async def _lock_gate(
         self, *, tenant_id: UUID, project_id: UUID, candidate: FrontendCandidate

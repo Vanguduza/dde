@@ -69,6 +69,7 @@ from engine.studio.frontend import FrontendStudioService
 from engine.studio.inspector import InspectorService
 from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.reads import FrontendReadService
+from engine.studio.source.service import SourceIntelligenceService
 
 
 @dataclass(frozen=True)
@@ -898,6 +899,63 @@ class CommandDispatcher:
                 principal_id=command.principal_id,
                 parameters=params,
             )
+        elif command_type == "frontend.source.initialize":
+            payload = await studio.initialize_sources(
+                tenant_id=tenant_id, project_id=project_id
+            )
+        elif command_type == "frontend.source.search":
+            payload = await studio.search_sources(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.source.inspect":
+            payload = await studio.inspect_source(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.source.fetch":
+            payload = await studio.fetch_source(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.source.sandbox":
+            payload = await studio.sandbox_source(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.source.validate_sandbox":
+            payload = await studio.validate_source_sandbox(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.source.admit":
+            payload = await studio.admit_source(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.source.provenance.record":
+            payload = await studio.record_source_provenance(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.source.templates.recommend":
+            payload = await studio.recommend_source_templates(
+                tenant_id=tenant_id, project_id=project_id
+            )
+        elif command_type == "frontend.source.candidate.score":
+            payload = await studio.score_source_candidate(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.source.target_blend.set":
+            payload = await studio.set_source_target_blend(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
         elif command_type == "frontend.canvas.insert_component":
             payload = await studio.insert_component(
                 tenant_id=tenant_id,
@@ -1199,6 +1257,117 @@ class GatewayCommandService:
             finding_id=finding_id,
         )
         return {"evidence": [item.model_dump(mode="json") for item in evidence]}
+
+    async def read_frontend_sources(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        service = SourceIntelligenceService(self._engine)
+        sources = await service.inventory(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        artifacts = await service.artifacts(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        templates = await service.templates(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        return {
+            "sources": [item.model_dump(mode="json") for item in sources],
+            "artifacts": [item.model_dump(mode="json") for item in artifacts],
+            "templates": [item.model_dump(mode="json") for item in templates],
+        }
+
+    async def read_frontend_source_artifact(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        artifact_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        service = SourceIntelligenceService(self._engine)
+        artifact = await service.artifact(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            artifact_id=artifact_id,
+        )
+        if artifact is None:
+            raise DdeError("NOT_FOUND", "source artifact not found")
+        admission = await service.admission_for_artifact(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            artifact_id=artifact_id,
+        )
+        return {
+            "artifact": artifact.model_dump(mode="json"),
+            "admission": admission.model_dump(mode="json") if admission else None,
+        }
+
+    async def read_frontend_source_provenance(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        subject_kind: str,
+        subject_ref: str,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        rows = await SourceIntelligenceService(self._engine).provenance_for_subject(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            subject_kind=subject_kind,
+            subject_ref=subject_ref,
+        )
+        return {"provenance": [item.model_dump(mode="json") for item in rows]}
+
+    async def read_frontend_candidate_score(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        candidate_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        score = await SourceIntelligenceService(self._engine).latest_candidate_score(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            candidate_id=candidate_id,
+        )
+        return {"score": score.model_dump(mode="json") if score else None}
+
+    async def read_frontend_source_target_blend(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        scope_key: str,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        preference = await SourceIntelligenceService(self._engine).target_blend(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            scope_key=scope_key,
+        )
+        return {
+            "preference": (
+                preference.model_dump(mode="json") if preference is not None else None
+            )
+        }
 
     async def read_frontend_chat(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID

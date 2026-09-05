@@ -39,6 +39,10 @@ from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.derived_edge import DerivedEdge
 from engine.contracts.design_artifact import DesignArtifact
 from engine.contracts.design_session import DesignSession
+from engine.contracts.design_source import DesignSource
+from engine.contracts.design_source_admission import DesignSourceAdmission
+from engine.contracts.design_source_artifact import DesignSourceArtifact
+from engine.contracts.design_source_search_run import DesignSourceSearchRun
 from engine.contracts.diff_gate_report import DiffGateReport
 from engine.contracts.domain_invariant import DomainInvariant
 from engine.contracts.donor_artifact import DonorArtifact
@@ -55,6 +59,7 @@ from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
 from engine.contracts.frontend_candidate import FrontendCandidate
+from engine.contracts.frontend_candidate_score import FrontendCandidateScore
 from engine.contracts.frontend_chat_activity import FrontendChatActivity
 from engine.contracts.frontend_chat_attachment import FrontendChatAttachment
 from engine.contracts.frontend_chat_change_review import FrontendChatChangeReview
@@ -67,6 +72,11 @@ from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
 from engine.contracts.frontend_lock import FrontendLock
 from engine.contracts.frontend_mutation import FrontendMutation
 from engine.contracts.frontend_preview_session import FrontendPreviewSession
+from engine.contracts.frontend_provenance_record import FrontendProvenanceRecord
+from engine.contracts.frontend_source_blend_preference import (
+    FrontendSourceBlendPreference,
+)
+from engine.contracts.frontend_template import FrontendTemplate
 from engine.contracts.frontend_verification_request import FrontendVerificationRequest
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
@@ -159,6 +169,10 @@ __all__ = [
     "DerivedEdge",
     "DesignArtifact",
     "DesignSession",
+    "DesignSource",
+    "DesignSourceAdmission",
+    "DesignSourceArtifact",
+    "DesignSourceSearchRun",
     "DiffGateReport",
     "DomainInvariant",
     "DonorArtifact",
@@ -175,6 +189,7 @@ __all__ = [
     "FailureAttribution",
     "FeatureDNA",
     "FrontendCandidate",
+    "FrontendCandidateScore",
     "FrontendChatActivity",
     "FrontendChatAttachment",
     "FrontendChatChangeReview",
@@ -187,6 +202,9 @@ __all__ = [
     "FrontendLock",
     "FrontendMutation",
     "FrontendPreviewSession",
+    "FrontendProvenanceRecord",
+    "FrontendSourceBlendPreference",
+    "FrontendTemplate",
     "FrontendVerificationRequest",
     "GraphAmendment",
     "Healthz",

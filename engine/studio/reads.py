@@ -38,6 +38,7 @@ from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageRead, CoverageService
 from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.pxg.service import PxgGraph, PxgService
+from engine.studio.source.service import SOURCE_SPECS, SourceIntelligenceService
 from engine.studio.verification_requests import CandidateVerificationRequestService
 from engine.truth.db import open_unit_of_work
 from engine.verification.repository import VerificationRunRepository
@@ -219,6 +220,27 @@ class SourceWorkspaceInventory:
 
 
 @dataclass(frozen=True)
+class SourceProviderSnapshot:
+    provider_key: str
+    display_name: str
+    source_class: str
+    status: str
+    health_detail: str | None
+    capabilities: tuple[str, ...]
+    item_count: CountValue
+
+
+@dataclass(frozen=True)
+class SourceInventorySnapshot:
+    providers: tuple[SourceProviderSnapshot, ...]
+    provider_count: CountValue
+    artifact_count: CountValue
+    template_count: CountValue
+    availability: Availability
+    reason: str | None = None
+
+
+@dataclass(frozen=True)
 class VerificationCheckSnapshot:
     check_ref: str
     kind: str
@@ -249,6 +271,11 @@ class CandidateCardSnapshot:
     verification_confidence: float | None
     verification_checks: tuple[VerificationCheckSnapshot, ...]
     verification_evidence_refs: tuple[str, ...]
+    score_state: str
+    score: float | None
+    score_classification: str
+    score_hard_failures: tuple[str, ...]
+    score_evidence_refs: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -272,6 +299,7 @@ class FrontendStudioSnapshot:
     attention: AttentionCenterSnapshot
     screens: tuple[ScreenNode, ...]
     source_workspaces: SourceWorkspaceInventory
+    sources: SourceInventorySnapshot
     candidates: CandidateBoardSnapshot
     degraded_reasons: tuple[str, ...] = field(default_factory=tuple)
 
@@ -282,20 +310,10 @@ class FrontendStudioSnapshot:
 #: a shorter, tidier lie.
 _UNIMPLEMENTED_GROUPS: tuple[tuple[str, str, str], ...] = (
     (
-        "sources",
-        "Sources",
-        "DesignSourceRegistry is DDE-069 M8; no source adapter is wired yet",
-    ),
-    (
-        "templates",
-        "Templates",
-        "TemplateRecommendationService is DDE-069 M8; not wired yet",
-    ),
-    (
         "locks",
         "Locks",
-        "LockService is implemented, but LockInventory is not yet "
-        "projected by FrontendReadService",
+        "LockService is implemented, but LockInventory is not yet projected "
+        "by FrontendReadService",
     ),
 )
 
@@ -314,6 +332,7 @@ class FrontendReadService:
         previews: PreviewService | None = None,
         workspaces: WorkspaceService | None = None,
         verification_requests: CandidateVerificationRequestService | None = None,
+        sources: SourceIntelligenceService | None = None,
         build_version: str | None = None,
     ) -> None:
         self._engine = engine
@@ -329,6 +348,7 @@ class FrontendReadService:
             verification_requests or CandidateVerificationRequestService(engine)
         )
         self._verification_runs = VerificationRunRepository()
+        self._sources = sources or SourceIntelligenceService(engine)
         self._build_version = build_version
 
     async def snapshot(
@@ -353,13 +373,16 @@ class FrontendReadService:
         source_workspaces = await self.source_workspace_inventory(
             tenant_id=tenant_id, project_id=project_id
         )
+        sources = await self.source_inventory(
+            tenant_id=tenant_id, project_id=project_id
+        )
 
         return FrontendStudioSnapshot(
             project_id=project_id,
             observed_at=datetime.now(UTC),
             pxg_revision=graph.revision,
             contract_version=contract.contract_version if contract else None,
-            explorer=explorer_snapshot(project_id, graph),
+            explorer=explorer_snapshot(project_id, graph, sources),
             coverage=coverage,
             orchestrator=_orchestrator_status(),
             sync=StudioSyncSnapshot(
@@ -374,6 +397,7 @@ class FrontendReadService:
             attention=attention,
             screens=screen_tree(graph),
             source_workspaces=source_workspaces,
+            sources=sources,
             candidates=candidates,
             degraded_reasons=tuple(degraded),
         )
@@ -391,6 +415,99 @@ class FrontendReadService:
             tenant_id=tenant_id, project_id=project_id
         )
         return build_source_workspace_inventory(rows)
+
+    async def source_inventory(
+        self, *, tenant_id: UUID, project_id: UUID
+    ) -> SourceInventorySnapshot:
+        providers = await self._sources.inventory(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        if not providers:
+            declared = tuple(
+                SourceProviderSnapshot(
+                    provider_key=key,
+                    display_name=name,
+                    source_class=source_class,
+                    status="NOT_CONFIGURED",
+                    health_detail="source registry has not been initialized",
+                    capabilities=(),
+                    item_count=CountValue.unknown(
+                        Availability.NOT_CONFIGURED,
+                        "provider has not been initialized",
+                    ),
+                )
+                for key, name, source_class, _adapter_kind, _priority in SOURCE_SPECS
+            )
+            return SourceInventorySnapshot(
+                providers=declared,
+                provider_count=CountValue.unknown(
+                    Availability.NOT_CONFIGURED,
+                    "source registry has not been initialized",
+                ),
+                artifact_count=CountValue.unknown(
+                    Availability.NOT_CONFIGURED,
+                    "no indexed source inventory exists yet",
+                ),
+                template_count=CountValue.unknown(
+                    Availability.NOT_CONFIGURED,
+                    "template recommendation has not run",
+                ),
+                availability=Availability.NOT_CONFIGURED,
+                reason="source registry has not been initialized",
+            )
+        artifacts = await self._sources.artifacts(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        templates = await self._sources.templates(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        provider_views: list[SourceProviderSnapshot] = []
+        degraded: list[str] = []
+        for source in providers:
+            if source.status not in {"AVAILABLE"}:
+                degraded.append(
+                    f"{source.provider_key}={source.status}"
+                    + (f" ({source.health_detail})" if source.health_detail else "")
+                )
+            item_count = (
+                CountValue.of(source.item_count)
+                if source.item_count is not None
+                else CountValue.unknown(
+                    Availability.NOT_CONFIGURED
+                    if source.status == "NOT_CONFIGURED"
+                    else Availability.DEGRADED,
+                    source.health_detail or "provider item count has not been indexed",
+                )
+            )
+            provider_views.append(
+                SourceProviderSnapshot(
+                    provider_key=source.provider_key,
+                    display_name=source.display_name,
+                    source_class=source.source_class,
+                    status=source.status,
+                    health_detail=source.health_detail,
+                    capabilities=tuple(source.capabilities),
+                    item_count=item_count,
+                )
+            )
+        availability = Availability.DEGRADED if degraded else Availability.AVAILABLE
+        reason = "; ".join(degraded) if degraded else None
+        return SourceInventorySnapshot(
+            providers=tuple(provider_views),
+            provider_count=CountValue.of(len(providers)),
+            artifact_count=CountValue(
+                len(artifacts),
+                availability,
+                reason,
+            ),
+            template_count=CountValue(
+                len(templates),
+                availability,
+                reason,
+            ),
+            availability=availability,
+            reason=reason,
+        )
 
     async def candidate_board(
         self, *, tenant_id: UUID, project_id: UUID
@@ -424,6 +541,11 @@ class FrontendReadService:
                     or verification_run.project_id != project_id
                 ):
                     verification_run = None
+            score = await self._sources.latest_candidate_score(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate.candidate_id,
+            )
             cards.append(
                 CandidateCardSnapshot(
                     candidate_id=str(candidate.candidate_id),
@@ -487,6 +609,13 @@ class FrontendReadService:
                         if verification_run
                         else ()
                     ),
+                    score_state=score.score_state if score else "UNSCORED",
+                    score=float(score.overall_score)
+                    if score and score.overall_score is not None
+                    else None,
+                    score_classification=score.classification if score else "UNSCORED",
+                    score_hard_failures=tuple(score.hard_failures) if score else (),
+                    score_evidence_refs=tuple(score.evidence_refs) if score else (),
                 )
             )
         return CandidateBoardSnapshot(
@@ -561,7 +690,11 @@ def screen_tree(graph: PxgGraph) -> tuple[ScreenNode, ...]:
     )
 
 
-def explorer_snapshot(project_id: UUID, graph: PxgGraph) -> ProjectExplorerSnapshot:
+def explorer_snapshot(
+    project_id: UUID,
+    graph: PxgGraph,
+    sources: SourceInventorySnapshot | None = None,
+) -> ProjectExplorerSnapshot:
     """Counts come from the graph; groups without a domain say UNKNOWN."""
     groups: list[ExplorerGroup] = [
         ExplorerGroup(
@@ -580,6 +713,29 @@ def explorer_snapshot(project_id: UUID, graph: PxgGraph) -> ProjectExplorerSnaps
             count=CountValue.of(len(graph.nodes_of_kind("component"))),
         ),
     ]
+    if sources is not None:
+        groups.append(
+            ExplorerGroup(
+                key="sources",
+                title="Sources",
+                count=sources.provider_count,
+                children=tuple(
+                    ExplorerGroup(
+                        key=f"source:{provider.provider_key}",
+                        title=provider.display_name,
+                        count=provider.item_count,
+                    )
+                    for provider in sources.providers
+                ),
+            )
+        )
+        groups.append(
+            ExplorerGroup(
+                key="templates",
+                title="Templates",
+                count=sources.template_count,
+            )
+        )
     groups.extend(
         ExplorerGroup(
             key=key,

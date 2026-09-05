@@ -252,3 +252,33 @@ def test_incremental_scope_emits_only_affected_screen_records() -> None:
     )
     assert [item.pxg_key for item in result.screens] == ["screens/b"]
     assert all(item.pxg_key in {None, "screens/b"} for item in result.findings)
+
+
+def test_persisted_source_provenance_upgrades_source_dimension_to_pass() -> None:
+    screen_node = _screen("screens/checkout")
+    result = reconcile(
+        _contract(_obligation(screen_node.pxg_key)),
+        _graph(screen_node),
+        source_provenance_refs={screen_node.pxg_key: ("prov-1",)},
+    )
+    screen = next(row for row in result.screens if row.pxg_key == "screens/checkout")
+    assert screen.dimension_states["SOURCE_PROVENANCE"] == "PASS"
+    assert any(
+        evidence.evidence_kind == "PROVENANCE_RECORD"
+        and evidence.source_ref == "prov-1"
+        for evidence in result.evidence
+    )
+
+
+def test_source_mapping_without_m8_provenance_is_only_partial() -> None:
+    screen_node = _screen("screens/checkout")
+    result = reconcile(
+        _contract(_obligation(screen_node.pxg_key)),
+        _graph(screen_node),
+    )
+    screen = next(row for row in result.screens if row.pxg_key == "screens/checkout")
+    assert screen.dimension_states["SOURCE_PROVENANCE"] == "PARTIAL"
+    assert any(
+        finding.finding_type == "SOURCE_MAPPING_WITHOUT_PROVENANCE"
+        for finding in result.findings
+    )

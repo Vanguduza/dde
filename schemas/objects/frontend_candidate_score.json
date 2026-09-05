@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_candidate_score.json",
+  "title": "FrontendCandidateScore",
+  "description": "DDE-069 M8 explainable candidate score snapshot. UNSCORED/BLOCKED are first-class and hard_failures dominate the numerical summary.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_candidate_scores",
+    "order": 342,
+    "pk": [
+      "score_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "checks": [
+      {
+        "name": "frontend_candidate_score_sequence_positive",
+        "expression": "sequence >= 1"
+      },
+      {
+        "name": "frontend_candidate_score_range",
+        "expression": "overall_score IS NULL OR (overall_score >= 0 AND overall_score <= 100)"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "candidate_fk",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "frontend_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "verification_fk",
+        "columns": [
+          "verification_run_id"
+        ],
+        "ref_table": "verification_runs",
+        "ref_columns": [
+          "verification_run_id"
+        ]
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uq_frontend_candidate_score_sequence",
+        "columns": [
+          "candidate_id",
+          "sequence"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "score_id",
+    "candidate_id",
+    "tenant_id",
+    "project_id",
+    "sequence",
+    "score_state",
+    "classification",
+    "dimensions",
+    "hard_failures",
+    "evidence_refs",
+    "computed_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "score_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "verification_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "score_state": {
+      "type": "string",
+      "enum": [
+        "SCORED",
+        "UNSCORED",
+        "BLOCKED"
+      ]
+    },
+    "overall_score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "GOOD",
+        "MEDIUM",
+        "LOW",
+        "UNSCORED",
+        "BLOCKED"
+      ]
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "hard_failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "computed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

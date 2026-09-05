@@ -69,6 +69,7 @@ _HTTP_STATUS = {
     "BUDGET_EXCEEDED": 409,
     "APPROVAL_REQUIRED": 403,
     "EVIDENCE_MISSING": 409,
+    "EVIDENCE_CONFLICT": 409,
     "PROVIDER_UNAVAILABLE": 503,
     "PROVIDER_ERROR": 502,
     "PROVIDER_TIMEOUT": 504,
@@ -238,6 +239,84 @@ async def read_frontend_audit_evidence(
         principal_id=principal_id,
         mission_id=mission_id,
         finding_id=finding_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/sources")
+async def read_frontend_sources(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_sources(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/sources/artifacts/{artifact_id}")
+async def read_frontend_source_artifact(
+    mission_id: UUID,
+    artifact_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_source_artifact(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        artifact_id=artifact_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/sources/provenance")
+async def read_frontend_source_provenance(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    subject_kind: str,
+    subject_ref: str,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_source_provenance(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        subject_kind=subject_kind,
+        subject_ref=subject_ref,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/sources/target-blend")
+async def read_frontend_source_target_blend(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    scope_key: str = "*",
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_source_target_blend(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        scope_key=scope_key,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/sources/candidates/{candidate_id}/score")
+async def read_frontend_candidate_score(
+    mission_id: UUID,
+    candidate_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_candidate_score(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        candidate_id=candidate_id,
     )
 
 

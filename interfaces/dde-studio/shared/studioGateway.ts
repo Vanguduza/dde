@@ -348,6 +348,59 @@ export class StudioGatewayService {
     );
   }
 
+  async readFrontendSources(
+    missionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendSources(session, this.principalId, missionId),
+    );
+  }
+
+  async readFrontendSourceArtifact(
+    missionId: string,
+    artifactId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendSourceArtifact(
+        session, this.principalId, missionId, artifactId,
+      ),
+    );
+  }
+
+  async readFrontendSourceProvenance(
+    missionId: string,
+    subjectKind: string,
+    subjectRef: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendSourceProvenance(
+        session, this.principalId, missionId, subjectKind, subjectRef,
+      ),
+    );
+  }
+
+  async readFrontendSourceTargetBlend(
+    missionId: string,
+    scopeKey: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendSourceTargetBlend(
+        session, this.principalId, missionId, scopeKey,
+      ),
+    );
+  }
+
+  async readFrontendCandidateScore(
+    missionId: string,
+    candidateId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendCandidateScore(
+        session, this.principalId, missionId, candidateId,
+      ),
+    );
+  }
+
   async readFrontendPreview(
     missionId: string,
     previewSessionId: string,

@@ -66,7 +66,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and universal Cursor-class DDE AI Chat surface are browser-proven and production-wired. AI Conversation Fabric persistence/ACP/MCP/provider-session primitives, DDE-owned shared memory, R2-capable durable object storage and policy-bounded context/compaction are implemented on runnable surfaces; production PostgreSQL/Redis and live R2 E2E remain unavailable on this host. Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and universal Cursor-class DDE AI Chat surface are browser-proven and production-wired. AI Conversation Fabric persistence/ACP/MCP/provider-session primitives, DDE-owned shared memory, R2-capable durable object storage and policy-bounded context/compaction are implemented on runnable surfaces; production PostgreSQL/Redis and live R2 E2E remain unavailable on this host. Screen Audit is implemented. M8 Source Intelligence is now partially implemented and browser-proven on local/fake transports; production PostgreSQL and live certified external-source E2E remain unavailable on this host. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | AI Conversation Fabric now discovers the installed Hermes runtime, requires evidence-backed endpoint certification, and has a fail-closed ACP client. DDE-managed Hermes ACP context isolation is proven with `--ignore-rules`; shared approved DDE memory is object-backed (R2 when configured) and replaces duplicate provider-private memory injection. Full downstream Hermes experience/fleet acceptance gates remain in DDE-075/076. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
@@ -351,7 +351,7 @@ Deterministic execution still uses the same governed mutation seam and browser-
 proves rerender + fresh DDE-068 re-verification. Screen Audit core, incremental
 invalidation, Coverage/QA/Architecture/Inspector projections, deterministic Chat
 queries and `@finding` are now implemented and browser-proven. Production
-PostgreSQL-backed workbench/audit E2E and M8 Source Intelligence are not complete.
+PostgreSQL-backed workbench/audit/source E2E remains unavailable on this host. M8 Source Intelligence now has a schema/service/Gateway/Chat/React checkpoint, but its production persistence/provider proof and final binding-ledger reconciliation are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
 the authoritative per-control projection of
@@ -495,10 +495,28 @@ neither is a completion claim under v2.
   the independent 99-control ledger unchanged at 5/23/5/66 and records any future
   disagreement rather than forcing agreement. Evidence:
   `docs/evidence/dde-069/SCREEN_AUDIT_ENGINE.md`.
+- **M8 Source Intelligence — PARTIAL CHECKPOINT** — migration `0034` and
+  `engine/studio/source/` add the common DesignSourceAdapter boundary, persisted
+  source registry/search/artifact/admission/provenance/template/candidate-score/target-
+  blend records, project-native/DDE-library/donor/21st adapters, Design System Compiler
+  admission, sandbox validation, provenance carry-forward, evidence-backed candidate
+  scoring, template recommendation and source promotion gate. The 21st path has no
+  uncontrolled network fallback and requires an exact certified MCP source capability.
+  Gateway exposes initialize/search/inspect/fetch/sandbox/validate/admit/provenance/
+  template/score/target-blend operations and reads. Universal DDE Chat now performs
+  governed source search. React Source mode exposes provider degradation, explicit
+  search/inspect/fetch/admission stages, template honesty, candidate score evidence,
+  actual attribution, target blend and Inspector provenance. Screen Audit consumes
+  persisted provenance. Focused checkpoint: 35 Python tests plus 14 targeted Playwright
+  scenarios, generator/binding drift, Ruff, mypy and both TypeScript surfaces green.
+  This is not final M8 closure: live PostgreSQL persistence and a real certified 21st
+  transport are unavailable on this host, and the 99-control ledger has not yet been
+  reconciled/promoted from this evidence. Evidence:
+  `docs/evidence/dde-069/M8_SOURCE_INTELLIGENCE_CHECKPOINT.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
-**Still incomplete / not started:** M8 source adapters, provenance and candidate
-scoring; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
+**Still incomplete / not started:** M8 production persistence/provider certification
+and binding-ledger closure; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
 prototype HTML; production VS Code → Gateway → PostgreSQL live-loop/audit evidence
 (current host has no database/Redis runtime; PostgreSQL specifications are present
 but UNAVAILABLE locally); exact viewport `set_state`, resize handles and Inspector
@@ -794,7 +812,7 @@ Next:
 5. dogfood Screen Audit against DDE Frontend Studio and reconcile its findings
    with the 99-control binding ledger instead of forcing either system to agree.
 
-After Screen Audit is green, implement M8 Source Intelligence. Pixel-reference
+M8 Source Intelligence is now at a partial checkpoint; finish its production/provider/ledger proof before remaining golden-control closure. Pixel-reference
 conformance remains fail-closed under AD-039 and does not block functional work.
 
 ---

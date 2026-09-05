@@ -103,6 +103,19 @@ const SNAPSHOT: FrontendStudioSnapshot = {
     availability: "EMPTY",
     reason: "No READY source workspace is available in the structural fixture.",
   },
+  sources: {
+    providers: [
+      { providerKey: "project-native", displayName: "Internal Components", sourceClass: "PROJECT_NATIVE", status: "NOT_CONFIGURED", healthDetail: "source registry has not been initialized", capabilities: [], itemCount: { value: null, availability: "NOT_CONFIGURED", reason: "provider has not been initialized" } },
+      { providerKey: "dde-library", displayName: "DDE Library", sourceClass: "DDE_LIBRARY", status: "NOT_CONFIGURED", healthDetail: "source registry has not been initialized", capabilities: [], itemCount: { value: null, availability: "NOT_CONFIGURED", reason: "provider has not been initialized" } },
+      { providerKey: "21st", displayName: "21st MCP", sourceClass: "EXTERNAL_REGISTRY", status: "NOT_CONFIGURED", healthDetail: "source registry has not been initialized", capabilities: [], itemCount: { value: null, availability: "NOT_CONFIGURED", reason: "provider has not been initialized" } },
+      { providerKey: "donors", displayName: "Donor Sources", sourceClass: "DONOR", status: "NOT_CONFIGURED", healthDetail: "source registry has not been initialized", capabilities: [], itemCount: { value: null, availability: "NOT_CONFIGURED", reason: "provider has not been initialized" } },
+    ],
+    providerCount: { value: null, availability: "NOT_CONFIGURED", reason: "source registry has not been initialized" },
+    artifactCount: { value: null, availability: "NOT_CONFIGURED", reason: "no indexed source inventory exists yet" },
+    templateCount: { value: null, availability: "NOT_CONFIGURED", reason: "template recommendation has not run" },
+    availability: "NOT_CONFIGURED",
+    reason: "source registry has not been initialized",
+  },
   candidates: { cards: [], count: { value: 0, availability: "EMPTY" } },
   attention: {
     items: [

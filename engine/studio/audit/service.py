@@ -34,6 +34,7 @@ from engine.studio.audit.rules import (
 )
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.pxg.service import PxgGraph, PxgService
+from engine.studio.source.tables import frontend_provenance_records
 from engine.studio.tables import (
     frontend_candidates,
     screen_audit_evidence,
@@ -164,10 +165,14 @@ class ScreenAuditService:
             accepted = await self._accepted_verifications(
                 tenant_id=tenant_id, project_id=project_id, graph=graph
             )
+            provenance_refs = await self._accepted_source_provenance_refs(
+                tenant_id=tenant_id, project_id=project_id
+            )
             computation = reconcile(
                 contract,
                 graph,
                 passing_verifications={item.pxg_key: item.kinds for item in accepted},
+                source_provenance_refs=provenance_refs,
                 affected_keys=frozenset(affected_keys) if affected_keys else None,
             )
             computation = self._with_runtime_evidence(
@@ -1009,6 +1014,46 @@ class ScreenAuditService:
                 if prefixes:
                     expanded.append(max(prefixes, key=len))
         return tuple(dict.fromkeys(expanded))
+
+    async def _accepted_source_provenance_refs(
+        self, *, tenant_id: UUID, project_id: UUID
+    ) -> dict[str, tuple[str, ...]]:
+        """Return persisted accepted-PXG provenance identities by subject key.
+
+        The write/promotion path is responsible for admission validity. Audit consumes
+        the append-only accepted projection and never infers provider attribution from
+        candidate-only records. Rejected/security-failed records do not become PASS.
+        """
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            rows = (
+                (
+                    await uow.connection.execute(
+                        select(
+                            frontend_provenance_records.c.provenance_id,
+                            frontend_provenance_records.c.subject_ref,
+                            frontend_provenance_records.c.license_state,
+                            frontend_provenance_records.c.security_state,
+                        ).where(
+                            frontend_provenance_records.c.project_id == project_id,
+                            frontend_provenance_records.c.subject_kind == "PXG_NODE",
+                        )
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        grouped: dict[str, list[str]] = {}
+        for row in rows:
+            if str(row["license_state"]) in {"REJECTED", "UNKNOWN"}:
+                continue
+            if str(row["security_state"]) == "FAIL":
+                continue
+            grouped.setdefault(str(row["subject_ref"]), []).append(
+                str(row["provenance_id"])
+            )
+        return {key: tuple(values) for key, values in grouped.items()}
 
     @staticmethod
     def _derive_source_revision(graph: PxgGraph) -> str | None:

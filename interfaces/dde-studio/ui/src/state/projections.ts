@@ -124,6 +124,129 @@ export interface SourceWorkspaceInventory {
   readonly reason?: string | null;
 }
 
+export interface DesignSource {
+  readonly sourceId: string;
+  readonly providerKey: string;
+  readonly displayName: string;
+  readonly sourceClass: string;
+  readonly adapterKind: string;
+  readonly priority: number;
+  readonly status: string;
+  readonly healthDetail: string | null;
+  readonly capabilities: readonly string[];
+  readonly itemCount: number | null;
+  readonly lastCheckedAt: string | null;
+}
+
+export interface SourceCatalogRead {
+  readonly sources: readonly DesignSource[];
+  readonly artifacts: readonly DesignSourceArtifact[];
+  readonly templates: readonly FrontendTemplate[];
+}
+
+export interface FrontendSourceBlendPreference {
+  readonly preferenceId: string;
+  readonly scopeKey: string;
+  readonly weights: Readonly<Record<string, number>>;
+  readonly status: "ACTIVE" | "SUPERSEDED";
+  readonly contentHash: string;
+  readonly createdBy: string | null;
+  readonly supersedesId: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface SourceProviderSnapshot {
+  readonly providerKey: string;
+  readonly displayName: string;
+  readonly sourceClass: string;
+  readonly status: string;
+  readonly healthDetail: string | null;
+  readonly capabilities: readonly string[];
+  readonly itemCount: CountValue;
+}
+
+export interface SourceInventorySnapshot {
+  readonly providers: readonly SourceProviderSnapshot[];
+  readonly providerCount: CountValue;
+  readonly artifactCount: CountValue;
+  readonly templateCount: CountValue;
+  readonly availability: Availability;
+  readonly reason?: string | null;
+}
+
+export interface DesignSourceArtifact {
+  readonly artifactId: string;
+  readonly sourceId: string;
+  readonly searchRunId: string | null;
+  readonly providerArtifactKey: string;
+  readonly artifactKind: string;
+  readonly title: string;
+  readonly sourceUri: string | null;
+  readonly versionRef: string | null;
+  readonly contentHash: string | null;
+  readonly contentObjectRef: string | null;
+  readonly contentObjectBackend: string | null;
+  readonly contentSizeBytes: number | null;
+  readonly framework: string | null;
+  readonly supportedArchetypes: readonly string[];
+  readonly dependencyManifest: readonly string[];
+  readonly licenseState: string;
+  readonly licenseIds: readonly string[];
+  readonly securityState: string;
+  readonly accessibilityState: string;
+  readonly compatibilityState: string;
+  readonly retrievalState: string;
+  readonly metadata: Readonly<Record<string, unknown>>;
+}
+
+export interface DesignSourceAdmission {
+  readonly admissionId: string;
+  readonly artifactId: string;
+  readonly contentHash: string;
+  readonly compilerVersion: string;
+  readonly frameworkState: string;
+  readonly licenseState: string;
+  readonly dependencyState: string;
+  readonly securityState: string;
+  readonly accessibilityState: string;
+  readonly designSystemState: string;
+  readonly tokenMappingReport: Readonly<Record<string, unknown>>;
+  readonly unsupportedBehaviors: readonly string[];
+  readonly hardFailures: readonly string[];
+  readonly validationObligations: readonly string[];
+  readonly state: string;
+}
+
+export interface FrontendProvenanceRecord {
+  readonly provenanceId: string;
+  readonly subjectKind: string;
+  readonly subjectRef: string;
+  readonly sourceId: string | null;
+  readonly artifactId: string | null;
+  readonly admissionId: string | null;
+  readonly usageKind: string;
+  readonly attributionWeight: number | null;
+  readonly sourceRevision: string | null;
+  readonly licenseState: string;
+  readonly securityState: string;
+  readonly decisionRef: string | null;
+  readonly metadata: Readonly<Record<string, unknown>>;
+}
+
+export interface FrontendTemplate {
+  readonly templateId: string;
+  readonly sourceArtifactId: string | null;
+  readonly title: string;
+  readonly sourceRefs: readonly string[];
+  readonly supportedArchetypes: readonly string[];
+  readonly expectedScreenCoverage: number | null;
+  readonly scoreSummary: Readonly<Record<string, unknown>>;
+  readonly hardFailures: readonly string[];
+  readonly status: string;
+  readonly contentHash: string | null;
+}
+
 export interface VerificationCheckSnapshot {
   readonly checkRef: string;
   readonly kind: string;
@@ -153,6 +276,11 @@ export interface CandidateCardSnapshot {
   readonly verificationConfidence: number | null;
   readonly verificationChecks: readonly VerificationCheckSnapshot[];
   readonly verificationEvidenceRefs: readonly string[];
+  readonly scoreState: string;
+  readonly score: number | null;
+  readonly scoreClassification: string;
+  readonly scoreHardFailures: readonly string[];
+  readonly scoreEvidenceRefs: readonly string[];
 }
 
 export interface CandidateBoardSnapshot {
@@ -476,6 +604,7 @@ export interface FrontendStudioSnapshot {
   readonly attention: AttentionCenterSnapshot;
   readonly screens: readonly ScreenNode[];
   readonly sourceWorkspaces: SourceWorkspaceInventory;
+  readonly sources: SourceInventorySnapshot;
   readonly candidates: CandidateBoardSnapshot;
   readonly degradedReasons: readonly string[];
 }

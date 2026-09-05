@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_source.json",
+  "title": "DesignSource",
+  "description": "DDE-069 M8 project-scoped source adapter registration and observed health. Configuration is metadata only: secrets remain in credential/capability authorities.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_sources",
+    "order": 336,
+    "pk": [
+      "source_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "checks": [
+      {
+        "name": "design_sources_priority_nonnegative",
+        "expression": "priority >= 0"
+      },
+      {
+        "name": "design_sources_lock_positive",
+        "expression": "lock_version >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uq_design_sources_project_provider",
+        "columns": [
+          "project_id",
+          "provider_key"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "source_id",
+    "tenant_id",
+    "project_id",
+    "provider_key",
+    "display_name",
+    "source_class",
+    "adapter_kind",
+    "priority",
+    "status",
+    "capabilities",
+    "config",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provider_key": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "source_class": {
+      "type": "string",
+      "enum": [
+        "PROJECT_NATIVE",
+        "DDE_LIBRARY",
+        "ORGANISATION_LIBRARY",
+        "DONOR",
+        "EXTERNAL_REGISTRY",
+        "MOBILE_REGISTRY",
+        "FIGMA",
+        "GENERATED",
+        "ARCHIVED"
+      ]
+    },
+    "adapter_kind": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "AVAILABLE",
+        "DEGRADED",
+        "NOT_CONFIGURED",
+        "UNAVAILABLE",
+        "BLOCKED",
+        "DISABLED"
+      ]
+    },
+    "health_detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "item_count": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_checked_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

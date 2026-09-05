@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_source_search_run.json",
+  "title": "DesignSourceSearchRun",
+  "description": "DDE-069 M8 durable source search request/result envelope. Provider degradation is preserved rather than hidden by successful results from another adapter.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_source_search_runs",
+    "order": 337,
+    "pk": [
+      "search_run_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "checks": [
+      {
+        "name": "design_source_search_result_nonnegative",
+        "expression": "result_count >= 0"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "tenant_fk",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "project_fk",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "mission_fk",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "search_run_id",
+    "tenant_id",
+    "project_id",
+    "query",
+    "provider_keys",
+    "requested_capabilities",
+    "status",
+    "result_count",
+    "degradation",
+    "started_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "search_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "query": {
+      "type": "string"
+    },
+    "provider_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requested_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "COMPLETED",
+        "PARTIAL",
+        "FAILED",
+        "BLOCKED"
+      ]
+    },
+    "result_count": {
+      "type": "integer"
+    },
+    "degradation": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
