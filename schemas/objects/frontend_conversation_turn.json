@@ -8,11 +8,18 @@
   "x-dde-storage": {
     "table": "frontend_conversation_turns",
     "order": 310,
-    "pk": ["turn_id"],
+    "pk": [
+      "turn_id"
+    ],
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": false,
-    "uniques": [["conversation_id", "sequence"]],
+    "uniques": [
+      [
+        "conversation_id",
+        "sequence"
+      ]
+    ],
     "checks": [
       {
         "name": "frontend_conversation_turns_sequence_positive",
@@ -30,21 +37,43 @@
     "foreign_keys": [
       {
         "name": "frontend_conversation_turns_tenant_id_fkey",
-        "columns": ["tenant_id"],
+        "columns": [
+          "tenant_id"
+        ],
         "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
+        "ref_columns": [
+          "tenant_id"
+        ]
       },
       {
         "name": "frontend_conversation_turns_project_id_fkey",
-        "columns": ["project_id"],
+        "columns": [
+          "project_id"
+        ],
         "ref_table": "projects",
-        "ref_columns": ["project_id"]
+        "ref_columns": [
+          "project_id"
+        ]
       },
       {
         "name": "frontend_conversation_turns_conversation_id_fkey",
-        "columns": ["conversation_id"],
+        "columns": [
+          "conversation_id"
+        ],
         "ref_table": "frontend_conversations",
-        "ref_columns": ["conversation_id"]
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "frontend_conversation_turns_plan_id_fkey",
+        "columns": [
+          "plan_id"
+        ],
+        "ref_table": "frontend_chat_plans",
+        "ref_columns": [
+          "plan_id"
+        ]
       }
     ]
   },
@@ -61,29 +90,70 @@
     "resolved_context",
     "produced_refs",
     "created_at",
-    "updated_at"
+    "updated_at",
+    "attachment_ids"
   ],
   "properties": {
-    "turn_id": { "type": "string", "format": "uuid" },
-    "tenant_id": { "type": "string", "format": "uuid" },
-    "project_id": { "type": "string", "format": "uuid" },
-    "conversation_id": { "type": "string", "format": "uuid" },
-    "sequence": { "type": "integer" },
-    "role": { "type": "string", "enum": ["user", "studio"] },
-    "text": { "type": "string" },
+    "turn_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "studio"
+      ]
+    },
+    "text": {
+      "type": "string"
+    },
     "intent": {
       "type": "string",
       "description": "The classified intent class that decided routing."
     },
     "outcome": {
       "type": "string",
-      "enum": ["ROUTED", "REFUSED", "ANSWERED"]
+      "enum": [
+        "ROUTED",
+        "REFUSED",
+        "ANSWERED"
+      ]
     },
     "refusal_code": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "refusal_detail": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "resolved_context": {
       "type": "object",
@@ -92,10 +162,47 @@
     },
     "produced_refs": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Ids of what the turn caused: mutations, a design session, an artifact."
     },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "attachment_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "description": "Attachment ids explicitly bound to this turn."
+    },
+    "plan_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_profile_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
   }
 }

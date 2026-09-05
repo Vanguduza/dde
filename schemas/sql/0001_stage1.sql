@@ -1659,10 +1659,23 @@ CREATE TABLE frontend_conversations (
     screen_key text,
     selected_node_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
     viewport text NOT NULL,
+    title text,
+    status text NOT NULL,
+    mode text NOT NULL,
+    model_profile_id text,
+    active_workspace_id uuid,
+    active_plan_id uuid,
+    parent_conversation_id uuid,
+    branched_from_turn_id uuid,
+    pinned_context_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_by uuid,
+    archived_at timestamptz,
     lock_version integer NOT NULL DEFAULT 1,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
-    PRIMARY KEY (conversation_id)
+    PRIMARY KEY (conversation_id),
+    CHECK (status IN ('OPEN', 'ARCHIVED')),
+    CHECK (mode IN ('ASK', 'PLAN', 'EXECUTE'))
 );
 
 CREATE TABLE frontend_conversation_turns (
@@ -1681,6 +1694,9 @@ CREATE TABLE frontend_conversation_turns (
     produced_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
+    attachment_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    plan_id uuid,
+    model_profile_id text,
     PRIMARY KEY (turn_id),
     UNIQUE (conversation_id, sequence),
     CHECK (sequence >= 1),
@@ -1738,6 +1754,127 @@ CREATE TABLE frontend_verification_requests (
     UNIQUE (preview_session_id),
     CHECK (state IN ('PENDING', 'BLOCKED', 'RUNNING', 'PASSED', 'FAILED', 'SUPERSEDED')),
     CHECK (candidate_pxg_revision >= 0)
+);
+
+CREATE TABLE frontend_chat_attachments (
+    attachment_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    turn_id uuid,
+    source_kind text NOT NULL,
+    filename text NOT NULL,
+    media_type text NOT NULL,
+    size_bytes integer NOT NULL,
+    content_hash text,
+    storage_key text,
+    workspace_path text,
+    extraction_state text NOT NULL,
+    extracted_text text,
+    status text NOT NULL,
+    created_by uuid,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (attachment_id),
+    UNIQUE (conversation_id, attachment_id),
+    CHECK (size_bytes >= 0),
+    CHECK (status IN ('RESERVED','ACTIVE','REMOVED','QUARANTINED')),
+    CHECK (extraction_state IN ('PENDING','EXTRACTED','UNSUPPORTED','FAILED'))
+);
+
+CREATE TABLE frontend_chat_plans (
+    plan_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    title text NOT NULL,
+    objective text NOT NULL,
+    state text NOT NULL,
+    approval_required boolean NOT NULL,
+    approved_by uuid,
+    approved_at timestamptz,
+    steps jsonb NOT NULL DEFAULT '[]'::jsonb,
+    active_step_id uuid,
+    workspace_id uuid,
+    task_graph_id uuid,
+    created_from_turn_id uuid,
+    context_snapshot jsonb,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (plan_id),
+    CHECK (state IN ('DRAFT','READY','APPROVED','EXECUTING','PAUSED','COMPLETED','FAILED','CANCELLED'))
+);
+
+CREATE TABLE frontend_chat_activities (
+    activity_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    sequence integer NOT NULL,
+    turn_id uuid,
+    plan_id uuid,
+    workspace_id uuid,
+    command_id uuid,
+    kind text NOT NULL,
+    state text NOT NULL,
+    label text NOT NULL,
+    detail text,
+    refs jsonb NOT NULL DEFAULT '{}'::jsonb,
+    cancellable boolean NOT NULL,
+    cancel_reason text,
+    started_at timestamptz,
+    completed_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (activity_id),
+    UNIQUE (conversation_id, sequence),
+    CHECK (sequence >= 1)
+);
+
+CREATE TABLE frontend_chat_checkpoints (
+    checkpoint_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    turn_sequence integer NOT NULL,
+    mode text NOT NULL,
+    model_profile_id text,
+    plan_id uuid,
+    workspace_id uuid,
+    pinned_context_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    attachment_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    workspace_revision text,
+    diff_hash text,
+    context_hash text NOT NULL,
+    note text,
+    created_by uuid,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (checkpoint_id)
+);
+
+CREATE TABLE frontend_chat_change_reviews (
+    review_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    conversation_id uuid NOT NULL,
+    workspace_id uuid NOT NULL,
+    path text NOT NULL,
+    base_revision text,
+    workspace_revision text,
+    diff_hash text NOT NULL,
+    decision text NOT NULL,
+    reviewed_by uuid,
+    reviewed_at timestamptz,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (review_id),
+    UNIQUE (conversation_id, workspace_id, path, diff_hash),
+    CHECK (decision IN ('PENDING','ACCEPTED','REVERTED'))
 );
 
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
@@ -2103,10 +2240,16 @@ ALTER TABLE design_artifacts ADD CONSTRAINT design_artifacts_session_id_fkey FOR
 ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_workspace_id_fkey FOREIGN KEY (active_workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_parent_conversation_id_fkey FOREIGN KEY (parent_conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_branched_from_turn_id_fkey FOREIGN KEY (branched_from_turn_id) REFERENCES frontend_conversation_turns (turn_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+ALTER TABLE frontend_conversations ADD CONSTRAINT frontend_conversations_active_plan_id_fkey FOREIGN KEY (active_plan_id) REFERENCES frontend_chat_plans (plan_id);
 
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_conversation_turns ADD CONSTRAINT frontend_conversation_turns_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES frontend_chat_plans (plan_id);
 
 ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE frontend_preview_sessions ADD CONSTRAINT frontend_preview_sessions_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -2120,6 +2263,42 @@ ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_
 ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
 ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_preview_session_id_fkey FOREIGN KEY (preview_session_id) REFERENCES frontend_preview_sessions (preview_session_id);
 ALTER TABLE frontend_verification_requests ADD CONSTRAINT frontend_verification_requests_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+
+ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES frontend_conversation_turns (turn_id);
+ALTER TABLE frontend_chat_attachments ADD CONSTRAINT frontend_chat_attachments_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_task_graph_id_fkey FOREIGN KEY (task_graph_id) REFERENCES task_graphs (graph_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_created_from_turn_id_fkey FOREIGN KEY (created_from_turn_id) REFERENCES frontend_conversation_turns (turn_id);
+ALTER TABLE frontend_chat_plans ADD CONSTRAINT frontend_chat_plans_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES principals (principal_id);
+
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES frontend_conversation_turns (turn_id);
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES frontend_chat_plans (plan_id);
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE frontend_chat_activities ADD CONSTRAINT frontend_chat_activities_command_id_fkey FOREIGN KEY (command_id) REFERENCES command_idempotency (command_id);
+
+ALTER TABLE frontend_chat_checkpoints ADD CONSTRAINT frontend_chat_checkpoints_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_chat_checkpoints ADD CONSTRAINT frontend_chat_checkpoints_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_chat_checkpoints ADD CONSTRAINT frontend_chat_checkpoints_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_chat_checkpoints ADD CONSTRAINT frontend_chat_checkpoints_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES frontend_chat_plans (plan_id);
+ALTER TABLE frontend_chat_checkpoints ADD CONSTRAINT frontend_chat_checkpoints_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE frontend_chat_checkpoints ADD CONSTRAINT frontend_chat_checkpoints_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+
+ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
+ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces (workspace_id);
+ALTER TABLE frontend_chat_change_reviews ADD CONSTRAINT frontend_chat_change_reviews_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES principals (principal_id);
 
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
@@ -2452,3 +2631,23 @@ CREATE POLICY frontend_preview_sessions_tenant_isolation ON frontend_preview_ses
 ALTER TABLE frontend_verification_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_verification_requests FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_verification_requests_tenant_isolation ON frontend_verification_requests USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_chat_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_chat_attachments FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_chat_attachments_tenant_isolation ON frontend_chat_attachments USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_chat_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_chat_plans FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_chat_plans_tenant_isolation ON frontend_chat_plans USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_chat_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_chat_activities FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_chat_activities_tenant_isolation ON frontend_chat_activities USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_chat_checkpoints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_chat_checkpoints FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_chat_checkpoints_tenant_isolation ON frontend_chat_checkpoints USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_chat_change_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_chat_change_reviews FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_chat_change_reviews_tenant_isolation ON frontend_chat_change_reviews USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

@@ -16,6 +16,8 @@ import type {
   DdeReadQuery,
   EventFilter,
   HostCapabilities,
+  PickedFileUploadRequest,
+  PickedLocalFile,
   SourceFileRef,
   Unsubscribe,
 } from "./DdeHostBridge";
@@ -28,6 +30,8 @@ export type TestCommandHandler = (
 
 export interface TestHostBridgeOptions {
   readonly capabilities?: Partial<HostCapabilities>;
+  readonly pickLocalFile?: () => PickedLocalFile | null | Promise<PickedLocalFile | null>;
+  readonly uploadPickedFile?: (request: PickedFileUploadRequest) => Record<string, unknown> | Promise<Record<string, unknown>>;
   readonly reads?: Readonly<Record<string, unknown | TestReadHandler>>;
   readonly commands?: Readonly<
     Record<string, Record<string, unknown> | TestCommandHandler>
@@ -54,6 +58,8 @@ export class TestHostBridge implements DdeHostBridge {
     string,
     Record<string, unknown> | TestCommandHandler
   >;
+  private readonly pickHandler?: TestHostBridgeOptions["pickLocalFile"];
+  private readonly uploadHandler?: TestHostBridgeOptions["uploadPickedFile"];
   private readonly listeners = new Set<{
     filter: EventFilter;
     onEvent: (event: DdeEvent) => void;
@@ -63,6 +69,8 @@ export class TestHostBridge implements DdeHostBridge {
     this.capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
     this.reads = { ...(options.reads ?? {}) };
     this.commands = { ...(options.commands ?? {}) };
+    this.pickHandler = options.pickLocalFile;
+    this.uploadHandler = options.uploadPickedFile;
   }
 
   setRead(resource: string, value: unknown | TestReadHandler): void {
@@ -99,7 +107,7 @@ export class TestHostBridge implements DdeHostBridge {
     const payload =
       typeof registered === "function" ? await registered(command) : registered;
     return {
-      commandId: `test-${this.sentCommands.length}`,
+      commandId: command.commandId ?? `test-${this.sentCommands.length}`,
       status: "accepted",
       targetType: command.targetType,
       targetId: command.targetId,
@@ -130,6 +138,25 @@ export class TestHostBridge implements DdeHostBridge {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+
+  async pickLocalFile(): Promise<PickedLocalFile | null> {
+    if (!this.pickHandler) return null;
+    return this.pickHandler();
+  }
+
+  async uploadPickedFile(
+    request: PickedFileUploadRequest,
+  ): Promise<Record<string, unknown>> {
+    if (!this.uploadHandler) {
+      throw new DdeBridgeError({
+        errorCode: "CAPABILITY_UNAVAILABLE",
+        message: "no registered picked-file upload handler",
+        retryable: false,
+      });
+    }
+    return this.uploadHandler(request);
   }
 
   async revealFile(ref: SourceFileRef): Promise<void> {

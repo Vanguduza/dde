@@ -14,6 +14,8 @@ import type {
   DdeReadQuery,
   EventFilter,
   HostCapabilities,
+  PickedFileUploadRequest,
+  PickedLocalFile,
   SourceFileRef,
   Unsubscribe,
 } from "./DdeHostBridge";
@@ -118,5 +120,15 @@ export class VsCodeHostBridge implements DdeHostBridge {
 
   showNativeNotification(message: string): Promise<void> {
     return this.call<void>("notify", { message });
+  }
+
+  pickLocalFile(): Promise<PickedLocalFile | null> {
+    return this.call<PickedLocalFile | null>("pickLocalFile", {});
+  }
+
+  uploadPickedFile(
+    request: PickedFileUploadRequest,
+  ): Promise<Record<string, unknown>> {
+    return this.call<Record<string, unknown>>("uploadPickedFile", request);
   }
 }

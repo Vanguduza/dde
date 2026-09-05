@@ -18,7 +18,6 @@ own (Chapter 13.1 batch amendment, Ch.7.1/12.3 budget workflow).
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import asdict, dataclass
 from uuid import UUID
 
@@ -31,6 +30,7 @@ from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
 from engine.contracts.task import Task
 from engine.contracts.task_graph import TaskGraph
+from engine.core.command_identity import logical_command_hash
 from engine.core.errors import DdeError
 from engine.events.idempotency import CommandLedger
 from engine.events.service import EventService
@@ -51,7 +51,14 @@ from engine.missions.service import MissionService
 from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
 from engine.studio.candidates.service import CandidateService
+from engine.studio.chat.activity import FrontendChatActivityService
+from engine.studio.chat.attachments import FrontendChatAttachmentService
+from engine.studio.chat.checkpoints import FrontendChatCheckpointService
+from engine.studio.chat.context_refs import FrontendChatContextService, budget_dict
+from engine.studio.chat.models import FrontendChatModelCatalog
+from engine.studio.chat.plans import FrontendChatPlanService
 from engine.studio.chat.service import FrontendChatService
+from engine.studio.chat.workspace_review import FrontendChatWorkspaceReviewService
 from engine.studio.frontend import FrontendStudioService
 from engine.studio.inspector import InspectorService
 from engine.studio.preview_runtime.service import PreviewService
@@ -82,18 +89,13 @@ def _hash_command(command: Command) -> str:
     parameters = command.parameters
     if command.command_type == "credential.capture_opensandbox":
         parameters = _redact_capture_parameters(dict(parameters))
-    canonical = json.dumps(
-        {
-            "command_type": command.command_type,
-            "target_type": command.target_type,
-            "target_id": str(command.target_id),
-            "parameters": parameters,
-            "protocol_version": command.protocol_version,
-        },
-        sort_keys=True,
-        default=str,
+    return logical_command_hash(
+        command_type=command.command_type,
+        target_type=command.target_type,
+        target_id=command.target_id,
+        parameters=dict(parameters),
+        protocol_version=command.protocol_version,
     )
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _redact_capture_parameters(parameters: dict[str, object]) -> dict[str, object]:
@@ -580,6 +582,7 @@ class CommandDispatcher:
                 tenant_id=tenant_id,
                 project_id=project_id,
                 mission_id=mission_id,
+                principal_id=command.principal_id,
                 parameters=params,
             )
         elif command_type == "frontend.chat.set_context":
@@ -592,6 +595,125 @@ class CommandDispatcher:
             payload = await studio.send_chat_turn(
                 tenant_id=tenant_id,
                 project_id=project_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.rename":
+            payload = await studio.rename_chat_conversation(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.archive":
+            payload = await studio.archive_chat_conversation(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.set_mode":
+            payload = await studio.set_chat_mode(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.set_model":
+            payload = await studio.set_chat_model(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.pin_context":
+            payload = await studio.pin_chat_context(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.branch":
+            payload = await studio.branch_chat_conversation(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.attachment.reserve":
+            payload = await studio.reserve_chat_attachment(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.attachment.import_workspace":
+            payload = await studio.import_chat_workspace_attachment(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.attachment.remove":
+            payload = await studio.remove_chat_attachment(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.plan.create":
+            payload = await studio.create_chat_plan(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.plan.update":
+            payload = await studio.update_chat_plan(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.plan.approve":
+            payload = await studio.approve_chat_plan(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.plan.prepare_step":
+            payload = await studio.prepare_chat_plan_step(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.plan.record_step":
+            payload = await studio.record_chat_plan_step(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.plan.retry_step":
+            payload = await studio.retry_chat_plan_step(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.plan.cancel":
+            payload = await studio.cancel_chat_plan(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.activity.cancel":
+            payload = await studio.cancel_chat_activity(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.checkpoint.create":
+            payload = await studio.create_chat_checkpoint(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.checkpoint.restore":
+            payload = await studio.restore_chat_checkpoint(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.workspace.apply_patch":
+            payload = await studio.apply_chat_workspace_patch(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type == "frontend.chat.workspace.accept_file":
+            payload = await studio.accept_chat_workspace_file(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.workspace.revert_file":
+            payload = await studio.revert_chat_workspace_file(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.chat.workspace.revert_all":
+            payload = await studio.revert_all_chat_workspace_changes(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
                 parameters=params,
             )
         elif command_type == "frontend.candidate.create":
@@ -869,6 +991,7 @@ class GatewayCommandService:
             project_id=project_id,
             idempotency_key=command.idempotency_key,
             request_hash=request_hash,
+            command_id=command.command_id,
         )
         if not is_new:
             return self._replay(command, record.status, record.result)
@@ -931,6 +1054,292 @@ class GatewayCommandService:
             "conversation": conversation.model_dump(mode="json"),
             "turns": [item.model_dump(mode="json") for item in turns],
         }
+
+    async def read_frontend_chats(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        query: str | None = None,
+        include_archived: bool = False,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        chat = FrontendChatService(self._engine)
+        rows = (
+            await chat.search_conversations(
+                tenant_id=session.tenant_id,
+                project_id=mission.project_id,
+                mission_id=mission_id,
+                query=query,
+            )
+            if query is not None
+            else await chat.list_conversations(
+                tenant_id=session.tenant_id,
+                project_id=mission.project_id,
+                mission_id=mission_id,
+                include_archived=include_archived,
+            )
+        )
+        return {"conversations": [item.model_dump(mode="json") for item in rows]}
+
+    async def read_frontend_chat_by_id(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        chat = FrontendChatService(self._engine)
+        conversation = await chat.get_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        turns = await chat.history(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        return {
+            "conversation": conversation.model_dump(mode="json"),
+            "turns": [item.model_dump(mode="json") for item in turns],
+        }
+
+    async def read_frontend_chat_attachments(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        rows = await FrontendChatAttachmentService(self._engine).list_for_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        return {"attachments": [item.model_dump(mode="json") for item in rows]}
+
+    async def read_frontend_chat_plans(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        rows = await FrontendChatPlanService(self._engine).list_for_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        return {"plans": [item.model_dump(mode="json") for item in rows]}
+
+    async def read_frontend_chat_activities(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        rows = await FrontendChatActivityService(self._engine).list_for_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        return {"activities": [item.model_dump(mode="json") for item in rows]}
+
+    async def read_frontend_chat_checkpoints(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        rows = await FrontendChatCheckpointService(self._engine).list_for_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        return {"checkpoints": [item.model_dump(mode="json") for item in rows]}
+
+    async def read_frontend_chat_changes(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        changes = await FrontendChatWorkspaceReviewService(self._engine).changes(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+        )
+        return {
+            "workspace_id": str(changes.workspace_id),
+            "base_revision": changes.base_revision,
+            "workspace_revision": changes.workspace_revision,
+            "diff_hash": changes.diff_hash,
+            "changes": [asdict(item) for item in changes.changes],
+        }
+
+    async def read_frontend_chat_models(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        return {"models": list(FrontendChatModelCatalog().as_projection())}
+
+    async def read_frontend_chat_context_budget(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+        refs: tuple[str, ...],
+        budget_tokens: int,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        result = await FrontendChatContextService(self._engine).assemble(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            conversation_id=conversation_id,
+            refs=refs,
+            budget_tokens=budget_tokens,
+        )
+        return budget_dict(result)
+
+    async def complete_frontend_chat_attachment_upload(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+        attachment_id: UUID,
+        content: bytes,
+        idempotency_key: str,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_chat_read_context(
+            session_id=session_id,
+            principal_id=principal_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+            required_scope_name="mission.control",
+        )
+        content_hash = hashlib.sha256(content).hexdigest()
+        request_hash = hashlib.sha256(
+            f"chat-upload:{attachment_id}:{content_hash}:{len(content)}".encode()
+        ).hexdigest()
+        record, is_new = await self._ledger.begin(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if not is_new:
+            return dict(record.result or {"status": record.status})
+        try:
+            attachment = await FrontendChatAttachmentService(
+                self._engine
+            ).complete_upload(
+                tenant_id=session.tenant_id,
+                project_id=mission.project_id,
+                conversation_id=conversation_id,
+                attachment_id=attachment_id,
+                content=content,
+            )
+        except DdeError as exc:
+            await self._ledger.fail(
+                tenant_id=session.tenant_id,
+                project_id=mission.project_id,
+                command_id=record.command_id,
+                result={"error_code": exc.error_code, "message": exc.message},
+            )
+            raise
+        result: dict[str, object] = {"attachment": attachment.model_dump(mode="json")}
+        await self._ledger.complete(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            command_id=record.command_id,
+            result=result,
+        )
+        return result
+
+    async def _frontend_chat_read_context(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+        required_scope_name: str = "mission.read",
+    ) -> tuple[ClientSession, Mission]:
+        session = await self._sessions.authorize_scope(
+            session_id=session_id,
+            principal_id=principal_id,
+            required_scope=required_scope_name,
+        )
+        mission = await self._dispatcher.load_mission(mission_id)
+        if mission.tenant_id != session.tenant_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION", "mission belongs to another tenant"
+            )
+        await FrontendChatService(self._engine).get_conversation(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            mission_id=mission_id,
+            conversation_id=conversation_id,
+        )
+        return session, mission
 
     async def read_frontend_preview(
         self,

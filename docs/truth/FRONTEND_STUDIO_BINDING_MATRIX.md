@@ -161,7 +161,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#86-frontend-chat-composer`
 
 Notes:
 
-- **CH-03** — Context scope is held on the FrontendConversation and set through frontend.chat.set_context; a per-turn provider/policy inspector UI is M17.
+- **CH-03** — Context is durable on FrontendConversation and updated through frontend.chat.set_context; Cursor-class context UI now exposes screen/candidate/viewport, Ask/Plan/Execute mode, model/profile selection, pinned references and explicit context-budget inclusion/omission. Production E2E remains BOUND until PostgreSQL/Redis infrastructure is available.
 
 ## Candidate / Directions dock
 

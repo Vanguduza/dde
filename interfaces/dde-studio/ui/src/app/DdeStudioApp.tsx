@@ -16,6 +16,17 @@ import { DdeShell } from "../shell/DdeShell";
 import { GlobalTopBar } from "../shell/GlobalTopBar";
 import { StatusBar } from "../shell/StatusBar";
 import type {
+  FrontendChatActivity,
+  FrontendChatAttachment,
+  FrontendChatChange,
+  FrontendChatChanges,
+  FrontendChatCheckpoint,
+  FrontendChatContextBudget,
+  FrontendChatConversation,
+  FrontendChatMode,
+  FrontendChatModelOption,
+  FrontendChatPlan,
+  FrontendChatPlanStep,
   FrontendChatThread,
   FrontendHostContext,
   FrontendStudioSnapshot,
@@ -70,6 +81,16 @@ export function DdeStudioApp({
   const [chatError, setChatError] = useState<string | null>(null);
   const [chatBusy, setChatBusy] = useState(false);
   const [chatIncludeSelection, setChatIncludeSelection] = useState(true);
+  const [chatConversations, setChatConversations] = useState<readonly FrontendChatConversation[]>([]);
+  const [chatAttachments, setChatAttachments] = useState<readonly FrontendChatAttachment[]>([]);
+  const [pendingAttachmentIds, setPendingAttachmentIds] = useState<readonly string[]>([]);
+  const [chatPlans, setChatPlans] = useState<readonly FrontendChatPlan[]>([]);
+  const [chatActivities, setChatActivities] = useState<readonly FrontendChatActivity[]>([]);
+  const [chatCheckpoints, setChatCheckpoints] = useState<readonly FrontendChatCheckpoint[]>([]);
+  const [chatChanges, setChatChanges] = useState<FrontendChatChanges | null>(null);
+  const [chatModels, setChatModels] = useState<readonly FrontendChatModelOption[]>([]);
+  const [chatContextBudget, setChatContextBudget] = useState<FrontendChatContextBudget | null>(null);
+  const [canPickLocalFile, setCanPickLocalFile] = useState(false);
 
   const refreshSnapshot = useCallback(async () => {
     const value = await bridge.requestRead<FrontendStudioSnapshot>({
@@ -86,6 +107,75 @@ export function DdeStudioApp({
     setChatThread(value);
     setChatError(null);
     return value;
+  }, [bridge]);
+
+  const refreshChatResources = useCallback(
+    async (conversationId?: string | null) => {
+      const target = conversationId ?? chatThread?.conversation?.conversationId ?? null;
+      const conversationRead = await bridge.requestRead<{
+        conversations: readonly FrontendChatConversation[];
+      }>({ resource: "frontend.chat.conversations" });
+      setChatConversations(conversationRead.conversations ?? []);
+      const modelRead = await bridge.requestRead<{ models: readonly FrontendChatModelOption[] }>({
+        resource: "frontend.chat.models",
+      });
+      setChatModels(modelRead.models ?? []);
+      if (!target) {
+        setChatAttachments([]);
+        setChatPlans([]);
+        setChatActivities([]);
+        setChatCheckpoints([]);
+        setChatChanges(null);
+        setChatContextBudget(null);
+        return;
+      }
+      const [attachments, plans, activities, checkpoints, context] = await Promise.all([
+        bridge.requestRead<{ attachments: readonly FrontendChatAttachment[] }>({
+          resource: "frontend.chat.attachments", parameters: { conversationId: target },
+        }),
+        bridge.requestRead<{ plans: readonly FrontendChatPlan[] }>({
+          resource: "frontend.chat.plans", parameters: { conversationId: target },
+        }),
+        bridge.requestRead<{ activities: readonly FrontendChatActivity[] }>({
+          resource: "frontend.chat.activities", parameters: { conversationId: target },
+        }),
+        bridge.requestRead<{ checkpoints: readonly FrontendChatCheckpoint[] }>({
+          resource: "frontend.chat.checkpoints", parameters: { conversationId: target },
+        }),
+        bridge.requestRead<FrontendChatContextBudget>({
+          resource: "frontend.chat.context",
+          parameters: {
+            conversationId: target,
+            refs: chatThread?.conversation?.pinnedContextRefs ?? [],
+            budgetTokens: 24_000,
+          },
+        }),
+      ]);
+      setChatAttachments(attachments.attachments ?? []);
+      setChatPlans(plans.plans ?? []);
+      setChatActivities(activities.activities ?? []);
+      setChatCheckpoints(checkpoints.checkpoints ?? []);
+      setChatContextBudget(context);
+      try {
+        const changes = await bridge.requestRead<FrontendChatChanges>({
+          resource: "frontend.chat.changes", parameters: { conversationId: target },
+        });
+        setChatChanges(changes);
+      } catch {
+        setChatChanges(null);
+      }
+    },
+    [bridge, chatThread?.conversation?.conversationId, chatThread?.conversation?.pinnedContextRefs],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    bridge.getCapabilities().then((value) => {
+      if (!cancelled) setCanPickLocalFile(value.canPickLocalFile);
+    }).catch(() => {
+      if (!cancelled) setCanPickLocalFile(false);
+    });
+    return () => { cancelled = true; };
   }, [bridge]);
 
   useEffect(() => {
@@ -126,6 +216,13 @@ export function DdeStudioApp({
       cancelled = true;
     };
   }, [refreshChat]);
+
+  useEffect(() => {
+    const conversationId = chatThread?.conversation?.conversationId;
+    void refreshChatResources(conversationId).catch((error: unknown) => {
+      setChatError(error instanceof Error ? error.message : String(error));
+    });
+  }, [chatThread?.conversation?.conversationId, refreshChatResources]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -248,16 +345,18 @@ export function DdeStudioApp({
     async (
       commandType: string,
       parameters: Readonly<Record<string, unknown>>,
+      options?: { idempotencyKey?: string; commandId?: string },
     ): Promise<CommandAcceptance> => {
       if (!hostContext) {
         throw new Error("Frontend Studio mission context is unavailable.");
       }
       const command: DdeCommand = {
+        commandId: options?.commandId,
         commandType,
         targetType: "mission",
         targetId: hostContext.missionId,
         parameters,
-        idempotencyKey: `${commandType}:${actionId()}`,
+        idempotencyKey: options?.idempotencyKey ?? `${commandType}:${actionId()}`,
       };
       return bridge.sendCommand(command);
     },
@@ -275,18 +374,21 @@ export function DdeStudioApp({
     };
     parameters.active_candidate_id = activeCandidateId;
     parameters.screen_key = screenKey;
+    parameters.active_workspace_id = activeCandidate?.workspaceId ?? sourceWorkspaceId;
     sendFrontendCommand("frontend.chat.set_context", parameters).catch(
       (error: unknown) => {
         setChatError(error instanceof Error ? error.message : String(error));
       },
     );
   }, [
+    activeCandidate?.workspaceId,
     activeCandidateId,
     chatIncludeSelection,
     chatThread?.conversation?.conversationId,
     screenKey,
     selectedKey,
     sendFrontendCommand,
+    sourceWorkspaceId,
     viewport,
   ]);
 
@@ -411,17 +513,22 @@ export function DdeStudioApp({
         };
         contextParameters.active_candidate_id = activeCandidateId;
         contextParameters.screen_key = screenKey;
+        contextParameters.active_workspace_id = activeCandidate?.workspaceId ?? sourceWorkspaceId;
         await sendFrontendCommand("frontend.chat.set_context", contextParameters);
 
         const accepted = await sendFrontendCommand("frontend.chat.send", {
           conversation_id: conversationId,
           text,
+          attachment_ids: pendingAttachmentIds,
         });
+        setPendingAttachmentIds([]);
         const intent = payloadString(accepted, "intent");
         const outcome = payloadString(accepted, "outcome");
         await refreshChat();
+        await refreshChatResources(conversationId);
 
         if (
+          chatThread?.conversation?.mode !== "PLAN" &&
           outcome === "ROUTED" &&
           (intent === "MUTATE_DETERMINISTIC" || intent === "UNDO_REVERT")
         ) {
@@ -441,16 +548,20 @@ export function DdeStudioApp({
       }
     },
     [
+      activeCandidate?.workspaceId,
       activeCandidateId,
       chatError,
       chatIncludeSelection,
       chatLoading,
       chatThread?.conversation?.conversationId,
+      pendingAttachmentIds,
       refreshChat,
+      refreshChatResources,
       refreshSnapshot,
       screenKey,
       selectedKey,
       sendFrontendCommand,
+      sourceWorkspaceId,
       startPreview,
       viewport,
     ],
@@ -552,6 +663,200 @@ export function DdeStudioApp({
     ],
   );
 
+  const selectChatConversation = useCallback(async (conversationId: string) => {
+    setChatLoading(true);
+    try {
+      const value = await bridge.requestRead<FrontendChatThread>({
+        resource: "frontend.chat.thread.by_id",
+        parameters: { conversationId },
+      });
+      setChatThread(value);
+      setPendingAttachmentIds([]);
+      await refreshChatResources(conversationId);
+    } finally {
+      setChatLoading(false);
+    }
+  }, [bridge, refreshChatResources]);
+
+  const newChatConversation = useCallback(async () => {
+    const opened = await sendFrontendCommand("frontend.chat.open", {
+      viewport,
+      screen_key: screenKey,
+      active_workspace_id: activeCandidate?.workspaceId ?? sourceWorkspaceId,
+      mode: "ASK",
+      title: "New AI Chat",
+    });
+    const id = payloadString(opened, "conversationId");
+    if (!id) throw new Error("DDE did not return a conversation id.");
+    await selectChatConversation(id);
+  }, [activeCandidate?.workspaceId, screenKey, selectChatConversation, sendFrontendCommand, sourceWorkspaceId, viewport]);
+
+  const mutateConversation = useCallback(async (
+    commandType: string,
+    parameters: Record<string, unknown>,
+  ) => {
+    const conversationId = chatThread?.conversation?.conversationId;
+    if (!conversationId) throw new Error("Open a Chat conversation first.");
+    await sendFrontendCommand(commandType, { conversation_id: conversationId, ...parameters });
+    await selectChatConversation(conversationId);
+  }, [chatThread?.conversation?.conversationId, selectChatConversation, sendFrontendCommand]);
+
+  const attachLocalFile = useCallback(async () => {
+    const conversationId = chatThread?.conversation?.conversationId;
+    if (!conversationId) throw new Error("Open a Chat conversation before attaching files.");
+    if (!bridge.pickLocalFile || !bridge.uploadPickedFile) {
+      throw new Error("This host does not provide native Chat file upload.");
+    }
+    const picked = await bridge.pickLocalFile();
+    if (!picked) return;
+    const reserved = await sendFrontendCommand("frontend.chat.attachment.reserve", {
+      conversation_id: conversationId,
+      filename: picked.filename,
+      media_type: picked.mediaType,
+      size_bytes: picked.sizeBytes,
+    });
+    const rawAttachment = reserved.payload.attachment;
+    if (!rawAttachment || typeof rawAttachment !== "object") {
+      throw new Error("DDE did not return an attachment reservation.");
+    }
+    const attachmentId = (rawAttachment as Record<string, unknown>).attachmentId;
+    if (typeof attachmentId !== "string") throw new Error("Attachment reservation has no identity.");
+    await bridge.uploadPickedFile({
+      token: picked.token,
+      conversationId,
+      attachmentId,
+      idempotencyKey: `frontend.chat.attachment.upload:${attachmentId}`,
+    });
+    setPendingAttachmentIds((current) => [...new Set([...current, attachmentId])]);
+    await refreshChatResources(conversationId);
+  }, [bridge, chatThread?.conversation?.conversationId, refreshChatResources, sendFrontendCommand]);
+
+  const approvePlan = useCallback(async (plan: FrontendChatPlan) => {
+    await sendFrontendCommand("frontend.chat.plan.approve", {
+      plan_id: plan.planId,
+      lock_version: plan.lockVersion,
+    });
+    await refreshChatResources(plan.conversationId);
+    await refreshChat();
+  }, [refreshChat, refreshChatResources, sendFrontendCommand]);
+
+  const runPlanStep = useCallback(async (plan: FrontendChatPlan, step: FrontendChatPlanStep) => {
+    const prepared = await sendFrontendCommand("frontend.chat.plan.prepare_step", {
+      plan_id: plan.planId,
+      step_id: step.stepId,
+    });
+    const commandType = payloadString(prepared, "commandType");
+    const idempotencyKey = payloadString(prepared, "idempotencyKey");
+    const targetId = payloadString(prepared, "targetId");
+    const parameters = prepared.payload.parameters;
+    if (!commandType || !idempotencyKey || !targetId || !parameters || typeof parameters !== "object") {
+      throw new Error("Prepared Chat plan step is incomplete.");
+    }
+    const commandId = actionId();
+    try {
+      await bridge.sendCommand({
+        commandId,
+        commandType,
+        targetType: "mission",
+        targetId,
+        parameters: parameters as Readonly<Record<string, unknown>>,
+        idempotencyKey,
+      });
+    } finally {
+      await sendFrontendCommand("frontend.chat.plan.record_step", {
+        plan_id: plan.planId,
+        step_id: step.stepId,
+        command_id: commandId,
+      });
+      await refreshChatResources(plan.conversationId);
+      await refreshChat();
+      await refreshSnapshot();
+      if (commandType === "frontend.mutation.apply" || commandType === "frontend.mutation.revert") {
+        setSelection(null);
+        setSelectedKey(null);
+        setPreview(null);
+        setPreviewBrowserReady(false);
+        await startPreview();
+      }
+    }
+  }, [bridge, refreshChat, refreshChatResources, refreshSnapshot, sendFrontendCommand, startPreview]);
+
+  const chatCursor = useMemo(() => ({
+    canPickLocalFile,
+    conversations: chatConversations,
+    attachments: chatAttachments,
+    pendingAttachmentIds,
+    plans: chatPlans,
+    activities: chatActivities,
+    checkpoints: chatCheckpoints,
+    changes: chatChanges,
+    models: chatModels,
+    contextBudget: chatContextBudget,
+    onNewConversation: newChatConversation,
+    onSelectConversation: selectChatConversation,
+    onSearchConversations: async (query: string) => {
+      const value = await bridge.requestRead<{ conversations: readonly FrontendChatConversation[] }>({
+        resource: "frontend.chat.conversations", parameters: { query },
+      });
+      setChatConversations(value.conversations ?? []);
+    },
+    onRenameConversation: async (title: string) => mutateConversation("frontend.chat.rename", { title }),
+    onArchiveConversation: async () => {
+      await mutateConversation("frontend.chat.archive", { archived: true });
+      await refreshChat();
+      await refreshChatResources(null);
+    },
+    onBranchConversation: async (turnId?: string) => {
+      const conversationId = chatThread?.conversation?.conversationId;
+      if (!conversationId) return;
+      const accepted = await sendFrontendCommand("frontend.chat.branch", {
+        conversation_id: conversationId,
+        from_turn_id: turnId ?? null,
+      });
+      const raw = accepted.payload.conversation;
+      const id = raw && typeof raw === "object" ? (raw as Record<string, unknown>).conversationId : null;
+      if (typeof id === "string") await selectChatConversation(id);
+    },
+    onModeChange: async (next: FrontendChatMode) => mutateConversation("frontend.chat.set_mode", { mode: next }),
+    onModelChange: async (model: string | null) => mutateConversation("frontend.chat.set_model", { model_profile_id: model }),
+    onAttachLocalFile: attachLocalFile,
+    onRemoveAttachment: async (attachmentId: string) => {
+      await mutateConversation("frontend.chat.attachment.remove", { attachment_id: attachmentId });
+      setPendingAttachmentIds((current) => current.filter((item) => item !== attachmentId));
+    },
+    onCreateCheckpoint: async (note?: string) => mutateConversation("frontend.chat.checkpoint.create", { note: note ?? null }),
+    onRestoreCheckpoint: async (checkpointId: string) => mutateConversation("frontend.chat.checkpoint.restore", { checkpoint_id: checkpointId }),
+    onApprovePlan: approvePlan,
+    onRunPlanStep: runPlanStep,
+    onRetryPlanStep: async (plan: FrontendChatPlan, step: FrontendChatPlanStep) => {
+      await sendFrontendCommand("frontend.chat.plan.retry_step", { plan_id: plan.planId, step_id: step.stepId });
+      await refreshChatResources(plan.conversationId);
+    },
+    onCancelPlan: async (plan: FrontendChatPlan) => {
+      await sendFrontendCommand("frontend.chat.plan.cancel", { plan_id: plan.planId, lock_version: plan.lockVersion });
+      await refreshChatResources(plan.conversationId);
+    },
+    onCancelActivity: async (activity: FrontendChatActivity) => mutateConversation("frontend.chat.activity.cancel", { activity_id: activity.activityId, reason: "Stopped by user" }),
+    onAcceptChange: async (change: FrontendChatChange) => mutateConversation("frontend.chat.workspace.accept_file", { path: change.path, expected_diff_hash: change.diffHash }),
+    onRevertChange: async (change: FrontendChatChange) => mutateConversation("frontend.chat.workspace.revert_file", { path: change.path, expected_diff_hash: change.diffHash }),
+    onRevertAll: async () => {
+      const exact = chatCheckpoints.find((item) => item.diffHash && item.diffHash === chatChanges?.diffHash);
+      if (!exact) throw new Error("Create a checkpoint of the exact current diff before revert-all.");
+      await mutateConversation("frontend.chat.workspace.revert_all", { checkpoint_id: exact.checkpointId });
+    },
+    onApplyPatch: async (patch: string) => mutateConversation("frontend.chat.workspace.apply_patch", {
+      patch_text: patch,
+      expected_diff_hash: chatChanges?.diffHash ?? null,
+    }),
+    onPinContext: async (ref: string, pinned: boolean) => mutateConversation("frontend.chat.pin_context", { context_ref: ref, pinned }),
+  }), [
+    approvePlan, attachLocalFile, bridge, canPickLocalFile, chatActivities, chatAttachments,
+    chatChanges, chatCheckpoints, chatContextBudget, chatConversations, chatModels, chatPlans,
+    chatThread?.conversation?.conversationId, mutateConversation, newChatConversation,
+    pendingAttachmentIds, refreshChat, refreshChatResources, runPlanStep,
+    selectChatConversation, sendFrontendCommand,
+  ]);
+
   const breadcrumb = selectedKey
     ? ["Project", screenKey ?? "Screen", selectedKey]
     : group
@@ -628,6 +933,7 @@ export function DdeStudioApp({
             chatIncludeSelection={chatIncludeSelection}
             onChatIncludeSelectionChange={setChatIncludeSelection}
             onChatSend={handleChatSend}
+            chatCursor={chatCursor}
           />
         )
       }

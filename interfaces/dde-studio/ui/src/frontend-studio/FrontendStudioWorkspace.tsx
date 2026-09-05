@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Unavailable } from "../components/Honest";
-import { FrontendChatComposer } from "./FrontendChatComposer";
+import { FrontendChatComposer, type CursorChatController } from "./FrontendChatComposer";
 import type {
   CandidateCardSnapshot,
   FrontendChatThread,
@@ -68,6 +68,7 @@ export interface WorkspaceProps {
   readonly chatIncludeSelection: boolean;
   readonly onChatIncludeSelectionChange: (value: boolean) => void;
   readonly onChatSend: (text: string) => Promise<boolean>;
+  readonly chatCursor: CursorChatController;
 }
 
 export function FrontendStudioWorkspace({
@@ -98,6 +99,7 @@ export function FrontendStudioWorkspace({
   chatIncludeSelection,
   onChatIncludeSelectionChange,
   onChatSend,
+  chatCursor,
 }: WorkspaceProps) {
   const activeCandidate = snapshot?.candidates.cards.find(
     (candidate) => candidate.candidateId === activeCandidateId,
@@ -157,6 +159,7 @@ export function FrontendStudioWorkspace({
         includeSelection={chatIncludeSelection}
         onIncludeSelectionChange={onChatIncludeSelectionChange}
         onSend={onChatSend}
+        cursor={chatCursor}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { StudioGatewayService } from "../connection/studioGateway";
@@ -9,6 +10,7 @@ interface BridgeEnvelope {
 }
 
 interface BridgeCommand {
+  readonly commandId?: string;
   readonly commandType: string;
   readonly targetType: string;
   readonly targetId: string;
@@ -38,6 +40,7 @@ interface BridgeFailure {
  */
 export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
   private panel?: vscode.WebviewPanel;
+  private readonly pickedFiles = new Map<string, vscode.Uri>();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -98,11 +101,15 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
           canRevealFile: Boolean(vscode.workspace.workspaceFolders?.length),
           canOpenExternal: false,
           canNotify: true,
-          canPickLocalFile: false,
+          canPickLocalFile: true,
           canSubscribeEvents: false,
         };
       case "read":
         return this.read(payload as ReadQuery);
+      case "pickLocalFile":
+        return this.pickLocalFile();
+      case "uploadPickedFile":
+        return this.uploadPickedFile(payload);
       case "command":
         return this.command(payload as BridgeCommand);
       case "revealFile":
@@ -160,6 +167,42 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
     if (query.resource === "frontend.chat.thread") {
       return camelizeResult(await gateway.readFrontendChat(missionId));
     }
+    if (query.resource === "frontend.chat.conversations") {
+      return camelizeResult(
+        await gateway.readFrontendChats(missionId, {
+          query: optionalParameter(query, "query"),
+          includeArchived: query.parameters?.includeArchived === true,
+        }),
+      );
+    }
+    if (query.resource === "frontend.chat.thread.by_id") {
+      const conversationId = requiredParameter(query, "conversationId");
+      return camelizeResult(await gateway.readFrontendChatById(missionId, conversationId));
+    }
+    if (
+      ["frontend.chat.attachments", "frontend.chat.plans", "frontend.chat.activities",
+       "frontend.chat.checkpoints", "frontend.chat.changes"].includes(query.resource)
+    ) {
+      const conversationId = requiredParameter(query, "conversationId");
+      const resource = query.resource.split(".").at(-1) as
+        | "attachments" | "plans" | "activities" | "checkpoints" | "changes";
+      return camelizeResult(
+        await gateway.readFrontendChatSubresource(missionId, conversationId, resource),
+      );
+    }
+    if (query.resource === "frontend.chat.models") {
+      return camelizeResult(await gateway.readFrontendChatModels(missionId));
+    }
+    if (query.resource === "frontend.chat.context") {
+      const conversationId = requiredParameter(query, "conversationId");
+      const refs = stringArrayParameter(query, "refs");
+      const budget = query.parameters?.budgetTokens;
+      return camelizeResult(
+        await gateway.readFrontendChatContext(
+          missionId, conversationId, refs, typeof budget === "number" ? budget : 24_000,
+        ),
+      );
+    }
     if (query.resource === "frontend.preview.document") {
       const previewSessionId = requiredParameter(query, "previewSessionId");
       return camelizeResult(
@@ -192,6 +235,7 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
       missionId,
       command.parameters ?? {},
       command.idempotencyKey,
+      command.commandId,
     );
     if (!result.ok || !result.acceptance) {
       throw bridgeError("POLICY_DENIED", result.reason ?? "Gateway command refused.");
@@ -222,6 +266,52 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
     }
   }
 
+  private async pickLocalFile(): Promise<{
+    token: string; filename: string; mediaType: string; sizeBytes: number
+  } | null> {
+    const selected = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: "Attach to DDE Chat",
+    });
+    const uri = selected?.[0];
+    if (!uri) return null;
+    const stat = await vscode.workspace.fs.stat(uri);
+    const token = randomUUID();
+    this.pickedFiles.set(token, uri);
+    return {
+      token,
+      filename: path.basename(uri.fsPath || uri.path),
+      mediaType: mediaTypeFor(uri.path),
+      sizeBytes: stat.size,
+    };
+  }
+
+  private async uploadPickedFile(payload: unknown): Promise<unknown> {
+    const request = payload as {
+      token?: unknown; conversationId?: unknown; attachmentId?: unknown; idempotencyKey?: unknown
+    };
+    if (
+      typeof request.token !== "string" || typeof request.conversationId !== "string" ||
+      typeof request.attachmentId !== "string" || typeof request.idempotencyKey !== "string"
+    ) {
+      throw bridgeError("VALIDATION_FAILED", "Picked-file upload request is incomplete.");
+    }
+    const uri = this.pickedFiles.get(request.token);
+    if (!uri) throw bridgeError("CONTEXT_INCOMPLETE", "Picked-file token expired.");
+    const { gateway, missionId } = this.requireContext();
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    const result = await gateway.uploadFrontendChatAttachment(
+      missionId, request.conversationId, request.attachmentId, bytes, request.idempotencyKey,
+    );
+    if (!result.ok || !result.value) {
+      throw bridgeError("POLICY_DENIED", result.reason ?? "Attachment upload refused.");
+    }
+    this.pickedFiles.delete(request.token);
+    return deepCamelize(result.value);
+  }
+
   private async notify(payload: unknown): Promise<void> {
     const message = (payload as { message?: unknown })?.message;
     if (typeof message !== "string" || !message) {
@@ -250,6 +340,36 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
 <body><div id="dde-root"></div><script nonce="${nonce}" type="module" src="${script}"></script></body>
 </html>`;
   }
+}
+
+
+function optionalParameter(query: ReadQuery, name: string): string | undefined {
+  const value = query.parameters?.[name];
+  return typeof value === "string" && value ? value : undefined;
+}
+
+function stringArrayParameter(query: ReadQuery, name: string): string[] {
+  const value = query.parameters?.[name];
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    throw bridgeError("VALIDATION_FAILED", `Read parameter ${name} must be a string array.`);
+  }
+  return value;
+}
+
+function mediaTypeFor(value: string): string {
+  const lower = value.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".json")) return "application/json";
+  if (lower.endsWith(".md") || lower.endsWith(".txt") || lower.endsWith(".ts") ||
+      lower.endsWith(".tsx") || lower.endsWith(".js") || lower.endsWith(".jsx") ||
+      lower.endsWith(".py") || lower.endsWith(".css") || lower.endsWith(".html")) {
+    return "text/plain";
+  }
+  return "application/octet-stream";
 }
 
 function requiredParameter(query: ReadQuery, name: string): string {

@@ -32,7 +32,13 @@ def _git_executable() -> str:
     return git
 
 
-def _run(args: list[str], *, cwd: Path, timeout_seconds: float = 30.0) -> str:
+def _run(
+    args: list[str],
+    *,
+    cwd: Path,
+    timeout_seconds: float = 30.0,
+    strip_output: bool = True,
+) -> str:
     git = _git_executable()
     try:
         completed = subprocess.run(  # noqa: S603
@@ -47,7 +53,7 @@ def _run(args: list[str], *, cwd: Path, timeout_seconds: float = 30.0) -> str:
         raise GitCommandError(args, -1, f"timed out after {timeout_seconds}s") from exc
     if completed.returncode != 0:
         raise GitCommandError(args, completed.returncode, completed.stderr)
-    return completed.stdout.strip()
+    return completed.stdout.strip() if strip_output else completed.stdout.rstrip("\n")
 
 
 def rev_parse(repo_root: Path, revision: str) -> str:
@@ -81,7 +87,105 @@ def rev_parse_head(worktree_path: Path) -> str:
 
 
 def status_porcelain(worktree_path: Path) -> str:
-    return _run(["status", "--porcelain"], cwd=worktree_path)
+    return _run(["status", "--porcelain"], cwd=worktree_path, strip_output=False)
+
+
+def changed_paths(worktree_path: Path) -> list[str]:
+    """Return tracked and untracked working-tree paths from real git status."""
+    output = _run(
+        ["status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=worktree_path,
+        strip_output=False,
+    )
+    paths: list[str] = []
+    for line in output.splitlines():
+        if len(line) < 4:
+            continue
+        raw = line[3:]
+        if " -> " in raw:
+            raw = raw.split(" -> ", 1)[1]
+        paths.append(raw.strip('"'))
+    return sorted(dict.fromkeys(path for path in paths if path))
+
+
+def unified_diff(
+    worktree_path: Path, base_revision: str, relative_path: str | None = None
+) -> str:
+    """Unified diff from base revision through current working-tree state.
+
+    Tracked changes use git directly. When a single requested path is untracked,
+    create a deterministic unified diff against an empty file without staging it.
+    """
+    args = ["diff", "--no-ext-diff", "--binary", base_revision]
+    if relative_path is not None:
+        args.extend(["--", relative_path])
+    tracked = _run(args, cwd=worktree_path)
+    if relative_path is None or tracked:
+        return tracked
+    path = worktree_path / relative_path
+    if not path.is_file() or relative_path not in changed_paths(worktree_path):
+        return ""
+    try:
+        content = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return f"Binary untracked file {relative_path} differs\n"
+    import difflib
+
+    return "".join(
+        difflib.unified_diff(
+            [],
+            content.splitlines(keepends=True),
+            fromfile="/dev/null",
+            tofile=f"b/{relative_path}",
+        )
+    )
+
+
+def apply_patch(worktree_path: Path, patch_text: str) -> None:
+    """Apply one already-scope-validated unified patch after a real check pass."""
+    git = _git_executable()
+    for args in (["apply", "--check", "-"], ["apply", "-"]):
+        try:
+            completed = subprocess.run(  # noqa: S603
+                [git, *args],
+                cwd=worktree_path,
+                input=patch_text,
+                capture_output=True,
+                text=True,
+                timeout=30.0,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise GitCommandError(args, -1, "timed out after 30.0s") from exc
+        if completed.returncode != 0:
+            raise GitCommandError(args, completed.returncode, completed.stderr)
+
+
+def restore_path(worktree_path: Path, base_revision: str, relative_path: str) -> None:
+    """Restore one path to the workspace base, removing untracked files safely."""
+    current_paths = changed_paths(worktree_path)
+    if relative_path not in current_paths:
+        return
+    try:
+        _run(["cat-file", "-e", f"{base_revision}:{relative_path}"], cwd=worktree_path)
+    except GitCommandError:
+        target = worktree_path / relative_path
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink(missing_ok=True)
+        return
+    _run(
+        [
+            "restore",
+            f"--source={base_revision}",
+            "--staged",
+            "--worktree",
+            "--",
+            relative_path,
+        ],
+        cwd=worktree_path,
+    )
 
 
 def diff_name_only(worktree_path: Path, base_revision: str) -> list[str]:

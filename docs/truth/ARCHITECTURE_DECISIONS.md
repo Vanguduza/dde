@@ -486,6 +486,18 @@ change promotion authority, or make a pending verification request a verdict.
 
 ---
 
+## AD-041 — Cursor-class AI Chat is the DDE Code conversational control plane
+
+**Status:** USER-LOCKED PRODUCT DECISION (2026-09-05); Project Truth database ingestion pending where runtime is unavailable.
+
+By explicit owner direction, DDE-069 extends the existing `FrontendConversation` control plane into the Cursor-class AI Chat specified by `docs/truth/CURSOR_CLASS_AI_CHAT.md`. This adds durable multi-conversation history, attachment/context references, Ask/Plan/Execute modes, plans, activity/tool lineage, workspace diff review, checkpoints, branching, provider selection and governed execution.
+
+**Authority boundary.** This decision does not grant a model new shell, database, network, credential, approval or promotion authority. Ask is read-only. Plan creates a durable proposal. Execute may act only through already-authorized DDE commands/workspaces/workers and preserves independent command/idempotency/evidence identity. Existing EDR-0001 Claude Code approval requirements, EDR-0017 visual-critique bounds, Gateway scope rules and candidate/promotion gates remain unchanged.
+
+**Consequence.** DDE Chat should match professional Cursor-class interaction depth while remaining DDE-owned and provider-replaceable. Any implementation that hides tool calls, fabricates provider availability, silently drops context, or lets a plan bypass Gateway/Core is non-conformant.
+
+---
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.

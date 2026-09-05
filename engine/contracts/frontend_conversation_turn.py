@@ -37,3 +37,6 @@ class FrontendConversationTurn(BaseModel):
     produced_refs: list[str]
     created_at: datetime
     updated_at: datetime
+    attachment_ids: list[UUID]
+    plan_id: UUID | None = None
+    model_profile_id: str | None = None

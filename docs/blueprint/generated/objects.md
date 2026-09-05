@@ -665,3 +665,43 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: true
+
+## FrontendChatAttachment
+
+- table: `frontend_chat_attachments`
+- primary key: attachment_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendChatPlan
+
+- table: `frontend_chat_plans`
+- primary key: plan_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendChatActivity
+
+- table: `frontend_chat_activities`
+- primary key: activity_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendChatCheckpoint
+
+- table: `frontend_chat_checkpoints`
+- primary key: checkpoint_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendChatChangeReview
+
+- table: `frontend_chat_change_reviews`
+- primary key: review_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true

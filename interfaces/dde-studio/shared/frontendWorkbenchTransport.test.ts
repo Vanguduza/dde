@@ -82,6 +82,55 @@ describe("Frontend Studio Gateway transport", () => {
     assert.equal(bodies.length, 1);
     assert.equal(bodies[0]?.idempotency_key, "ui-action-123");
   });
+  it("uses Cursor-class chat read routes and scoped binary upload headers", async () => {
+    const seen: Array<{ url: string; method: string; headers: Headers }> = [];
+    globalThis.fetch = async (input, init) => {
+      seen.push({
+        url: String(input),
+        method: String(init?.method ?? "GET"),
+        headers: new Headers(init?.headers),
+      });
+      return json({ ok: true });
+    };
+    const client = new GatewayApiClient("http://core.test");
+    await client.readFrontendChatResource(
+      "session", "principal", "mission", "conversation/plans",
+    );
+    await client.uploadFrontendChatAttachment(
+      "session", "principal", "mission", "conversation", "attachment",
+      new Uint8Array([1, 2, 3]), "upload-key-1",
+    );
+    assert.equal(
+      seen[0]?.url,
+      "http://core.test/v1/missions/mission/frontend/chats/conversation/plans",
+    );
+    assert.equal(seen[1]?.method, "PUT");
+    assert.equal(seen[1]?.headers.get("X-Idempotency-Key"), "upload-key-1");
+    assert.equal(seen[1]?.headers.get("Content-Type"), "application/octet-stream");
+  });
+
+  it("preserves an explicit plan command id as well as idempotency identity", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    globalThis.fetch = async (input, init) => {
+      if (String(input).endsWith("/v1/sessions")) {
+        return json({
+          session_id: "00000000-0000-0000-0000-000000000002", tenant_id: "00000000-0000-0000-0000-000000000003",
+          principal_id: "00000000-0000-0000-0000-000000000001", client_type: "human", protocol_version: "1",
+          scopes: ["mission.read", "mission.control"], connected_at: "2026-09-05T00:00:00Z", last_seen_at: "2026-09-05T00:00:00Z",
+          subscriptions: [], status: "OPEN", created_at: "2026-09-05T00:00:00Z", updated_at: "2026-09-05T00:00:00Z",
+        });
+      }
+      bodies.push(JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>);
+      return json({ command_id: "00000000-0000-0000-0000-000000000099", status: "accepted", target_type: "mission", target_id: "00000000-0000-0000-0000-000000000005", payload: {} }, 202);
+    };
+    const gateway = new StudioGatewayService("http://core.test", "00000000-0000-0000-0000-000000000001");
+    await gateway.sendFrontendCommand(
+      "frontend.mutation.apply", "00000000-0000-0000-0000-000000000005", {},
+      "chat-plan:key", "00000000-0000-0000-0000-000000000099",
+    );
+    assert.equal(bodies[0]?.idempotency_key, "chat-plan:key");
+    assert.equal(bodies[0]?.command_id, "00000000-0000-0000-0000-000000000099");
+  });
 });
 
 describe("Frontend Studio VSIX packaging", () => {

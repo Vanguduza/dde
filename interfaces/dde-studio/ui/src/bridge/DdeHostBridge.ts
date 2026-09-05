@@ -11,6 +11,7 @@
 
 /** A command sent through the Gateway. Mirrors the `/v1/commands` body. */
 export interface DdeCommand {
+  readonly commandId?: string;
   readonly commandType: string;
   readonly targetType: "mission" | "project" | "device";
   readonly targetId: string;
@@ -60,6 +61,20 @@ export interface SourceFileRef {
   readonly line?: number;
 }
 
+export interface PickedLocalFile {
+  readonly token: string;
+  readonly filename: string;
+  readonly mediaType: string;
+  readonly sizeBytes: number;
+}
+
+export interface PickedFileUploadRequest {
+  readonly token: string;
+  readonly conversationId: string;
+  readonly attachmentId: string;
+  readonly idempotencyKey: string;
+}
+
 /**
  * What this host can actually do. Feature code must branch on these rather
  * than assume: an action the host cannot perform is rendered disabled with
@@ -89,7 +104,8 @@ export interface DdeHostBridge {
   revealFile(ref: SourceFileRef): Promise<void>;
   openExternal(target: string): Promise<void>;
   showNativeNotification(message: string): Promise<void>;
-  pickLocalFile?(): Promise<string | null>;
+  pickLocalFile?(): Promise<PickedLocalFile | null>;
+  uploadPickedFile?(request: PickedFileUploadRequest): Promise<Record<string, unknown>>;
 }
 
 /** Raised when a bridge call is refused by DDE rather than by transport. */

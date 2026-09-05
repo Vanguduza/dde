@@ -238,14 +238,17 @@ real candidate board / READY source selection
 → old preview + verification evidence stale/superseded
 → rerender/new hash
 → new verification request/run/evidence
-→ persisted Chat thread with server-derived project context
+→ persisted Cursor-class Chat thread with server-derived project context
+→ optional Ask / Plan / approved Execute path with exact Gateway command identity
+→ history / attachment / activity / checkpoint / workspace-review lineage
 ```
 
 Do not rebuild that path. Evidence is in
 `docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md`,
 `docs/evidence/dde-069/SOURCE_AND_VERIFICATION_REQUESTS.md`,
 `docs/evidence/dde-069/CANDIDATE_VERIFICATION_EXECUTION.md` and
-`docs/evidence/dde-069/REACT_FRONTEND_CHAT.md`.
+`docs/evidence/dde-069/REACT_FRONTEND_CHAT.md` and
+`docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md`.
 
 The next missing dependency is the mandatory Screen Audit & Experience
 Completeness Engine. Read `docs/truth/SCREEN_AUDIT_ENGINE.md` in full before

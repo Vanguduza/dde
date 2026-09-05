@@ -44,6 +44,11 @@ from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
 from engine.contracts.frontend_candidate import FrontendCandidate
+from engine.contracts.frontend_chat_activity import FrontendChatActivity
+from engine.contracts.frontend_chat_attachment import FrontendChatAttachment
+from engine.contracts.frontend_chat_change_review import FrontendChatChangeReview
+from engine.contracts.frontend_chat_checkpoint import FrontendChatCheckpoint
+from engine.contracts.frontend_chat_plan import FrontendChatPlan
 from engine.contracts.frontend_contract import FrontendContract
 from engine.contracts.frontend_conversation import FrontendConversation
 from engine.contracts.frontend_conversation_turn import FrontendConversationTurn
@@ -140,6 +145,11 @@ __all__ = [
     "FailureAttribution",
     "FeatureDNA",
     "FrontendCandidate",
+    "FrontendChatActivity",
+    "FrontendChatAttachment",
+    "FrontendChatChangeReview",
+    "FrontendChatCheckpoint",
+    "FrontendChatPlan",
     "FrontendContract",
     "FrontendConversation",
     "FrontendConversationTurn",

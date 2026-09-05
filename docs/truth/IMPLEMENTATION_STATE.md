@@ -66,12 +66,12 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and permanent React Frontend Chat surface are browser-proven and production-wired; production PostgreSQL E2E remains unavailable on this host. Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and Cursor-class DDE AI Chat surface are browser-proven and production-wired; production PostgreSQL E2E remains unavailable on this host. Screen Audit and M8 Source Intelligence remain incomplete. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | Hermes is represented in routing registry and DDE Code worker/harness UI surfaces; the full Rev 3 persistent coordination/research/recovery role still requires explicit runtime/profile hardening and evidence. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
 | DeepSeek worker integration | `IMPLEMENTED_PARTIAL` | Harness/profile references exist; Rev 3 lower-cost delegation policy and measured routing specialization remain to be proven end-to-end. |
-| Frontend Studio professional Rev 3 redesign | `IMPLEMENTED_PARTIAL` | The host-neutral React shell, canonical composition, code-backed live preview, stable selected-node Inspector editing, DDE-068 candidate re-verification and permanent React Frontend Chat control plane exist and are browser-proven. Production PostgreSQL E2E, Screen Audit and source intelligence remain incomplete under DDE-069. |
+| Frontend Studio professional Rev 3 redesign | `IMPLEMENTED_PARTIAL` | The host-neutral React shell, canonical composition, code-backed live preview, stable selected-node Inspector editing, DDE-068 candidate re-verification and Cursor-class DDE AI Chat control plane exist and are browser-proven. Production PostgreSQL E2E, Screen Audit and source intelligence remain incomplete under DDE-069. |
 | Routing intelligence / learned policy promotion | `IMPLEMENTED_PARTIAL` | Existing routing registry/telemetry/learning planning exists; open EDR/partial implementation records require careful production-call-site audit before claiming full adaptive routing. |
 | Context optimization / repository memory | `IMPLEMENTED_PARTIAL` | Rev 3 bootstrap removes chat history as a required project-memory source; deeper task-packet/retrieval optimization remains planned. |
 | Windows complete installer / DDE Code distribution | `IMPLEMENTED_PARTIAL` | README and packaging describe DDE Code + Core/Postgres/Redis/migrations/wizard paths; release/recovery/signing/operational hardening remains a Rev 3 phase. |
@@ -342,13 +342,14 @@ code-backed candidates: browser-attested LIVE, stable `pxg_key` selection,
 descriptor-driven token edit, preview invalidation and rerender are proven in
 React/Playwright. Fresh candidate source-workspace onboarding, durable
 DDE-068 verification requests, candidate-origin VerificationRun execution,
-current request/run/check evidence in QA/Inspector, and the permanent React
-Frontend Chat control plane are implemented. Chat restores a durable mission
-thread, persists user/Studio turns, records server-derived contract/PXG/lock/
-runtime/verification context, routes deterministic edits and undo through the
-same governed mutation seam, and browser-proves rerender + re-verification.
-Production PostgreSQL-backed workbench E2E, Screen Audit and M8 Source
-Intelligence are not complete.
+current request/run/check evidence in QA/Inspector, and the Cursor-class DDE AI
+Chat control plane are implemented. Chat now owns durable multi-conversation
+history/search/rename/archive/branching, Ask/Plan/Execute modes, honest model
+selection, native opaque-token file attachments, governed plans, activity/tool
+timeline, checkpoints, pinned context budgets and isolated-workspace diff review.
+Deterministic execution still uses the same governed mutation seam and browser-
+proves rerender + fresh DDE-068 re-verification. Production PostgreSQL-backed
+workbench E2E, Screen Audit and M8 Source Intelligence are not complete.
 
 **Current progress ledger.** `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md` is
 the authoritative per-control projection of
@@ -407,24 +408,25 @@ neither is a completion claim under v2.
   visible but disabled; the candidate strip carries no invented cards).
   Run with `just studio-visual`. Screenshot:
   `docs/evidence/dde-069/frontend-studio-shell-actual.png`.
-- **M9/M10 Frontend Chat + DesignGateway control plane** — `engine/studio/chat/`,
-  `engine/studio/design/`, migrations `0026` and `0030`, plus
-  `interfaces/dde-studio/ui/src/frontend-studio/FrontendChatComposer.tsx`.
-  Chat is a control plane, not a chatbot: deterministic edits compile to the
-  same `MutationRequest` as Inspector and use `GovernedMutationService`, so
-  successful Chat edits/undo invalidate old preview and verification evidence
-  before rerender. The mission-scoped `frontend.chat.thread` read restores the
-  durable conversation and ordered user/Studio turns after reload. Selection,
-  screen, candidate and viewport identities are persisted on the conversation;
-  each turn additionally records server-derived PXG revision, Frontend Contract
-  version, coverage state, active locks, candidate worktree/preview and current
-  verification state. Coverage/QA/inspect questions read actual projections;
-  source search remains typed unavailable until M8; lock/promotion requests
-  refuse rather than bypass their explicit authority surfaces. `/design` stays
-  inside the same conversation/DesignSession and remains typed unavailable
-  without a certified provider. Browser evidence proves selection-aware Chat
-  edit → mutation → rerender → fresh DDE-068 verification and governed undo.
-  Evidence: `docs/evidence/dde-069/REACT_FRONTEND_CHAT.md`.
+- **M9/M10 Cursor-class DDE AI Chat + DesignGateway control plane** —
+  `engine/studio/chat/`, `engine/studio/design/`, migrations `0026`, `0030` and
+  `0031`, plus `FrontendChatComposer.tsx`. Chat is the AI-first control surface,
+  not an authority bypass: it now supports durable multiple conversations,
+  history/search/rename/archive/branching, Ask/Plan/Execute modes, honest model
+  availability, managed file attachments, governed plans, activity/tool timeline,
+  checkpoints, pinned context budgets and isolated-workspace changed-file review.
+  Plan execution binds the exact future Gateway command, idempotency key and
+  request hash before execution, then reconciles the real CommandLedger row; a
+  retry gets a new attempt identity without changing the logical approved action.
+  Native VS Code uploads use opaque picker tokens and extension-host byte upload,
+  so the webview never acquires arbitrary local filesystem paths. Deterministic
+  edits and undo still use `GovernedMutationService`; executed plan mutations also
+  rerender and require fresh DDE-068 verification. `capability.claude_code_invoke`
+  remains per-invocation human-approved and is not treated as an always-on model
+  or a substitute `/design` transport. Source search remains typed unavailable
+  until M8 and `@finding` remains fail-closed until Screen Audit. Evidence:
+  `docs/evidence/dde-069/REACT_FRONTEND_CHAT.md` and
+  `docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md`.
 - **Code-backed preview + Inspector foundation** — `engine/studio/preview_runtime/`,
   `engine/studio/inspector.py`, migration `0027`, and mission-scoped Frontend
   Gateway reads. `PrototypeHtmlPreviewAdapter` materializes actual candidate

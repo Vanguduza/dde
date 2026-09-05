@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_chat_activity.json",
+  "title": "FrontendChatActivity",
+  "description": "DDE-069 append-only operator-visible Chat/model/tool/command activity. Tool execution is never hidden inside assistant prose.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_chat_activities",
+    "order": 322,
+    "pk": [
+      "activity_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [
+      [
+        "conversation_id",
+        "sequence"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_chat_activities_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_activities_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_activities_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_activities_turn_id_fkey",
+        "columns": [
+          "turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_activities_plan_id_fkey",
+        "columns": [
+          "plan_id"
+        ],
+        "ref_table": "frontend_chat_plans",
+        "ref_columns": [
+          "plan_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_activities_workspace_id_fkey",
+        "columns": [
+          "workspace_id"
+        ],
+        "ref_table": "workspaces",
+        "ref_columns": [
+          "workspace_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_activities_command_id_fkey",
+        "columns": [
+          "command_id"
+        ],
+        "ref_table": "command_idempotency",
+        "ref_columns": [
+          "command_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "frontend_chat_activities_sequence_positive",
+        "expression": "sequence >= 1"
+      }
+    ]
+  },
+  "required": [
+    "activity_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "sequence",
+    "kind",
+    "state",
+    "label",
+    "refs",
+    "cancellable",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "activity_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer"
+    },
+    "turn_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "command_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "MODEL_REQUEST",
+        "MODEL_RESPONSE",
+        "CONTEXT_ASSEMBLED",
+        "TOOL_PROPOSED",
+        "TOOL_STARTED",
+        "TOOL_RESULT",
+        "COMMAND_ACCEPTED",
+        "COMMAND_FAILED",
+        "PLAN_CREATED",
+        "PLAN_STEP",
+        "ATTACHMENT_ADDED",
+        "CHECKPOINT_CREATED",
+        "CHECKPOINT_RESTORED",
+        "DIFF_REFRESHED",
+        "FILE_REVERTED",
+        "VERIFICATION_STARTED",
+        "VERIFICATION_RESULT",
+        "ERROR",
+        "STATUS"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "BLOCKED"
+      ]
+    },
+    "label": {
+      "type": "string"
+    },
+    "detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "cancellable": {
+      "type": "boolean"
+    },
+    "cancel_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -26,6 +26,13 @@ from engine.contracts.frontend_conversation import FrontendConversation
 from engine.contracts.frontend_conversation_turn import FrontendConversationTurn
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
+from engine.studio.chat.activity import FrontendChatActivityService
+from engine.studio.chat.attachments import FrontendChatAttachmentService
+from engine.studio.chat.context_refs import (
+    FrontendChatContextService,
+    budget_dict,
+    parse_inline_refs,
+)
 from engine.studio.chat.intent import (
     DESIGN_INTENTS,
     ChatContext,
@@ -33,6 +40,8 @@ from engine.studio.chat.intent import (
     Intent,
     classify,
 )
+from engine.studio.chat.models import FrontendChatModelCatalog
+from engine.studio.chat.plans import FrontendChatPlanService
 from engine.studio.design.gateway import DesignGateway
 from engine.studio.inspector import InspectorService
 from engine.studio.locks.service import LockService
@@ -41,6 +50,7 @@ from engine.studio.mutations.planner import MutationRequest
 from engine.studio.reads import FrontendReadService
 from engine.studio.tables import frontend_conversation_turns, frontend_conversations
 from engine.truth.db import open_unit_of_work
+from engine.workspaces.repository import WorkspaceRepository
 
 
 @dataclass(frozen=True)
@@ -66,6 +76,11 @@ class FrontendChatService:
         reads: FrontendReadService | None = None,
         inspector: InspectorService | None = None,
         locks: LockService | None = None,
+        attachments: FrontendChatAttachmentService | None = None,
+        plans: FrontendChatPlanService | None = None,
+        activities: FrontendChatActivityService | None = None,
+        context: FrontendChatContextService | None = None,
+        models: FrontendChatModelCatalog | None = None,
     ) -> None:
         self._engine = engine
         self._mutations = mutations or GovernedMutationService(engine)
@@ -73,6 +88,17 @@ class FrontendChatService:
         self._reads = reads or FrontendReadService(engine)
         self._inspector = inspector or InspectorService(engine)
         self._locks = locks or LockService(engine)
+        self._activities = activities or FrontendChatActivityService(engine)
+        self._attachments = attachments or FrontendChatAttachmentService(
+            engine, activities=self._activities
+        )
+        self._plans = plans or FrontendChatPlanService(
+            engine, activities=self._activities
+        )
+        self._context = context or FrontendChatContextService(
+            engine, attachments=self._attachments, plans=self._plans
+        )
+        self._models = models or FrontendChatModelCatalog()
 
     async def open(
         self,
@@ -82,7 +108,23 @@ class FrontendChatService:
         mission_id: UUID | None = None,
         screen_key: str | None = None,
         viewport: str = "desktop-1440",
+        title: str | None = None,
+        mode: str = "ASK",
+        model_profile_id: str | None = None,
+        active_workspace_id: UUID | None = None,
+        created_by: UUID | None = None,
+        parent_conversation_id: UUID | None = None,
+        branched_from_turn_id: UUID | None = None,
     ) -> FrontendConversation:
+        if mode not in {"ASK", "PLAN", "EXECUTE"}:
+            raise DdeError("VALIDATION_FAILED", "unknown Chat mode", retryable=False)
+        selected_model = self._models.require_known(model_profile_id)
+        if active_workspace_id is not None:
+            await self._require_workspace(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                workspace_id=active_workspace_id,
+            )
         now = datetime.now(UTC)
         record = FrontendConversation(
             conversation_id=uuid7(),
@@ -94,6 +136,17 @@ class FrontendChatService:
             screen_key=screen_key,
             selected_node_keys=[],
             viewport=viewport,
+            title=title.strip() if title and title.strip() else None,
+            status="OPEN",
+            mode=mode,
+            model_profile_id=selected_model,
+            active_workspace_id=active_workspace_id,
+            active_plan_id=None,
+            parent_conversation_id=parent_conversation_id,
+            branched_from_turn_id=branched_from_turn_id,
+            pinned_context_refs=[],
+            created_by=created_by,
+            archived_at=None,
             lock_version=1,
             created_at=now,
             updated_at=now,
@@ -103,8 +156,11 @@ class FrontendChatService:
         ) as uow:
             await uow.connection.execute(
                 frontend_conversations.insert().values(
-                    **record.model_dump(exclude={"selected_node_keys"}),
+                    **record.model_dump(
+                        exclude={"selected_node_keys", "pinned_context_refs"}
+                    ),
                     selected_node_keys=[],
+                    pinned_context_refs=[],
                 )
             )
             await uow.commit()
@@ -122,6 +178,8 @@ class FrontendChatService:
         screen_key: str | None = None,
         set_screen: bool = False,
         viewport: str | None = None,
+        active_workspace_id: UUID | None = None,
+        set_active_workspace: bool = False,
     ) -> FrontendConversation:
         """Update what the conversation is about.
 
@@ -139,6 +197,15 @@ class FrontendChatService:
             values["screen_key"] = screen_key
         if viewport is not None:
             values["viewport"] = viewport
+        if set_active_workspace:
+            if active_workspace_id is not None:
+                await self._require_workspace(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    workspace_id=active_workspace_id,
+                )
+            values["active_workspace_id"] = active_workspace_id
+        values["lock_version"] = frontend_conversations.c.lock_version + 1
         async with open_unit_of_work(
             self._engine, tenant_id=tenant_id, project_id=project_id
         ) as uow:
@@ -163,6 +230,341 @@ class FrontendChatService:
             await uow.commit()
         return FrontendConversation.model_validate(dict(row))
 
+    async def _require_workspace(
+        self, *, tenant_id: UUID, project_id: UUID, workspace_id: UUID
+    ) -> None:
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            workspace = await WorkspaceRepository().get_workspace(
+                uow.connection, workspace_id
+            )
+        if (
+            workspace is None
+            or workspace.tenant_id != tenant_id
+            or workspace.project_id != project_id
+        ):
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "workspace is outside Chat project scope",
+                retryable=False,
+            )
+        if workspace.status not in {"READY", "IN_USE"}:
+            raise DdeError(
+                "WORKSPACE_UNAVAILABLE",
+                "workspace is not available for Chat",
+                retryable=False,
+                details={"status": workspace.status},
+            )
+
+    async def get_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        conversation_id: UUID,
+    ) -> FrontendConversation:
+        item = await self._conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+        )
+        if item.mission_id != mission_id:
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "Chat conversation belongs to another mission",
+                retryable=False,
+            )
+        return item
+
+    async def list_conversations(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        include_archived: bool = False,
+    ) -> tuple[FrontendConversation, ...]:
+        conditions = [
+            frontend_conversations.c.tenant_id == tenant_id,
+            frontend_conversations.c.project_id == project_id,
+            frontend_conversations.c.mission_id == mission_id,
+        ]
+        if not include_archived:
+            conditions.append(frontend_conversations.c.status == "OPEN")
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            rows = (
+                (
+                    await uow.connection.execute(
+                        select(frontend_conversations)
+                        .where(*conditions)
+                        .order_by(frontend_conversations.c.updated_at.desc())
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return tuple(FrontendConversation.model_validate(dict(row)) for row in rows)
+
+    async def search_conversations(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        query: str,
+    ) -> tuple[FrontendConversation, ...]:
+        needle = query.strip()
+        if not needle:
+            return await self.list_conversations(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=mission_id,
+                include_archived=True,
+            )
+        pattern = f"%{needle.replace('%', r'\%').replace('_', r'\_')}%"
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            conversation_ids = select(
+                frontend_conversation_turns.c.conversation_id
+            ).where(
+                frontend_conversation_turns.c.tenant_id == tenant_id,
+                frontend_conversation_turns.c.project_id == project_id,
+                frontend_conversation_turns.c.text.ilike(pattern, escape="\\"),
+            )
+            rows = (
+                (
+                    await uow.connection.execute(
+                        select(frontend_conversations)
+                        .where(
+                            frontend_conversations.c.tenant_id == tenant_id,
+                            frontend_conversations.c.project_id == project_id,
+                            frontend_conversations.c.mission_id == mission_id,
+                            (
+                                frontend_conversations.c.title.ilike(
+                                    pattern, escape="\\"
+                                )
+                                | frontend_conversations.c.conversation_id.in_(
+                                    conversation_ids
+                                )
+                            ),
+                        )
+                        .order_by(frontend_conversations.c.updated_at.desc())
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return tuple(FrontendConversation.model_validate(dict(row)) for row in rows)
+
+    async def rename(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        title: str,
+    ) -> FrontendConversation:
+        clean = title.strip()
+        if not clean or len(clean) > 160:
+            raise DdeError(
+                "VALIDATION_FAILED",
+                "Chat title must contain 1-160 characters",
+                retryable=False,
+            )
+        return await self._update_conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            values={"title": clean},
+        )
+
+    async def archive(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        archived: bool = True,
+    ) -> FrontendConversation:
+        return await self._update_conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            values={
+                "status": "ARCHIVED" if archived else "OPEN",
+                "archived_at": datetime.now(UTC) if archived else None,
+            },
+            require_open=archived,
+        )
+
+    async def set_mode(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        mode: str,
+    ) -> FrontendConversation:
+        if mode not in {"ASK", "PLAN", "EXECUTE"}:
+            raise DdeError("VALIDATION_FAILED", "unknown Chat mode", retryable=False)
+        return await self._update_conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            values={"mode": mode},
+        )
+
+    async def set_model(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        model_profile_id: str | None,
+    ) -> FrontendConversation:
+        selected = self._models.require_known(model_profile_id)
+        return await self._update_conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            values={"model_profile_id": selected},
+        )
+
+    async def pin_context(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        context_ref: str,
+        pinned: bool,
+    ) -> FrontendConversation:
+        from engine.studio.chat.context_refs import normalize_ref
+
+        normalized = normalize_ref(context_ref)
+        current = await self._conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+        )
+        refs = list(current.pinned_context_refs)
+        if pinned and normalized not in refs:
+            refs.append(normalized)
+        if not pinned:
+            refs = [item for item in refs if item != normalized]
+        return await self._update_conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            values={"pinned_context_refs": refs},
+        )
+
+    async def branch(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        from_turn_id: UUID | None,
+        created_by: UUID | None,
+        title: str | None = None,
+    ) -> FrontendConversation:
+        parent = await self._conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+        )
+        if from_turn_id is not None:
+            async with open_unit_of_work(
+                self._engine, tenant_id=tenant_id, project_id=project_id
+            ) as uow:
+                turn = await uow.connection.scalar(
+                    select(frontend_conversation_turns.c.turn_id).where(
+                        frontend_conversation_turns.c.turn_id == from_turn_id,
+                        frontend_conversation_turns.c.conversation_id
+                        == conversation_id,
+                    )
+                )
+            if turn is None:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "branch turn does not belong to the source conversation",
+                    retryable=False,
+                )
+        branched = await self.open(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=parent.mission_id,
+            screen_key=parent.screen_key,
+            viewport=parent.viewport,
+            title=title or (f"{parent.title} — branch" if parent.title else "Branch"),
+            mode=parent.mode,
+            model_profile_id=parent.model_profile_id,
+            active_workspace_id=parent.active_workspace_id,
+            created_by=created_by,
+            parent_conversation_id=parent.conversation_id,
+            branched_from_turn_id=from_turn_id,
+        )
+        return await self._update_conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=branched.conversation_id,
+            values={
+                "active_candidate_id": parent.active_candidate_id,
+                "pinned_context_refs": list(parent.pinned_context_refs),
+            },
+        )
+
+    async def _update_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation_id: UUID,
+        values: dict[str, object],
+        require_open: bool = True,
+    ) -> FrontendConversation:
+        now = datetime.now(UTC)
+        conditions = [
+            frontend_conversations.c.conversation_id == conversation_id,
+            frontend_conversations.c.tenant_id == tenant_id,
+            frontend_conversations.c.project_id == project_id,
+        ]
+        if require_open:
+            conditions.append(frontend_conversations.c.status == "OPEN")
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            row = (
+                (
+                    await uow.connection.execute(
+                        update(frontend_conversations)
+                        .where(*conditions)
+                        .values(
+                            **values,
+                            updated_at=now,
+                            lock_version=frontend_conversations.c.lock_version + 1,
+                        )
+                        .returning(frontend_conversations)
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if row is None:
+                raise DdeError(
+                    "POLICY_DENIED",
+                    "unknown or inactive Chat conversation",
+                    retryable=False,
+                )
+            await uow.commit()
+        return FrontendConversation.model_validate(dict(row))
+
     async def send(
         self,
         *,
@@ -170,10 +572,39 @@ class FrontendChatService:
         project_id: UUID,
         conversation_id: UUID,
         text: str,
+        attachment_ids: tuple[UUID, ...] = (),
     ) -> TurnResult:
-        """Classify a turn, route it, and record what happened."""
+        """Classify a turn, enforce mode, route it, and persist exact lineage."""
         conversation = await self._conversation(
             tenant_id=tenant_id, project_id=project_id, conversation_id=conversation_id
+        )
+        if conversation.status != "OPEN":
+            raise DdeError(
+                "POLICY_DENIED",
+                "archived Chat conversations are read-only",
+                retryable=False,
+            )
+        attachments = await self._attachments.require_active_ids(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            attachment_ids=attachment_ids,
+        )
+        explicit_refs = parse_inline_refs(text)
+        context_refs = tuple(
+            dict.fromkeys(
+                [
+                    *conversation.pinned_context_refs,
+                    *explicit_refs,
+                    *(f"attachment:{item.attachment_id}" for item in attachments),
+                ]
+            )
+        )
+        context_budget = await self._context.assemble(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            refs=context_refs,
         )
         context = ChatContext(
             selected_node_keys=tuple(conversation.selected_node_keys),
@@ -191,16 +622,84 @@ class FrontendChatService:
             project_id=project_id,
             conversation=conversation,
         )
+        context_snapshot.update(
+            {
+                "chat_mode": conversation.mode,
+                "model_profile_id": conversation.model_profile_id,
+                "active_workspace_id": (
+                    str(conversation.active_workspace_id)
+                    if conversation.active_workspace_id
+                    else None
+                ),
+                "active_plan_id": (
+                    str(conversation.active_plan_id)
+                    if conversation.active_plan_id
+                    else None
+                ),
+                "pinned_context_refs": list(conversation.pinned_context_refs),
+                "inline_context_refs": list(explicit_refs),
+                "context_budget": budget_dict(context_budget),
+            }
+        )
+        await self._activities.append(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            kind="CONTEXT_ASSEMBLED",
+            state="COMPLETED",
+            label="Assembled Chat turn context",
+            refs={
+                "included_refs": list(context_budget.included_refs),
+                "omitted_refs": list(context_budget.omitted_refs),
+                "estimated_tokens": context_budget.estimated_tokens,
+                "budget_tokens": context_budget.budget_tokens,
+            },
+            workspace_id=conversation.active_workspace_id,
+            plan_id=conversation.active_plan_id,
+        )
 
         produced: tuple[str, ...] = ()
         outcome = "ANSWERED"
         refusal_code = classification.refusal_code
         refusal_detail = classification.refusal_detail
         message = ""
+        turn_plan_id: UUID | None = None
+        mutating_intents = {
+            Intent.MUTATE_DETERMINISTIC,
+            Intent.UNDO_REVERT,
+            Intent.DESIGN_DIVERGENT,
+            Intent.DESIGN_REFINE,
+            Intent.LOCK_CHANGE,
+            Intent.PROMOTE,
+        }
 
         if refusal_code is not None:
             outcome = "REFUSED"
             message = refusal_detail or "the studio could not act on that"
+        elif conversation.mode == "ASK" and classification.intent in mutating_intents:
+            outcome = "REFUSED"
+            refusal_code = "MODE_READ_ONLY"
+            refusal_detail = (
+                "Ask mode is read-only. Switch to Plan to prepare this change or "
+                "Execute to run a governed operation."
+            )
+            message = refusal_detail
+        elif conversation.mode == "PLAN" and classification.intent in mutating_intents:
+            (
+                outcome,
+                refusal_code,
+                refusal_detail,
+                produced,
+                message,
+                turn_plan_id,
+            ) = await self._route_plan(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                conversation=conversation,
+                classification=classification,
+                text=text,
+                context_snapshot=context_snapshot,
+            )
         elif classification.intent is Intent.MUTATE_DETERMINISTIC:
             (
                 outcome,
@@ -260,21 +759,12 @@ class FrontendChatService:
                 conversation=conversation,
                 classification=classification,
             )
-        elif classification.intent is Intent.UNKNOWN:
-            outcome = "REFUSED"
-            refusal_code = "INTENT_AMBIGUOUS"
-            refusal_detail = (
-                "the studio could not tell what this instruction should do; "
-                "rephrase it as an edit, a question or a /design request"
-            )
-            message = refusal_detail
         else:
-            # Read-only intents are answered from projections elsewhere;
-            # the turn records the classification so the caller can serve
-            # it without re-parsing.
-            message = f"classified as {classification.intent.value}"
+            outcome = "REFUSED"
+            refusal_code, refusal_detail = self._provider_refusal(conversation)
+            message = refusal_detail
 
-        turn = await self._append(
+        user_turn = await self._append(
             tenant_id=tenant_id,
             project_id=project_id,
             conversation_id=conversation_id,
@@ -286,6 +776,16 @@ class FrontendChatService:
             refusal_detail=refusal_detail,
             produced=produced,
             context_snapshot=context_snapshot,
+            attachment_ids=attachment_ids,
+            plan_id=turn_plan_id,
+            model_profile_id=conversation.model_profile_id,
+        )
+        await self._attachments.bind_to_turn(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+            turn_id=user_turn.turn_id,
+            attachment_ids=attachment_ids,
         )
         reply = await self._append(
             tenant_id=tenant_id,
@@ -299,13 +799,152 @@ class FrontendChatService:
             refusal_detail=refusal_detail,
             produced=produced,
             context_snapshot=context_snapshot,
+            attachment_ids=(),
+            plan_id=turn_plan_id,
+            model_profile_id=conversation.model_profile_id,
         )
         return TurnResult(
-            turn=turn,
+            turn=user_turn,
             reply=reply,
             classification=classification,
             produced_refs=produced,
             message=message,
+        )
+
+    def _provider_refusal(self, conversation: FrontendConversation) -> tuple[str, str]:
+        option_id = conversation.model_profile_id or "AUTO"
+        option = next(
+            (item for item in self._models.options() if item.option_id == option_id),
+            None,
+        )
+        if option is not None and option.status == "APPROVAL_REQUIRED":
+            return (
+                "APPROVAL_REQUIRED",
+                f"{option.label} requires a fresh governed approval before "
+                "model invocation. The user's turn is preserved and no provider "
+                "call was made.",
+            )
+        reason = option.reason if option is not None else "selected provider is unknown"
+        return (
+            "PROVIDER_UNAVAILABLE",
+            "No certified generative Chat provider is currently invokable for this "
+            f"selection: {reason}",
+        )
+
+    async def _route_plan(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        conversation: FrontendConversation,
+        classification: Classification,
+        text: str,
+        context_snapshot: dict[str, object],
+    ) -> tuple[str, str | None, str | None, tuple[str, ...], str, UUID | None]:
+        if conversation.mission_id is None:
+            detail = "Plan mode requires a mission-bound conversation"
+            return "REFUSED", "CONTEXT_INCOMPLETE", detail, (), detail, None
+        step: dict[str, object] | None = None
+        if classification.intent is Intent.MUTATE_DETERMINISTIC:
+            if (
+                conversation.active_candidate_id is None
+                or classification.mutation is None
+            ):
+                detail = (
+                    "Plan edit requires an active candidate and deterministic mutation"
+                )
+                return "REFUSED", "CONTEXT_INCOMPLETE", detail, (), detail, None
+            raw_payload = classification.mutation.get("payload")
+            payload = dict(raw_payload) if isinstance(raw_payload, dict) else {}
+            mutations = [
+                {
+                    "operation": str(classification.mutation["operation"]),
+                    "target_key": key,
+                    "origin": "CHAT",
+                    "payload": payload,
+                }
+                for key in classification.target_keys
+            ]
+            step = {
+                "title": "Apply governed frontend mutation",
+                "description": text,
+                "command_type": "frontend.mutation.apply",
+                "target_type": "mission",
+                "target_id": str(conversation.mission_id),
+                "parameters": {
+                    "candidate_id": str(conversation.active_candidate_id),
+                    "mutations": mutations,
+                },
+                "depends_on": [],
+            }
+        elif classification.intent is Intent.UNDO_REVERT:
+            if conversation.active_candidate_id is None:
+                detail = "Plan undo requires an active candidate"
+                return "REFUSED", "NO_ACTIVE_CANDIDATE", detail, (), detail, None
+            history = await self._mutations.history(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=conversation.active_candidate_id,
+            )
+            latest = next(
+                (item for item in reversed(history) if item.status == "APPLIED"), None
+            )
+            if latest is None:
+                detail = "the active candidate has no applied mutation to undo"
+                return "REFUSED", "NOTHING_TO_REVERT", detail, (), detail, None
+            step = {
+                "title": f"Revert mutation {latest.sequence}",
+                "description": text,
+                "command_type": "frontend.mutation.revert",
+                "target_type": "mission",
+                "target_id": str(conversation.mission_id),
+                "parameters": {
+                    "candidate_id": str(conversation.active_candidate_id),
+                    "mutation_id": str(latest.mutation_id),
+                },
+                "depends_on": [],
+            }
+        elif classification.intent in DESIGN_INTENTS:
+            step = {
+                "title": "Request governed design directions",
+                "description": text,
+                "command_type": "frontend.design.request",
+                "target_type": "mission",
+                "target_id": str(conversation.mission_id),
+                "parameters": {
+                    "conversation_id": str(conversation.conversation_id),
+                    "scope_keys": list(classification.target_keys),
+                    "instruction": text,
+                    "direction_count": 3,
+                },
+                "depends_on": [],
+            }
+        else:
+            detail = (
+                "this action requires a separate explicit authority surface and is not "
+                "admitted for Chat plan auto-execution"
+            )
+            return "REFUSED", "COMMAND_NOT_ALLOWED", detail, (), detail, None
+        plan = await self._plans.create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=conversation.mission_id,
+            conversation_id=conversation.conversation_id,
+            title="Chat plan",
+            objective=text,
+            steps=[step],
+            approval_required=True,
+            workspace_id=conversation.active_workspace_id,
+            context_snapshot=context_snapshot,
+        )
+        return (
+            "ROUTED",
+            None,
+            None,
+            (str(plan.plan_id),),
+            f"Plan created with {len(plan.steps)} step(s). Review and approve "
+            "before execution.",
+            plan.plan_id,
         )
 
     async def _route_mutation(
@@ -644,11 +1283,27 @@ class FrontendChatService:
         refusal_detail: str | None,
         produced: tuple[str, ...],
         context_snapshot: dict[str, object],
+        attachment_ids: tuple[UUID, ...],
+        plan_id: UUID | None,
+        model_profile_id: str | None,
     ) -> FrontendConversationTurn:
         now = datetime.now(UTC)
         async with open_unit_of_work(
             self._engine, tenant_id=tenant_id, project_id=project_id
         ) as uow:
+            locked = await uow.connection.scalar(
+                select(frontend_conversations.c.conversation_id)
+                .where(
+                    frontend_conversations.c.conversation_id == conversation_id,
+                    frontend_conversations.c.tenant_id == tenant_id,
+                    frontend_conversations.c.project_id == project_id,
+                )
+                .with_for_update()
+            )
+            if locked is None:
+                raise DdeError(
+                    "POLICY_DENIED", "unknown Chat conversation", retryable=False
+                )
             sequence = (
                 int(
                     await uow.connection.scalar(
@@ -683,14 +1338,24 @@ class FrontendChatService:
                     "context": context_snapshot,
                 },
                 produced_refs=list(produced),
+                attachment_ids=list(attachment_ids),
+                plan_id=plan_id,
+                model_profile_id=model_profile_id,
                 created_at=now,
                 updated_at=now,
             )
             await uow.connection.execute(
                 frontend_conversation_turns.insert().values(
-                    **record.model_dump(exclude={"resolved_context", "produced_refs"}),
+                    **record.model_dump(
+                        exclude={
+                            "resolved_context",
+                            "produced_refs",
+                            "attachment_ids",
+                        }
+                    ),
                     resolved_context=record.resolved_context,
                     produced_refs=list(produced),
+                    attachment_ids=[str(item) for item in attachment_ids],
                 )
             )
             await uow.commit()
@@ -779,6 +1444,7 @@ class FrontendChatService:
                             frontend_conversations.c.tenant_id == tenant_id,
                             frontend_conversations.c.project_id == project_id,
                             frontend_conversations.c.mission_id == mission_id,
+                            frontend_conversations.c.status == "OPEN",
                         )
                         .order_by(frontend_conversations.c.updated_at.desc())
                         .limit(1)
@@ -790,6 +1456,55 @@ class FrontendChatService:
         return FrontendConversation.model_validate(dict(row)) if row else None
 
     async def history(
+        self, *, tenant_id: UUID, project_id: UUID, conversation_id: UUID
+    ) -> tuple[FrontendConversationTurn, ...]:
+        """Visible history including immutable parent lineage for branches."""
+        conversation = await self._conversation(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+        )
+        own = await self._direct_history(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation_id,
+        )
+        if conversation.parent_conversation_id is None:
+            return own
+        parent_history = await self.history(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=conversation.parent_conversation_id,
+        )
+        if conversation.branched_from_turn_id is not None:
+            direct_parent = await self._direct_history(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                conversation_id=conversation.parent_conversation_id,
+            )
+            branch_turn = next(
+                (
+                    item
+                    for item in direct_parent
+                    if item.turn_id == conversation.branched_from_turn_id
+                ),
+                None,
+            )
+            if branch_turn is None:
+                raise DdeError(
+                    "CONTEXT_INCOMPLETE",
+                    "Chat branch lineage points to a missing parent turn",
+                    retryable=False,
+                )
+            parent_history = tuple(
+                item
+                for item in parent_history
+                if item.conversation_id != conversation.parent_conversation_id
+                or item.sequence <= branch_turn.sequence
+            )
+        return (*parent_history, *own)
+
+    async def _direct_history(
         self, *, tenant_id: UUID, project_id: UUID, conversation_id: UUID
     ) -> tuple[FrontendConversationTurn, ...]:
         async with open_unit_of_work(

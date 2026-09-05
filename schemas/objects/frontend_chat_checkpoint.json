@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_chat_checkpoint.json",
+  "title": "FrontendChatCheckpoint",
+  "description": "DDE-069 conversation/workspace checkpoint for Chat branch/recovery. Distinct from WorkerRun recovery Checkpoint and never substitutes for it.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_chat_checkpoints",
+    "order": 323,
+    "pk": [
+      "checkpoint_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "frontend_chat_checkpoints_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_checkpoints_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_checkpoints_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_checkpoints_plan_id_fkey",
+        "columns": [
+          "plan_id"
+        ],
+        "ref_table": "frontend_chat_plans",
+        "ref_columns": [
+          "plan_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_checkpoints_workspace_id_fkey",
+        "columns": [
+          "workspace_id"
+        ],
+        "ref_table": "workspaces",
+        "ref_columns": [
+          "workspace_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_checkpoints_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "checkpoint_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "turn_sequence",
+    "mode",
+    "pinned_context_refs",
+    "attachment_refs",
+    "context_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "checkpoint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "turn_sequence": {
+      "type": "integer"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "ASK",
+        "PLAN",
+        "EXECUTE"
+      ]
+    },
+    "model_profile_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pinned_context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "attachment_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "workspace_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "diff_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_hash": {
+      "type": "string"
+    },
+    "note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

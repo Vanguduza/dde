@@ -54,6 +54,14 @@ _HTTP_STATUS = {
     "RESOURCE_LOCKED": 409,
     "WRITE_SCOPE_CONFLICT": 409,
     "CONTEXT_INCOMPLETE": 409,
+    "DIFF_STALE": 409,
+    "CHECKPOINT_STALE": 409,
+    "ACTIVITY_NOT_CANCELLABLE": 409,
+    "PLAN_DEPENDENCY_BLOCKED": 409,
+    "PLAN_NOT_APPROVED": 403,
+    "COMMAND_NOT_ALLOWED": 403,
+    "ATTACHMENT_TOO_LARGE": 413,
+    "WORKSPACE_UNAVAILABLE": 503,
     # The caller's view of state is behind: same family as
     # VERSION_CONFLICT, and the fix is to re-read and replan.
     "STALE_REVISION": 409,
@@ -163,6 +171,176 @@ async def read_frontend_chat(
 ) -> dict[str, object]:
     return await _services(request).commands.read_frontend_chat(
         session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats")
+async def read_frontend_chats(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    query: str | None = None,
+    include_archived: bool = False,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chats(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        query=query,
+        include_archived=include_archived,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/models")
+async def read_frontend_chat_models(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_models(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}")
+async def read_frontend_chat_by_id(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_by_id(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/attachments")
+async def read_frontend_chat_attachments(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_attachments(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.put(
+    "/missions/{mission_id}/frontend/chats/{conversation_id}/attachments/{attachment_id}/content"
+)
+async def upload_frontend_chat_attachment(
+    mission_id: UUID,
+    conversation_id: UUID,
+    attachment_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    idempotency_key: Annotated[str, Header(alias="X-Idempotency-Key")],
+) -> dict[str, object]:
+    return await _services(request).commands.complete_frontend_chat_attachment_upload(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+        attachment_id=attachment_id,
+        content=await request.body(),
+        idempotency_key=idempotency_key,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/plans")
+async def read_frontend_chat_plans(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_plans(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/activities")
+async def read_frontend_chat_activities(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_activities(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/checkpoints")
+async def read_frontend_chat_checkpoints(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_checkpoints(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/changes")
+async def read_frontend_chat_changes(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_chat_changes(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/chats/{conversation_id}/context")
+async def read_frontend_chat_context(
+    mission_id: UUID,
+    conversation_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    refs: str = "",
+    budget_tokens: int = 24_000,
+) -> dict[str, object]:
+    parsed_refs = tuple(item.strip() for item in refs.split(",") if item.strip())
+    return await _services(request).commands.read_frontend_chat_context_budget(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        conversation_id=conversation_id,
+        refs=parsed_refs,
+        budget_tokens=budget_tokens,
     )
 
 

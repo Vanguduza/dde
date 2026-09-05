@@ -204,6 +204,49 @@ export class GatewayApiClient {
     );
   }
 
+  async readFrontendChatResource(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    suffix: string,
+    query?: URLSearchParams,
+  ): Promise<Record<string, unknown>> {
+    const clean = suffix.replace(/^\/+/, "");
+    const tail = query && [...query.keys()].length ? `?${query.toString()}` : "";
+    const path = clean.startsWith("?")
+      ? `/missions/${missionId}/frontend/chats${clean}`
+      : clean.length
+        ? `/missions/${missionId}/frontend/chats/${clean}${tail}`
+        : `/missions/${missionId}/frontend/chats${tail}`;
+    return this.get(path, sessionId, principalId);
+  }
+
+  async uploadFrontendChatAttachment(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    conversationId: string,
+    attachmentId: string,
+    bytes: Uint8Array,
+    idempotencyKey: string,
+  ): Promise<Record<string, unknown>> {
+    const response = await fetch(
+      `${this.getBasePath()}/missions/${missionId}/frontend/chats/${conversationId}/attachments/${attachmentId}/content`,
+      {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/octet-stream",
+          "X-Session-Id": sessionId,
+          "X-Principal-Id": principalId,
+          "X-Idempotency-Key": idempotencyKey,
+        },
+        body: bytes,
+      },
+    );
+    return this.parse<Record<string, unknown>>(response);
+  }
+
   async readFrontendPreview(
     sessionId: string,
     principalId: string,

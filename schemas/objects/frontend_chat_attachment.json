@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_chat_attachment.json",
+  "title": "FrontendChatAttachment",
+  "description": "DDE-069 managed Chat attachment metadata. Bytes are content-addressed in scoped managed storage; attachment text is context, never executable instruction.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_chat_attachments",
+    "order": 320,
+    "pk": [
+      "attachment_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "conversation_id",
+        "attachment_id"
+      ]
+    ],
+    "checks": [
+      {
+        "name": "frontend_chat_attachments_size_nonnegative",
+        "expression": "size_bytes >= 0"
+      },
+      {
+        "name": "frontend_chat_attachments_status_known",
+        "expression": "status IN ('RESERVED','ACTIVE','REMOVED','QUARANTINED')"
+      },
+      {
+        "name": "frontend_chat_attachments_extraction_known",
+        "expression": "extraction_state IN ('PENDING','EXTRACTED','UNSUPPORTED','FAILED')"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_chat_attachments_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_attachments_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_attachments_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_attachments_turn_id_fkey",
+        "columns": [
+          "turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_attachments_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "attachment_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "source_kind",
+    "filename",
+    "media_type",
+    "size_bytes",
+    "status",
+    "extraction_state",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "attachment_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "turn_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_kind": {
+      "type": "string",
+      "enum": [
+        "UPLOAD",
+        "WORKSPACE_FILE",
+        "PASTED"
+      ]
+    },
+    "filename": {
+      "type": "string"
+    },
+    "media_type": {
+      "type": "string"
+    },
+    "size_bytes": {
+      "type": "integer"
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "storage_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "extraction_state": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "EXTRACTED",
+        "UNSUPPORTED",
+        "FAILED"
+      ]
+    },
+    "extracted_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "RESERVED",
+        "ACTIVE",
+        "REMOVED",
+        "QUARANTINED"
+      ]
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -201,6 +201,7 @@ export class StudioGatewayService {
     missionId: string,
     parameters: Record<string, unknown>,
     idempotencyKey?: string,
+    commandId?: string,
   ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
     if (!/^frontend\./.test(commandType) || !isUuid(missionId.trim())) {
       return {
@@ -218,7 +219,7 @@ export class StudioGatewayService {
     try {
       this.trackMission(missionId);
       const acceptance = await this.client!.acceptCommand({
-        commandId: randomUUID(),
+        commandId: commandId ?? randomUUID(),
         idempotencyKey: idempotencyKey ?? `${commandType}:${missionId}:${randomUUID()}`,
         principalId: this.principalId,
         clientSessionId: this.session.session_id,
@@ -257,6 +258,84 @@ export class StudioGatewayService {
   }> {
     return this.readFrontendResource((session) =>
       this.client!.readFrontendChat(session, this.principalId, missionId),
+    );
+  }
+
+  async readFrontendChats(
+    missionId: string,
+    opts?: { query?: string; includeArchived?: boolean },
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    const query = new URLSearchParams();
+    if (opts?.query) query.set("query", opts.query);
+    if (opts?.includeArchived) query.set("include_archived", "true");
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendChatResource(
+        session, this.principalId, missionId, `?${query.toString()}`.replace(/^\?$/, ""),
+      ),
+    );
+  }
+
+  async readFrontendChatById(
+    missionId: string,
+    conversationId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendChatResource(
+        session, this.principalId, missionId, conversationId,
+      ),
+    );
+  }
+
+  async readFrontendChatSubresource(
+    missionId: string,
+    conversationId: string,
+    resource: "attachments" | "plans" | "activities" | "checkpoints" | "changes",
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendChatResource(
+        session, this.principalId, missionId, `${conversationId}/${resource}`,
+      ),
+    );
+  }
+
+  async readFrontendChatModels(
+    missionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendChatResource(
+        session, this.principalId, missionId, "models",
+      ),
+    );
+  }
+
+  async readFrontendChatContext(
+    missionId: string,
+    conversationId: string,
+    refs: readonly string[],
+    budgetTokens = 24_000,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    const query = new URLSearchParams({
+      refs: refs.join(","),
+      budget_tokens: String(budgetTokens),
+    });
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendChatResource(
+        session, this.principalId, missionId, `${conversationId}/context`, query,
+      ),
+    );
+  }
+
+  async uploadFrontendChatAttachment(
+    missionId: string,
+    conversationId: string,
+    attachmentId: string,
+    bytes: Uint8Array,
+    idempotencyKey: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.uploadFrontendChatAttachment(
+        session, this.principalId, missionId, conversationId, attachmentId, bytes, idempotencyKey,
+      ),
     );
   }
 

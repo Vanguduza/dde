@@ -212,6 +212,8 @@ export interface InspectorDescriptor {
   readonly requiredVerification: readonly string[];
 }
 
+export type FrontendChatMode = "ASK" | "PLAN" | "EXECUTE";
+
 export interface FrontendChatConversation {
   readonly conversationId: string;
   readonly projectId: string;
@@ -221,6 +223,18 @@ export interface FrontendChatConversation {
   readonly screenKey: string | null;
   readonly selectedNodeKeys: readonly string[];
   readonly viewport: string;
+  readonly title: string | null;
+  readonly status: "OPEN" | "ARCHIVED";
+  readonly mode: FrontendChatMode;
+  readonly modelProfileId: string | null;
+  readonly activeWorkspaceId: string | null;
+  readonly activePlanId: string | null;
+  readonly parentConversationId: string | null;
+  readonly branchedFromTurnId: string | null;
+  readonly pinnedContextRefs: readonly string[];
+  readonly createdBy: string | null;
+  readonly archivedAt: string | null;
+  readonly lockVersion: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -237,12 +251,137 @@ export interface FrontendChatTurn {
   readonly refusalDetail: string | null;
   readonly resolvedContext: Readonly<Record<string, unknown>>;
   readonly producedRefs: readonly string[];
+  readonly attachmentIds: readonly string[];
+  readonly planId: string | null;
+  readonly modelProfileId: string | null;
   readonly createdAt: string;
 }
 
 export interface FrontendChatThread {
   readonly conversation: FrontendChatConversation | null;
   readonly turns: readonly FrontendChatTurn[];
+}
+
+export interface FrontendChatAttachment {
+  readonly attachmentId: string;
+  readonly conversationId: string;
+  readonly turnId: string | null;
+  readonly sourceKind: "UPLOAD" | "WORKSPACE_FILE";
+  readonly filename: string;
+  readonly mediaType: string;
+  readonly sizeBytes: number;
+  readonly contentHash: string | null;
+  readonly workspacePath: string | null;
+  readonly extractionState: string;
+  readonly status: "RESERVED" | "ACTIVE" | "REMOVED";
+  readonly createdAt: string;
+}
+
+export interface FrontendChatPlanStep {
+  readonly stepId: string;
+  readonly sequence: number;
+  readonly title: string;
+  readonly description: string;
+  readonly state: string;
+  readonly attempt: number;
+  readonly commandType: string | null;
+  readonly targetType: string | null;
+  readonly targetId: string | null;
+  readonly parameters: Readonly<Record<string, unknown>>;
+  readonly dependsOn: readonly string[];
+  readonly evidenceRefs: readonly string[];
+  readonly commandId: string | null;
+  readonly resultSummary: string | null;
+  readonly errorCode: string | null;
+  readonly errorDetail: string | null;
+  readonly idempotencyKey: string | null;
+  readonly expectedRequestHash: string | null;
+}
+
+export interface FrontendChatPlan {
+  readonly planId: string;
+  readonly conversationId: string;
+  readonly title: string;
+  readonly objective: string;
+  readonly state: string;
+  readonly approvalRequired: boolean;
+  readonly approvedBy: string | null;
+  readonly approvedAt: string | null;
+  readonly steps: readonly FrontendChatPlanStep[];
+  readonly activeStepId: string | null;
+  readonly workspaceId: string | null;
+  readonly taskGraphId: string | null;
+  readonly lockVersion: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface FrontendChatActivity {
+  readonly activityId: string;
+  readonly conversationId: string;
+  readonly sequence: number;
+  readonly kind: string;
+  readonly state: string;
+  readonly label: string;
+  readonly detail: string | null;
+  readonly refs: Readonly<Record<string, unknown>>;
+  readonly cancellable: boolean;
+  readonly cancelReason: string | null;
+  readonly commandId: string | null;
+  readonly createdAt: string;
+}
+
+export interface FrontendChatCheckpoint {
+  readonly checkpointId: string;
+  readonly conversationId: string;
+  readonly turnSequence: number;
+  readonly mode: FrontendChatMode;
+  readonly modelProfileId: string | null;
+  readonly planId: string | null;
+  readonly workspaceId: string | null;
+  readonly pinnedContextRefs: readonly string[];
+  readonly attachmentRefs: readonly string[];
+  readonly workspaceRevision: string | null;
+  readonly diffHash: string | null;
+  readonly contextHash: string;
+  readonly note: string | null;
+  readonly createdAt: string;
+}
+
+export interface FrontendChatChange {
+  readonly path: string;
+  readonly diffText: string;
+  readonly diffHash: string;
+  readonly reviewDecision: "PENDING" | "ACCEPTED" | "REVERTED";
+}
+
+export interface FrontendChatChanges {
+  readonly workspaceId: string;
+  readonly baseRevision: string;
+  readonly workspaceRevision: string | null;
+  readonly diffHash: string;
+  readonly changes: readonly FrontendChatChange[];
+}
+
+export interface FrontendChatModelOption {
+  readonly optionId: string;
+  readonly label: string;
+  readonly provider: string;
+  readonly profileId: string | null;
+  readonly modelId: string | null;
+  readonly status: string;
+  readonly reason: string;
+  readonly requiresApproval: boolean;
+  readonly capabilities: readonly string[];
+}
+
+export interface FrontendChatContextBudget {
+  readonly estimatedTokens: number;
+  readonly budgetTokens: number;
+  readonly includedRefs: readonly string[];
+  readonly omittedRefs: readonly string[];
+  readonly omissionReasons: Readonly<Record<string, string>>;
+  readonly items: readonly Readonly<Record<string, unknown>>[];
 }
 
 export interface FrontendHostContext {

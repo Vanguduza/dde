@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_chat_change_review.json",
+  "title": "FrontendChatChangeReview",
+  "description": "DDE-069 durable review decision over one workspace path at one diff hash. ACCEPTED is review state only; it does not commit or promote code.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_chat_change_reviews",
+    "order": 324,
+    "pk": [
+      "review_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "conversation_id",
+        "workspace_id",
+        "path",
+        "diff_hash"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_chat_change_reviews_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_change_reviews_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_change_reviews_conversation_id_fkey",
+        "columns": [
+          "conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_change_reviews_workspace_id_fkey",
+        "columns": [
+          "workspace_id"
+        ],
+        "ref_table": "workspaces",
+        "ref_columns": [
+          "workspace_id"
+        ]
+      },
+      {
+        "name": "frontend_chat_change_reviews_reviewed_by_fkey",
+        "columns": [
+          "reviewed_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "frontend_chat_change_reviews_decision_known",
+        "expression": "decision IN ('PENDING','ACCEPTED','REVERTED')"
+      }
+    ]
+  },
+  "required": [
+    "review_id",
+    "tenant_id",
+    "project_id",
+    "conversation_id",
+    "workspace_id",
+    "path",
+    "diff_hash",
+    "decision",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspace_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "path": {
+      "type": "string"
+    },
+    "base_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "diff_hash": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "ACCEPTED",
+        "REVERTED"
+      ]
+    },
+    "reviewed_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reviewed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

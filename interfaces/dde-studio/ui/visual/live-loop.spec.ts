@@ -134,6 +134,9 @@ test.describe("DDE-069 code-backed workbench loop", () => {
       .frameLocator("iframe.dde-preview-frame")
       .locator('[data-dde-pxg-key="screens/checkout#hero"]');
     await hero.click();
+    await page.getByRole("button", { name: "Show DDE AI Chat" }).click();
+    await page.getByTestId("chat-new").click();
+    await page.getByTestId("chat-mode-execute").click();
     await page.getByTestId("chat-input").fill("set the spacing to space4");
     await page.getByTestId("chat-send").click();
 
@@ -213,6 +216,9 @@ test.describe("DDE-069 code-backed workbench loop", () => {
       .frameLocator("iframe.dde-preview-frame")
       .locator('[data-dde-pxg-key="screens/checkout#hero"]');
     await hero.click();
+    await page.getByRole("button", { name: "Show DDE AI Chat" }).click();
+    await page.getByTestId("chat-new").click();
+    await page.getByTestId("chat-mode-execute").click();
     await page.getByTestId("chat-input").fill("/design two hero alternatives");
     await page.getByTestId("chat-send").click();
 
@@ -228,6 +234,9 @@ test.describe("DDE-069 code-backed workbench loop", () => {
       .frameLocator("iframe.dde-preview-frame")
       .locator('[data-dde-pxg-key="screens/checkout#hero"]');
     await hero.click();
+    await page.getByRole("button", { name: "Show DDE AI Chat" }).click();
+    await page.getByTestId("chat-new").click();
+    await page.getByTestId("chat-mode-execute").click();
     await page.getByTestId("chat-input").fill("set the spacing to space4");
     await page.getByTestId("chat-send").click();
     hero = page

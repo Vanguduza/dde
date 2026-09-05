@@ -1,10 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { DdeStudioApp } from "../src/app/DdeStudioApp";
-import type { DdeCommand } from "../src/bridge/DdeHostBridge";
+import type { DdeCommand, DdeReadQuery } from "../src/bridge/DdeHostBridge";
 import { TestHostBridge } from "../src/bridge/TestHostBridge";
 import type {
+  FrontendChatActivity,
+  FrontendChatAttachment,
+  FrontendChatChanges,
+  FrontendChatCheckpoint,
+  FrontendChatContextBudget,
   FrontendChatConversation,
+  FrontendChatModelOption,
+  FrontendChatPlan,
   FrontendChatThread,
   FrontendChatTurn,
   FrontendStudioSnapshot,
@@ -40,6 +47,56 @@ let chatConversation: FrontendChatConversation | null = null;
 let chatTurns: FrontendChatTurn[] = [];
 let chatSequence = 0;
 let chatTurnNumber = 0;
+const historicConversationId = "00000000-0000-0000-0000-000000000051";
+const chatPlanId = "00000000-0000-0000-0000-000000000060";
+const chatPlanStepId = "00000000-0000-0000-0000-000000000061";
+const attachmentId = "00000000-0000-0000-0000-000000000070";
+const activityId = "00000000-0000-0000-0000-000000000090";
+let chatAttachments: FrontendChatAttachment[] = [];
+let chatPlans: FrontendChatPlan[] = [];
+let chatActivities: FrontendChatActivity[] = [
+  {
+    activityId, conversationId: "conversation-1", sequence: 1, kind: "MODEL_INVOCATION",
+    state: "RUNNING", label: "Awaiting approved provider invocation", detail: "approval required",
+    refs: {}, cancellable: true, cancelReason: null, commandId: null, createdAt: new Date().toISOString(),
+  },
+];
+let chatCheckpoints: FrontendChatCheckpoint[] = [];
+let chatChanges: FrontendChatChanges = {
+  workspaceId: candidateWorkspaceId ?? "00000000-0000-0000-0000-000000000030",
+  baseRevision: "base-revision", workspaceRevision: "workspace-revision", diffHash: "diff-current",
+  changes: [{
+    path: "src/Checkout.tsx",
+    diffText: "--- a/src/Checkout.tsx\n+++ b/src/Checkout.tsx\n@@ -1 +1 @@\n-space2\n+space4\n",
+    diffHash: "diff-checkout", reviewDecision: "PENDING",
+  }],
+};
+const chatModels: FrontendChatModelOption[] = [
+  { optionId: "AUTO", label: "Auto", provider: "dde", profileId: null, modelId: null, status: "AVAILABLE", reason: "deterministic routing", requiresApproval: false, capabilities: ["deterministic"] },
+  { optionId: "profile.claude_code_cli", label: "Claude Code subscription seat", provider: "anthropic-cli", profileId: "profile.claude_code_cli", modelId: null, status: "APPROVAL_REQUIRED", reason: "fresh human approval required", requiresApproval: true, capabilities: ["reasoning", "implementation"] },
+];
+const chatBudget = (): FrontendChatContextBudget => ({
+  estimatedTokens: chatConversation?.pinnedContextRefs.length ? 512 : 128, budgetTokens: 24000,
+  includedRefs: [...(chatConversation?.pinnedContextRefs ?? [])], omittedRefs: [], omissionReasons: {}, items: [],
+});
+
+function historicalConversation(): FrontendChatConversation {
+  const now = new Date().toISOString();
+  return {
+    conversationId: historicConversationId, projectId, missionId, activeCandidateId: candidateId,
+    designSessionId: null, screenKey: "screens/checkout", selectedNodeKeys: [], viewport: "1440",
+    title: "Earlier checkout exploration", status: "OPEN", mode: "ASK", modelProfileId: null,
+    activeWorkspaceId: candidateWorkspaceId, activePlanId: null, parentConversationId: null,
+    branchedFromTurnId: null, pinnedContextRefs: [], createdBy: null, archivedAt: null, lockVersion: 1,
+    createdAt: now, updatedAt: now,
+  };
+}
+
+function conversationList(query = ""): FrontendChatConversation[] {
+  const rows = [chatConversation, historicalConversation()].filter((item): item is FrontendChatConversation => item !== null);
+  const needle = query.trim().toLowerCase();
+  return needle ? rows.filter((item) => (item.title ?? "").toLowerCase().includes(needle)) : rows;
+}
 
 function chatThread(): FrontendChatThread {
   return { conversation: chatConversation, turns: [...chatTurns] };
@@ -59,6 +116,9 @@ function appendChatPair(
   if (!chatConversation) throw new Error("chat conversation is not open");
   chatTurnNumber += 1;
   const createdAt = new Date().toISOString();
+  const boundAttachmentIds = chatAttachments
+    .filter((item) => item.turnId === `bound-turn-${chatTurnNumber}`)
+    .map((item) => item.attachmentId);
   const resolvedContext = {
     target_keys: [...chatConversation.selectedNodeKeys],
     references: chatConversation.selectedNodeKeys.length ? { deictic: "selection" } : {},
@@ -71,6 +131,9 @@ function appendChatPair(
     refusalDetail: options.refusalDetail ?? null,
     resolvedContext,
     producedRefs: options.producedRefs ?? [],
+    attachmentIds: boundAttachmentIds,
+    planId: null,
+    modelProfileId: chatConversation.modelProfileId,
     createdAt,
   } as const;
   const user: FrontendChatTurn = {
@@ -323,6 +386,18 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
           typeof command.parameters.viewport === "string"
             ? command.parameters.viewport
             : "1440",
+        title: typeof command.parameters.title === "string" ? command.parameters.title : null,
+        status: "OPEN",
+        mode: command.parameters.mode === "PLAN" || command.parameters.mode === "EXECUTE" ? command.parameters.mode : "ASK",
+        modelProfileId: typeof command.parameters.model_profile_id === "string" ? command.parameters.model_profile_id : null,
+        activeWorkspaceId: typeof command.parameters.active_workspace_id === "string" ? command.parameters.active_workspace_id : null,
+        activePlanId: null,
+        parentConversationId: null,
+        branchedFromTurnId: null,
+        pinnedContextRefs: [],
+        createdBy: null,
+        archivedAt: null,
+        lockVersion: 1,
         createdAt: now,
         updatedAt: now,
       };
@@ -368,11 +443,127 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
       viewport: chatConversation.viewport,
     };
   }
+  if (command.commandType === "frontend.chat.set_mode") {
+    if (!chatConversation) throw new Error("chat mode set before open");
+    const mode = command.parameters.mode;
+    if (mode !== "ASK" && mode !== "PLAN" && mode !== "EXECUTE") throw new Error("invalid mode");
+    chatConversation = { ...chatConversation, mode, updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.set_model") {
+    if (!chatConversation) throw new Error("chat model set before open");
+    chatConversation = {
+      ...chatConversation,
+      modelProfileId: typeof command.parameters.model_profile_id === "string" ? command.parameters.model_profile_id : null,
+      updatedAt: new Date().toISOString(),
+    };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.rename") {
+    if (!chatConversation) throw new Error("chat rename before open");
+    chatConversation = { ...chatConversation, title: String(command.parameters.title ?? ""), updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.set_mode") {
+    if (!chatConversation) throw new Error("mode set before open");
+    const mode = String(command.parameters.mode ?? "ASK") as FrontendChatConversation["mode"];
+    chatConversation = { ...chatConversation, mode, lockVersion: chatConversation.lockVersion + 1, updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.set_model") {
+    if (!chatConversation) throw new Error("model set before open");
+    const raw = command.parameters.model_profile_id;
+    chatConversation = { ...chatConversation, modelProfileId: typeof raw === "string" ? raw : null, lockVersion: chatConversation.lockVersion + 1, updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.rename") {
+    if (!chatConversation) throw new Error("rename before open");
+    chatConversation = { ...chatConversation, title: String(command.parameters.title ?? "Untitled"), lockVersion: chatConversation.lockVersion + 1, updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.archive") {
+    if (!chatConversation) throw new Error("archive before open");
+    chatConversation = { ...chatConversation, status: command.parameters.archived === false ? "OPEN" : "ARCHIVED", archivedAt: command.parameters.archived === false ? null : new Date().toISOString(), lockVersion: chatConversation.lockVersion + 1, updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.branch") {
+    if (!chatConversation) throw new Error("branch before open");
+    const now = new Date().toISOString();
+    chatConversation = { ...chatConversation, conversationId: `conversation-branch-${chatTurnNumber + 1}`, title: `${chatConversation.title ?? "Chat"} — branch`, parentConversationId: chatConversation.conversationId, branchedFromTurnId: typeof command.parameters.from_turn_id === "string" ? command.parameters.from_turn_id : null, activePlanId: null, lockVersion: 1, createdAt: now, updatedAt: now };
+    chatTurns = []; chatSequence = 0;
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.pin_context") {
+    if (!chatConversation) throw new Error("pin before open");
+    const ref = String(command.parameters.context_ref ?? "");
+    const pinned = command.parameters.pinned !== false;
+    const next = pinned ? [...new Set([...chatConversation.pinnedContextRefs, ref])] : chatConversation.pinnedContextRefs.filter((item) => item !== ref);
+    chatConversation = { ...chatConversation, pinnedContextRefs: next, lockVersion: chatConversation.lockVersion + 1, updatedAt: new Date().toISOString() };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.attachment.reserve") {
+    if (!chatConversation) throw new Error("attachment before open");
+    const attachment: FrontendChatAttachment = { attachmentId, conversationId: chatConversation.conversationId, turnId: null, sourceKind: "UPLOAD", filename: String(command.parameters.filename ?? "upload.txt"), mediaType: String(command.parameters.media_type ?? "text/plain"), sizeBytes: Number(command.parameters.size_bytes ?? 12), contentHash: null, workspacePath: null, extractionState: "PENDING", status: "RESERVED", createdAt: new Date().toISOString() };
+    chatAttachments = [attachment];
+    return { attachment };
+  }
+  if (command.commandType === "frontend.chat.attachment.remove") {
+    chatAttachments = chatAttachments.map((item) => item.attachmentId === command.parameters.attachment_id ? { ...item, status: "REMOVED" } : item);
+    return { attachment: chatAttachments[0] };
+  }
+  if (command.commandType === "frontend.chat.checkpoint.create") {
+    if (!chatConversation) throw new Error("checkpoint before open");
+    const item: FrontendChatCheckpoint = { checkpointId: `checkpoint-${chatCheckpoints.length + 1}`, conversationId: chatConversation.conversationId, turnSequence: chatSequence, mode: chatConversation.mode, modelProfileId: chatConversation.modelProfileId, planId: chatConversation.activePlanId, workspaceId: chatConversation.activeWorkspaceId, pinnedContextRefs: [...chatConversation.pinnedContextRefs], attachmentRefs: chatAttachments.filter((a) => a.status === "ACTIVE").map((a) => a.attachmentId), workspaceRevision: chatChanges.workspaceRevision, diffHash: chatChanges.diffHash, contextHash: `context-${chatCheckpoints.length + 1}`, note: typeof command.parameters.note === "string" ? command.parameters.note : null, createdAt: new Date().toISOString() };
+    chatCheckpoints = [item, ...chatCheckpoints];
+    return { checkpoint: item };
+  }
+  if (command.commandType === "frontend.chat.checkpoint.restore") {
+    const item = chatCheckpoints.find((cp) => cp.checkpointId === command.parameters.checkpoint_id);
+    if (item && chatConversation) chatConversation = { ...chatConversation, mode: item.mode, modelProfileId: item.modelProfileId, pinnedContextRefs: [...item.pinnedContextRefs], activePlanId: item.planId, activeWorkspaceId: item.workspaceId, lockVersion: chatConversation.lockVersion + 1 };
+    return { conversation: chatConversation };
+  }
+  if (command.commandType === "frontend.chat.plan.approve") {
+    chatPlans = chatPlans.map((plan) => plan.planId === command.parameters.plan_id ? { ...plan, state: "APPROVED", approvedBy: "test-principal", approvedAt: new Date().toISOString(), lockVersion: plan.lockVersion + 1 } : plan);
+    return { plan: chatPlans[0] };
+  }
+  if (command.commandType === "frontend.chat.plan.prepare_step") {
+    const plan = chatPlans[0]; if (!plan) throw new Error("no plan");
+    const step = plan.steps[0]!;
+    chatPlans = [{ ...plan, state: "EXECUTING", activeStepId: step.stepId, lockVersion: plan.lockVersion + 1, steps: [{ ...step, state: "READY", attempt: step.attempt + 1, idempotencyKey: "plan-attempt-1", expectedRequestHash: "request-hash-1" }] }];
+    return { planId: plan.planId, stepId: step.stepId, commandType: step.commandType, targetType: "mission", targetId: missionId, parameters: step.parameters, idempotencyKey: "plan-attempt-1", expectedRequestHash: "request-hash-1" };
+  }
+  if (command.commandType === "frontend.chat.plan.record_step") {
+    const plan = chatPlans[0]; if (!plan) throw new Error("no plan");
+    const step = plan.steps[0]!;
+    chatPlans = [{ ...plan, state: "COMPLETED", activeStepId: null, lockVersion: plan.lockVersion + 1, steps: [{ ...step, state: "COMPLETED", commandId: String(command.parameters.command_id), resultSummary: "completed" }] }];
+    return { plan: chatPlans[0] };
+  }
+  if (command.commandType === "frontend.chat.plan.retry_step") {
+    const plan = chatPlans[0]; if (!plan) throw new Error("no plan"); const step = plan.steps[0]!;
+    chatPlans = [{ ...plan, state: "APPROVED", activeStepId: null, steps: [{ ...step, state: "PENDING", commandId: null, errorCode: null, errorDetail: null }] }]; return { plan: chatPlans[0] };
+  }
+  if (command.commandType === "frontend.chat.plan.cancel") { const plan=chatPlans[0]; if(plan) chatPlans=[{...plan,state:"CANCELLED",lockVersion:plan.lockVersion+1}]; return {plan:chatPlans[0]}; }
+  if (command.commandType === "frontend.chat.activity.cancel") { chatActivities=chatActivities.map((item)=>item.activityId===command.parameters.activity_id?{...item,state:"CANCELLED",cancellable:false,cancelReason:String(command.parameters.reason??"cancelled")}:item); return {activity:chatActivities[0]}; }
+  if (command.commandType === "frontend.chat.workspace.accept_file") { chatChanges={...chatChanges,changes:chatChanges.changes.map((item)=>item.path===command.parameters.path?{...item,reviewDecision:"ACCEPTED"}:item)}; return {reviewDecision:"ACCEPTED"}; }
+  if (command.commandType === "frontend.chat.workspace.revert_file") { chatChanges={...chatChanges,diffHash:"diff-empty",changes:[]}; return { ...chatChanges }; }
+  if (command.commandType === "frontend.chat.workspace.revert_all") { chatChanges={...chatChanges,diffHash:"diff-empty",changes:[]}; return { ...chatChanges }; }
+  if (command.commandType === "frontend.chat.workspace.apply_patch") { chatChanges={...chatChanges,diffHash:"diff-patched",changes:[...chatChanges.changes,{path:"src/Patched.tsx",diffText:String(command.parameters.patch_text??""),diffHash:"diff-patched-file",reviewDecision:"PENDING"}]}; return { ...chatChanges }; }
+
   if (command.commandType === "frontend.chat.send") {
     if (!chatConversation) throw new Error("chat send before open");
     const text = String(command.parameters.text ?? "").trim();
+    const rawAttachmentIds = command.parameters.attachment_ids;
+    if (Array.isArray(rawAttachmentIds)) {
+      const ids = new Set(rawAttachmentIds.filter((item): item is string => typeof item === "string"));
+      chatAttachments = chatAttachments.map((item) => ids.has(item.attachmentId) ? { ...item, turnId: `bound-turn-${chatTurnNumber + 1}` } : item);
+    }
     const lower = text.toLowerCase();
     if (lower.startsWith("/design")) {
+      if (chatConversation.mode !== "EXECUTE") {
+        const refusalDetail = chatConversation.mode === "ASK" ? "Ask mode is read-only. Switch to Execute for /design." : "Plan mode cannot invoke /design; it can only prepare governed plans.";
+        const pair = appendChatPair(text, { intent: "DESIGN_DIVERGENT", outcome: "REFUSED", message: refusalDetail, refusalCode: "MODE_READ_ONLY", refusalDetail });
+        return { turnId: pair.user.turnId, replyTurnId: pair.studio.turnId, sequence: pair.user.sequence, intent: "DESIGN_DIVERGENT", outcome: "REFUSED", refusalCode: "MODE_READ_ONLY", refusalDetail, resolvedContext: pair.user.resolvedContext, producedRefs: [], message: refusalDetail };
+      }
       const refusalDetail = "no certified design provider transport";
       const pair = appendChatPair(text, {
         intent: "DESIGN_DIVERGENT",
@@ -395,6 +586,11 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
       };
     }
     if (lower === "undo" || lower.includes("revert")) {
+      if (chatConversation.mode !== "EXECUTE") {
+        const detail = chatConversation.mode === "ASK" ? "Ask mode is read-only. Switch to Execute to undo." : "Plan mode prepares changes and does not execute undo.";
+        const pair = appendChatPair(text, { intent: "UNDO_REVERT", outcome: "REFUSED", message: detail, refusalCode: "MODE_READ_ONLY", refusalDetail: detail });
+        return { turnId: pair.user.turnId, replyTurnId: pair.studio.turnId, sequence: pair.user.sequence, intent: "UNDO_REVERT", outcome: "REFUSED", refusalCode: "MODE_READ_ONLY", refusalDetail: detail, resolvedContext: pair.user.resolvedContext, producedRefs: [], message: detail };
+      }
       if (!chatConversation.activeCandidateId) {
         const detail = "undo applies to a candidate; none is active";
         const pair = appendChatPair(text, {
@@ -468,6 +664,23 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
           producedRefs: [],
           message: detail,
         };
+      }
+      if (chatConversation.mode === "ASK") {
+        const detail = "Ask mode is read-only. Switch to Plan to prepare this change or Execute to run it.";
+        const pair = appendChatPair(text, { intent: "MUTATE_DETERMINISTIC", outcome: "REFUSED", message: detail, refusalCode: "MODE_READ_ONLY", refusalDetail: detail });
+        return { turnId: pair.user.turnId, replyTurnId: pair.studio.turnId, sequence: pair.user.sequence, intent: "MUTATE_DETERMINISTIC", outcome: "REFUSED", refusalCode: "MODE_READ_ONLY", refusalDetail: detail, resolvedContext: pair.user.resolvedContext, producedRefs: [], message: detail };
+      }
+      if (chatConversation.mode === "PLAN") {
+        const now = new Date().toISOString();
+        const plan: FrontendChatPlan = {
+          planId: chatPlanId, conversationId: chatConversation.conversationId, title: "Change spacing", objective: text, state: "READY", approvalRequired: true, approvedBy: null, approvedAt: null,
+          steps: [{ stepId: chatPlanStepId, sequence: 1, title: "Set selected spacing", description: `Set spacing to ${match[1]!}`, state: "PENDING", attempt: 0, commandType: "frontend.mutation.apply", targetType: "mission", targetId: missionId, parameters: { candidate_id: candidateId, mutations: [{ operation: "SET_PROPERTY", target_key: chatConversation.selectedNodeKeys[0], origin: "CHAT", payload: { property: "spacing", value: match[1]! } }] }, dependsOn: [], evidenceRefs: [], commandId: null, resultSummary: null, errorCode: null, errorDetail: null, idempotencyKey: null, expectedRequestHash: null }],
+          activeStepId: null, workspaceId: chatConversation.activeWorkspaceId, taskGraphId: null, lockVersion: 1, createdAt: now, updatedAt: now,
+        };
+        chatPlans = [plan];
+        chatConversation = { ...chatConversation, activePlanId: plan.planId, lockVersion: chatConversation.lockVersion + 1, updatedAt: now };
+        const pair = appendChatPair(text, { intent: "MUTATE_DETERMINISTIC", outcome: "ROUTED", message: "created governed plan with 1 step", producedRefs: [`plan:${plan.planId}`] });
+        return { turnId: pair.user.turnId, replyTurnId: pair.studio.turnId, sequence: pair.user.sequence, intent: "MUTATE_DETERMINISTIC", outcome: "ROUTED", refusalCode: null, refusalDetail: null, resolvedContext: pair.user.resolvedContext, producedRefs: [`plan:${plan.planId}`], message: "created governed plan with 1 step" };
       }
       previousSpacing = spacing;
       spacing = match[1]!;
@@ -640,16 +853,54 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
 }
 
 const bridge = new TestHostBridge({
+  capabilities: { canPickLocalFile: true },
+  pickLocalFile: () => ({ token: "pick-token-1", filename: "requirements.md", mediaType: "text/markdown", sizeBytes: 24 }),
+  uploadPickedFile: (request) => {
+    chatAttachments = chatAttachments.map((item) => item.attachmentId === request.attachmentId ? { ...item, status: "ACTIVE", extractionState: "EXTRACTED", contentHash: "attachment-hash" } : item);
+    return { attachment: chatAttachments.find((item) => item.attachmentId === request.attachmentId) };
+  },
   reads: {
     "frontend.host.context": { missionId, projectId, projectName: "LogiFlow Marketplace" },
     "frontend.studio.snapshot": () => snapshot(),
     "frontend.chat.thread": () => chatThread(),
+    "frontend.chat.thread.by_id": (query: DdeReadQuery) => {
+      const id = String(query.parameters?.conversationId ?? "");
+      return id === historicConversationId ? { conversation: historicalConversation(), turns: [] } : chatThread();
+    },
+    "frontend.chat.conversations": (query: DdeReadQuery) => ({ conversations: conversationList(String(query.parameters?.query ?? "")) }),
+    "frontend.chat.attachments": () => ({ attachments: [...chatAttachments] }),
+    "frontend.chat.plans": () => ({ plans: [...chatPlans] }),
+    "frontend.chat.activities": () => ({ activities: [...chatActivities] }),
+    "frontend.chat.checkpoints": () => ({ checkpoints: [...chatCheckpoints] }),
+    "frontend.chat.models": { models: chatModels },
+    "frontend.chat.context": () => chatBudget(),
+    "frontend.chat.changes": () => ({ ...chatChanges }),
     "frontend.preview.document": () => previewDocument(),
     "frontend.inspector.describe": () => inspector(),
   },
   commands: {
     "frontend.chat.open": commandPayload,
     "frontend.chat.set_context": commandPayload,
+    "frontend.chat.set_mode": commandPayload,
+    "frontend.chat.set_model": commandPayload,
+    "frontend.chat.rename": commandPayload,
+    "frontend.chat.archive": commandPayload,
+    "frontend.chat.branch": commandPayload,
+    "frontend.chat.pin_context": commandPayload,
+    "frontend.chat.attachment.reserve": commandPayload,
+    "frontend.chat.attachment.remove": commandPayload,
+    "frontend.chat.plan.approve": commandPayload,
+    "frontend.chat.plan.prepare_step": commandPayload,
+    "frontend.chat.plan.record_step": commandPayload,
+    "frontend.chat.plan.retry_step": commandPayload,
+    "frontend.chat.plan.cancel": commandPayload,
+    "frontend.chat.activity.cancel": commandPayload,
+    "frontend.chat.checkpoint.create": commandPayload,
+    "frontend.chat.checkpoint.restore": commandPayload,
+    "frontend.chat.workspace.accept_file": commandPayload,
+    "frontend.chat.workspace.revert_file": commandPayload,
+    "frontend.chat.workspace.revert_all": commandPayload,
+    "frontend.chat.workspace.apply_patch": commandPayload,
     "frontend.chat.send": commandPayload,
     "frontend.preview.set_state": commandPayload,
     "frontend.mutation.apply": commandPayload,

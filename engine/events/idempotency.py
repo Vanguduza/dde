@@ -145,6 +145,7 @@ class CommandLedger:
         project_id: UUID,
         idempotency_key: str,
         request_hash: str,
+        command_id: UUID | None = None,
         ttl: timedelta | None = None,
         uow: PostgresUnitOfWork | None = None,
     ) -> tuple[CommandIdempotency, bool]:
@@ -156,7 +157,7 @@ class CommandLedger:
         async def _op(active: PostgresUnitOfWork) -> tuple[CommandIdempotency, bool]:
             now = self._clock.now()
             candidate = CommandIdempotency(
-                command_id=uuid7(),
+                command_id=command_id or uuid7(),
                 tenant_id=tenant_id,
                 project_id=project_id,
                 idempotency_key=idempotency_key,

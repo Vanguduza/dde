@@ -2,34 +2,108 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dde.dev/schemas/objects/frontend_conversation.json",
   "title": "FrontendConversation",
-  "description": "DDE-069 the Frontend Studio's single conversational control plane. Owned by engine.studio.chat. Frontend Chat is not a chatbot dock bolted onto the studio: it carries the workspace context (screen, candidate, selection, viewport) that makes a reference like \"this\" or \"Candidate B\" resolvable, and every turn that changes frontend state compiles to the same governed FrontendMutation or DesignSession operation as any other affordance. `/design` is a capability inside this conversation, not a second one.",
+  "description": "DDE-069 DDE Code / Frontend Studio durable AI conversation control plane. Owned by engine.studio.chat. It carries explicit project/workspace/frontend context, Cursor-class Ask/Plan/Execute mode, model selection, branch lineage and pinned references. A model is replaceable; DDE owns history, authority, plans and evidence.",
   "type": "object",
   "additionalProperties": false,
   "x-dde-storage": {
     "table": "frontend_conversations",
     "order": 309,
-    "pk": ["conversation_id"],
+    "pk": [
+      "conversation_id"
+    ],
     "tenant_scoped": true,
     "project_scoped": true,
     "lock_version": true,
     "foreign_keys": [
       {
         "name": "frontend_conversations_tenant_id_fkey",
-        "columns": ["tenant_id"],
+        "columns": [
+          "tenant_id"
+        ],
         "ref_table": "tenants",
-        "ref_columns": ["tenant_id"]
+        "ref_columns": [
+          "tenant_id"
+        ]
       },
       {
         "name": "frontend_conversations_project_id_fkey",
-        "columns": ["project_id"],
+        "columns": [
+          "project_id"
+        ],
         "ref_table": "projects",
-        "ref_columns": ["project_id"]
+        "ref_columns": [
+          "project_id"
+        ]
       },
       {
         "name": "frontend_conversations_mission_id_fkey",
-        "columns": ["mission_id"],
+        "columns": [
+          "mission_id"
+        ],
         "ref_table": "missions",
-        "ref_columns": ["mission_id"]
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_active_workspace_id_fkey",
+        "columns": [
+          "active_workspace_id"
+        ],
+        "ref_table": "workspaces",
+        "ref_columns": [
+          "workspace_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_parent_conversation_id_fkey",
+        "columns": [
+          "parent_conversation_id"
+        ],
+        "ref_table": "frontend_conversations",
+        "ref_columns": [
+          "conversation_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_branched_from_turn_id_fkey",
+        "columns": [
+          "branched_from_turn_id"
+        ],
+        "ref_table": "frontend_conversation_turns",
+        "ref_columns": [
+          "turn_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      },
+      {
+        "name": "frontend_conversations_active_plan_id_fkey",
+        "columns": [
+          "active_plan_id"
+        ],
+        "ref_table": "frontend_chat_plans",
+        "ref_columns": [
+          "plan_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "name": "frontend_conversations_status_known",
+        "expression": "status IN ('OPEN', 'ARCHIVED')"
+      },
+      {
+        "name": "frontend_conversations_mode_known",
+        "expression": "mode IN ('ASK', 'PLAN', 'EXECUTE')"
       }
     ]
   },
@@ -41,33 +115,195 @@
     "viewport",
     "lock_version",
     "created_at",
-    "updated_at"
+    "updated_at",
+    "status",
+    "mode",
+    "pinned_context_refs"
   ],
   "properties": {
-    "conversation_id": { "type": "string", "format": "uuid" },
-    "tenant_id": { "type": "string", "format": "uuid" },
-    "project_id": { "type": "string", "format": "uuid" },
+    "conversation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
     "mission_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "active_candidate_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "design_session_id": {
-      "anyOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }]
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "screen_key": {
-      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "description": "The current PXG screen context for the composer. It scopes read/design context but never substitutes for an unambiguous selected node when a mutation requires one."
     },
     "selected_node_keys": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "The PXG keys a bare reference like \"this\" resolves to. Stable keys, not DOM positions."
     },
-    "viewport": { "type": "string" },
-    "lock_version": { "type": "integer" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "viewport": {
+      "type": "string"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "ARCHIVED"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "ASK",
+        "PLAN",
+        "EXECUTE"
+      ]
+    },
+    "model_profile_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "active_workspace_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "active_plan_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parent_conversation_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "branched_from_turn_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pinned_context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "archived_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
   }
 }

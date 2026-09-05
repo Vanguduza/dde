@@ -49,7 +49,14 @@ from engine.studio.canvas import (
     parse_manifest,
     screen_relative_path,
 )
+from engine.studio.chat.activity import FrontendChatActivityService
+from engine.studio.chat.attachments import FrontendChatAttachmentService
+from engine.studio.chat.checkpoints import FrontendChatCheckpointService
+from engine.studio.chat.context_refs import FrontendChatContextService
+from engine.studio.chat.models import FrontendChatModelCatalog
+from engine.studio.chat.plans import FrontendChatPlanService
 from engine.studio.chat.service import FrontendChatService
+from engine.studio.chat.workspace_review import FrontendChatWorkspaceReviewService
 from engine.studio.compiler import compile_generation_prompt
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageService
@@ -146,11 +153,49 @@ class FrontendStudioService:
             verification_requests=requests,
         )
 
+    def _chat_activities(self) -> FrontendChatActivityService:
+        return FrontendChatActivityService(self._engine)
+
+    def _chat_attachments(self) -> FrontendChatAttachmentService:
+        return FrontendChatAttachmentService(
+            self._engine,
+            workspaces=self._workspaces,
+            activities=self._chat_activities(),
+        )
+
+    def _chat_plans(self) -> FrontendChatPlanService:
+        return FrontendChatPlanService(self._engine, activities=self._chat_activities())
+
+    def _chat_context(self) -> FrontendChatContextService:
+        return FrontendChatContextService(
+            self._engine,
+            attachments=self._chat_attachments(),
+            plans=self._chat_plans(),
+        )
+
+    def _chat_workspace_review(self) -> FrontendChatWorkspaceReviewService:
+        return FrontendChatWorkspaceReviewService(
+            self._engine, activities=self._chat_activities()
+        )
+
+    def _chat_checkpoints(self) -> FrontendChatCheckpointService:
+        return FrontendChatCheckpointService(
+            self._engine,
+            attachments=self._chat_attachments(),
+            workspace_review=self._chat_workspace_review(),
+            activities=self._chat_activities(),
+        )
+
     def _chat_service(self) -> FrontendChatService:
         return FrontendChatService(
             self._engine,
             mutations=self._governed_mutations(),
             design=self._design_gateway(),
+            attachments=self._chat_attachments(),
+            plans=self._chat_plans(),
+            activities=self._chat_activities(),
+            context=self._chat_context(),
+            models=FrontendChatModelCatalog(),
         )
 
     def _promotion_service(self) -> PromotionService:
@@ -493,6 +538,7 @@ class FrontendStudioService:
         tenant_id: UUID,
         project_id: UUID,
         mission_id: UUID,
+        principal_id: UUID | None,
         parameters: dict[str, object],
     ) -> dict[str, object]:
         """DDE-069 `frontend.chat.open`."""
@@ -502,11 +548,24 @@ class FrontendStudioService:
             mission_id=mission_id,
             screen_key=_optional_str(parameters, "screen_key"),
             viewport=str(parameters.get("viewport") or "desktop-1440"),
+            title=_optional_str(parameters, "title"),
+            mode=str(parameters.get("mode") or "ASK"),
+            model_profile_id=_optional_str(parameters, "model_profile_id"),
+            active_workspace_id=_optional_uuid(parameters, "active_workspace_id"),
+            created_by=principal_id,
         )
         return {
             "conversation_id": str(conversation.conversation_id),
             "screen_key": conversation.screen_key,
             "viewport": conversation.viewport,
+            "title": conversation.title,
+            "mode": conversation.mode,
+            "model_profile_id": conversation.model_profile_id,
+            "active_workspace_id": (
+                str(conversation.active_workspace_id)
+                if conversation.active_workspace_id
+                else None
+            ),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -537,6 +596,8 @@ class FrontendStudioService:
             screen_key=_optional_str(parameters, "screen_key"),
             set_screen="screen_key" in parameters,
             viewport=_optional_str(parameters, "viewport"),
+            active_workspace_id=_optional_uuid(parameters, "active_workspace_id"),
+            set_active_workspace="active_workspace_id" in parameters,
         )
         return {
             "conversation_id": str(conversation.conversation_id),
@@ -548,6 +609,11 @@ class FrontendStudioService:
             ),
             "screen_key": conversation.screen_key,
             "viewport": conversation.viewport,
+            "active_workspace_id": (
+                str(conversation.active_workspace_id)
+                if conversation.active_workspace_id
+                else None
+            ),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -569,6 +635,10 @@ class FrontendStudioService:
             project_id=project_id,
             conversation_id=_uuid(parameters, "conversation_id"),
             text=_str(parameters, "text"),
+            attachment_ids=tuple(
+                _as_uuid(item, "attachment_ids")
+                for item in _raw_list(parameters, "attachment_ids")
+            ),
         )
         return {
             "turn_id": str(result.turn.turn_id),
@@ -581,6 +651,455 @@ class FrontendStudioService:
             "resolved_context": result.turn.resolved_context,
             "produced_refs": list(result.produced_refs),
             "message": result.message,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def rename_chat_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_service().rename(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            title=_str(parameters, "title"),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def archive_chat_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_service().archive(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            archived=_bool(parameters, "archived", default=True),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_chat_mode(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_service().set_mode(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            mode=_str(parameters, "mode"),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_chat_model(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_service().set_model(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            model_profile_id=_optional_str(parameters, "model_profile_id"),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def pin_chat_context(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_service().pin_context(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            context_ref=_str(parameters, "context_ref"),
+            pinned=_bool(parameters, "pinned"),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def branch_chat_conversation(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_service().branch(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            from_turn_id=_optional_uuid(parameters, "from_turn_id"),
+            created_by=principal_id,
+            title=_optional_str(parameters, "title"),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def reserve_chat_attachment(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_attachments().reserve(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            filename=_str(parameters, "filename"),
+            media_type=str(parameters.get("media_type") or "application/octet-stream"),
+            size_bytes=_int(parameters, "size_bytes"),
+            created_by=principal_id,
+        )
+        return {
+            "attachment": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def import_chat_workspace_attachment(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_attachments().import_workspace_file(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            workspace_id=_uuid(parameters, "workspace_id"),
+            relative_path=_str(parameters, "relative_path"),
+            created_by=principal_id,
+        )
+        return {
+            "attachment": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def remove_chat_attachment(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_attachments().remove(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            attachment_id=_uuid(parameters, "attachment_id"),
+        )
+        return {
+            "attachment": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def create_chat_plan(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        mission_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_plans().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            mission_id=mission_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            title=_str(parameters, "title"),
+            objective=_str(parameters, "objective"),
+            steps=list(_rows(parameters, "steps")),
+            approval_required=_bool(parameters, "approval_required", default=True),
+            workspace_id=_optional_uuid(parameters, "workspace_id"),
+            task_graph_id=_optional_uuid(parameters, "task_graph_id"),
+            context_snapshot=_optional_mapping(parameters, "context_snapshot"),
+        )
+        return {
+            "plan": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def update_chat_plan(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_plans().update(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            plan_id=_uuid(parameters, "plan_id"),
+            expected_lock_version=_int(parameters, "lock_version"),
+            title=_optional_str(parameters, "title"),
+            objective=_optional_str(parameters, "objective"),
+            steps=(list(_rows(parameters, "steps")) if "steps" in parameters else None),
+        )
+        return {
+            "plan": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def approve_chat_plan(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_plans().approve(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            plan_id=_uuid(parameters, "plan_id"),
+            principal_id=principal_id,
+            expected_lock_version=_int(parameters, "lock_version"),
+        )
+        return {
+            "plan": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def prepare_chat_plan_step(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        payload = await self._chat_plans().prepare_step(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            plan_id=_uuid(parameters, "plan_id"),
+            step_id=_uuid(parameters, "step_id"),
+            protocol_version=str(parameters.get("protocol_version") or "1"),
+        )
+        return {**payload, "side_effect_class": "WORKSPACE_LOCAL"}
+
+    async def record_chat_plan_step(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_plans().record_step(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            plan_id=_uuid(parameters, "plan_id"),
+            step_id=_uuid(parameters, "step_id"),
+            command_id=_uuid(parameters, "command_id"),
+        )
+        return {
+            "plan": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def retry_chat_plan_step(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_plans().retry_step(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            plan_id=_uuid(parameters, "plan_id"),
+            step_id=_uuid(parameters, "step_id"),
+        )
+        return {
+            "plan": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def cancel_chat_plan(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_plans().cancel(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            plan_id=_uuid(parameters, "plan_id"),
+            expected_lock_version=_int(parameters, "lock_version"),
+        )
+        return {
+            "plan": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def cancel_chat_activity(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_activities().cancel(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            activity_id=_uuid(parameters, "activity_id"),
+            reason=_str(parameters, "reason"),
+        )
+        return {
+            "activity": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def create_chat_checkpoint(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID | None,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_checkpoints().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            created_by=principal_id,
+            note=_optional_str(parameters, "note"),
+        )
+        return {
+            "checkpoint": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def restore_chat_checkpoint(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_checkpoints().restore_context(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            checkpoint_id=_uuid(parameters, "checkpoint_id"),
+        )
+        return {
+            "conversation": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def apply_chat_workspace_patch(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_workspace_review().apply_patch(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            patch_text=_str(parameters, "patch_text"),
+            expected_diff_hash=_optional_str(parameters, "expected_diff_hash"),
+        )
+        return {
+            "changes": _workspace_changes_payload(item),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def accept_chat_workspace_file(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_workspace_review().accept_file(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            path=_str(parameters, "path"),
+            expected_diff_hash=_str(parameters, "expected_diff_hash"),
+            principal_id=principal_id,
+        )
+        return {
+            "review": item.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def revert_chat_workspace_file(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_workspace_review().revert_file(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            path=_str(parameters, "path"),
+            expected_diff_hash=_str(parameters, "expected_diff_hash"),
+            principal_id=principal_id,
+        )
+        return {
+            "changes": _workspace_changes_payload(item),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def revert_all_chat_workspace_changes(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        item = await self._chat_workspace_review().revert_all(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            conversation_id=_uuid(parameters, "conversation_id"),
+            checkpoint_id=_uuid(parameters, "checkpoint_id"),
+            principal_id=principal_id,
+        )
+        return {
+            "changes": _workspace_changes_payload(item),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
@@ -1653,6 +2172,59 @@ def _mapping(row: dict[str, object], name: str) -> dict[str, object]:
 def _optional_str(parameters: dict[str, object], name: str) -> str | None:
     value = parameters.get(name)
     return value if isinstance(value, str) and value else None
+
+
+def _raw_list(parameters: dict[str, object], name: str) -> list[object]:
+    value = parameters.get(name)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise DdeError("VALIDATION_FAILED", f"'{name}' must be an array")
+    return list(value)
+
+
+def _bool(
+    parameters: dict[str, object], name: str, *, default: bool | None = None
+) -> bool:
+    value = parameters.get(name)
+    if value is None and default is not None:
+        return default
+    if not isinstance(value, bool):
+        raise DdeError("VALIDATION_FAILED", f"'{name}' must be a boolean")
+    return value
+
+
+def _optional_mapping(
+    parameters: dict[str, object], name: str
+) -> dict[str, object] | None:
+    value = parameters.get(name)
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise DdeError("VALIDATION_FAILED", f"'{name}' must be an object")
+    return dict(value)
+
+
+def _workspace_changes_payload(changes: object) -> dict[str, object]:
+    from engine.studio.chat.workspace_review import WorkspaceChanges
+
+    if not isinstance(changes, WorkspaceChanges):
+        raise DdeError("VALIDATION_FAILED", "invalid workspace changes projection")
+    return {
+        "workspace_id": str(changes.workspace_id),
+        "base_revision": changes.base_revision,
+        "workspace_revision": changes.workspace_revision,
+        "diff_hash": changes.diff_hash,
+        "changes": [
+            {
+                "path": item.path,
+                "diff_text": item.diff_text,
+                "diff_hash": item.diff_hash,
+                "review_decision": item.review_decision,
+            }
+            for item in changes.changes
+        ],
+    }
 
 
 def _mutation_requests(parameters: dict[str, object]) -> list[MutationRequest]:
