@@ -21,6 +21,7 @@ import type {
   ScreenAuditMatrix,
   SourceCatalogRead,
   DesignSourceArtifact,
+  DesignDirectionArtifact,
   FrontendTemplate,
   FrontendProvenanceRecord,
   FrontendSourceBlendPreference,
@@ -40,6 +41,35 @@ const promotableCandidate = urlParams.get("promotable") === "1";
 const compareCandidates = urlParams.get("compare") === "1";
 const scoreHardFailure = urlParams.get("hardfail") === "1";
 const withAcceptedProvenance = urlParams.get("provenance") === "1";
+// `?design=certified` exercises the certified branch of the Claude /design
+// control. The default stays uncertified so the honest-unavailable state
+// remains the fixture's baseline rather than an opt-out.
+const designProviderMode = urlParams.get("design") ?? "uncertified";
+const designProviderStatus = designProviderMode === "certified"
+  ? { providerId: "claude-design", displayName: "Claude Design", state: "CERTIFIED", detail: "certified: claude-design connected at https://api.anthropic.com/v1/design/mcp.", version: "claude-design-mcp/dde.design.manifest/1;auth=claude.ai;plan=max", usable: true }
+  : designProviderMode === "auth"
+    ? { providerId: "claude-design", displayName: "Claude Design", state: "AUTH_REQUIRED", detail: "the host Claude Code installation is not signed in; run `claude auth login` on this host. DDE never holds this credential.", version: null, usable: false }
+    : { providerId: "claude-design", displayName: "Claude Design", state: "NOT_CERTIFIED", detail: "No certified Claude Design transport is registered.", version: null, usable: false };
+let designSessionId: string | null = null;
+let designArtifacts: DesignDirectionArtifact[] = [];
+
+function fixtureDesignArtifacts(): DesignDirectionArtifact[] {
+  const now = new Date().toISOString();
+  return ["A", "B", "C"].map((label, index) => ({
+    artifactId: `00000000-0000-0000-0000-0000000000d${index + 2}`,
+    sessionId: designSessionId ?? "00000000-0000-0000-0000-0000000000d1",
+    directionLabel: label,
+    status: "GENERATED" as const,
+    providerId: "claude-design",
+    contentHash: String(index + 1).repeat(64),
+    content: { nodes: [{ pxg_key: pxgKey, tokens: { spacing: index === 0 ? "space6" : "space2" } }] },
+    provenance: { provider_project_id: "fixture-design-project" },
+    quarantineReason: null,
+    candidateId: null,
+    createdAt: now,
+    updatedAt: now,
+  }));
+}
 const sourceA = "00000000-0000-0000-0000-000000000041";
 const sourceB = "00000000-0000-0000-0000-000000000042";
 let candidateWorkspaceId: string | null = freshCandidate
@@ -51,6 +81,12 @@ let previewState: "LOADING" | "LIVE" | "STALE" = "LOADING";
 let acceptedRevision = 4;
 let candidateState = promotableCandidate ? "PROMOTABLE" : (freshCandidate ? "GENERATED" : "READY");
 let spacing = "space2";
+let layoutType = "stack";
+let direction = "vertical";
+let gap = "space6";
+let padding = "space8";
+let currentPreviewViewport = "1440";
+let inspectorLocks: InspectorDescriptor["locks"] = [];
 let verificationRequestState: "PENDING" | "PASSED" | "FAILED" | "BLOCKED" | "SUPERSEDED" | null =
   promotableCandidate ? "PASSED" : (freshCandidate ? null : "PENDING");
 let verificationRequestNumber = 1;
@@ -356,7 +392,7 @@ function snapshot(): FrontendStudioSnapshot {
           title: "Templates",
           count: { value: 1, availability: "AVAILABLE" },
         },
-        { key: "locks", title: "Locks", count: { value: 0, availability: "EMPTY" } },
+        { key: "locks", title: "Locks", count: { value: inspectorLocks.length, availability: inspectorLocks.length ? "AVAILABLE" : "EMPTY" } },
       ],
     },
     coverage: {
@@ -538,7 +574,7 @@ function previewDocument(sessionId = previewSessionId): PreviewDocument {
       previewSessionId: sessionId,
       candidateId: compareCandidateId,
       workspaceId: "00000000-0000-0000-0000-000000000031",
-      screenKey: "screens/checkout", state: "LIVE", viewport: "1440", route: "/checkout",
+      screenKey: "screens/checkout", state: "LIVE", viewport: currentPreviewViewport, route: "/checkout",
       candidatePxgRevision: acceptedRevision, sourceRevision: "fixture-compare",
       documentPath: ".dde/preview/preview-compare.html", contentHash: "hash-preview-compare",
       stateDetail: "fixture live",
@@ -547,7 +583,7 @@ function previewDocument(sessionId = previewSessionId): PreviewDocument {
   }
   const contentHash = `hash-${previewSessionId}-${spacing}`;
   const content = `<!doctype html><html><body>
-<div data-dde-pxg-key="${pxgKey}" data-spacing="${spacing}" style="padding:16px">Hero ${spacing}</div>
+<div data-dde-pxg-key="${pxgKey}" data-spacing="${spacing}" data-gap="${gap}" data-padding="${padding}" data-layout-type="${layoutType}" data-direction="${direction}" style="padding:16px">Hero ${spacing}</div>
 <script>(()=>{const meta={previewSessionId:${JSON.stringify(previewSessionId)},contentHash:${JSON.stringify(contentHash)}};const send=(kind,payload={})=>parent.postMessage({type:'dde.preview',kind,...meta,...payload},'*');document.addEventListener('pointerdown',(event)=>{const target=event.target.closest('[data-dde-pxg-key]');if(!target)return;const r=target.getBoundingClientRect();send('selection',{pxgKey:target.getAttribute('data-dde-pxg-key'),geometry:{x:r.x,y:r.y,width:r.width,height:r.height}})},true);addEventListener('DOMContentLoaded',()=>send('ready'),{once:true});})();</script>
 </body></html>`;
   return {
@@ -556,7 +592,7 @@ function previewDocument(sessionId = previewSessionId): PreviewDocument {
     workspaceId: candidateWorkspaceId ?? "00000000-0000-0000-0000-000000000030",
     screenKey: "screens/checkout",
     state: previewState,
-    viewport: "1440",
+    viewport: currentPreviewViewport,
     route: "/checkout",
     candidatePxgRevision: candidateState === "DIRTY" ? 5 : 4,
     sourceRevision: "fixture-source",
@@ -568,6 +604,33 @@ function previewDocument(sessionId = previewSessionId): PreviewDocument {
 }
 
 function inspector(): InspectorDescriptor {
+  const property = (
+    propertyName: string,
+    value: string | null,
+    legalValues: string[],
+    computedValue: string | null,
+    valueType: "TOKEN" | "ENUM" = "TOKEN",
+  ) => ({
+    propertyName,
+    value,
+    valueType,
+    units: ["gap", "padding", "spacing"].includes(propertyName) ? "px" : null,
+    semanticTokenClass: ["gap", "padding", "spacing"].includes(propertyName) ? "spacing" : (valueType === "ENUM" ? "layout" : propertyName),
+    legalValues,
+    computedValue,
+    responsiveSemantics: "GLOBAL",
+    sourcePath: "prototypes/screens/checkout.html",
+    mutationOperation: "SET_PROPERTY",
+    lockBehavior: "OPERATION_SENSITIVE",
+    writable: !inspectorLocks.some((lock) => lock.blocksSetProperty),
+    lockReason: inspectorLocks.find((lock) => lock.blocksSetProperty)?.reason ?? null,
+    accessibilityEffect: ["gap", "padding", "spacing", "layout_type", "direction"].includes(propertyName) ? "LAYOUT_REFLOW_RECHECK" : "NONE_KNOWN",
+    validation: valueType === "ENUM" ? "ENUM_REQUIRED" : "TOKEN_REQUIRED",
+    previewInvalidation: ["PREVIEW", "VISUAL_VERIFICATION"],
+    requiredVerification: ["silhouette", "visual_critique"],
+  });
+  const spaces = ["space0", "space1", "space2", "space3", "space4", "space5", "space6", "space7", "space8"];
+  const spacePx = {space0:0,space1:4,space2:8,space3:12,space4:16,space5:20,space6:24,space7:32,space8:40};
   return {
     candidateId,
     pxgKey,
@@ -581,31 +644,31 @@ function inspector(): InspectorDescriptor {
     sourceSymbol: null,
     elementId: "hero-1",
     requiredVerification: ["silhouette", "visual_critique"],
+    locks: [...inspectorLocks],
     properties: [
-      {
-        propertyName: "spacing",
-        value: spacing,
-        valueType: "TOKEN",
-        units: "px",
-        semanticTokenClass: "spacing",
-        legalValues: ["space2", "space4"],
-        computedValue: spacing === "space2" ? "8px" : "16px",
-        responsiveSemantics: "GLOBAL",
-        sourcePath: "prototypes/screens/checkout.html",
-        mutationOperation: "SET_PROPERTY",
-        lockBehavior: "OPERATION_SENSITIVE",
-        writable: true,
-        lockReason: null,
-        accessibilityEffect: "LAYOUT_REFLOW_RECHECK",
-        validation: "TOKEN_REQUIRED",
-        previewInvalidation: ["PREVIEW", "VISUAL_VERIFICATION"],
-        requiredVerification: ["silhouette", "visual_critique"],
-      },
+      property("layout_type", layoutType, ["grid", "row", "stack"], layoutType, "ENUM"),
+      property("direction", direction, ["horizontal", "vertical"], direction, "ENUM"),
+      property("gap", gap, spaces, `${spacePx[gap as keyof typeof spacePx]}px`),
+      property("padding", padding, spaces, `${spacePx[padding as keyof typeof spacePx]}px`),
+      property("spacing", spacing, spaces, `${spacePx[spacing as keyof typeof spacePx]}px`),
+      property("duration", null, ["motion-duration-fast", "motion-duration-base", "motion-duration-slow"], null),
+      property("easing", null, ["motion-easing-arrival", "motion-easing-linear", "motion-easing-state"], null),
     ],
   };
 }
 
 function commandPayload(command: DdeCommand): Record<string, unknown> {
+  if (command.commandType === "frontend.design.provider_status") { return { providers: [designProviderStatus] }; }
+  if (command.commandType === "frontend.design.try_live") {
+    const artifactId = String(command.parameters.artifact_id ?? "");
+    const artifact = designArtifacts.find((item) => item.artifactId === artifactId);
+    if (!artifact) throw new Error("unknown design artifact");
+    designArtifacts = designArtifacts.map((item) => item.artifactId === artifactId ? { ...item, status: "TRIED_LIVE", candidateId, updatedAt: new Date().toISOString() } : item);
+    candidateWorkspaceId = "00000000-0000-0000-0000-000000000030";
+    candidateState = "READY";
+    spacing = artifact.directionLabel === "A" ? "space6" : spacing;
+    return { artifactId, directionLabel: artifact.directionLabel, candidateId };
+  }
   if (command.commandType === "frontend.source.initialize") { return { sources: sourceCatalog().sources }; }
   if (command.commandType === "frontend.source.search") { sourceArtifactState = "INDEXED"; sourceArtifacts = [searchedArtifact()]; return { searchRunId: "00000000-0000-0000-0000-000000000112", status: "PARTIAL", resultCount: 1, artifacts: sourceArtifacts, degradation: { "21st": "NOT_CONFIGURED" } }; }
   if (command.commandType === "frontend.source.inspect") { sourceArtifactState = "INSPECTED"; sourceArtifacts = [searchedArtifact()]; return { artifact: sourceArtifacts[0] }; }
@@ -833,6 +896,17 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
         const refusalDetail = chatConversation.mode === "ASK" ? "Ask mode is read-only. Switch to Execute for /design." : "Plan mode cannot invoke /design; it can only prepare governed plans.";
         const pair = appendChatPair(text, { intent: "DESIGN_DIVERGENT", outcome: "REFUSED", message: refusalDetail, refusalCode: "MODE_READ_ONLY", refusalDetail });
         return { turnId: pair.user.turnId, replyTurnId: pair.studio.turnId, sequence: pair.user.sequence, intent: "DESIGN_DIVERGENT", outcome: "REFUSED", refusalCode: "MODE_READ_ONLY", refusalDetail, resolvedContext: pair.user.resolvedContext, producedRefs: [], message: refusalDetail };
+      }
+      if (designProviderStatus.state === "CERTIFIED") {
+        // One conversation, one design session: the toolbar control and
+        // the composer both land here, and neither opens a second thread.
+        designSessionId = "00000000-0000-0000-0000-0000000000d1";
+        designArtifacts = fixtureDesignArtifacts();
+        const producedRefs = designArtifacts.map((item) => item.artifactId);
+        chatConversation = { ...chatConversation, designSessionId, lockVersion: chatConversation.lockVersion + 1 };
+        const message = "3 direction(s) generated";
+        const pair = appendChatPair(text, { intent: "DESIGN_DIVERGENT", outcome: "ROUTED", message, producedRefs });
+        return { turnId: pair.user.turnId, replyTurnId: pair.studio.turnId, sequence: pair.user.sequence, intent: "DESIGN_DIVERGENT", outcome: "ROUTED", refusalCode: null, refusalDetail: null, resolvedContext: pair.user.resolvedContext, producedRefs, message };
       }
       const refusalDetail = "no certified design provider transport";
       const pair = appendChatPair(text, {
@@ -1103,7 +1177,13 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
   if (command.commandType === "frontend.mutation.apply") {
     const rows = command.parameters.mutations as Array<Record<string, unknown>>;
     const payload = rows[0]?.payload as Record<string, unknown>;
-    spacing = String(payload.value);
+    const propertyName = String(payload.property ?? "");
+    const nextValue = String(payload.value ?? "");
+    if (propertyName === "spacing") spacing = nextValue;
+    else if (propertyName === "layout_type") layoutType = nextValue;
+    else if (propertyName === "direction") direction = nextValue;
+    else if (propertyName === "gap") gap = nextValue;
+    else if (propertyName === "padding") padding = nextValue;
     candidateState = "DIRTY";
     previewState = "STALE";
     verificationRequestState = "SUPERSEDED";
@@ -1126,7 +1206,29 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
     acceptedRevision += 1;
     return { candidateId, state: candidateState, promotedAt: new Date().toISOString(), provenanceProjectionState: "CURRENT", provenanceRecordCount: 1, auditState: "CURRENT" };
   }
+  if (command.commandType === "frontend.lock.create") {
+    const kind = String(command.parameters.lock_kind ?? "STYLE");
+    const scope = String(command.parameters.scope_key ?? pxgKey);
+    const reason = String(command.parameters.reason ?? "Inspector lock");
+    const lock = {
+      lockId: `lock-${inspectorLocks.length + 1}`,
+      lockKind: kind,
+      scopeKey: scope,
+      reason,
+      blocksSetProperty: ["STYLE", "SECTION", "SCREEN", "GLOBAL_DESIGN"].includes(kind),
+      blocksBehaviour: ["BEHAVIOUR", "SCREEN", "GLOBAL_DESIGN"].includes(kind),
+      blocksResponsive: ["SCREEN", "GLOBAL_DESIGN"].includes(kind),
+    };
+    inspectorLocks = [...inspectorLocks, lock];
+    return { lockId: lock.lockId, lockKind: kind, scopeKey: scope, status: "ACTIVE" };
+  }
+  if (command.commandType === "frontend.lock.release") {
+    const lockId = String(command.parameters.lock_id ?? "");
+    inspectorLocks = inspectorLocks.filter((item) => item.lockId !== lockId);
+    return { lockId, status: "RELEASED" };
+  }
   if (command.commandType === "frontend.preview.start") {
+    currentPreviewViewport = String(command.parameters.viewport ?? currentPreviewViewport);
     if (freshCandidate && !candidateWorkspaceId) {
       const sourceWorkspaceId = command.parameters.source_workspace_id;
       if (sourceWorkspaceId !== sourceA && sourceWorkspaceId !== sourceB) {
@@ -1168,6 +1270,7 @@ const bridge = new TestHostBridge({
     "frontend.audit.findings": () => ({ findings: auditMatrix().findings }),
     "frontend.audit.screen": () => ({ screen: auditMatrix().screens[0], findings: auditMatrix().findings }),
     "frontend.audit.evidence": () => ({ evidence: [] }),
+    "frontend.design.artifacts": () => ({ artifacts: [...designArtifacts] }),
     "frontend.sources.inventory": () => sourceCatalog(),
     "frontend.sources.artifact": () => ({ artifact: sourceArtifacts[0] ?? null, admission: sourceArtifactState === "ADMITTED" ? { admissionId: "00000000-0000-0000-0000-000000000113", artifactId: sourceArtifactId, contentHash: "a".repeat(64), compilerVersion: "m8.compiler.v1", frameworkState: "PASS", licenseState: "PASS", dependencyState: "PASS", securityState: "PASS", accessibilityState: "PASS", designSystemState: "PASS", tokenMappingReport: { status: "mapped" }, unsupportedBehaviors: [], hardFailures: [], validationObligations: [], state: "ADMITTED" } : null }),
     "frontend.sources.provenance": () => ({ provenance: [...sourceProvenance] }),
@@ -1190,6 +1293,8 @@ const bridge = new TestHostBridge({
     "frontend.inspector.describe": () => inspector(),
   },
   commands: {
+    "frontend.design.provider_status": commandPayload,
+    "frontend.design.try_live": commandPayload,
     "frontend.source.initialize": commandPayload,
     "frontend.source.search": commandPayload,
     "frontend.source.inspect": commandPayload,
@@ -1225,6 +1330,8 @@ const bridge = new TestHostBridge({
     "frontend.chat.send": commandPayload,
     "frontend.preview.set_state": commandPayload,
     "frontend.mutation.apply": commandPayload,
+    "frontend.lock.create": commandPayload,
+    "frontend.lock.release": commandPayload,
     "frontend.preview.start": commandPayload,
     "frontend.candidate.promote": commandPayload,
     "frontend.verification.run": commandPayload,

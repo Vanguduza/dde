@@ -30,6 +30,8 @@ STYLE_PROPERTIES = frozenset(
     {
         "color",
         "spacing",
+        "padding",
+        "gap",
         "radius",
         "shadow",
         "type",
@@ -38,6 +40,9 @@ STYLE_PROPERTIES = frozenset(
         "z_index",
     }
 )
+LAYOUT_PROPERTIES = frozenset({"layout_type", "direction"})
+LAYOUT_TYPES = frozenset({"stack", "grid", "row"})
+LAYOUT_DIRECTIONS = frozenset({"vertical", "horizontal"})
 VARIANTS = frozenset({"primary", "secondary", "ghost"})
 BASE_KINDS = frozenset({"layout", "text", "button"})
 
@@ -94,7 +99,7 @@ def z_index_tokens() -> frozenset[str]:
 def allowed_values(property_name: str) -> frozenset[str]:
     if property_name == "color":
         return color_aliases()
-    if property_name == "spacing":
+    if property_name in {"spacing", "padding", "gap"}:
         return spacing_tokens()
     if property_name == "radius":
         return radius_tokens()
@@ -108,6 +113,10 @@ def allowed_values(property_name: str) -> frozenset[str]:
         return EASING_TOKENS
     if property_name == "z_index":
         return z_index_tokens()
+    if property_name == "layout_type":
+        return LAYOUT_TYPES
+    if property_name == "direction":
+        return LAYOUT_DIRECTIONS
     if property_name == "variant":
         return VARIANTS
     raise DdeError(
@@ -147,7 +156,7 @@ def css_var_for(property_name: str, value: str) -> str:
     """Map a picker value onto the generated CSS custom-property name."""
     if property_name == "color":
         return value
-    if property_name == "spacing":
+    if property_name in {"spacing", "padding", "gap"}:
         number = value.removeprefix("space")
         return f"--space-{number}"
     if property_name == "radius":

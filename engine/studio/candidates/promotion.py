@@ -28,8 +28,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.contracts.design_artifact import DesignArtifact
+from engine.contracts.design_session import DesignSession
 from engine.contracts.frontend_candidate import FrontendCandidate
 from engine.contracts.verification_run import VerificationRun
 from engine.core.errors import DdeError
@@ -41,6 +44,8 @@ from engine.studio.locks.service import LockService
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.pxg.service import NodeInput, PxgService
 from engine.studio.source.service import SourceIntelligenceService
+from engine.studio.tables import design_artifacts, design_sessions
+from engine.truth.db import open_unit_of_work
 
 #: Evidence kinds whose absence blocks promotion for a frontend
 #: candidate. Kept in step with `screen_acceptance_defaults.json`'s
@@ -236,6 +241,10 @@ class PromotionService:
     async def _source_gate(
         self, *, tenant_id: UUID, project_id: UUID, candidate: FrontendCandidate
     ) -> GateResult:
+        if candidate.origin == "DESIGN_ARTIFACT":
+            return await self._design_artifact_lineage_gate(
+                tenant_id=tenant_id, project_id=project_id, candidate=candidate
+            )
         ready, detail = await self._sources.promotion_readiness(
             tenant_id=tenant_id,
             project_id=project_id,
@@ -243,6 +252,114 @@ class PromotionService:
             candidate_origin=candidate.origin,
         )
         return GateResult("source_provenance", ready, detail)
+
+    async def _design_artifact_lineage_gate(
+        self, *, tenant_id: UUID, project_id: UUID, candidate: FrontendCandidate
+    ) -> GateResult:
+        """Validate design-provider lineage from DDE's design tables.
+
+        A DesignArtifact is not a DesignSourceArtifact and must never be
+        smuggled through the external-source admission tables just to satisfy
+        a provenance gate. Its authoritative lineage is the design session,
+        artifact content hash and candidate link persisted by DesignGateway.
+        """
+        raw_id = candidate.provenance.get("design_artifact_id")
+        raw_hash = candidate.provenance.get("design_artifact_content_hash")
+        if not isinstance(raw_id, str) or not isinstance(raw_hash, str):
+            return GateResult(
+                "source_provenance",
+                False,
+                "design candidate is missing pinned design-artifact lineage",
+            )
+        try:
+            artifact_id = UUID(raw_id)
+        except ValueError:
+            return GateResult(
+                "source_provenance", False, "design-artifact lineage id is malformed"
+            )
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            artifact_row = (
+                (
+                    await uow.connection.execute(
+                        select(design_artifacts).where(
+                            design_artifacts.c.artifact_id == artifact_id,
+                            design_artifacts.c.tenant_id == tenant_id,
+                            design_artifacts.c.project_id == project_id,
+                        )
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if artifact_row is None:
+                return GateResult(
+                    "source_provenance",
+                    False,
+                    "pinned design artifact no longer exists",
+                )
+            artifact = DesignArtifact.model_validate(dict(artifact_row))
+            session_row = (
+                (
+                    await uow.connection.execute(
+                        select(design_sessions).where(
+                            design_sessions.c.session_id == artifact.session_id,
+                            design_sessions.c.tenant_id == tenant_id,
+                            design_sessions.c.project_id == project_id,
+                        )
+                    )
+                )
+                .mappings()
+                .first()
+            )
+        if session_row is None:
+            return GateResult(
+                "source_provenance",
+                False,
+                "design artifact has no surviving design session",
+            )
+        session = DesignSession.model_validate(dict(session_row))
+        checks = (
+            (
+                artifact.status == "TRIED_LIVE",
+                "design artifact is not in TRIED_LIVE state",
+            ),
+            (
+                artifact.candidate_id == candidate.candidate_id,
+                "design artifact is linked to a different candidate",
+            ),
+            (
+                artifact.content_hash == raw_hash,
+                "design artifact content hash no longer matches candidate lineage",
+            ),
+            (
+                candidate.provenance.get("design_session_id")
+                == str(session.session_id),
+                "candidate design-session lineage does not match the artifact",
+            ),
+            (
+                candidate.provenance.get("provider_id") == artifact.provider_id,
+                "candidate provider lineage does not match the artifact",
+            ),
+            (
+                candidate.provenance.get("design_system_hash")
+                == session.design_system_hash,
+                "candidate design-system lineage does not match the design session",
+            ),
+            (
+                candidate.base_pxg_revision == session.base_pxg_revision,
+                "candidate PXG base does not match the design session",
+            ),
+        )
+        for passed, detail in checks:
+            if not passed:
+                return GateResult("source_provenance", False, detail)
+        return GateResult(
+            "source_provenance",
+            True,
+            f"design artifact {artifact.artifact_id} hash and session lineage are pinned to this candidate",  # noqa: E501
+        )
 
     async def _lock_gate(
         self, *, tenant_id: UUID, project_id: UUID, candidate: FrontendCandidate

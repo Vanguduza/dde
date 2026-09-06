@@ -415,3 +415,36 @@ def test_unknown_operations_and_origins_are_refused() -> None:
             locks=[],
         )
         assert result.refused[0].code == "MUTATION_INVALID"
+
+
+def test_layout_enum_and_spacing_aliases_share_governed_validation() -> None:
+    valid = (
+        {"property": "layout_type", "value": "stack"},
+        {"property": "direction", "value": "vertical"},
+        {"property": "gap", "value": "space6"},
+        {"property": "padding", "value": "space8"},
+    )
+    for payload in valid:
+        result = plan(
+            [_request(payload=payload)],
+            candidate=_candidate(),
+            graph=_graph(),
+            locks=[],
+        )
+        assert result.planned and not result.refused, payload
+
+    invalid = (
+        {"property": "layout_type", "value": "absolute"},
+        {"property": "direction", "value": "diagonal"},
+        {"property": "gap", "value": "24px"},
+        {"property": "padding", "value": "64px"},
+    )
+    for payload in invalid:
+        result = plan(
+            [_request(payload=payload)],
+            candidate=_candidate(),
+            graph=_graph(),
+            locks=[],
+        )
+        assert result.planned == (), payload
+        assert result.refused[0].code == "OFF_TOKEN_REFUSED", payload

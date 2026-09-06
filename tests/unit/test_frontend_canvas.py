@@ -135,3 +135,39 @@ def test_set_animation_and_upsert_step() -> None:
                 "easingToken": "ease-out",
             },
         )
+
+
+def test_layout_gap_and_padding_use_governed_semantic_values() -> None:
+    html, element_id = apply_insert(
+        STARTER, kind="layout", anchor_parent="root", position_index=0, label="Hero"
+    )
+    html = apply_update(
+        html, element_id=element_id, property_name="layout_type", value="stack"
+    )
+    html = apply_update(
+        html, element_id=element_id, property_name="direction", value="vertical"
+    )
+    html = apply_update(
+        html, element_id=element_id, property_name="gap", value="space6"
+    )
+    html = apply_update(
+        html, element_id=element_id, property_name="padding", value="space8"
+    )
+    assert 'data-dde-layout-type="stack"' in html
+    assert 'data-dde-direction="vertical"' in html
+    assert "display: flex" in html
+    assert "flex-direction: column" in html
+    assert "gap: var(--space-6)" in html
+    assert "padding: var(--space-8)" in html
+
+
+def test_layout_controls_reject_freehand_or_unknown_values() -> None:
+    html, element_id = apply_insert(
+        STARTER, kind="layout", anchor_parent="root", position_index=0, label="Hero"
+    )
+    with pytest.raises(DdeError):
+        apply_update(html, element_id=element_id, property_name="gap", value="24px")
+    with pytest.raises(DdeError):
+        apply_update(
+            html, element_id=element_id, property_name="layout_type", value="absolute"
+        )

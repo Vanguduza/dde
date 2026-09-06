@@ -190,11 +190,19 @@ def compile_context(
 
 
 def _node(node: PxgNode) -> dict[str, object]:
+    stable_anchor = node.attributes.get("element_id")
+    token_editable = bool(
+        isinstance(stable_anchor, str) and stable_anchor and node.source_refs
+    )
     return {
         "pxg_key": node.pxg_key,
         "node_kind": node.node_kind,
         "title": node.title,
         "parent_key": node.parent_key,
+        # Boolean capability only: the provider learns whether DDE can
+        # deterministically materialize token edits, not the internal DOM
+        # anchor or repository source path used to do it.
+        "materialization": {"token_edit": token_editable},
         "attributes": {
             key: value
             for key, value in node.attributes.items()

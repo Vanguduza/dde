@@ -18,9 +18,10 @@ from uuid import uuid4
 
 import pytest
 
-from engine.core.errors import DdeError
-from engine.studio.candidates.service import CandidateService
 from engine.chat.service import FrontendChatService
+from engine.core.errors import DdeError
+from engine.studio.candidates.promotion import PromotionService
+from engine.studio.candidates.service import CandidateService
 from engine.studio.design.context import compile_context, design_system_snapshot
 from engine.studio.design.gateway import DesignGateway
 from engine.studio.design.providers import (
@@ -31,6 +32,7 @@ from engine.studio.design.providers import (
     ProviderState,
     default_registry,
 )
+from engine.studio.locks.service import LockService
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.pxg.service import NodeInput, PxgGraph, PxgService
 from tests.support.db import new_engine, seed_tenant
@@ -277,7 +279,22 @@ async def test_try_live_creates_an_isolated_candidate_not_accepted_code() -> Non
     engine = new_engine()
     try:
         _, scope = await _project(engine)
-        provider = StubDesignProvider((_artifact("A"),))
+        provider = StubDesignProvider(
+            (
+                _artifact(
+                    "A",
+                    {
+                        "nodes": [
+                            {
+                                "pxg_key": "screens/checkout#hero",
+                                "intent": "increase hero spacing",
+                                "tokens": {"spacing": "space6"},
+                            }
+                        ]
+                    },
+                ),
+            )
+        )
         gateway = DesignGateway(engine, registry=DesignProviderRegistry((provider,)))
         outcome = await gateway.request(
             **scope, scope_keys=["screens/checkout"], instruction="a hero"
@@ -293,18 +310,163 @@ async def test_try_live_creates_an_isolated_candidate_not_accepted_code() -> Non
             **scope, candidate_id=candidate_id
         )
         assert candidate.origin == "DESIGN_ARTIFACT"
-        assert candidate.state == "REQUESTED"
+        assert candidate.state == "GENERATED"
         assert candidate.scope_keys == ["screens/checkout"]
         assert candidate.provenance["design_artifact_id"] == str(artifact.artifact_id)
+        assert (
+            candidate.provenance["design_artifact_content_hash"]
+            == artifact.content_hash
+        )
+        assert candidate.provenance["proposal_mutation_count"] == 1
+
+        history = await MutationExecutor(engine).history(
+            **scope, candidate_id=candidate_id
+        )
+        assert len(history) == 1
+        assert history[0].status == "APPLIED"
+        assert history[0].origin == "DESIGN_PROVIDER"
+        assert history[0].target_key == "screens/checkout#hero"
+        assert history[0].payload == {"property": "spacing", "value": "space6"}
+        effective = await MutationExecutor(engine).candidate_graph(
+            **scope, candidate_id=candidate_id
+        )
+        effective_hero = effective.node_by_key("screens/checkout#hero")
+        assert effective_hero is not None
+        assert effective_hero.attributes["spacing"] == "space6"
 
         # The accepted graph is untouched: a design artifact never becomes
         # accepted state by being tried.
         assert await PxgService(engine).current_revision(**scope) == before
 
+        decision = await PromotionService(engine).evaluate(
+            **scope, candidate_id=candidate_id
+        )
+        source_gate = next(
+            item for item in decision.gates if item.name == "source_provenance"
+        )
+        mutation_gate = next(
+            item for item in decision.gates if item.name == "mutations"
+        )
+        assert source_gate.passed is True
+        assert "design artifact" in source_gate.detail
+        assert mutation_gate.passed is True
+
         # Trying the same artifact twice is refused rather than forking.
         with pytest.raises(DdeError) as excinfo:
             await gateway.try_live(**scope, artifact_id=artifact.artifact_id)
         assert excinfo.value.error_code == "POLICY_DENIED"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_try_live_refuses_a_design_generated_against_an_older_pxg_revision() -> (
+    None
+):
+    engine = new_engine()
+    try:
+        _, scope = await _project(engine)
+        provider = StubDesignProvider(
+            (
+                _artifact(
+                    "A",
+                    {
+                        "nodes": [
+                            {
+                                "pxg_key": "screens/checkout#hero",
+                                "intent": "increase hero spacing",
+                                "tokens": {"spacing": "space6"},
+                            }
+                        ]
+                    },
+                ),
+            )
+        )
+        gateway = DesignGateway(engine, registry=DesignProviderRegistry((provider,)))
+        outcome = await gateway.request(
+            **scope, scope_keys=["screens/checkout"], instruction="a hero"
+        )
+        await PxgService(engine).apply(
+            **scope,
+            nodes=[
+                NodeInput(
+                    pxg_key="screens/checkout#late",
+                    node_kind="region",
+                    title="Late change",
+                    parent_key="screens/checkout",
+                )
+            ],
+        )
+        with pytest.raises(DdeError) as excinfo:
+            await gateway.try_live(
+                **scope, artifact_id=outcome.artifacts[0].artifact_id
+            )
+        assert excinfo.value.error_code == "STALE_REVISION"
+        assert "experience graph changed" in excinfo.value.message
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_try_live_applies_a_direction_atomically_or_rejects_it() -> None:
+    engine = new_engine()
+    try:
+        fixture, scope = await _project(engine)
+        await LockService(engine).create(
+            **scope,
+            lock_kind="STYLE",
+            scope_key="screens/checkout#hero",
+            reason="protect approved hero styling",
+            created_by=fixture.principal_id,
+        )
+        provider = StubDesignProvider(
+            (
+                _artifact(
+                    "A",
+                    {
+                        "nodes": [
+                            {
+                                "pxg_key": "screens/checkout",
+                                "intent": "increase screen spacing",
+                                "tokens": {"spacing": "space4"},
+                            },
+                            {
+                                "pxg_key": "screens/checkout#hero",
+                                "intent": "increase hero spacing",
+                                "tokens": {"spacing": "space6"},
+                            },
+                        ]
+                    },
+                ),
+            )
+        )
+        gateway = DesignGateway(engine, registry=DesignProviderRegistry((provider,)))
+        outcome = await gateway.request(
+            **scope, scope_keys=["screens/checkout"], instruction="a hero"
+        )
+        artifact = outcome.artifacts[0]
+        with pytest.raises(DdeError) as excinfo:
+            await gateway.try_live(**scope, artifact_id=artifact.artifact_id)
+        assert excinfo.value.error_code == "DESIGN_SOURCE_REJECTED"
+        from uuid import UUID
+
+        candidate_id = UUID(str(excinfo.value.details["candidate_id"]))
+        history = await MutationExecutor(engine).history(
+            **scope, candidate_id=candidate_id
+        )
+        assert history
+        assert all(item.status == "REFUSED" for item in history)
+        assert {item.target_key for item in history} == {"screens/checkout#hero"}
+        effective = await MutationExecutor(engine).candidate_graph(
+            **scope, candidate_id=candidate_id
+        )
+        screen = effective.node_by_key("screens/checkout")
+        assert screen is not None
+        assert "spacing" not in screen.attributes
+        accepted = await PxgService(engine).load(**scope)
+        hero = accepted.node_by_key("screens/checkout#hero")
+        assert hero is not None
+        assert hero.attributes["spacing"] == "space2"
     finally:
         await engine.dispose()
 
@@ -339,12 +501,15 @@ async def test_chat_routes_a_deterministic_edit_through_the_mutation_path() -> N
             )
 
         chat = FrontendChatService(engine)
-        conversation = await chat.open(**scope)
+        # Ask mode is read-only, so a turn that edits needs Execute. That
+        # gate is asserted on its own below rather than worked around here.
+        conversation = await chat.open(**scope, mode="EXECUTE")
         await chat.set_context(
             **scope,
             conversation_id=conversation.conversation_id,
             selected_node_keys=["screens/checkout#hero"],
             active_candidate_id=candidate.candidate_id,
+            set_active_candidate=True,
         )
 
         result = await chat.send(
@@ -384,7 +549,7 @@ async def test_chat_design_intent_surfaces_the_gateway_refusal_verbatim() -> Non
     try:
         _, scope = await _project(engine)
         chat = FrontendChatService(engine)
-        conversation = await chat.open(**scope)
+        conversation = await chat.open(**scope, mode="EXECUTE")
         await chat.set_context(
             **scope,
             conversation_id=conversation.conversation_id,
@@ -414,7 +579,7 @@ async def test_chat_and_design_share_one_session() -> None:
             engine,
             design=DesignGateway(engine, registry=DesignProviderRegistry((provider,))),
         )
-        conversation = await chat.open(**scope)
+        conversation = await chat.open(**scope, mode="EXECUTE")
         await chat.set_context(
             **scope,
             conversation_id=conversation.conversation_id,
@@ -446,7 +611,7 @@ async def test_a_chat_edit_with_no_active_candidate_is_refused() -> None:
     try:
         _, scope = await _project(engine)
         chat = FrontendChatService(engine)
-        conversation = await chat.open(**scope)
+        conversation = await chat.open(**scope, mode="EXECUTE")
         await chat.set_context(
             **scope,
             conversation_id=conversation.conversation_id,
@@ -460,5 +625,39 @@ async def test_a_chat_edit_with_no_active_candidate_is_refused() -> None:
         assert result.turn.outcome == "REFUSED"
         assert result.turn.refusal_code == "NO_ACTIVE_CANDIDATE"
         assert "never edited in place" in (result.turn.refusal_detail or "")
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_ask_mode_refuses_design_before_the_provider_is_ever_consulted() -> None:
+    """`/design` is a mutating intent, so the conversation mode gates it.
+
+    The refusal must be the mode, not the provider: a certified provider
+    does not make Ask mode writable, and reporting "no provider" here would
+    send the operator to fix the wrong thing.
+    """
+    engine = new_engine()
+    try:
+        _, scope = await _project(engine)
+        provider = StubDesignProvider((_artifact("A"),))
+        chat = FrontendChatService(
+            engine,
+            design=DesignGateway(engine, registry=DesignProviderRegistry((provider,))),
+        )
+        conversation = await chat.open(**scope, mode="ASK")
+        await chat.set_context(
+            **scope,
+            conversation_id=conversation.conversation_id,
+            selected_node_keys=["screens/checkout"],
+        )
+        result = await chat.send(
+            **scope,
+            conversation_id=conversation.conversation_id,
+            text="/design three hero alternatives",
+        )
+        assert result.turn.outcome == "REFUSED"
+        assert result.turn.refusal_code == "MODE_READ_ONLY"
+        assert provider.seen == []
     finally:
         await engine.dispose()

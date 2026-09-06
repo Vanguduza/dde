@@ -326,6 +326,16 @@ export interface InspectorPropertyDescriptor {
   readonly requiredVerification: readonly string[];
 }
 
+export interface InspectorLockDescriptor {
+  readonly lockId: string;
+  readonly lockKind: string;
+  readonly scopeKey: string;
+  readonly reason: string;
+  readonly blocksSetProperty: boolean;
+  readonly blocksBehaviour: boolean;
+  readonly blocksResponsive: boolean;
+}
+
 export interface InspectorDescriptor {
   readonly candidateId: string;
   readonly pxgKey: string;
@@ -339,6 +349,7 @@ export interface InspectorDescriptor {
   readonly sourceSymbol: string | null;
   readonly elementId: string | null;
   readonly properties: readonly InspectorPropertyDescriptor[];
+  readonly locks: readonly InspectorLockDescriptor[];
   readonly requiredVerification: readonly string[];
 }
 
@@ -609,6 +620,42 @@ export interface FrontendStudioSnapshot {
   readonly sources: SourceInventorySnapshot;
   readonly candidates: CandidateBoardSnapshot;
   readonly degradedReasons: readonly string[];
+}
+
+/**
+ * What the `Claude /design` control renders itself from.
+ *
+ * `state` is deliberately not a boolean. "This build ships no transport",
+ * "nobody is signed in on the host" and "the endpoint is down" send an
+ * operator to three different places, and collapsing them into `usable:
+ * false` would lose that.
+ */
+export interface DesignDirectionArtifact {
+  readonly artifactId: string;
+  readonly sessionId: string;
+  readonly directionLabel: string;
+  readonly status: "GENERATED" | "QUARANTINED" | "SELECTED" | "TRIED_LIVE" | "DISCARDED";
+  readonly providerId: string;
+  readonly contentHash: string;
+  readonly content: Readonly<Record<string, unknown>>;
+  readonly provenance: Readonly<Record<string, unknown>>;
+  readonly quarantineReason: string | null;
+  readonly candidateId: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface DesignProviderStatus {
+  readonly providerId: string;
+  readonly displayName: string;
+  readonly state:
+    | "CERTIFIED"
+    | "NOT_CERTIFIED"
+    | "AUTH_REQUIRED"
+    | "UNAVAILABLE";
+  readonly detail: string;
+  readonly version: string | null;
+  readonly usable: boolean;
 }
 
 export type StudioMode =

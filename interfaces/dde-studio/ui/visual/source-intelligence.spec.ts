@@ -109,6 +109,7 @@ test.describe("DDE-069 M8 Source Intelligence", () => {
       .frameLocator("iframe.dde-preview-frame")
       .locator('[data-dde-pxg-key="screens/checkout#hero"]');
     await hero.click();
+    await page.getByTestId("inspector-tab-source").click();
     await expect(page.getByTestId("inspector-provenance")).toContainText("REUSED");
     await expect(page.getByTestId("inspector-provenance")).toContainText("OPEN_REUSE");
     await page.getByTestId("mode-source").click();

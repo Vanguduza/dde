@@ -80,7 +80,14 @@ def _graph() -> PxgGraph:
                 "screens/checkout#hero",
                 "region",
                 parent="screens/checkout",
-                attributes={"element_id": "hero-1", "spacing": "space2"},
+                attributes={
+                    "element_id": "hero-1",
+                    "spacing": "space2",
+                    "layout_type": "stack",
+                    "direction": "vertical",
+                    "gap": "space6",
+                    "padding": "space8",
+                },
             ),
         ),
         edges=(),
@@ -130,6 +137,27 @@ def test_descriptor_uses_real_token_catalogue_and_source_mapping() -> None:
     assert spacing.writable is True
     assert spacing.preview_invalidation == ("PREVIEW", "VISUAL_VERIFICATION")
 
+    layout_type = next(
+        item for item in descriptor.properties if item.property_name == "layout_type"
+    )
+    direction = next(
+        item for item in descriptor.properties if item.property_name == "direction"
+    )
+    gap = next(item for item in descriptor.properties if item.property_name == "gap")
+    padding = next(
+        item for item in descriptor.properties if item.property_name == "padding"
+    )
+    assert layout_type.value == "stack"
+    assert layout_type.value_type == "ENUM"
+    assert layout_type.legal_values == ("grid", "row", "stack")
+    assert direction.value == "vertical"
+    assert direction.legal_values == ("horizontal", "vertical")
+    assert gap.value == "space6"
+    assert gap.computed_value == "24px"
+    assert gap.semantic_token_class == "spacing"  # noqa: S105
+    assert padding.value == "space8"
+    assert padding.computed_value == "40px"
+
 
 def test_operation_sensitive_lock_disables_write_without_erasing_descriptor() -> None:
     descriptor = build_descriptor(
@@ -158,3 +186,21 @@ def test_stale_candidate_is_readable_but_not_writable() -> None:
     )
     assert descriptor.stale is True
     assert all(item.writable is False for item in descriptor.properties)
+
+
+def test_effective_lock_projection_names_blocked_operation_domains() -> None:
+    descriptor = build_descriptor(
+        candidate=_candidate(),
+        graph=_graph(),
+        locks=[_style_lock()],
+        pxg_key="screens/checkout#hero",
+        stale=False,
+    )
+    assert len(descriptor.locks) == 1
+    lock = descriptor.locks[0]
+    assert lock.lock_kind == "STYLE"
+    assert lock.scope_key == "screens/checkout#hero"
+    assert lock.blocks_set_property is True
+    assert lock.blocks_behaviour is False
+    assert lock.blocks_responsive is False
+    assert "approved spacing is frozen" in lock.reason

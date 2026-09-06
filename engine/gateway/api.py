@@ -242,6 +242,22 @@ async def read_frontend_audit_evidence(
     )
 
 
+@router.get("/missions/{mission_id}/frontend/design/sessions/{design_session_id}/artifacts")
+async def read_frontend_design_artifacts(
+    mission_id: UUID,
+    design_session_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_design_artifacts(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        design_session_id=design_session_id,
+    )
+
+
 @router.get("/missions/{mission_id}/frontend/sources")
 async def read_frontend_sources(
     mission_id: UUID,

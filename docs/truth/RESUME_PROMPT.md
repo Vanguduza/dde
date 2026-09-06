@@ -128,7 +128,8 @@ Verify:
 - structural shell tests at the canonical 1672×941 viewport;
 - Frontend Chat backend/control-plane semantics;
 - DesignSession / DesignArtifact / DesignEditContext / DesignGateway foundation;
-- typed refusal for the currently uncertified Claude Design transport.
+- a certified Claude Design MCP transport, with typed refusal whenever it is
+  not activated by configuration.
 
 Reported test state at the last implementation commit before the Screen Audit truth update was approximately:
 
@@ -149,10 +150,10 @@ Verify the following known gaps before deciding they still exist:
 3. **Real PostgreSQL/Redis integration is now evidenced on the current execution host.** An isolated DDE-only PostgreSQL 16.15 + Redis 7.0.15 runtime exercises migrations, Gateway, Chat, Screen Audit, M8, candidate verification and Redis streams. Keep any row whose E2E requirement specifically demands the packaged VS Code-host process BOUND until that host path is exercised; do not relabel the database itself unavailable.
 4. **DDE-068 candidate request execution is implemented.** A hash-confirmed LIVE preview persists a request over the candidate's effective PXG and existing AcceptanceOracle; `frontend.verification.run` executes it through the shared DDE-068 runner as a typed `FRONTEND_CANDIDATE` subject, with real browser/visual-critic capability leases, real VerificationRun/Evidence, stale-run protection and current evidence projection in QA/Inspector. PENDING/BLOCKED/SUPERSEDED remain non-verdict states. Real PostgreSQL persistence for this path is now covered by the isolated DDE-069 integration suite; packaged VS Code-host browser proof remains a distinct gate.
 5. **The Cursor-class Chat has been universalized as DDE Chat and its AI Conversation Fabric is implemented on runnable surfaces.** `engine.chat` owns durable multi-conversation history, Ask/Plan/Execute, attachments, plans, activities, checkpoints, workspace review and universal mission/task/workspace/worker/verification/artifact context. Frontend Studio contributes PXG/Contract/coverage/candidate state only through its context adapter. `dde.chat.*` and `/missions/{mission}/chat/...` are canonical; old `frontend.chat.*` contracts are compatibility aliases. Provider/session federation, ACP, Fabric policy/memory/context/skill/team/research/automation/hook/claim/experience authorities and MCP surfaces exist. Shared DDE memory stores structured authority/index metadata in PostgreSQL and non-ephemeral bodies/compaction archives in scoped content-addressed storage (R2 when configured, local fallback). Hermes ACP is DDE-managed under verified `--ignore-rules` isolation to prevent duplicate provider-private memory injection. Conversation context is policy-budgeted across protected live authority, explicit refs, APPROVED ranked memory and bounded history with durable PRE/POST compaction snapshots. Browser and extension proof remain green; isolated real PostgreSQL/Redis integration is now green, while live R2 E2E still requires complete scoped R2 credentials.
-6. **The `/design` backend gateway exists, but no certified Claude Design transport exists.** Do not substitute generic `capability.claude_code_invoke`.
+6. **The `/design` path is closed end to end.** `engine/studio/design/claude_transport.py` is a dedicated certified transport: the authenticated Claude Code executable used only as a bounded structured host for the official `claude-design` MCP, with an ephemeral allowlist, no session persistence, a machine-readable manifest contract instead of final prose, and stream-level verification that the run matched the policy it claimed. Activation is explicit configuration (`DDE_CLAUDE_DESIGN_ENABLED`); an unconfigured deployment still reports `NOT_CERTIFIED` and the gateway still refuses with no fallback. Broad `capability.claude_code_invoke` remains forbidden as a `/design` substitute and is not used. Do not rebuild this; do not weaken its allowlist. Evidence: `docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md`.
 7. **Source intelligence (M8)** — the common adapter/domain/Gateway/Chat/React vertical slice is implemented and conservatively reconciled into the binding ledger. Its real PostgreSQL lifecycle is now **PASS** on isolated PostgreSQL 16.15; real certified 21st execution remains external. Do not rebuild the landed M8 architecture.
 8. **Pixel-reference visual conformance is blocked** because the actual user-approved 1672×941 golden image has never been committed to the repository.
-9. **The binding ledger is v2 and currently projects 5 VERIFIED / 34 BOUND / 6 TYPED_UNAVAILABLE / 54 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; do not upgrade controls from backend presence alone.
+9. **The binding ledger is v2 and currently projects 6 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 48 UNBOUND.** Final state still derives from explicit DOMAIN/READ/COMMAND/STATE/UI/WIRED/E2E/VISUAL evidence; do not upgrade controls from backend presence alone.
 
 Do not declare M7/M9/M10 or DDE-069 complete from domain implementation alone.
 
@@ -183,19 +184,34 @@ This blocker must not prevent legitimate non-pixel-reference DDE-069 work.
 
 ---
 
-# 6. Certified `/design` transport blocker
+# 6. Certified `/design` transport — closed, and what must stay true
 
-The DesignGateway architecture is real and should remain provider-neutral.
+The DesignGateway architecture is real and must remain provider-neutral.
+`engine/studio/design/claude_transport.py` is the first certified transport and
+was proven live on 2026-09-06
+(`docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md`).
 
-If no certified Claude Design transport exists:
+Do not weaken any of these:
 
-- keep the provider typed unavailable / NOT_CERTIFIED;
-- keep `/design` visually honest;
-- do not route through broad `capability.claude_code_invoke` as a disguised generic coding prompt;
-- do not weaken EDR-0001 / EDR-0017 approval boundaries;
-- continue deterministic editing, candidate, audit and verification work that does not require the provider.
+- activation stays explicit configuration; a deployment that has not set
+  `DDE_CLAUDE_DESIGN_ENABLED` gets `NOT_CERTIFIED` and a refusal, never a
+  best-effort provider;
+- the host keeps `--tools ToolSearch`, `--strict-mcp-config` with exactly one
+  admitted server, ephemeral `--settings`, `--setting-sources ""`,
+  `--permission-mode dontAsk`, `--permission-prompts none` and
+  `--no-session-persistence`;
+- the returned stream is still checked against those flags, and a disagreement
+  is a refusal rather than a warning;
+- the return contract stays the machine-readable manifest; never parse final
+  prose, and never accept a direction naming a PXG key that was not exported or
+  a deliverable with no observed MCP write;
+- broad `capability.claude_code_invoke` is never routed as `/design`, and
+  EDR-0001 / EDR-0017 approval boundaries are never relaxed;
+- `/design` remains a Universal DDE Chat intent sharing one DesignSession; the
+  toolbar control never opens a second conversation or mutates state directly.
 
-A provider implementation must implement the accepted `DesignProvider` contract and pass admission/security/context tests before it is used.
+Any further provider must implement the accepted `DesignProvider` contract and
+pass admission/security/context tests before it is used.
 
 ---
 
@@ -521,7 +537,6 @@ The audit should be capable of discovering known current gaps without being hard
 - stable selection absent;
 - Inspector not wired end-to-end;
 - chat backend present but chat UI absent;
-- design transport unavailable;
 - source-intelligence gaps;
 - pixel-reference conformance blocked.
 
@@ -553,7 +568,7 @@ The current vertical slice supports:
 - universal Chat governed source search.
 
 M8-dependent ledger rows have now been reconciled from evidence and the local package
-gates are green. Real PostgreSQL persistence has now executed successfully on isolated PostgreSQL 16.15, including the M8 lifecycle and the broader 34-test DDE-069 PostgreSQL/Redis suite. External provider/certification state remains separate: 21st and Claude `/design` stay BLOCKED_EXTERNAL until exact certified transports exist; live R2 waits on complete scoped credentials.
+gates are green. Real PostgreSQL persistence has now executed successfully on isolated PostgreSQL 16.15, including the M8 lifecycle and the broader 34-test DDE-069 PostgreSQL/Redis suite. External provider/certification state remains separate: 21st stays BLOCKED_EXTERNAL until an exact certified transport exists, and live R2 waits on complete scoped credentials. Claude `/design` is no longer in that set — its certified transport landed and was proven live.
 
 ---
 
@@ -816,6 +831,6 @@ Latest continuation state after reconstructing `0a39299`:
 1. M8 checkpoint gates were re-run: 49 focused Python tests, 41 workbench Playwright tests, 77 extension tests and real 89-file / 1.57 MB VSIX packaging are green;
 2. `tests/unit/test_source_intelligence_postgres.py` now executes against isolated PostgreSQL 16.15 and passes; the broader DDE-069 PostgreSQL/Redis focused suite is 34/34 green;
 3. live 21st remains NOT_CONFIGURED / NOT_CERTIFIED with no direct-network fallback;
-4. the 99-control ledger is reconciled to **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND**;
+4. the 99-control ledger was reconciled to **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND** at that point; it is **6 / 39 / 6 / 48** after `CT-06` (`Claude /design`) closed;
 5. the next unblocked implementation packet is **candidate dock golden closure**, followed by Inspector, canvas toolbar/canvas, and top-bar/explorer/status closure;
-6. preserve AD-039 golden-image fail-closed state and the `/design` certified-transport blocker throughout.
+6. preserve the AD-039 golden-image fail-closed state throughout; the `/design` certified-transport blocker is **closed** (section 6).

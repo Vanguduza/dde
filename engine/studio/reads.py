@@ -36,6 +36,7 @@ from engine.contracts.workspace import Workspace
 from engine.studio.candidates.service import CandidateService
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageRead, CoverageService
+from engine.studio.locks.service import LockService
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.mutations.projection import change_count
 from engine.studio.preview_runtime.service import PreviewService
@@ -308,20 +309,6 @@ class FrontendStudioSnapshot:
     degraded_reasons: tuple[str, ...] = field(default_factory=tuple)
 
 
-#: Golden explorer groups whose backing domain lands in a later
-#: milestone. They are listed rather than hidden, so the UI shows the
-#: real information architecture with honestly unknown counts instead of
-#: a shorter, tidier lie.
-_UNIMPLEMENTED_GROUPS: tuple[tuple[str, str, str], ...] = (
-    (
-        "locks",
-        "Locks",
-        "LockService is implemented, but LockInventory is not yet projected "
-        "by FrontendReadService",
-    ),
-)
-
-
 class FrontendReadService:
     """Composes the Frontend Studio read projections."""
 
@@ -338,6 +325,7 @@ class FrontendReadService:
         verification_requests: CandidateVerificationRequestService | None = None,
         mutations: MutationExecutor | None = None,
         sources: SourceIntelligenceService | None = None,
+        locks: LockService | None = None,
         build_version: str | None = None,
     ) -> None:
         self._engine = engine
@@ -357,6 +345,7 @@ class FrontendReadService:
             engine, candidates=self._candidates
         )
         self._sources = sources or SourceIntelligenceService(engine)
+        self._locks = locks or LockService(engine)
         self._build_version = build_version
 
     async def snapshot(
@@ -384,13 +373,19 @@ class FrontendReadService:
         sources = await self.source_inventory(
             tenant_id=tenant_id, project_id=project_id
         )
+        lock_inventory = await self._locks.inventory(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        active_lock_count = sum(lock_inventory.values())
 
         return FrontendStudioSnapshot(
             project_id=project_id,
             observed_at=datetime.now(UTC),
             pxg_revision=graph.revision,
             contract_version=contract.contract_version if contract else None,
-            explorer=explorer_snapshot(project_id, graph, sources),
+            explorer=explorer_snapshot(
+                project_id, graph, sources, active_lock_count=active_lock_count
+            ),
             coverage=coverage,
             orchestrator=_orchestrator_status(),
             sync=StudioSyncSnapshot(
@@ -709,6 +704,8 @@ def explorer_snapshot(
     project_id: UUID,
     graph: PxgGraph,
     sources: SourceInventorySnapshot | None = None,
+    *,
+    active_lock_count: int | None = None,
 ) -> ProjectExplorerSnapshot:
     """Counts come from the graph; groups without a domain say UNKNOWN."""
     groups: list[ExplorerGroup] = [
@@ -751,13 +748,19 @@ def explorer_snapshot(
                 count=sources.template_count,
             )
         )
-    groups.extend(
+    groups.append(
         ExplorerGroup(
-            key=key,
-            title=title,
-            count=CountValue.unknown(Availability.NOT_IMPLEMENTED, reason),
+            key="locks",
+            title="Locks",
+            count=(
+                CountValue.of(active_lock_count)
+                if active_lock_count is not None
+                else CountValue.unknown(
+                    Availability.UNAVAILABLE,
+                    "active lock inventory was not supplied to this projection",
+                )
+            ),
         )
-        for key, title, reason in _UNIMPLEMENTED_GROUPS
     )
     return ProjectExplorerSnapshot(
         project_id=project_id,

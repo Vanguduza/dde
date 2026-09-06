@@ -21,7 +21,11 @@ from engine.studio.locks.resolution import evaluate
 from engine.studio.locks.service import LockService
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.pxg.service import PxgGraph
-from engine.studio.tokens_catalog import STYLE_PROPERTIES, allowed_values
+from engine.studio.tokens_catalog import (
+    LAYOUT_PROPERTIES,
+    STYLE_PROPERTIES,
+    allowed_values,
+)
 from engine.studio.tokens_pin import load_token_sheet
 
 
@@ -47,6 +51,17 @@ class InspectorPropertyDescriptor:
 
 
 @dataclass(frozen=True)
+class InspectorLockDescriptor:
+    lock_id: str
+    lock_kind: str
+    scope_key: str
+    reason: str
+    blocks_set_property: bool
+    blocks_behaviour: bool
+    blocks_responsive: bool
+
+
+@dataclass(frozen=True)
 class InspectorDescriptor:
     candidate_id: str
     pxg_key: str
@@ -60,6 +75,7 @@ class InspectorDescriptor:
     source_symbol: str | None
     element_id: str | None
     properties: tuple[InspectorPropertyDescriptor, ...]
+    locks: tuple[InspectorLockDescriptor, ...]
     required_verification: tuple[str, ...]
 
 
@@ -147,6 +163,29 @@ def build_descriptor(
     decision = evaluate(locks, target_key=pxg_key, operation="SET_PROPERTY")
     candidate_writable = is_mutable(CandidateState(candidate.state)) and not stale
     writable = candidate_writable and decision.allowed
+    relevant_locks = tuple(
+        InspectorLockDescriptor(
+            lock_id=str(lock.lock_id),
+            lock_kind=lock.lock_kind,
+            scope_key=lock.scope_key,
+            reason=lock.reason,
+            blocks_set_property=not evaluate(
+                (lock,), target_key=pxg_key, operation="SET_PROPERTY"
+            ).allowed,
+            blocks_behaviour=not evaluate(
+                (lock,), target_key=pxg_key, operation="SET_BEHAVIOUR"
+            ).allowed,
+            blocks_responsive=not evaluate(
+                (lock,), target_key=pxg_key, operation="SET_RESPONSIVE"
+            ).allowed,
+        )
+        for lock in locks
+        if lock.status == "ACTIVE"
+        and any(
+            not evaluate((lock,), target_key=pxg_key, operation=operation).allowed
+            for operation in ("SET_PROPERTY", "SET_BEHAVIOUR", "SET_RESPONSIVE")
+        )
+    )
     properties = tuple(
         _property_descriptor(
             property_name=property_name,
@@ -160,7 +199,7 @@ def build_descriptor(
             lock_reason=decision.reason,
             required_verification=required,
         )
-        for property_name in sorted(STYLE_PROPERTIES)
+        for property_name in sorted(STYLE_PROPERTIES | LAYOUT_PROPERTIES)
     )
     return InspectorDescriptor(
         candidate_id=str(candidate.candidate_id),
@@ -175,6 +214,7 @@ def build_descriptor(
         source_symbol=source_symbol,
         element_id=element_id,
         properties=properties,
+        locks=relevant_locks,
         required_verification=required,
     )
 
@@ -190,6 +230,8 @@ def _property_descriptor(
 ) -> InspectorPropertyDescriptor:
     units = {
         "spacing": "px",
+        "padding": "px",
+        "gap": "px",
         "radius": "px",
         "type": "rem",
         "z_index": "integer",
@@ -197,14 +239,26 @@ def _property_descriptor(
     accessibility = {
         "color": "CONTRAST_RECHECK",
         "spacing": "LAYOUT_REFLOW_RECHECK",
+        "padding": "LAYOUT_REFLOW_RECHECK",
+        "gap": "LAYOUT_REFLOW_RECHECK",
+        "layout_type": "LAYOUT_REFLOW_RECHECK",
+        "direction": "LAYOUT_REFLOW_RECHECK",
         "type": "TEXT_SCALING_RECHECK",
     }.get(property_name, "NONE_KNOWN")
     return InspectorPropertyDescriptor(
         property_name=property_name,
         value=value,
-        value_type="TOKEN",
+        value_type="ENUM" if property_name in LAYOUT_PROPERTIES else "TOKEN",
         units=units,
-        semantic_token_class=property_name,
+        semantic_token_class=(
+            "layout"
+            if property_name in LAYOUT_PROPERTIES
+            else (
+                "spacing"
+                if property_name in {"spacing", "padding", "gap"}
+                else property_name
+            )
+        ),
         legal_values=tuple(sorted(allowed_values(property_name))),
         computed_value=_computed_value(property_name, value),
         responsive_semantics="GLOBAL",
@@ -214,7 +268,9 @@ def _property_descriptor(
         writable=writable,
         lock_reason=lock_reason if not writable else None,
         accessibility_effect=accessibility,
-        validation="TOKEN_REQUIRED",
+        validation=(
+            "ENUM_REQUIRED" if property_name in LAYOUT_PROPERTIES else "TOKEN_REQUIRED"
+        ),
         preview_invalidation=("PREVIEW", "VISUAL_VERIFICATION"),
         required_verification=required_verification,
     )
@@ -226,6 +282,8 @@ def _computed_value(property_name: str, value: str | None) -> str | None:
     raw = load_token_sheet().raw["properties"]
     locations: dict[str, tuple[str, ...]] = {
         "spacing": ("spacing", "properties"),
+        "padding": ("spacing", "properties"),
+        "gap": ("spacing", "properties"),
         "radius": ("radius", "properties"),
         "shadow": ("shadow", "properties"),
         "type": ("typography", "properties", "scale", "properties"),
@@ -244,7 +302,7 @@ def _computed_value(property_name: str, value: str | None) -> str | None:
     if not isinstance(item, dict) or "const" not in item:
         return None
     literal = item["const"]
-    if property_name in {"spacing", "radius"}:
+    if property_name in {"spacing", "padding", "gap", "radius"}:
         return f"{literal}px"
     if property_name == "type":
         return f"{literal}rem"

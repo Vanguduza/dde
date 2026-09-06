@@ -21,6 +21,7 @@ import hashlib
 from dataclasses import asdict, dataclass
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.broker.capture import StaticSecretCaptureService
@@ -70,6 +71,8 @@ from engine.studio.inspector import InspectorService
 from engine.studio.preview_runtime.service import PreviewService
 from engine.studio.reads import FrontendReadService
 from engine.studio.source.service import SourceIntelligenceService
+from engine.studio.tables import design_sessions
+from engine.truth.db import open_unit_of_work
 
 
 @dataclass(frozen=True)
@@ -1257,6 +1260,41 @@ class GatewayCommandService:
             finding_id=finding_id,
         )
         return {"evidence": [item.model_dump(mode="json") for item in evidence]}
+
+    async def read_frontend_design_artifacts(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        design_session_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        async with open_unit_of_work(
+            self._engine, tenant_id=session.tenant_id, project_id=mission.project_id
+        ) as uow:
+            owner = await uow.connection.scalar(
+                select(design_sessions.c.session_id).where(
+                    design_sessions.c.session_id == design_session_id,
+                    design_sessions.c.tenant_id == session.tenant_id,
+                    design_sessions.c.project_id == mission.project_id,
+                    design_sessions.c.mission_id == mission_id,
+                )
+            )
+        if owner is None:
+            raise DdeError(
+                "NOT_FOUND",
+                "design session is not part of this mission",
+                retryable=False,
+                details={"design_session_id": str(design_session_id)},
+            )
+        return await self._studio().design_artifacts(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            session_id=design_session_id,
+        )
 
     async def read_frontend_sources(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID

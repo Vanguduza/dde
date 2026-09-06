@@ -778,6 +778,26 @@ class FrontendStudioService:
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 
+    async def design_artifacts(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        session_id: UUID,
+    ) -> dict[str, object]:
+        """Read the persisted directions for one DesignSession.
+
+        This is a pure read used by the workbench to render the direction strip.
+        It never creates a candidate and never mutates accepted PXG.
+        """
+        artifacts = await self._design_gateway().artifacts_for(
+            tenant_id=tenant_id, project_id=project_id, session_id=session_id
+        )
+        return {
+            "artifacts": [item.model_dump(mode="json") for item in artifacts],
+            "side_effect_class": "PURE_READ",
+        }
+
     async def try_design_live(
         self,
         *,

@@ -8,7 +8,7 @@ test.describe("DDE-069 golden candidate dock", () => {
   test("renders accepted-current truth, real thumbnail, change count and explainable score", async ({ page }) => {
     await page.goto(FIXTURE);
     await expect(page.getByTestId("candidate-current")).toContainText("Accepted revision · PXG r4");
-    await expect(page.getByTestId("candidate-current-lock-state")).toHaveText("LOCK STATE —");
+    await expect(page.getByTestId("candidate-current-lock-state")).toHaveText("NO ACTIVE LOCKS");
 
     const thumbnail = page.getByTestId(`candidate-thumbnail-${PRIMARY}`);
     await expect(thumbnail).toHaveAttribute("data-state", "RENDERED");

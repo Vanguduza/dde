@@ -5345,7 +5345,7 @@
         "CAPABILITY_UNAVAILABLE",
         "ARTIFACT_REJECTED"
       ],
-      "note": "The control is present where the golden composition puts it and the DesignGateway behind it is real: it compiles an allowlisted DesignEditContext, records the design-system hash, quarantines malformed artifacts and creates isolated candidates through Try live. What is absent is a certified Claude Design transport, so the provider reports NOT_CERTIFIED and the gateway refuses with no fallback. Driving it through capability.claude_code_invoke would be a generic code-generation prompt labelled /design, which section 23 forbids by name.",
+      "note": "Closed by a dedicated certified Claude Design transport (engine/studio/design/claude_transport.py): the authenticated Claude Code executable is used only as a bounded structured host for the official claude-design MCP, with an ephemeral allowlist admitting nothing but mcp__claude-design__* (plus ToolSearch and the harness result emitter), no session persistence and a machine-readable manifest contract instead of final prose. The stream is checked against those flags: MCP connection, offered tools, executed tools, permission denials and per-direction write evidence. Activation is explicit (DDE_CLAUDE_DESIGN_ENABLED); an unconfigured deployment still reports NOT_CERTIFIED and the gateway still refuses with no fallback. capability.claude_code_invoke remains forbidden as a substitute. A recorded live run proved provider CERTIFIED, /design through Universal DDE Chat, persisted DesignSession/DesignArtifacts, Try live's isolated candidate, a code-backed preview reaching LIVE only on a matching content hash, and promotion still refused by the verification gate.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -5353,17 +5353,23 @@
           "implementation_refs": [
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
+            "engine/studio/design/manifest.py",
             "engine/studio/design/providers.py",
+            "engine/studio/design/claude_transport.py",
             "engine/gateway/commands.py",
             "engine/gateway/scopes.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_claude_design_transport.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md",
+            "docs/evidence/dde-069/claude-design-live-run.json"
+          ],
           "note": ""
         },
         "READ": {
@@ -5372,37 +5378,49 @@
           "implementation_refs": [
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
+            "engine/studio/design/manifest.py",
             "engine/studio/design/providers.py",
+            "engine/studio/design/claude_transport.py",
             "engine/gateway/commands.py",
             "engine/gateway/scopes.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_claude_design_transport.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md",
+            "docs/evidence/dde-069/claude-design-live-run.json"
+          ],
           "note": ""
         },
         "COMMAND": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
+            "engine/studio/design/manifest.py",
             "engine/studio/design/providers.py",
+            "engine/studio/design/claude_transport.py",
             "engine/gateway/commands.py",
             "engine/gateway/scopes.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_claude_design_transport.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py"
           ],
-          "evidence_refs": [],
-          "note": "DesignGateway exists, but no certified Claude Design provider transport is available; generic Claude Code invocation is forbidden as a substitute."
+          "evidence_refs": [
+            "docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md",
+            "docs/evidence/dde-069/claude-design-live-run.json"
+          ],
+          "note": "frontend.design.request and the /design chat intent both reach the same DesignGateway. The certified transport is operator-activated configuration, so a deployment that has not enabled it keeps the honest TYPED_UNAVAILABLE behaviour by design rather than by omission."
         },
         "STATE": {
           "applicable": true,
@@ -5410,75 +5428,103 @@
           "implementation_refs": [
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
+            "engine/studio/design/manifest.py",
             "engine/studio/design/providers.py",
+            "engine/studio/design/claude_transport.py",
             "engine/gateway/commands.py",
             "engine/gateway/scopes.py"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_claude_design_transport.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md",
+            "docs/evidence/dde-069/claude-design-live-run.json"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/state/projections.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/shell.spec.ts",
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts"
           ],
           "evidence_refs": [],
           "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/state/projections.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/shell.spec.ts",
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The React control is not connected to the named production command/read path."
+          "evidence_refs": [
+            "docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md",
+            "docs/evidence/dde-069/claude-design-live-run.json"
+          ],
+          "note": "The control reads frontend.design.provider_status and enables only on CERTIFIED, then sends /design into the existing Universal DDE Chat conversation. Browser coverage asserts it never issues frontend.design.request directly and never opens a second conversation."
         },
         "E2E": {
           "applicable": true,
-          "status": "BLOCKED_EXTERNAL",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/design/context.py",
             "engine/studio/design/gateway.py",
+            "engine/studio/design/manifest.py",
             "engine/studio/design/providers.py",
+            "engine/studio/design/claude_transport.py",
             "engine/gateway/commands.py",
             "engine/gateway/scopes.py",
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/state/projections.ts"
           ],
           "test_refs": [
             "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_claude_design_transport.py",
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py",
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/shell.spec.ts",
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts",
+            "tests/live/test_claude_design_live_e2e.py"
           ],
-          "evidence_refs": [],
-          "note": "A live /design end-to-end run requires a certified DesignProvider transport, which is absent. The broad Claude Code capability is not an allowed substitute."
+          "evidence_refs": [
+            "docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md",
+            "docs/evidence/dde-069/claude-design-live-run.json"
+          ],
+          "note": "Proven against real PostgreSQL, real Redis and the real Claude Design MCP. The run is gated (DDE_LIVE_CLAUDE_DESIGN) because it spends a real provider invocation on an operator seat; its observations are recorded in docs/evidence/dde-069/claude-design-live-run.json rather than asserted separately."
         },
         "VISUAL": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/state/projections.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/shell.spec.ts",
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Verified here means row-level structural/honesty visual evidence; AD-039 still blocks pixel-reference conformance globally."
+          "note": "Verified here means row-level structural/honesty visual evidence; the control renders CERTIFIED, AUTH_REQUIRED and NOT_CERTIFIED distinctly. AD-039 still blocks pixel-reference conformance globally."
         }
       }
     },
@@ -8833,34 +8879,40 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "Accepted-current card is honest; final locked grammar waits on effective lock inventory.",
+      "note": "Accepted Current is sourced from durable PXG revision and effective LockService inventory. The golden locked chip appears only when active locks actually exist; zero locks renders NO ACTIVE LOCKS rather than inventing a lock.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py",
-            "engine/studio/mutations/projection.py"
+            "engine/studio/locks/service.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/candidates/service.py",
-            "engine/studio/candidates/lifecycle.py",
-            "engine/studio/mutations/projection.py"
+            "engine/studio/locks/service.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "COMMAND": {
@@ -8881,69 +8933,68 @@
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/styles/panels.css",
-            "interfaces/dde-studio/ui/src/styles/global.css"
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Accepted Current card is rendered from durable PXG revision; effective lock inventory remains explicitly unknown rather than fabricated LOCKED."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/styles/panels.css",
-            "interfaces/dde-studio/ui/src/styles/global.css",
-            "engine/studio/reads.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Current revision is bound; lock inventory projection is still absent."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/styles/panels.css",
-            "interfaces/dde-studio/ui/src/styles/global.css",
-            "engine/studio/reads.py"
+            "engine/studio/locks/service.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Browser proves accepted-current truth but cannot prove the required locked chip while lock inventory is not projected."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Real PostgreSQL lock lifecycle and browser lock projection are proven separately; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not yet recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/styles/panels.css",
-            "interfaces/dde-studio/ui/src/styles/global.css"
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Current card is present; golden Current (Locked) state remains incomplete until effective locks are projected."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         }
       }
     },
@@ -9689,40 +9740,37 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/studio/mutations/executor.py",
-            "engine/studio/locks/service.py"
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_inspector.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/unit/test_frontend_inspector.py"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "InspectorDescriptor resolves candidate PXG/source/staleness/lock semantics; database-backed service execution remains unavailable."
+          "note": ""
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/studio/reads.py",
-            "interfaces/dde-studio/shared/gatewayClient.ts",
-            "interfaces/dde-studio/shared/studioGateway.ts",
-            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_inspector.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/unit/test_frontend_inspector.py"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "Mission-scoped Inspector reads and production host mapping are implemented and transport-tested; PostgreSQL execution is unavailable."
+          "note": ""
         },
         "COMMAND": {
           "applicable": false,
@@ -9734,20 +9782,20 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_inspector.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/unit/test_frontend_inspector.py"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "No-selection/loading/error/selected/stale descriptor states are implemented; production persisted context awaits E2E."
+          "note": ""
         },
         "UI": {
           "applicable": true,
@@ -9788,17 +9836,21 @@
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
-            "engine/studio/inspector.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "Playwright proves selection \u2192 descriptor \u2192 rendered header, but via explicit TestHostBridge rather than PostgreSQL Gateway."
+          "note": "Selection \u2192 descriptor \u2192 header is browser-proven and persisted services are PostgreSQL-proven, but not in one packaged VS Code-host browser run."
         },
         "VISUAL": {
           "applicable": true,
@@ -9824,7 +9876,7 @@
       "feature": "Layout tab",
       "visual_contract": "Descriptor group tab",
       "read_model": "InspectorDescriptor[layout]",
-      "command": "frontend.mutation.plan|apply",
+      "command": "frontend.mutation.apply",
       "state_transition": "layout mutation",
       "capability": null,
       "permission": "mutation authority",
@@ -9838,98 +9890,166 @@
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/gateway/api.py",
-            "engine/gateway/commands.py"
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
             "tests/unit/test_frontend_inspector.py",
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "InspectorDescriptor is implemented and mission-scoped, but this exact golden sub-surface is not yet represented as a dedicated React control/tab; UI remains UNBOUND."
+          "note": ""
         },
         "COMMAND": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "A backend operation exists, but this ledger has no complete Gateway contract proof for the named command."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "STATE": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "The descriptor/control is rendered through the production-shaped bridge; this exact property write is not independently exercised in the browser fixture."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Backend PostgreSQL/token evidence and browser evidence are separate; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Row-level rendered control is asserted; AD-039 independently gates pixel-reference conformance."
         }
       }
     },
@@ -9939,7 +10059,7 @@
       "feature": "Style tab",
       "visual_contract": "Descriptor group tab",
       "read_model": "InspectorDescriptor[style]",
-      "command": "frontend.mutation.plan|apply",
+      "command": "frontend.mutation.apply",
       "state_transition": "style mutation",
       "capability": null,
       "permission": "mutation authority",
@@ -9952,98 +10072,168 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/inspector.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_inspector.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "Descriptor-driven token style properties, legal values, computed values, source mapping, lock behaviour and verification invalidation are implemented; the Style tab UI is not wired."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "READ": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
+        },
+        "COMMAND": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
+        },
+        "STATE": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
+        },
+        "UI": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
+        },
+        "WIRED": {
+          "applicable": true,
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Style uses the shared descriptor/governed mutation seam; no exact style-property browser mutation assertion is recorded in this closure packet."
+        },
+        "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "engine/studio/inspector.py",
-            "engine/gateway/api.py",
-            "engine/gateway/commands.py"
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_inspector.py",
-            "tests/contract/test_frontend_preview_gateway_reads.py"
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "InspectorDescriptor is implemented and mission-scoped, but this exact golden sub-surface is not yet represented as a dedicated React control/tab; UI remains UNBOUND."
-        },
-        "COMMAND": {
-          "applicable": true,
-          "status": "BOUND",
-          "implementation_refs": [
-            "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
-          ],
-          "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
-          ],
-          "evidence_refs": [],
-          "note": "A backend operation exists, but this ledger has no complete Gateway contract proof for the named command."
-        },
-        "STATE": {
-          "applicable": true,
-          "status": "BOUND",
-          "implementation_refs": [
-            "engine/studio/inspector.py"
-          ],
-          "test_refs": [
-            "tests/unit/test_frontend_inspector.py"
-          ],
-          "evidence_refs": [],
-          "note": "Descriptor-driven token style properties, legal values, computed values, source mapping, lock behaviour and verification invalidation are implemented; the Style tab UI is not wired."
-        },
-        "UI": {
-          "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
-        },
-        "WIRED": {
-          "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
-        },
-        "E2E": {
-          "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [
-            "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
-          ],
-          "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
-          ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Canonical Style tab is rendered; AD-039 separately gates pixel reference."
         }
       }
     },
@@ -10053,7 +10243,7 @@
       "feature": "Behaviour tab",
       "visual_contract": "Descriptor group tab",
       "read_model": "InspectorDescriptor[behavior]",
-      "command": "frontend.mutation.plan|apply",
+      "command": "frontend.mutation.apply",
       "state_transition": "behaviour mutation",
       "capability": null,
       "permission": "mutation authority",
@@ -10066,66 +10256,157 @@
         "DOMAIN": {
           "applicable": false,
           "status": "NOT_APPLICABLE",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No separate domain capability is required for this presentation-only control."
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "No separate domain capability is required for the Inspector tab presentation; behavior property semantics are carried by the descriptor/mutation layers."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing are governed token properties, but the canonical validated animation-reference contract is not complete."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing are governed token properties, but the canonical validated animation-reference contract is not complete."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing are governed token properties, but the canonical validated animation-reference contract is not complete."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Token controls share the governed mutation path; no canonical animation-reference write exists yet."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Canonical animation-reference lifecycle is incomplete and packaged production E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "The tab renders honest token-only behaviour and deliberately does not invent Fade In."
         }
       }
     },
@@ -10147,66 +10428,133 @@
         "DOMAIN": {
           "applicable": false,
           "status": "NOT_APPLICABLE",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No separate domain capability is required for this presentation-only control."
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "engine/studio/preview_runtime/prototype_html.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "No separate domain capability is required for the Inspector tab presentation; viewport and responsive semantics are carried by preview/read/command layers."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "engine/studio/preview_runtime/prototype_html.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Exact viewport preview is implemented; selected responsive rule-set mutation remains incomplete."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "engine/studio/preview_runtime/prototype_html.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Exact viewport preview is implemented; selected responsive rule-set mutation remains incomplete."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "engine/studio/preview_runtime/prototype_html.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Exact viewport preview is implemented; selected responsive rule-set mutation remains incomplete."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Breakpoint click emits the exact frontend.preview.start viewport request."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/preview_runtime/prototype_html.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Code-backed viewport preview is browser-proven, but responsive rule-set editing and packaged production E2E are not complete."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         }
       }
     },
@@ -10216,7 +10564,7 @@
       "feature": "Lock tab",
       "visual_contract": "Lock inventory + actions",
       "read_model": "LockInventory (effective)",
-      "command": "frontend.lock.create|update|remove",
+      "command": "frontend.lock.create|release",
       "state_transition": "lock lifecycle",
       "capability": null,
       "permission": "lock authority",
@@ -10230,17 +10578,17 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
@@ -10248,17 +10596,17 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "COMMAND": {
@@ -10266,17 +10614,17 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "STATE": {
@@ -10284,60 +10632,83 @@
           "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Real PostgreSQL lifecycle and browser lifecycle are proven separately; packaged production E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         }
       }
     },
@@ -10403,61 +10774,70 @@
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Source path + View source reveal are functional, but Source/code is still a generic section rather than the required Inspector tab."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "engine/studio/inspector.py",
-            "engine/studio/frontend.py",
-            "engine/studio/reads.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "View source invokes the host revealFile bridge; production VS Code interaction is not an end-to-end test here."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "React binding is exercised through TestHostBridge; production VS Code host interaction is not one browser E2E run."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "engine/studio/inspector.py",
-            "engine/studio/frontend.py",
-            "engine/studio/reads.py"
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "TestHostBridge proves descriptor-to-reveal wiring; production host E2E is not yet evidenced."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Production host browser E2E remains unrecorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Source mapping renders, but golden tab grammar is incomplete."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Canonical Source/code surface is rendered; AD-039 separately gates pixel reference."
         }
       }
     },
@@ -10480,90 +10860,166 @@
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "COMMAND": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "STATE": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "The descriptor/control is rendered through the production-shaped bridge; this exact property write is not independently exercised in the browser fixture."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Backend PostgreSQL/token evidence and browser evidence are separate; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Row-level rendered control is asserted; AD-039 independently gates pixel-reference conformance."
         }
       }
     },
@@ -10586,90 +11042,166 @@
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "COMMAND": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "STATE": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "The descriptor/control is rendered through the production-shaped bridge; this exact property write is not independently exercised in the browser fixture."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Backend PostgreSQL/token evidence and browser evidence are separate; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Row-level rendered control is asserted; AD-039 independently gates pixel-reference conformance."
         }
       }
     },
@@ -10692,105 +11224,165 @@
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The declared InspectorDescriptor read model is not implemented; mutation planner/executor evidence does not substitute for descriptor resolution."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "COMMAND": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "STATE": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Backend PostgreSQL/token evidence and browser evidence are separate; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Row-level rendered control is asserted; AD-039 independently gates pixel-reference conformance."
         }
       }
     },
@@ -10807,111 +11399,172 @@
       "failure_states": [
         "OFF_TOKEN_REFUSED"
       ],
-      "note": "",
+      "note": "The control is implemented with token-bound dual display. Repository token authority currently resolves space8 to 40px; the golden 64px example has no authorised spacing token, so DDE shows space8 \u00b7 40px and refuses raw 64px until token authority changes.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The declared InspectorDescriptor read model is not implemented; mutation planner/executor evidence does not substitute for descriptor resolution."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "COMMAND": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "STATE": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
           "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "The descriptor/control is rendered through the production-shaped bridge; this exact property write is not independently exercised in the browser fixture."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
             "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
+            "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Backend PostgreSQL/token evidence and browser evidence are separate; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Row-level rendered control is asserted; AD-039 independently gates pixel-reference conformance."
         }
       }
     },
@@ -10921,7 +11574,7 @@
       "feature": "Behaviour: animation",
       "visual_contract": "Tokenised motion reference control",
       "read_model": "InspectorDescriptor[behavior].animation",
-      "command": "frontend.motion.set_animation",
+      "command": "frontend.mutation.apply",
       "state_transition": "motion mutation",
       "capability": null,
       "permission": "mutation authority",
@@ -10932,92 +11585,158 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
           ],
-          "evidence_refs": [],
-          "note": ""
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing tokens are governed, but Behaviour: Fade In requires a validated animation reference not yet represented by the domain."
         },
         "READ": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
           ],
-          "evidence_refs": [],
-          "note": ""
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing tokens are governed, but Behaviour: Fade In requires a validated animation reference not yet represented by the domain."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
           ],
-          "evidence_refs": [],
-          "note": ""
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing tokens are governed, but Behaviour: Fade In requires a validated animation reference not yet represented by the domain."
         },
         "STATE": {
           "applicable": true,
-          "status": "VERIFIED",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py"
           ],
-          "evidence_refs": [],
-          "note": ""
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Duration/easing tokens are governed, but Behaviour: Fade In requires a validated animation reference not yet represented by the domain."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Behaviour renders tokenized duration/easing and explicitly omits an unimplemented Fade In preset."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "No canonical animation-reference write exists yet."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/inspector.py",
+            "engine/studio/tokens_catalog.py",
+            "engine/studio/mutations/planner.py",
+            "engine/studio/canvas.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_inspector.py",
+            "tests/unit/test_frontend_canvas.py",
+            "tests/unit/test_frontend_mutation_engine.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Animation-reference lifecycle remains incomplete."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Honest partial rendering is proven; the named Fade In reference is not rendered."
         }
       }
     },
@@ -11093,45 +11812,49 @@
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
             "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Inspector renders provenance usage, artifact/source identity, licence, security and honest weight state."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "engine/studio/source/provenance.py",
-            "engine/studio/source/service.py",
-            "engine/studio/reads.py",
-            "engine/studio/frontend.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Selection changes drive provenance reads through the host bridge; production PostgreSQL browser E2E is unavailable."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "React binding is exercised through TestHostBridge; production VS Code host interaction is not one browser E2E run."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "engine/studio/source/provenance.py",
-            "engine/studio/source/service.py",
+            "engine/studio/inspector.py",
             "engine/studio/reads.py",
-            "engine/studio/frontend.py"
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
-            "tests/unit/test_source_intelligence_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "TestHostBridge proves accepted provenance reaches Inspector; live PostgreSQL lifecycle spec is unavailable on this host."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Production host browser E2E remains unrecorded."
         },
         "VISUAL": {
           "applicable": true,
@@ -11141,10 +11864,12 @@
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "M8 browser test asserts accepted provenance, OPEN_REUSE and attribution in Inspector."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Canonical Source/code surface is rendered; AD-039 separately gates pixel reference."
         }
       }
     },
@@ -11220,63 +11945,68 @@
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "The Inspector exposes View source only from a resolved descriptor source path."
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
-            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "React calls DdeHostBridge.revealFile and the VS Code host implementation path-jails then opens the file. Playwright verifies the bridge request; a live VS Code reveal was not executed here."
+          "note": "React binding is exercised through TestHostBridge; production VS Code host interaction is not one browser E2E run."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "Browser proof verifies the exact SourceFileRef sent through the bridge; live VS Code editor reveal remains unexecuted."
+          "note": "Production host browser E2E remains unrecorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx"
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
           ],
-          "note": "The source section/button is rendered and exercised, but there is no separate golden visual assertion for this row and AD-039 blocks pixel-reference conformance."
+          "note": "Canonical Source/code surface is rendered; AD-039 separately gates pixel reference."
         }
       }
     },
@@ -11297,33 +12027,37 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/acceptance/defaults.py",
-            "engine/studio/acceptance/service.py",
-            "schemas/design/screen_acceptance_defaults.json"
+            "engine/audit/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "tests/unit/test_screen_acceptance_binding.py",
-            "tests/unit/test_screen_acceptance_binding_postgres.py"
+            "tests/unit/test_screen_audit_dogfood.py",
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
-          "note": "Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/acceptance/defaults.py",
-            "engine/studio/acceptance/service.py",
-            "schemas/design/screen_acceptance_defaults.json"
+            "engine/audit/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "tests/unit/test_screen_acceptance_binding.py",
-            "tests/unit/test_screen_acceptance_binding_postgres.py"
+            "tests/unit/test_screen_audit_dogfood.py",
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "COMMAND": {
           "applicable": false,
@@ -11335,57 +12069,84 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/acceptance/defaults.py",
-            "engine/studio/acceptance/service.py",
-            "schemas/design/screen_acceptance_defaults.json"
+            "engine/audit/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "tests/unit/test_screen_acceptance_binding.py",
-            "tests/unit/test_screen_acceptance_binding_postgres.py"
+            "tests/unit/test_screen_audit_dogfood.py",
+            "tests/unit/test_frontend_inspector.py"
           ],
-          "evidence_refs": [],
-          "note": "Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Inspector consumes Screen Audit ACCESSIBILITY state and renders UNKNOWN as Not evaluated."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/acceptance/defaults.py",
-            "engine/studio/acceptance/service.py",
-            "schemas/design/screen_acceptance_defaults.json"
+            "engine/audit/service.py",
+            "engine/studio/reads.py",
+            "engine/studio/inspector.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_screen_acceptance_binding.py",
-            "tests/unit/test_screen_acceptance_binding_postgres.py"
+            "tests/unit/test_screen_audit_dogfood.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Screen Audit and browser projection are proven separately; packaged production E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Not evaluated is asserted and fabricated AA/no-issues text is explicitly rejected."
         }
       }
     },
@@ -11395,8 +12156,8 @@
       "feature": "Responsive breakpoint buttons",
       "visual_contract": "Segmented control",
       "read_model": "PreviewViewportState",
-      "command": "frontend.preview.set_state",
-      "state_transition": "viewport + responsive rule set change",
+      "command": "frontend.preview.start",
+      "state_transition": "new code-backed preview at selected viewport",
       "capability": null,
       "permission": "project read",
       "failure_states": [],
@@ -11405,66 +12166,142 @@
         "DOMAIN": {
           "applicable": false,
           "status": "NOT_APPLICABLE",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No separate domain capability is required for this presentation-only control."
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/gateway/commands.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "No separate domain capability is required for the breakpoint presentation control; viewport state and command semantics are carried by PreviewRuntime/Gateway layers."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/gateway/commands.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/gateway/commands.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/gateway/commands.py",
+            "engine/studio/inspector.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_runtime/prototype_html.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": "Exact viewport preview is browser-proven and backend-proven separately; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+          ],
+          "note": ""
         }
       }
     },

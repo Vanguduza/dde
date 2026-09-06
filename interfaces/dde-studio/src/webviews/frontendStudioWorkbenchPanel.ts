@@ -228,6 +228,12 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
         await gateway.readFrontendAudit(missionId, `findings/${findingId}/evidence`),
       );
     }
+    if (query.resource === "frontend.design.artifacts") {
+      const designSessionId = requiredParameter(query, "designSessionId");
+      return camelizeResult(
+        await gateway.readFrontendDesignArtifacts(missionId, designSessionId),
+      );
+    }
     if (query.resource === "frontend.sources.inventory") {
       return camelizeResult(await gateway.readFrontendSources(missionId));
     }

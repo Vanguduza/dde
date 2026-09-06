@@ -29,6 +29,8 @@ import type {
   FrontendChatPlan,
   FrontendChatPlanStep,
   FrontendChatThread,
+  DesignDirectionArtifact,
+  DesignProviderStatus,
   FrontendHostContext,
   FrontendStudioSnapshot,
   InspectorDescriptor,
@@ -84,10 +86,18 @@ export function DdeStudioApp({
   const [inspectorLoading, setInspectorLoading] = useState(false);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
   const [applyingProperty, setApplyingProperty] = useState<string | null>(null);
+  const [lockBusy, setLockBusy] = useState(false);
+  const [inspectorEpoch, setInspectorEpoch] = useState(0);
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [promotionBusyCandidateId, setPromotionBusyCandidateId] = useState<string | null>(null);
   const [promotionError, setPromotionError] = useState<string | null>(null);
+  const [designProvider, setDesignProvider] = useState<DesignProviderStatus | null>(null);
+  const [designProviderDetail, setDesignProviderDetail] = useState<string | null>(null);
+  const [designBusy, setDesignBusy] = useState(false);
+  const [designArtifacts, setDesignArtifacts] = useState<readonly DesignDirectionArtifact[]>([]);
+  const [designArtifactBusyId, setDesignArtifactBusyId] = useState<string | null>(null);
+  const [designArtifactError, setDesignArtifactError] = useState<string | null>(null);
   const verificationStarted = useRef<Set<string>>(new Set());
   const [chatThread, setChatThread] = useState<FrontendChatThread | null>(null);
   const [chatLoading, setChatLoading] = useState(true);
@@ -131,6 +141,28 @@ export function DdeStudioApp({
     return value.preference ?? null;
   }, [bridge]);
 
+  const refreshDesignArtifacts = useCallback(async (designSessionId: string | null) => {
+    if (!designSessionId) {
+      setDesignArtifacts([]);
+      setDesignArtifactError(null);
+      return [];
+    }
+    try {
+      const value = await bridge.requestRead<{ artifacts: readonly DesignDirectionArtifact[] }>({
+        resource: "frontend.design.artifacts",
+        parameters: { designSessionId },
+      });
+      const artifacts = value.artifacts ?? [];
+      setDesignArtifacts(artifacts);
+      setDesignArtifactError(null);
+      return artifacts;
+    } catch (error) {
+      setDesignArtifacts([]);
+      setDesignArtifactError(error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  }, [bridge]);
+
   const refreshChat = useCallback(async () => {
     const value = await bridge.requestRead<FrontendChatThread>({
       resource: "frontend.chat.thread",
@@ -139,6 +171,10 @@ export function DdeStudioApp({
     setChatError(null);
     return value;
   }, [bridge]);
+
+  useEffect(() => {
+    void refreshDesignArtifacts(chatThread?.conversation?.designSessionId ?? null);
+  }, [chatThread?.conversation?.designSessionId, refreshDesignArtifacts]);
 
   const refreshChatResources = useCallback(
     async (conversationId?: string | null) => {
@@ -384,7 +420,7 @@ export function DdeStudioApp({
     return () => {
       cancelled = true;
     };
-  }, [activeCandidateId, bridge, preview?.previewSessionId, selectedKey]);
+  }, [activeCandidateId, bridge, inspectorEpoch, preview?.previewSessionId, selectedKey]);
 
   useEffect(() => {
     if (!selectedKey) {
@@ -435,6 +471,37 @@ export function DdeStudioApp({
     },
     [bridge, hostContext],
   );
+
+  // The `/design` control's own state. Read from the Gateway rather than
+  // assumed: a control that enabled itself because the code that draws it
+  // believes a provider exists is exactly the theatre DDE-069 forbids.
+  useEffect(() => {
+    if (!hostContext) return;
+    let cancelled = false;
+    sendFrontendCommand("frontend.design.provider_status", {})
+      .then((acceptance) => {
+        if (cancelled) return;
+        const providers = acceptance.payload.providers;
+        const rows = Array.isArray(providers)
+          ? (providers as readonly DesignProviderStatus[])
+          : [];
+        const claude = rows.find((item) => item.providerId === "claude-design") ?? null;
+        setDesignProvider(claude);
+        setDesignProviderDetail(
+          claude === null && rows.length > 0
+            ? "The Gateway reports no claude-design provider in this build."
+            : null,
+        );
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setDesignProvider(null);
+        setDesignProviderDetail(error instanceof Error ? error.message : String(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hostContext, sendFrontendCommand]);
 
   useEffect(() => {
     const conversationId = chatThread?.conversation?.conversationId;
@@ -587,7 +654,7 @@ export function DdeStudioApp({
     }
   }, [refreshSnapshot, refreshSources, screenKey, selectedKey, sendFrontendCommand]);
 
-  const startPreview = useCallback(async () => {
+  const startPreview = useCallback(async (viewportOverride?: string) => {
     if (!activeCandidateId || !screenKey) {
       setPreviewError("Select both a real candidate and a PXG screen before previewing.");
       return;
@@ -609,7 +676,7 @@ export function DdeStudioApp({
       const parameters: Record<string, unknown> = {
         candidate_id: activeCandidateId,
         screen_key: screenKey,
-        viewport,
+        viewport: viewportOverride ?? viewport,
       };
       if (needsSourceWorkspace && sourceWorkspaceId) {
         parameters.source_workspace_id = sourceWorkspaceId;
@@ -688,6 +755,58 @@ export function DdeStudioApp({
       setPreviewBusy(false);
     }
   }, [loadPreviewDocument, refreshSnapshot, screenKey, sendFrontendCommand, snapshot, viewport]);
+
+  const tryDesignArtifact = useCallback(async (artifactId: string) => {
+    const designSessionId = chatThread?.conversation?.designSessionId ?? null;
+    setDesignArtifactBusyId(artifactId);
+    setDesignArtifactError(null);
+    setPromotionError(null);
+    try {
+      const acceptance = await sendFrontendCommand("frontend.design.try_live", { artifact_id: artifactId });
+      const candidateId = payloadString(acceptance, "candidateId");
+      if (!candidateId) throw new Error("Try Live did not return a candidate identity.");
+      setMode("design");
+      setActiveCandidateId(candidateId);
+      setPreview(null);
+      setPreviewBrowserReady(false);
+      setSelection(null);
+      setSelectedKey(null);
+      await Promise.all([refreshSnapshot(), refreshDesignArtifacts(designSessionId)]);
+      if (!screenKey) {
+        setPreviewError("Direction materialized. Select a PXG screen to start its code-backed preview.");
+        return;
+      }
+      setPreviewBusy(true);
+      const previewAcceptance = await sendFrontendCommand("frontend.preview.start", {
+        candidate_id: candidateId,
+        screen_key: screenKey,
+        viewport,
+      });
+      const previewSessionId = payloadString(previewAcceptance, "previewSessionId");
+      const state = payloadString(previewAcceptance, "state") ?? "UNAVAILABLE";
+      const detail = payloadString(previewAcceptance, "stateDetail");
+      if (!previewSessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
+        setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
+        await refreshSnapshot();
+        return;
+      }
+      await refreshSnapshot();
+      await loadPreviewDocument(previewSessionId);
+    } catch (error) {
+      setDesignArtifactError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPreviewBusy(false);
+      setDesignArtifactBusyId(null);
+    }
+  }, [
+    chatThread?.conversation?.designSessionId,
+    loadPreviewDocument,
+    refreshDesignArtifacts,
+    refreshSnapshot,
+    screenKey,
+    sendFrontendCommand,
+    viewport,
+  ]);
 
   const promoteCandidate = useCallback(async (candidateId: string) => {
     setActiveCandidateId(candidateId);
@@ -800,6 +919,32 @@ export function DdeStudioApp({
     ],
   );
 
+  /**
+   * The toolbar `Claude /design` control.
+   *
+   * It sends `/design` into the *same* Universal DDE Chat conversation the
+   * composer uses -- FRONTEND_STUDIO_REV3 requires the button and the chat
+   * to share one DesignSession, so this must not open a second thread or
+   * call the DesignGateway around the conversation. It also mutates
+   * nothing directly: whatever comes back arrives as DesignArtifacts, and
+   * reaching code still requires Try live.
+   *
+   * Scope defaults to the current selection, then the current screen. The
+   * key is named in the text because the intent router treats an explicit
+   * key as authoritative over ambient selection, so what the user saw on
+   * the toolbar is what the turn is about.
+   */
+  const handleClaudeDesign = useCallback(async () => {
+    const scopeKey = selectedKey ?? screenKey;
+    setDesignBusy(true);
+    try {
+      const target = scopeKey ? ` for ${scopeKey}` : "";
+      await handleChatSend(`/design three alternative directions${target}`);
+    } finally {
+      setDesignBusy(false);
+    }
+  }, [handleChatSend, screenKey, selectedKey]);
+
   const handlePreviewSignal = useCallback(
     async (signal: PreviewRuntimeSignal) => {
       if (!preview || signal.previewSessionId !== preview.previewSessionId) return;
@@ -895,6 +1040,46 @@ export function DdeStudioApp({
       startPreview,
     ],
   );
+
+  const changeInspectorViewport = useCallback(async (nextViewport: string) => {
+    setViewport(nextViewport);
+    if (activeCandidateId && screenKey) {
+      await startPreview(nextViewport);
+    }
+  }, [activeCandidateId, screenKey, startPreview]);
+
+  const createInspectorLock = useCallback(async (lockKind: "STYLE" | "SECTION") => {
+    if (!selectedKey) return;
+    setLockBusy(true);
+    setInspectorError(null);
+    try {
+      await sendFrontendCommand("frontend.lock.create", {
+        lock_kind: lockKind,
+        scope_key: selectedKey,
+        reason: `Created from Frontend Studio Inspector (${lockKind.toLowerCase()})`,
+      });
+      await refreshSnapshot();
+      setInspectorEpoch((value) => value + 1);
+    } catch (error) {
+      setInspectorError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLockBusy(false);
+    }
+  }, [refreshSnapshot, selectedKey, sendFrontendCommand]);
+
+  const releaseInspectorLock = useCallback(async (lockId: string) => {
+    setLockBusy(true);
+    setInspectorError(null);
+    try {
+      await sendFrontendCommand("frontend.lock.release", { lock_id: lockId });
+      await refreshSnapshot();
+      setInspectorEpoch((value) => value + 1);
+    } catch (error) {
+      setInspectorError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setLockBusy(false);
+    }
+  }, [refreshSnapshot, sendFrontendCommand]);
 
   const selectChatConversation = useCallback(async (conversationId: string) => {
     setChatLoading(true);
@@ -1165,6 +1350,14 @@ export function DdeStudioApp({
             sourceWorkspaces={snapshot?.sourceWorkspaces ?? null}
             sourceWorkspaceId={sourceWorkspaceId}
             onSourceWorkspaceChange={setSourceWorkspaceId}
+            designProvider={designProvider}
+            designProviderDetail={designProviderDetail}
+            designBusy={designBusy}
+            designArtifacts={designArtifacts}
+            designArtifactBusyId={designArtifactBusyId}
+            designArtifactError={designArtifactError}
+            onClaudeDesign={() => void handleClaudeDesign()}
+            onTryDesignArtifact={(artifactId) => void tryDesignArtifact(artifactId)}
             preview={displayedPreview}
             previewError={previewError}
             previewBusy={previewBusy}
@@ -1209,9 +1402,14 @@ export function DdeStudioApp({
           candidate={activeCandidate}
           auditMatrix={auditMatrix}
           provenance={selectedProvenance}
+          viewport={viewport}
+          lockBusy={lockBusy}
           onApply={(propertyName, value) =>
             void applyInspectorProperty(propertyName, value)
           }
+          onViewportChange={(nextViewport) => void changeInspectorViewport(nextViewport)}
+          onCreateLock={(kind) => void createInspectorLock(kind)}
+          onReleaseLock={(lockId) => void releaseInspectorLock(lockId)}
         />
       }
       statusBar={

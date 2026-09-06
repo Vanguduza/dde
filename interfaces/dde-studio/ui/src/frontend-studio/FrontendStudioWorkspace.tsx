@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Unavailable } from "../components/Honest";
 import type {
   CandidateCardSnapshot,
+  DesignDirectionArtifact,
+  DesignProviderStatus,
   FrontendStudioSnapshot,
   PreviewDocument,
   ScreenAuditMatrix,
@@ -71,6 +73,14 @@ export interface WorkspaceProps {
   readonly sourceWorkspaces: SourceWorkspaceInventory | null;
   readonly sourceWorkspaceId: string | null;
   readonly onSourceWorkspaceChange: (workspaceId: string) => void;
+  readonly designProvider: DesignProviderStatus | null;
+  readonly designProviderDetail: string | null;
+  readonly designBusy: boolean;
+  readonly designArtifacts: readonly DesignDirectionArtifact[];
+  readonly designArtifactBusyId: string | null;
+  readonly designArtifactError: string | null;
+  readonly onClaudeDesign: () => void;
+  readonly onTryDesignArtifact: (artifactId: string) => void;
   readonly preview: PreviewDocument | null;
   readonly previewError: string | null;
   readonly previewBusy: boolean;
@@ -111,6 +121,14 @@ export function FrontendStudioWorkspace({
   sourceWorkspaces,
   sourceWorkspaceId,
   onSourceWorkspaceChange,
+  designProvider,
+  designProviderDetail,
+  designBusy,
+  designArtifacts,
+  designArtifactBusyId,
+  designArtifactError,
+  onClaudeDesign,
+  onTryDesignArtifact,
   preview,
   previewError,
   previewBusy,
@@ -135,6 +153,10 @@ export function FrontendStudioWorkspace({
         screenKey={screenKey}
         onScreenChange={onScreenChange}
         preview={preview}
+        designProvider={designProvider}
+        designProviderDetail={designProviderDetail}
+        designBusy={designBusy}
+        onClaudeDesign={onClaudeDesign}
       />
       <div className="dde-canvas" data-testid="canvas">
         {mode === "coverage" ? (
@@ -160,6 +182,10 @@ export function FrontendStudioWorkspace({
           />
         ) : mode === "design" ? (
           <DesignMode
+            designArtifacts={designArtifacts}
+            designArtifactBusyId={designArtifactBusyId}
+            designArtifactError={designArtifactError}
+            onTryDesignArtifact={onTryDesignArtifact}
             activeCandidateId={activeCandidateId}
             requiresSourceWorkspace={requiresSourceWorkspace}
             sourceWorkspaces={sourceWorkspaces}
@@ -191,6 +217,32 @@ export function FrontendStudioWorkspace({
       />
     </div>
   );
+}
+
+/**
+ * Why the `Claude /design` control is not usable, or `null` when it is.
+ *
+ * The control enables on exactly one condition: a provider the backend
+ * reports as CERTIFIED. Every other case -- no provider row, an
+ * unreadable status, a signed-out host, an unreachable endpoint --
+ * produces a sentence naming what is actually wrong. A disabled button
+ * with a generic tooltip would be the same theatre as a fabricated
+ * enabled one.
+ */
+export function claudeDesignRefusal(
+  provider: DesignProviderStatus | null,
+  detail: string | null,
+): string | null {
+  if (provider === null) {
+    return (
+      "no certified design provider transport. " +
+      (detail ??
+        "Provider status could not be read from the Gateway. DesignGateway is " +
+          "implemented; generic Claude Code invocation is not an allowed fallback.")
+    );
+  }
+  if (provider.state === "CERTIFIED") return null;
+  return `no certified design provider transport (${provider.state}). ${provider.detail}`;
 }
 
 const MODE_REASON: Record<StudioMode, string> = {
@@ -469,6 +521,10 @@ function CanvasToolbar({
   screenKey,
   onScreenChange,
   preview,
+  designProvider,
+  designProviderDetail,
+  designBusy,
+  onClaudeDesign,
 }: {
   readonly mode: StudioMode;
   readonly viewport: string;
@@ -477,7 +533,12 @@ function CanvasToolbar({
   readonly screenKey: string | null;
   readonly onScreenChange: (value: string) => void;
   readonly preview: PreviewDocument | null;
+  readonly designProvider: DesignProviderStatus | null;
+  readonly designProviderDetail: string | null;
+  readonly designBusy: boolean;
+  readonly onClaudeDesign: () => void;
 }) {
+  const designRefusal = claudeDesignRefusal(designProvider, designProviderDetail);
   return (
     <div
       className="dde-canvas-toolbar"
@@ -526,9 +587,21 @@ function CanvasToolbar({
         type="button"
         className="dde-action dde-action-ai"
         data-testid="claude-design"
-        disabled
-        title="Claude /design — unavailable: no certified design provider transport. DesignGateway is implemented; generic Claude Code invocation is not an allowed fallback."
-        aria-label="Claude /design — unavailable: no certified design provider transport"
+        data-provider-state={designProvider?.state ?? "UNKNOWN"}
+        disabled={designRefusal !== null || designBusy}
+        onClick={onClaudeDesign}
+        title={
+          designRefusal !== null
+            ? `Claude /design — unavailable: ${designRefusal}`
+            : `Claude /design — ${designProvider?.displayName ?? "provider"} is CERTIFIED. ` +
+              "Sends /design into the shared DDE chat for the current scope; " +
+              "directions arrive as candidates, never as accepted design."
+        }
+        aria-label={
+          designRefusal !== null
+            ? `Claude /design — unavailable: ${designRefusal}`
+            : "Claude /design"
+        }
       >
         Claude /design
       </button>
@@ -541,6 +614,10 @@ function CanvasToolbar({
 }
 
 function DesignMode({
+  designArtifacts,
+  designArtifactBusyId,
+  designArtifactError,
+  onTryDesignArtifact,
   activeCandidateId,
   requiresSourceWorkspace,
   sourceWorkspaces,
@@ -554,6 +631,10 @@ function DesignMode({
   onStartPreview,
   onPreviewSignal,
 }: {
+  readonly designArtifacts: readonly DesignDirectionArtifact[];
+  readonly designArtifactBusyId: string | null;
+  readonly designArtifactError: string | null;
+  readonly onTryDesignArtifact: (artifactId: string) => void;
   readonly activeCandidateId: string | null;
   readonly requiresSourceWorkspace: boolean;
   readonly sourceWorkspaces: SourceWorkspaceInventory | null;
@@ -567,17 +648,19 @@ function DesignMode({
   readonly onStartPreview: () => void;
   readonly onPreviewSignal: (signal: PreviewRuntimeSignal) => void;
 }) {
+  let stage: React.ReactNode;
   if (!activeCandidateId) {
-    return (
+    stage = (
       <Unavailable
         availability="EMPTY"
-        reason="Select a real candidate below. No placeholder candidate is fabricated."
+        reason={designArtifacts.length
+          ? "Choose Try Live on a generated direction to create its isolated candidate."
+          : "Select a real candidate below. No placeholder candidate is fabricated."}
       />
     );
-  }
-  if (!preview) {
+  } else if (!preview) {
     const sourceBlocked = requiresSourceWorkspace && !sourceWorkspaceId;
-    return (
+    stage = (
       <div className="dde-preview-empty" data-testid="preview-empty">
         {previewError ? (
           <Unavailable availability="UNAVAILABLE" reason={previewError} />
@@ -596,25 +679,54 @@ function DesignMode({
           className="dde-action"
           data-testid="start-preview"
           disabled={previewBusy || sourceBlocked}
-          title={
-            sourceBlocked
-              ? (sourceWorkspaces?.reason ?? "A READY source workspace is required.")
-              : undefined
-          }
+          title={sourceBlocked ? (sourceWorkspaces?.reason ?? "A READY source workspace is required.") : undefined}
           onClick={onStartPreview}
         >
           {previewBusy ? "Building preview…" : "Start code-backed preview"}
         </button>
       </div>
     );
+  } else {
+    stage = (
+      <LivePreview preview={preview} viewport={viewport} selection={selection} onSignal={onPreviewSignal} />
+    );
   }
+
   return (
-    <LivePreview
-      preview={preview}
-      viewport={viewport}
-      selection={selection}
-      onSignal={onPreviewSignal}
-    />
+    <div className="dde-design-mode">
+      {designArtifacts.length || designArtifactError ? (
+        <section className="dde-design-directions" data-testid="design-directions" aria-label="Claude Design directions">
+          <div className="dde-design-directions-header">
+            <strong>Claude Design directions</strong>
+            <span className="dde-muted">Try Live materializes only the selected direction into an isolated candidate.</span>
+          </div>
+          {designArtifactError ? <Unavailable availability="UNAVAILABLE" reason={designArtifactError} /> : null}
+          {designArtifacts.length ? (
+            <div className="dde-design-direction-list">
+              {designArtifacts.map((artifact) => {
+                const blocked = artifact.status === "QUARANTINED" || artifact.status === "DISCARDED";
+                return (
+                  <article key={artifact.artifactId} className="dde-design-direction-card" data-testid={`design-direction-${artifact.directionLabel}`}>
+                    <div><strong>Direction {artifact.directionLabel}</strong><span className="dde-chip" data-state={artifact.status}>{artifact.status}</span></div>
+                    <code title={artifact.contentHash}>{artifact.contentHash.slice(0, 10)}</code>
+                    <button
+                      type="button"
+                      className="dde-action"
+                      data-testid={`design-try-live-${artifact.directionLabel}`}
+                      disabled={blocked || designArtifactBusyId !== null || artifact.status === "TRIED_LIVE"}
+                      onClick={() => onTryDesignArtifact(artifact.artifactId)}
+                    >
+                      {designArtifactBusyId === artifact.artifactId ? "Materializing…" : artifact.status === "TRIED_LIVE" ? "Tried Live" : "Try Live"}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      <div className="dde-design-preview-stage">{stage}</div>
+    </div>
   );
 }
 
@@ -959,6 +1071,10 @@ function CandidateStrip({
   const comparisonReady = Boolean(
     activeCandidate?.previewState === "LIVE" && activeCandidate.previewSessionId,
   );
+  const lockCount = snapshot.explorer.groups.find((group) => group.key === "locks")?.count;
+  const activeLockCount = lockCount?.value ?? null;
+  const lockStateKnown = activeLockCount !== null;
+  const currentLocked = lockStateKnown && activeLockCount > 0;
 
   return (
     <div className="dde-candidate-strip" data-testid="candidate-strip">
@@ -976,16 +1092,20 @@ function CandidateStrip({
           <strong>r{snapshot.pxgRevision}</strong>
         </div>
         <div className="dde-candidate-card-body">
-          <span className="dde-candidate-title">Current</span>
+          <span className="dde-candidate-title">{currentLocked ? "Current (Locked)" : "Current"}</span>
           <span className="dde-candidate-meta">Accepted revision · PXG r{snapshot.pxgRevision}</span>
           <span className="dde-chip" data-state="PASS">ACCEPTED</span>
           <span
             className="dde-chip"
-            data-state="UNKNOWN"
+            data-state={lockStateKnown ? (currentLocked ? "LOCKED" : "PASS") : "UNKNOWN"}
             data-testid="candidate-current-lock-state"
-            title="Effective lock inventory is not projected by FrontendReadService yet."
+            title={lockCount?.reason ?? "Active project lock inventory from LockService."}
           >
-            LOCK STATE —
+            {lockStateKnown
+              ? currentLocked
+                ? `${activeLockCount} ACTIVE ${activeLockCount === 1 ? "LOCK" : "LOCKS"}`
+                : "NO ACTIVE LOCKS"
+              : "LOCK STATE —"}
           </span>
         </div>
       </article>

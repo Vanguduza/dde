@@ -86,26 +86,47 @@ def test_chat_ui_cannot_claim_final_verified_without_production_e2e() -> None:
     assert row.status is BindingStatus.BOUND
 
 
-def test_backend_only_inspector_mutation_cannot_claim_final_verified() -> None:
+def test_inspector_gap_control_stays_bound_until_production_e2e() -> None:
     matrix = load_matrix(repo_root())
     row = next(item for item in matrix.rows if item.id == "IN-10")
     assert row.layer(EvidenceLayerName.COMMAND).status is EvidenceStatus.VERIFIED
-    assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.UNBOUND
-    assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.UNBOUND
-    assert row.status is BindingStatus.UNBOUND
+    assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.VERIFIED
+    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.BOUND
+    assert row.status is BindingStatus.BOUND
 
 
-def test_design_gateway_is_distinct_from_certified_design_transport() -> None:
+def test_the_certified_design_transport_closed_every_layer_it_had_open() -> None:
+    """CT-06 closed, and closed for the right reasons.
+
+    The row previously carried TYPED_UNAVAILABLE on COMMAND, UNBOUND on
+    WIRED and BLOCKED_EXTERNAL on E2E: the DesignGateway was real but no
+    certified transport existed, the React control read nothing, and no
+    live run was possible. All three are now VERIFIED. The assertions
+    below are on the *evidence*, not just the status, because a status
+    upgraded from backend presence alone is exactly what this ledger
+    exists to prevent.
+    """
     matrix = load_matrix(repo_root())
     row = next(item for item in matrix.rows if item.id == "CT-06")
-    assert row.layer(EvidenceLayerName.DOMAIN).status is EvidenceStatus.VERIFIED
-    assert (
-        row.layer(EvidenceLayerName.COMMAND).status is EvidenceStatus.TYPED_UNAVAILABLE
-    )
-    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.BLOCKED_EXTERNAL
-    assert (
-        row.status is BindingStatus.UNBOUND
-    )  # UI is not wired to provider status/Gateway.
+    assert row.status is BindingStatus.VERIFIED
+
+    command = row.layer(EvidenceLayerName.COMMAND)
+    assert command.status is EvidenceStatus.VERIFIED
+    assert "engine/studio/design/claude_transport.py" in command.implementation_refs
+
+    # WIRED cannot be proven by backend refs: it names the React control
+    # and the browser coverage that presses it.
+    wired = row.layer(EvidenceLayerName.WIRED)
+    assert wired.status is EvidenceStatus.VERIFIED
+    assert any(ref.endswith(".tsx") for ref in wired.implementation_refs)
+    assert "interfaces/dde-studio/ui/visual/claude-design.spec.ts" in wired.test_refs
+
+    # E2E names the gated live run and the evidence that run recorded.
+    e2e = row.layer(EvidenceLayerName.E2E)
+    assert e2e.status is EvidenceStatus.VERIFIED
+    assert "tests/live/test_claude_design_live_e2e.py" in e2e.test_refs
+    assert "docs/evidence/dde-069/claude-design-live-run.json" in e2e.evidence_refs
 
 
 def test_final_verified_is_derived_from_every_applicable_layer() -> None:

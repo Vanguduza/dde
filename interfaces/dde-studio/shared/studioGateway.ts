@@ -348,6 +348,17 @@ export class StudioGatewayService {
     );
   }
 
+  async readFrontendDesignArtifacts(
+    missionId: string,
+    designSessionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendDesignArtifacts(
+        session, this.principalId, missionId, designSessionId,
+      ),
+    );
+  }
+
   async readFrontendSources(
     missionId: string,
   ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {

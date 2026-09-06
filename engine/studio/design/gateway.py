@@ -36,6 +36,7 @@ from engine.contracts.design_artifact import DesignArtifact
 from engine.contracts.design_session import DesignSession
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
+from engine.studio.candidates.lifecycle import CandidateState
 from engine.studio.candidates.service import CandidateService
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.design.context import compile_context, design_system_snapshot
@@ -46,6 +47,8 @@ from engine.studio.design.providers import (
     ProviderArtifact,
     default_registry,
 )
+from engine.studio.mutations.executor import MutationExecutor
+from engine.studio.mutations.planner import MutationRequest
 from engine.studio.pxg.service import PxgService, validate_key
 from engine.studio.tables import design_artifacts, design_sessions
 from engine.truth.db import open_unit_of_work
@@ -78,12 +81,16 @@ class DesignGateway:
         pxg: PxgService | None = None,
         contracts: FrontendContractService | None = None,
         candidates: CandidateService | None = None,
+        mutations: MutationExecutor | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry or default_registry()
         self._pxg = pxg or PxgService(engine)
         self._contracts = contracts or FrontendContractService(engine)
         self._candidates = candidates or CandidateService(engine, pxg=self._pxg)
+        self._mutations = mutations or MutationExecutor(
+            engine, pxg=self._pxg, candidates=self._candidates
+        )
 
     async def provider_statuses(self) -> tuple[DesignProviderStatus, ...]:
         """What the `/design` control renders. Never fabricated."""
@@ -321,7 +328,31 @@ class DesignGateway:
                     "current": current_hash,
                 },
             )
+        current_pxg_revision = await self._pxg.current_revision(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        if session.base_pxg_revision != current_pxg_revision:
+            raise DdeError(
+                "STALE_REVISION",
+                "the project experience graph changed after this artifact was generated; "  # noqa: E501
+                "regenerate against the current frontend before trying it live",
+                retryable=False,
+                details={
+                    "artifact_id": str(artifact_id),
+                    "generated_against_pxg_revision": session.base_pxg_revision,
+                    "current_pxg_revision": current_pxg_revision,
+                },
+            )
 
+        requests = _proposal_mutations(artifact)
+        if not requests:
+            raise DdeError(
+                "DESIGN_SOURCE_REJECTED",
+                "the selected design direction contains no governable proposal mutations",  # noqa: E501
+                retryable=False,
+                details={"artifact_id": str(artifact.artifact_id)},
+            )
+        contract_version = session.context_manifest.get("contract_version")
         candidate = await self._candidates.create(
             tenant_id=tenant_id,
             project_id=project_id,
@@ -329,13 +360,75 @@ class DesignGateway:
             title=f"Direction {artifact.direction_label}",
             origin="DESIGN_ARTIFACT",
             scope_keys=list(session.scope_keys),
+            base_contract_version=(
+                contract_version if isinstance(contract_version, int) else None
+            ),
             provenance={
                 "design_artifact_id": str(artifact.artifact_id),
+                "design_artifact_content_hash": artifact.content_hash,
                 "design_session_id": str(session.session_id),
+                "direction_label": artifact.direction_label,
                 "provider_id": artifact.provider_id,
+                "provider_project_id": artifact.content.get("provider_project_id"),
                 "design_system_hash": session.design_system_hash,
+                "proposal_mutation_count": len(requests),
             },
         )
+        for target, detail in (
+            (
+                CandidateState.GENERATING,
+                "selected design direction accepted for materialization",
+            ),
+            (
+                CandidateState.GENERATED,
+                "design proposal normalized into governed mutations",
+            ),
+        ):
+            candidate = await self._candidates.transition(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate.candidate_id,
+                target=target,
+                detail=detail,
+            )
+
+        applied = await self._mutations.apply(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            candidate_id=candidate.candidate_id,
+            requests=requests,
+            contract_version=(
+                contract_version if isinstance(contract_version, int) else None
+            ),
+            design_system_hash=session.design_system_hash,
+            all_or_nothing=True,
+        )
+        if applied.refused or len(applied.applied) != len(requests):
+            await self._candidates.transition(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                candidate_id=candidate.candidate_id,
+                target=CandidateState.REJECTED,
+                detail="design proposal materialization was refused atomically",
+            )
+            raise DdeError(
+                "DESIGN_SOURCE_REJECTED",
+                "the selected design direction cannot be materialized under current governance",  # noqa: E501
+                retryable=False,
+                details={
+                    "artifact_id": str(artifact.artifact_id),
+                    "candidate_id": str(candidate.candidate_id),
+                    "refusals": [
+                        {
+                            "code": item.refusal_code,
+                            "detail": item.refusal_detail,
+                            "target_key": item.target_key,
+                            "property": item.payload.get("property"),
+                        }
+                        for item in applied.refused
+                    ],
+                },
+            )
 
         async with open_unit_of_work(
             self._engine, tenant_id=tenant_id, project_id=project_id
@@ -369,6 +462,80 @@ class DesignGateway:
             )
             rows = result.mappings().all()
         return tuple(DesignArtifact.model_validate(dict(row)) for row in rows)
+
+
+def _proposal_mutations(artifact: DesignArtifact) -> list[MutationRequest]:
+    """Compile one normalized provider direction onto DDE's sole mutation path.
+
+    The provider manifest has already bounded PXG keys and token vocabulary.
+    This compiler does not trust that fact implicitly: malformed persisted
+    artifacts still fail closed rather than becoming free-form code edits.
+    """
+    raw_nodes = artifact.content.get("nodes")
+    if not isinstance(raw_nodes, list):
+        return []
+    requests: list[MutationRequest] = []
+    seen: set[str] = set()
+    design_tokens = design_system_snapshot().tokens
+    for raw in raw_nodes:
+        if not isinstance(raw, dict):
+            raise DdeError(
+                "DESIGN_SOURCE_REJECTED",
+                "design artifact contains a non-object proposal node",
+                retryable=False,
+                details={"artifact_id": str(artifact.artifact_id)},
+            )
+        target = raw.get("pxg_key")
+        tokens = raw.get("tokens")
+        if not isinstance(target, str) or not target or not isinstance(tokens, dict):
+            raise DdeError(
+                "DESIGN_SOURCE_REJECTED",
+                "design artifact proposal node is missing pxg_key or tokens",
+                retryable=False,
+                details={"artifact_id": str(artifact.artifact_id)},
+            )
+        if target in seen:
+            raise DdeError(
+                "DESIGN_SOURCE_REJECTED",
+                "design artifact repeats one PXG node; materialization is ambiguous",
+                retryable=False,
+                details={"artifact_id": str(artifact.artifact_id), "pxg_key": target},
+            )
+        seen.add(target)
+        for prop in sorted(tokens):
+            value = tokens[prop]
+            if not isinstance(prop, str) or not isinstance(value, str):
+                raise DdeError(
+                    "DESIGN_SOURCE_REJECTED",
+                    "design artifact token proposal is not string-to-string",
+                    retryable=False,
+                    details={
+                        "artifact_id": str(artifact.artifact_id),
+                        "pxg_key": target,
+                    },
+                )
+            allowed = design_tokens.get(prop)
+            if allowed is None or value not in allowed:
+                raise DdeError(
+                    "DESIGN_SOURCE_REJECTED",
+                    "design artifact token proposal is outside the current design-system vocabulary",  # noqa: E501
+                    retryable=False,
+                    details={
+                        "artifact_id": str(artifact.artifact_id),
+                        "pxg_key": target,
+                        "property": prop,
+                        "value": value,
+                    },
+                )
+            requests.append(
+                MutationRequest(
+                    operation="SET_PROPERTY",
+                    target_key=target,
+                    origin="DESIGN_PROVIDER",
+                    payload={"property": prop, "value": value},
+                )
+            )
+    return requests
 
 
 def _quarantine_reason(

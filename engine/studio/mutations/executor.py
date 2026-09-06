@@ -132,6 +132,7 @@ class MutationExecutor:
         requests: list[MutationRequest],
         contract_version: int | None = None,
         design_system_hash: str | None = None,
+        all_or_nothing: bool = False,
     ) -> MutationOutcome:
         """Plan and apply in one governed step.
 
@@ -162,6 +163,11 @@ class MutationExecutor:
         now = datetime.now(UTC)
         applied_rows: list[FrontendMutation] = []
         refused_rows: list[FrontendMutation] = []
+        # Provider proposals are one semantic design direction. Applying a
+        # subset because one property became locked would create a direction
+        # the provider never proposed. `all_or_nothing` records every refusal
+        # but deliberately writes none of the otherwise-planned edits.
+        suppress_planned = all_or_nothing and bool(computed.refused)
 
         async with open_unit_of_work(
             self._engine, tenant_id=tenant_id, project_id=project_id
@@ -235,7 +241,7 @@ class MutationExecutor:
                 )
                 refused_rows.append(record)
 
-            for accepted in computed.planned:
+            for accepted in (() if suppress_planned else computed.planned):
                 sequence += 1
                 record = _row(
                     tenant_id=tenant_id,

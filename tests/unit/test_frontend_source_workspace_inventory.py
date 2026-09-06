@@ -14,19 +14,31 @@ def _workspace(
     now = datetime.now(UTC)
     policy = {"purpose": purpose} if purpose else {}
     return Workspace(
-        workspace_id=uuid4(), tenant_id=uuid4(), project_id=uuid4(), mission_id=uuid4(),
-        task_id=None, execution_environment_id=None, base_revision="0" * 40,
-        current_revision=revision, workspace_path="/tmp/workspace", policy=policy,
-        status=status, lock_version=1, created_at=now, updated_at=now,
+        workspace_id=uuid4(),
+        tenant_id=uuid4(),
+        project_id=uuid4(),
+        mission_id=uuid4(),
+        task_id=None,
+        execution_environment_id=None,
+        base_revision="0" * 40,
+        current_revision=revision,
+        workspace_path="/tmp/workspace",
+        policy=policy,
+        status=status,
+        lock_version=1,
+        created_at=now,
+        updated_at=now,
     )
 
 
 def test_source_workspace_inventory_is_empty_without_ready_durable_source() -> None:
-    result = build_source_workspace_inventory([
-        _workspace(status="PROVISIONING"),
-        _workspace(revision=None),
-        _workspace(purpose="frontend_candidate_preview"),
-    ])
+    result = build_source_workspace_inventory(
+        [
+            _workspace(status="PROVISIONING"),
+            _workspace(revision=None),
+            _workspace(purpose="frontend_candidate_preview"),
+        ]
+    )
     assert result.selection_state == "EMPTY"
     assert result.availability is Availability.EMPTY
     assert result.auto_selected_workspace_id is None

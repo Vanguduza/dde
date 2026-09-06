@@ -88,10 +88,11 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(outline).toBeVisible();
     await expect(outline).toHaveAttribute("data-pxg-key", "screens/checkout#hero");
 
-    const spacing = page.getByTestId("inspector-property-spacing");
-    await expect(spacing).toBeVisible();
-    await expect(spacing).toHaveAttribute("data-writable", "true");
-    await expect(spacing.locator("select")).toHaveValue("space2");
+    const gap = page.getByTestId("inspector-property-gap");
+    await expect(gap).toBeVisible();
+    await expect(gap).toHaveAttribute("data-writable", "true");
+    await expect(gap.locator("select")).toHaveValue("space6");
+    await expect(gap).toContainText("space6 · 24px");
     await expect(page.getByTestId("inspector-verification-evidence")).toContainText(
       "Current screen evidence: PASSED",
     );
@@ -107,6 +108,7 @@ test.describe("DDE-069 code-backed workbench loop", () => {
       .frameLocator("iframe.dde-preview-frame")
       .locator('[data-dde-pxg-key="screens/checkout#hero"]');
     await hero.click();
+    await page.getByTestId("inspector-tab-source").click();
     await page.getByRole("button", { name: "View source" }).click();
     const revealed = await page.evaluate(() => {
       const bridge = (
@@ -292,13 +294,13 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     const hero = frame.locator('[data-dde-pxg-key="screens/checkout#hero"]');
     await hero.click();
 
-    const spacing = page.getByTestId("inspector-property-spacing");
-    await spacing.locator("select").selectOption("space4");
-    await page.getByTestId("apply-spacing").click();
+    const gap = page.getByTestId("inspector-property-gap");
+    await gap.locator("select").selectOption("space4");
+    await page.getByTestId("apply-gap").click();
 
     await expect(
       page.frameLocator("iframe.dde-preview-frame").locator('[data-dde-pxg-key="screens/checkout#hero"]'),
-    ).toContainText("Hero space4");
+    ).toHaveAttribute("data-gap", "space4");
     await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
     await expect(
       page.getByTestId(

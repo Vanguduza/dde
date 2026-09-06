@@ -10,10 +10,10 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 49 |
+| `UNBOUND` | 36 |
 | `TYPED_UNAVAILABLE` | 6 |
-| `BOUND` | 39 |
-| `VERIFIED` | 5 |
+| `BOUND` | 51 |
+| `VERIFIED` | 6 |
 | **total** | **99** |
 
 Final status is derived. It is never authored independently of the eight layers.
@@ -118,13 +118,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar`
 | CT-03 | Hand / pan tool | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CT-04 | Comment tool | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CT-05 | Grid / overlay options | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CT-06 | Claude /design button | `VERIFIED` | `VERIFIED` | `TYPED_UNAVAILABLE` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `BLOCKED_EXTERNAL` | `VERIFIED` | `UNBOUND` |
+| CT-06 | Claude /design button | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | CT-07 | Zoom control | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
 | CT-08 | Fullscreen / fit | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 
 Notes:
 
-- **CT-06** — The control is present where the golden composition puts it and the DesignGateway behind it is real: it compiles an allowlisted DesignEditContext, records the design-system hash, quarantines malformed artifacts and creates isolated candidates through Try live. What is absent is a certified Claude Design transport, so the provider reports NOT_CERTIFIED and the gateway refuses with no fallback. Driving it through capability.claude_code_invoke would be a generic code-generation prompt labelled /design, which section 23 forbids by name.
+- **CT-06** — Closed by a dedicated certified Claude Design transport (engine/studio/design/claude_transport.py): the authenticated Claude Code executable is used only as a bounded structured host for the official claude-design MCP, with an ephemeral allowlist admitting nothing but mcp__claude-design__* (plus ToolSearch and the harness result emitter), no session persistence and a machine-readable manifest contract instead of final prose. The stream is checked against those flags: MCP connection, offered tools, executed tools, permission denials and per-direction write evidence. Activation is explicit (DDE_CLAUDE_DESIGN_ENABLED); an unconfigured deployment still reports NOT_CERTIFIED and the gateway still refuses with no fallback. capability.claude_code_invoke remains forbidden as a substitute. A recorded live run proved provider CERTIFIED, /design through Universal DDE Chat, persisted DesignSession/DesignArtifacts, Try live's isolated candidate, a code-backed preview reaching LIVE only on a matching content hash, and promotion still refused by the verification gate.
 
 ## Real canvas and selection
 
@@ -177,7 +177,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 | CA-03 | Candidate score | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-04 | Score classification | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-05 | Change count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| CA-06 | Current (Locked) card | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| CA-06 | Current (Locked) card | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-07 | Try live | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | CA-08 | Compare | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-09 | Promote / accept | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
@@ -187,7 +187,7 @@ Notes:
 - **CA-02** — Candidate thumbnails now render exact code-backed PreviewDocument content; production E2E remains BOUND.
 - **CA-03** — M8 CandidateScorecard is implemented and evidence-backed; final status remains BOUND pending production E2E.
 - **CA-04** — Clickable evidence-backed score explanation is implemented; final status remains BOUND pending production E2E.
-- **CA-06** — Accepted-current card is honest; final locked grammar waits on effective lock inventory.
+- **CA-06** — Accepted Current is sourced from durable PXG revision and effective LockService inventory. The golden locked chip appears only when active locks actually exist; zero locks renders NO ACTIVE LOCKS rather than inventing a lock.
 - **CA-08** — Candidate compare is implemented for two real LIVE preview documents; production E2E remains BOUND.
 
 ## Source Blend
@@ -210,27 +210,28 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#89-inspector`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| IN-01 | Selected node header | `BOUND` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
-| IN-02 | Layout tab | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-03 | Style tab | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-04 | Behaviour tab | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-05 | Responsive tab | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-06 | Lock tab | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-07 | Source / code tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| IN-08 | Type: Stack | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-09 | Direction | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-10 | Gap (px + token) | `VERIFIED` | `UNBOUND` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-11 | Padding (px + token) | `VERIFIED` | `UNBOUND` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-12 | Behaviour: animation | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| IN-01 | Selected node header | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-02 | Layout tab | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-03 | Style tab | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-04 | Behaviour tab | `NOT_APPLICABLE` | `BOUND` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-05 | Responsive tab | `NOT_APPLICABLE` | `BOUND` | `BOUND` | `BOUND` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-06 | Lock tab | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-07 | Source / code tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-08 | Type: Stack | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-09 | Direction | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-10 | Gap (px + token) | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-11 | Padding (px + token) | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-12 | Behaviour: animation | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | IN-13 | Provenance section | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| IN-14 | View Source | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| IN-15 | Accessibility badge | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| IN-16 | Responsive breakpoint buttons | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| IN-14 | View Source | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-15 | Accessibility badge | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
+| IN-16 | Responsive breakpoint buttons | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
 
 Notes:
 
 - **IN-01** — InspectorDescriptor and mission-scoped read transport are implemented. The existing React panel still receives selectedKey=null, so no UI completion is claimed.
 - **IN-07** — Real source mapping/reveal exists; Inspector golden closure must convert it into the required Source/code tab.
+- **IN-11** — The control is implemented with token-bound dual display. Repository token authority currently resolves space8 to 40px; the golden 64px example has no authorised spacing token, so DDE shows space8 · 40px and refuses raw 64px until token authority changes.
 - **IN-13** — M8 accepted provenance is now visible in Inspector; final status remains BOUND pending production E2E.
 - **IN-15** — Same as EX-22: the accessibility rubric dimension is bound by default, but the inspector's read of its result is M17. Renders Not evaluated.
 

@@ -16,6 +16,7 @@ from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.studio.tokens_catalog import (
     BASE_KINDS,
+    LAYOUT_PROPERTIES,
     STYLE_PROPERTIES,
     assert_token_value,
     css_var_for,
@@ -143,6 +144,18 @@ def apply_update(html: str, *, element_id: str, property_name: str, value: str) 
             next_inner = escape(value)
         elif property_name == "variant":
             next_attrs["data-dde-variant"] = value
+        elif property_name in LAYOUT_PROPERTIES:
+            next_attrs[f"data-dde-{property_name.replace('_', '-')}"] = value
+            if property_name == "layout_type":
+                display = "grid" if value == "grid" else "flex"
+                next_attrs["style"] = _merge_raw_style(
+                    next_attrs.get("style", ""), "display", display
+                )
+            else:
+                flex_direction = "column" if value == "vertical" else "row"
+                next_attrs["style"] = _merge_raw_style(
+                    next_attrs.get("style", ""), "flex-direction", flex_direction
+                )
         elif property_name in STYLE_PROPERTIES:
             css_name = css_var_for(property_name, value)
             next_attrs[f"data-dde-{property_name.replace('_', '-')}"] = value
@@ -160,10 +173,19 @@ def apply_update(html: str, *, element_id: str, property_name: str, value: str) 
     return _replace_all(html, updated)
 
 
+def _merge_raw_style(existing: str, css_prop: str, value: str) -> str:
+    parts = [item.strip() for item in existing.split(";") if item.strip()]
+    kept = [item for item in parts if not item.startswith(f"{css_prop}:")]
+    kept.append(f"{css_prop}: {value}")
+    return "; ".join(kept)
+
+
 def _merge_style(existing: str, property_name: str, css_var: str) -> str:
     css_prop = {
         "color": "color",
         "spacing": "padding",
+        "padding": "padding",
+        "gap": "gap",
         "radius": "border-radius",
         "shadow": "box-shadow",
         "type": "font-size",

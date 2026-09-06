@@ -297,6 +297,19 @@ export class GatewayApiClient {
     );
   }
 
+  async readFrontendDesignArtifacts(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    designSessionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/design/sessions/${designSessionId}/artifacts`,
+      sessionId,
+      principalId,
+    );
+  }
+
   async readFrontendSources(
     sessionId: string,
     principalId: string,

@@ -22,12 +22,14 @@ from engine.core.errors import DdeError
 from engine.studio.canvas import apply_update, screen_relative_path
 from engine.studio.preview_runtime.runtime import MaterializedPreview
 from engine.studio.pxg.service import PxgGraph
-from engine.studio.tokens_catalog import STYLE_PROPERTIES
+from engine.studio.tokens_catalog import LAYOUT_PROPERTIES, STYLE_PROPERTIES
 from engine.workspaces.service import WorkspaceService
 
 _OPEN_DDE_DIV = re.compile(r'<div\s+([^>]*\bdata-dde-el="([^"]+)"[^>]*)>')
 _PXG_ATTR = re.compile(r'\sdata-dde-pxg-key="[^"]*"')
-_SUPPORTED_PROPERTIES = STYLE_PROPERTIES | frozenset({"label", "variant"})
+_SUPPORTED_PROPERTIES = (
+    STYLE_PROPERTIES | LAYOUT_PROPERTIES | frozenset({"label", "variant"})
+)
 
 
 class PrototypeHtmlPreviewAdapter:

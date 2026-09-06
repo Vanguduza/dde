@@ -27,7 +27,11 @@ from engine.studio.candidates.lifecycle import CandidateState, is_mutable
 from engine.studio.locks.resolution import covers_key, effective_lock_hash
 from engine.studio.locks.resolution import evaluate as evaluate_locks
 from engine.studio.pxg.service import PxgGraph
-from engine.studio.tokens_catalog import STYLE_PROPERTIES, allowed_values
+from engine.studio.tokens_catalog import (
+    LAYOUT_PROPERTIES,
+    STYLE_PROPERTIES,
+    allowed_values,
+)
 
 #: Operations that write a design-token-governed value. These are checked
 #: against the token catalogue so a richer V2 inspector cannot bypass the
@@ -242,7 +246,7 @@ def _token_refusal(request: MutationRequest) -> tuple[str, str] | None:
     value = request.payload.get("value")
     if not isinstance(prop, str):
         return ("MUTATION_INVALID", "payload.property must be a string")
-    if prop not in STYLE_PROPERTIES:
+    if prop not in STYLE_PROPERTIES | LAYOUT_PROPERTIES:
         return None
     if not isinstance(value, str):
         return ("MUTATION_INVALID", "payload.value must be a string")

@@ -1246,3 +1246,104 @@ button.dde-chat-chip,
   height: 880px;
   transform: scale(0.25);
 }
+
+/* DDE-069 Inspector golden grammar: explicit capability tabs over one governed descriptor. */
+.dde-inspector-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--dde-border-subtle);
+}
+
+.dde-inspector-tabs button {
+  min-width: 0;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--dde-radius-sm);
+  background: transparent;
+  color: var(--dde-text-muted);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.dde-inspector-tabs button[aria-selected="true"] {
+  border-color: var(--dde-border-strong);
+  background: var(--dde-surface-raised);
+  color: var(--dde-text-primary);
+}
+
+.dde-inspector-tabpanel {
+  padding: 8px 10px 2px;
+}
+
+.dde-inspector-tabpanel .dde-inspector-properties {
+  padding: 0;
+}
+
+.dde-breakpoint-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.dde-breakpoint-buttons button[aria-pressed="true"] {
+  outline: 1px solid var(--dde-primary);
+  background: var(--dde-surface-raised);
+}
+
+.dde-inspector-lock-row {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  margin: 6px 0;
+  border: 1px solid var(--dde-border-subtle);
+  border-radius: var(--dde-radius-sm);
+}
+
+.dde-inspector-lock-row > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Governed Claude Design direction strip. */
+.dde-design-mode {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--dde-gap-normal);
+}
+
+.dde-design-directions {
+  padding: var(--dde-panel-padding);
+  border: 1px solid var(--dde-border);
+  border-radius: var(--dde-radius-md);
+  background: var(--dde-surface);
+}
+
+.dde-design-directions-header,
+.dde-design-direction-card > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dde-gap-normal);
+}
+
+.dde-design-direction-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--dde-gap-normal);
+  margin-top: var(--dde-gap-normal);
+}
+
+.dde-design-direction-card {
+  display: grid;
+  gap: var(--dde-gap-dense);
+  padding: var(--dde-panel-padding);
+  border: 1px solid var(--dde-border);
+  border-radius: var(--dde-radius-sm);
+  background: var(--dde-surface-muted);
+}

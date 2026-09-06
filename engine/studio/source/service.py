@@ -53,6 +53,10 @@ from engine.studio.source.compiler import COMPILER_VERSION, evaluate_artifact
 from engine.studio.source.provenance import evaluate_reusable_provenance
 from engine.studio.source.repository import SourceIntelligenceRepository
 from engine.studio.source.scoring import score_candidate
+from engine.studio.source.shadcn_registry import (
+    DEFAULT_PUBLIC_REGISTRY_SPECS,
+    PublicShadcnRegistryAdapter,
+)
 from engine.studio.source.twentyfirst import TwentyFirstMcpTransport
 from engine.truth.db import open_unit_of_work
 from engine.verification.repository import VerificationRunRepository
@@ -74,9 +78,13 @@ class SourceFetchExecution:
 
 SOURCE_SPECS: tuple[tuple[str, str, str, str, int], ...] = (
     ("project-native", "Internal Components", "PROJECT_NATIVE", "project", 1),
-    ("dde-library", "DDE Library", "DDE_LIBRARY", "catalog", 4),
-    ("21st", "21st MCP", "EXTERNAL_REGISTRY", "twenty_first", 5),
-    ("donors", "Donor Sources", "DONOR", "donor", 6),
+    ("dde-library", "DDE Library", "DDE_LIBRARY", "catalog", 2),
+    ("shadcn", "shadcn/ui", "EXTERNAL_REGISTRY", "shadcn_registry", 3),
+    ("reui", "ReUI", "EXTERNAL_REGISTRY", "shadcn_registry", 4),
+    ("magic-ui", "Magic UI", "EXTERNAL_REGISTRY", "shadcn_registry", 5),
+    ("aceternity", "Aceternity UI", "EXTERNAL_REGISTRY", "shadcn_registry", 6),
+    ("21st", "21st MCP", "EXTERNAL_REGISTRY", "twenty_first", 7),
+    ("donors", "Donor Sources", "DONOR", "donor", 8),
 )
 
 
@@ -111,11 +119,16 @@ class SourceIntelligenceService:
         self._verification_runs = VerificationRunRepository()
         self._workspaces = workspaces or WorkspaceService(engine)
         twenty_first = twenty_first_transport or TwentyFirstMcpTransport(engine)
+        public_registries: dict[str, DesignSourceAdapter] = {
+            spec.provider_key: PublicShadcnRegistryAdapter(spec)
+            for spec in DEFAULT_PUBLIC_REGISTRY_SPECS
+        }
         self._adapters: dict[str, DesignSourceAdapter] = adapters or {
             "project-native": ProjectNativeSourceAdapter(engine),
             "dde-library": DdeLibrarySourceAdapter(),
-            "donors": DonorSourceAdapter(engine),
+            **public_registries,
             "21st": TwentyFirstSourceAdapter(twenty_first),
+            "donors": DonorSourceAdapter(engine),
         }
 
     async def ensure_sources(
@@ -1189,7 +1202,6 @@ class SourceIntelligenceService:
         provenance_required = candidate_origin in {
             "SOURCE_IMPORT",
             "TEMPLATE_BLEND",
-            "DESIGN_ARTIFACT",
         }
         if provenance_required and not records:
             return False, "source-derived candidate has no candidate provenance"

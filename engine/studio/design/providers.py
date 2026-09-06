@@ -15,6 +15,8 @@ UI, which is a worse user experience and a correct one.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
@@ -144,11 +146,15 @@ class DesignProviderRegistry:
 class ClaudeDesignProvider:
     """Claude as the first certified design provider (section 23).
 
-    The adapter and its contract exist; the *transport* does not. Rev 3
-    prefers a certified direct Claude Design MCP/OAuth transport, and
-    allows a certified Claude Code `/design` WorkerSession transport as an
-    alternative. Neither is registered in this build, so this provider
-    reports `NOT_CERTIFIED` and the gateway refuses.
+    The adapter and its contract always exist; the *transport* is
+    deployment state. Rev 3 prefers a certified structured Claude Design
+    MCP transport, and allows a certified Claude Code `/design`
+    WorkerSession transport as an alternative.
+    `engine.studio.design.claude_transport` implements both readings at
+    once -- the bounded Claude Code host exists only to carry the official
+    Claude Design MCP -- but it registers itself only when the operator
+    enables it explicitly. Where it is not enabled this provider reports
+    `NOT_CERTIFIED` and the gateway refuses.
 
     It deliberately does not fall back to `capability.claude_code_invoke`.
     That capability grants arbitrary development execution against a
@@ -191,6 +197,20 @@ class ClaudeDesignProvider:
         return await self._transport.generate(request)
 
 
-def default_registry() -> DesignProviderRegistry:
-    """The providers this build ships. Claude is first and uncertified."""
-    return DesignProviderRegistry((ClaudeDesignProvider(),))
+def default_registry(env: Mapping[str, str] | None = None) -> DesignProviderRegistry:
+    """The providers this build ships, with the transports this *deployment*
+    has enabled.
+
+    Configuration decides, never a host path or an installed binary. A
+    deployment that has not set `DDE_CLAUDE_DESIGN_ENABLED` gets the
+    uncertified provider even on a host where the Claude Design MCP happens
+    to be reachable: discovering a capability is not the same as being
+    authorised to use it.
+    """
+    # Imported here because the transport imports this module for its
+    # status/artifact types; the dependency runs adapter -> contract, and
+    # a module-level import would make it a cycle.
+    from engine.studio.design.claude_transport import transport_from_environment
+
+    transport = transport_from_environment(os.environ if env is None else env)
+    return DesignProviderRegistry((ClaudeDesignProvider(transport),))

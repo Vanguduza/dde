@@ -66,7 +66,7 @@ This file's current commit is the close-out of the R3-0 source-of-truth migratio
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and universal Cursor-class DDE AI Chat surface are browser-proven and production-wired. AI Conversation Fabric persistence/ACP/MCP/provider-session primitives, DDE-owned shared memory, R2-capable durable object storage and policy-bounded context/compaction are implemented on runnable surfaces; isolated real PostgreSQL 16.15 and Redis 7.0.15 integration are now proven on this host, while live R2 E2E still requires complete scoped R2 credentials. Screen Audit is implemented. M8 Source Intelligence is now partially implemented and browser-proven on local/fake transports; production PostgreSQL and live certified external-source E2E remain unavailable on this host. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. One blocker: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed — see the DDE-069 section. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Adopted domain architecture: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Supersedes the earlier "Mobile/Multi-target" framing that was never updated after `DEV_PLAN_REV3.md`'s Rev 3.3 edit (commit `b5753db`) redefined DDE-069; see AD-030. Mobile/multi-target is not deferred work of its own — it is a governed sub-capability (platform-specific design-source adapters + Expo/device runtime verification) inside this mission. Entry gate opened 2026-09-04 on DDE-068's evidenced closure. Backend domain foundation, M7 mutation/candidate/lock runtime, host-neutral React shell, Frontend Chat backend, DesignGateway, code-backed prototype preview foundation and descriptor-driven Inspector reads are landed; the inherited DDE-068 binding carry-over is closed. The central React live-canvas/selection/edit loop, candidate DDE-068 re-verification and universal Cursor-class DDE AI Chat surface are browser-proven and production-wired. AI Conversation Fabric persistence/ACP/MCP/provider-session primitives, DDE-owned shared memory, R2-capable durable object storage and policy-bounded context/compaction are implemented on runnable surfaces; isolated real PostgreSQL 16.15 and Redis 7.0.15 integration are now proven on this host, while live R2 E2E still requires complete scoped R2 credentials. Screen Audit is implemented. M8 Source Intelligence is now partially implemented and browser-proven on local/fake transports; production PostgreSQL and live certified external-source E2E remain unavailable on this host. The `Claude /design` path is closed end to end: a dedicated certified Claude Design MCP transport is implemented, wired into the toolbar and Universal DDE Chat, and proven by a recorded live run against real PostgreSQL/Redis and the real provider — including that promotion is still refused by the DDE-068 verification gate. Per-control state is the multidimensional `docs/truth/FRONTEND_STUDIO_BINDING_MATRIX.md`. Blockers: the AD-035 golden image is absent from the repository, so pixel-reference conformance fails closed; live R2 object-store certification and 21st source execution remain external — see the DDE-069 section. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | AI Conversation Fabric now discovers the installed Hermes runtime, requires evidence-backed endpoint certification, and has a fail-closed ACP client. DDE-managed Hermes ACP context isolation is proven with `--ignore-rules`; shared approved DDE memory is object-backed (R2 when configured) and replaces duplicate provider-private memory injection. Full downstream Hermes experience/fleet acceptance gates remain in DDE-075/076. |
 | Claude Code worker integration | `IMPLEMENTED_PARTIAL` | DDE Code/packaging references Claude Code worker setup; Rev 3 quota-aware specialization and independent-review routing still require explicit implementation/evaluation. |
@@ -405,8 +405,9 @@ neither is a completion claim under v2.
   panel geometry, zone tiling, canvas dominance, the applied token values,
   responsive degradation, and the honest-state rules (an unknown count
   renders an em-dash with its reason; a partially assessed project shows no
-  percentage; serving identity reads UNATTESTED; `Claude /design` is
-  visible but disabled; the candidate strip carries no invented cards).
+  percentage; serving identity reads UNATTESTED; `Claude /design` renders
+  its real provider state and enables only on `CERTIFIED`; the candidate
+  strip carries no invented cards).
   Run with `just studio-visual`. Screenshot:
   `docs/evidence/dde-069/frontend-studio-shell-actual.png`.
 - **M9/M10 Cursor-class DDE AI Chat + DesignGateway control plane** —
@@ -514,7 +515,7 @@ neither is a completion claim under v2.
   now covers search → persisted run → fetch → sandbox/admission → provenance → score →
   promotion → accepted provenance → audit invalidation/re-evaluation. It has now executed against isolated PostgreSQL 16.15 and **PASS**. The broader DDE-069 PostgreSQL/Redis focused suite is **34/34 PASS**, including real Redis stream persistence and Gateway readiness. The 99-control ledger remains conservatively reconciled to the latest UI evidence; real certified 21st transport is still external, so provider certification remains open. Evidence: `docs/evidence/dde-069/POSTGRES_REDIS_CLOSURE.md`. Evidence:
   `docs/evidence/dde-069/M8_SOURCE_INTELLIGENCE_CHECKPOINT.md`.
-- **Candidate dock functional closure** — accepted-current truth, exact code-backed candidate miniatures, real mutation change counts, clickable evidence-backed score explanations, two-LIVE-preview compare and explicit governed promotion are now implemented. Universal DDE Chat no longer overlaps/intercepts the permanent candidate strip. Full workbench Playwright is **46/46** and extension tests **77/77**. `CA-07` remains open for the distinct DesignArtifact → `frontend.design.try_live` path, and `CA-06` remains BOUND until effective lock inventory exists. The reconciled ledger is **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND**. Evidence: `docs/evidence/dde-069/CANDIDATE_DOCK_CLOSURE.md`.
+- **Candidate dock functional closure** — accepted-current truth, exact code-backed candidate miniatures, real mutation change counts, clickable evidence-backed score explanations, two-LIVE-preview compare and explicit governed promotion are now implemented. Universal DDE Chat no longer overlaps/intercepts the permanent candidate strip. Full workbench Playwright is **46/46** and extension tests **77/77**. `CA-07` remains open for the distinct DesignArtifact → `frontend.design.try_live` path, and `CA-06` remains BOUND until effective lock inventory exists. The ledger read **5 VERIFIED / 39 BOUND / 6 TYPED_UNAVAILABLE / 49 UNBOUND** at that closure; it is **6 / 39 / 6 / 48** after `CT-06` closed (see the `Claude /design` subsection). Evidence: `docs/evidence/dde-069/CANDIDATE_DOCK_CLOSURE.md`.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / not started:** M8 external provider certification; remaining golden-control UI/production-E2E closure; general
@@ -523,31 +524,61 @@ prototype HTML; production VS Code-host process → Gateway browser evidence bey
 tab-specific golden contracts not yet matched by the current generic controls;
 cross-DDE migration (M12); mobile adapters (M13).
 
-#### `Claude /design` — BLOCKED_EXTERNAL on a certified transport
+#### `Claude /design` — closed with a certified transport (2026-09-06)
 
-The DesignGateway, `DesignEditContext` compiler, provider registry,
-artifact lifecycle and Try-live path are implemented and tested. What does
-not exist is a **certified design transport**. `FRONTEND_STUDIO_REV3.md`
-section 23 requires a structured one — a direct Claude Design MCP/OAuth
-transport preferred, a certified Claude Code `/design` WorkerSession
-transport allowed — and forbids by name substituting a generic
-code-generation prompt.
+`CT-06` is now `VERIFIED` across all eight evidence layers. The certified
+transport is `engine/studio/design/claude_transport.py`: the authenticated
+Claude Code executable used **only** as a bounded, non-interactive host
+process for the official `claude-design` MCP server. Print mode, structured
+`stream-json`, `--permission-mode dontAsk` with `--permission-prompts none`,
+`--tools ToolSearch` (every file/command/network tool removed),
+`--strict-mcp-config` admitting exactly one server, ephemeral `--settings`
+allowing only `mcp__claude-design__*`, `--setting-sources ""`, and
+`--no-session-persistence`. Those flags are treated as a claim: the returned
+stream is checked for MCP connection, an allowlisted offered tool surface, no
+non-allowlisted execution, empty `permission_denials`, and a successful
+terminal result. The return contract is an explicit machine-readable manifest
+(`engine/studio/design/manifest.py`, `dde.design.manifest/1`) delivered through
+`--json-schema`, never arbitrary final prose; a direction may only name PXG
+keys the `DesignEditContext` exported, and every claimed deliverable must be
+tied to an observed successful MCP write.
 
-`ClaudeDesignProvider` therefore reports `NOT_CERTIFIED` with that reason,
-and `DesignProviderRegistry.resolve` refuses with no fallback path in the
-code at all. Deliberately **not** routed through
-`capability.claude_code_invoke`: that capability grants arbitrary
-development execution against a human's own rate-limited seat and keeps
-its mandatory per-invocation approval for that reason (EDR-0001 Path A,
-EDR-0017), and using it here would be exactly the substitution section 23
-forbids.
+Still deliberately **not** routed through `capability.claude_code_invoke`:
+that capability grants arbitrary development execution against a human's own
+rate-limited seat and keeps its mandatory per-invocation approval for that
+reason (EDR-0001 Path A, EDR-0017). It remains forbidden as a `/design`
+fallback, and this transport does not use it.
 
-**To unblock:** register a certified transport implementing the
-`DesignProvider` protocol (`engine/studio/design/providers.py`). Everything
-downstream — session, context allowlist, artifacts, quarantine, Try live,
-candidate isolation, DDE-068 verification, promotion — is already wired and
-proven against a stub transport in
-`tests/unit/test_design_gateway_postgres.py`.
+Activation is explicit configuration (`DDE_CLAUDE_DESIGN_ENABLED`, see
+`.env.example`), never a host path and never inferred from an installed
+binary. A deployment that has not enabled it registers no transport, so
+`ClaudeDesignProvider` still reports `NOT_CERTIFIED` and the gateway still
+refuses with no fallback — ordinary unit and CI runs never reach a live
+provider. Provider state is typed: `NOT_CERTIFIED` / `AUTH_REQUIRED` /
+`UNAVAILABLE` / `CERTIFIED`, and the toolbar control enables only on
+`CERTIFIED`, sending `/design` into the **existing** Universal DDE Chat
+conversation rather than opening a second one or mutating state directly.
+
+**Live certification (recorded).** Against real PostgreSQL 16.15, real Redis
+7.0.15 and the real `claude-design` MCP:
+`tests/live/test_claude_design_live_e2e.py` — **1 passed** — proved provider
+`CERTIFIED` from discovery, `/design` through Universal DDE Chat, a persisted
+`DesignSession` with three `GENERATED` `DesignArtifact` rows carrying provider
+and design-system-hash provenance and a real Claude Design project behind them,
+Try live's isolated candidate leaving accepted PXG untouched, a code-backed
+preview reaching `LIVE` only on a content hash matching the candidate file on
+disk (a wrong hash was answered `STALE`), and `frontend.candidate.promote`
+still refused `403 POLICY_DENIED` on the `visual_verification` gate. The run is
+gated on `DDE_LIVE_CLAUDE_DESIGN` because it spends a real provider invocation.
+Evidence: `docs/evidence/dde-069/CLAUDE_DESIGN_TRANSPORT_CLOSURE.md` and
+`docs/evidence/dde-069/claude-design-live-run.json`.
+
+**Not closed by this:** `frontend.design.sync_system` (governed design-system
+sync to the provider) is still unimplemented. The manifest echoes and verifies
+the design-system hash, so an artifact generated against a different snapshot
+is refused, but pushing the allowlisted snapshot to the provider remains
+follow-on work. AD-039 golden-binary pixel conformance, live R2 certification
+and 21st source execution are unaffected and remain open.
 
 **Deliberately honest gaps at this snapshot.** Candidate thumbnails, scores,
 Try-live and compare do not exist as functional React controls. The current

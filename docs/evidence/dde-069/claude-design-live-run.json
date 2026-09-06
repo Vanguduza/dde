@@ -1,0 +1,290 @@
+{
+  "accepted_pxg_revision_unchanged": 2,
+  "artifacts": [
+    {
+      "artifact_id": "01a07789-1599-7cd3-9530-ab52a516fbc3",
+      "content_hash": "f103a01c5c8e909b74c8b91a628b9f23ac1846f92d4db3a797e4d51edb75564a",
+      "direction_label": "A",
+      "nodes": [
+        {
+          "intent": "Tighten hero rhythm and typography so itemized order details, totals, and CTA surface within one dense glance",
+          "pxg_key": "screens/checkout#hero",
+          "tokens": {
+            "background": "--surface-card",
+            "borderColor": "--border-default",
+            "borderRadius": "md",
+            "gap": "space3",
+            "padding": "space3",
+            "typography": "sm"
+          }
+        },
+        {
+          "intent": "Compress express-pay, promo, and CTA rows to keep payment actions dense and adjacent",
+          "pxg_key": "screens/checkout#hero",
+          "tokens": {
+            "background": "--accent-primary",
+            "borderRadius": "sm",
+            "color": "--accent-on-accent",
+            "gap": "space1",
+            "padding": "space2",
+            "typography": "xs"
+          }
+        }
+      ],
+      "preview_path": "direction-a.html",
+      "provenance": {
+        "base_pxg_revision": 2,
+        "design_system_hash": "e64a0490c14bbae1e562eeacfbd5183d9cc3a6c8a2d62ba57ee1f99e67522f74",
+        "provider_id": "claude-design",
+        "provider_version": "claude-design-mcp/dde.design.manifest/1;auth=claude.ai;plan=max;org=d7950bb1-79dd-4949-b643-1aeacdc2a29c;model=sonnet|harness=2.1.259|served=claude-sonnet-5",
+        "retrieved_at": "2026-09-06T16:24:27.801909+00:00"
+      },
+      "provider_id": "claude-design",
+      "provider_project_id": "7f0b875a-cd1c-4b5f-b5d4-28bec5341b4f",
+      "provider_project_url": "https://claude.ai/design/p/7f0b875a-cd1c-4b5f-b5d4-28bec5341b4f",
+      "status": "GENERATED",
+      "summary": "Denser hero: itemized order list, express-pay row, and inline promo code all packed into one compact glance."
+    },
+    {
+      "artifact_id": "01a07789-159a-7070-8db9-9622e186d894",
+      "content_hash": "f9928897828cf73279d77bd663fe3b41b4613944064dc31e2108101e09359350",
+      "direction_label": "B",
+      "nodes": [
+        {
+          "intent": "Expand hero rhythm and isolate the total plus single CTA as the only focal actions",
+          "pxg_key": "screens/checkout#hero",
+          "tokens": {
+            "background": "--surface-base",
+            "gap": "space7",
+            "padding": "space8",
+            "typography": "lg"
+          }
+        },
+        {
+          "intent": "Mute secondary trust and order-detail copy beneath the CTA behind a disclosure to keep visual noise low",
+          "pxg_key": "screens/checkout#hero",
+          "tokens": {
+            "borderColor": "--border-default",
+            "color": "--text-muted",
+            "gap": "space4",
+            "typography": "sm"
+          }
+        }
+      ],
+      "preview_path": "direction-b.html",
+      "provenance": {
+        "base_pxg_revision": 2,
+        "design_system_hash": "e64a0490c14bbae1e562eeacfbd5183d9cc3a6c8a2d62ba57ee1f99e67522f74",
+        "provider_id": "claude-design",
+        "provider_version": "claude-design-mcp/dde.design.manifest/1;auth=claude.ai;plan=max;org=d7950bb1-79dd-4949-b643-1aeacdc2a29c;model=sonnet|harness=2.1.259|served=claude-sonnet-5",
+        "retrieved_at": "2026-09-06T16:24:27.801909+00:00"
+      },
+      "provider_id": "claude-design",
+      "provider_project_id": "7f0b875a-cd1c-4b5f-b5d4-28bec5341b4f",
+      "provider_project_url": "https://claude.ai/design/p/7f0b875a-cd1c-4b5f-b5d4-28bec5341b4f",
+      "status": "GENERATED",
+      "summary": "Calmer hero: only the total and a single CTA are visible by default; order details are tucked behind a disclosure."
+    },
+    {
+      "artifact_id": "01a07789-159a-78e9-94fb-8a2e9694d2c6",
+      "content_hash": "23ee94b7aa812a436c8c667dddb6ff4a09611627f937e4deae0399d9022ea9be",
+      "direction_label": "C",
+      "nodes": [
+        {
+          "intent": "Split hero into a bordered summary card and an action column with moderate, consistent spacing",
+          "pxg_key": "screens/checkout#hero",
+          "tokens": {
+            "background": "--surface-card",
+            "borderColor": "--border-default",
+            "borderRadius": "md",
+            "boxShadow": "overlay",
+            "gap": "space5",
+            "padding": "space4",
+            "typography": "md"
+          }
+        },
+        {
+          "intent": "Give the payment action column a calm divider and consistent space3 rhythm between express-pay, promo, and CTA",
+          "pxg_key": "screens/checkout#hero",
+          "tokens": {
+            "borderColor": "--border-default",
+            "gap": "space3",
+            "typography": "sm"
+          }
+        }
+      ],
+      "preview_path": "direction-c.html",
+      "provenance": {
+        "base_pxg_revision": 2,
+        "design_system_hash": "e64a0490c14bbae1e562eeacfbd5183d9cc3a6c8a2d62ba57ee1f99e67522f74",
+        "provider_id": "claude-design",
+        "provider_version": "claude-design-mcp/dde.design.manifest/1;auth=claude.ai;plan=max;org=d7950bb1-79dd-4949-b643-1aeacdc2a29c;model=sonnet|harness=2.1.259|served=claude-sonnet-5",
+        "retrieved_at": "2026-09-06T16:24:27.801909+00:00"
+      },
+      "provider_id": "claude-design",
+      "provider_project_id": "7f0b875a-cd1c-4b5f-b5d4-28bec5341b4f",
+      "provider_project_url": "https://claude.ai/design/p/7f0b875a-cd1c-4b5f-b5d4-28bec5341b4f",
+      "status": "GENERATED",
+      "summary": "Structured two-column hero: a bordered order-summary card paired with a distinct payment-action column at moderate density."
+    }
+  ],
+  "design_session_id": "01a07783-1b39-75e0-aade-b6ed45be5483",
+  "design_turn": {
+    "intent": "DESIGN_DIVERGENT",
+    "message": "3 direction(s) generated",
+    "outcome": "ROUTED",
+    "produced_refs": [
+      "01a07789-1599-7cd3-9530-ab52a516fbc3",
+      "01a07789-159a-7070-8db9-9622e186d894",
+      "01a07789-159a-78e9-94fb-8a2e9694d2c6"
+    ],
+    "refusal_code": null,
+    "refusal_detail": null,
+    "reply_turn_id": "01a07789-15b8-7be6-83d4-932468812efa",
+    "resolved_context": {
+      "context": {
+        "active_artifact_ref": null,
+        "active_locks": [],
+        "active_plan_id": null,
+        "active_task_id": null,
+        "active_verification_run_id": null,
+        "active_worker_run_id": null,
+        "active_worker_session_id": null,
+        "active_workspace_id": null,
+        "candidate": null,
+        "chat_mode": "EXECUTE",
+        "compaction_snapshot_id": null,
+        "context_budget": {
+          "budget_tokens": 12183,
+          "estimated_tokens": 0,
+          "included_refs": [],
+          "items": [],
+          "omission_reasons": {},
+          "omitted_refs": []
+        },
+        "context_domain": "FRONTEND_STUDIO",
+        "context_omission_reasons": {},
+        "context_omitted_refs": [],
+        "contract_version": 1,
+        "coverage": {
+          "availability": "NOT_CONFIGURED",
+          "stale": false,
+          "state": "UNASSESSED"
+        },
+        "fabric_context_snapshot_id": "01a07783-1b17-7e90-8b67-8ed15af0ae2d",
+        "frontend_studio": {
+          "active_locks": [],
+          "candidate": null,
+          "contract_version": 1,
+          "coverage": {
+            "availability": "NOT_CONFIGURED",
+            "stale": false,
+            "state": "UNASSESSED"
+          },
+          "pxg_revision": 2,
+          "screen_key": "screens/checkout",
+          "selected_node_keys": [
+            "screens/checkout"
+          ],
+          "viewport": "desktop-1440"
+        },
+        "history_context": [],
+        "history_summary": null,
+        "inline_context_refs": [],
+        "memory_context": [],
+        "mission_id": "01a07783-0b34-77b3-8376-8ce3fad4622b",
+        "model_profile_id": null,
+        "pinned_context_refs": [],
+        "project_id": "01a07783-0afe-7236-af90-d895cb1c453a",
+        "pxg_revision": 2,
+        "screen_key": "screens/checkout",
+        "selected_node_keys": [
+          "screens/checkout"
+        ],
+        "token_management": {
+          "budget_tokens": 24000,
+          "live_context_tokens": 231,
+          "prompt_tokens": 20,
+          "system_reserve_tokens": 320,
+          "used_tokens": 571,
+          "utilization": 0.023791666666666666
+        },
+        "viewport": "desktop-1440"
+      },
+      "references": {
+        "explicit": "screens/checkout"
+      },
+      "target_keys": [
+        "screens/checkout"
+      ]
+    },
+    "sequence": 1,
+    "side_effect_class": "WORKSPACE_LOCAL",
+    "turn_id": "01a07789-15b0-7c21-b434-8dd7516efd16"
+  },
+  "preview": {
+    "live": {
+      "candidate_id": "01a07789-15ec-7595-97ba-4d2d5e414ccb",
+      "candidate_pxg_revision": 2,
+      "content_hash": "fc41541e60024266ba9d01b80b4d0759500bdd5509579d7089b38b6fb27fa172",
+      "document_path": ".dde/preview/01a07789-1766-7fd8-8f38-26f2da7ffc52.html",
+      "preview_session_id": "01a07789-1766-7fd8-8f38-26f2da7ffc52",
+      "route": "/checkout",
+      "screen_key": "screens/checkout",
+      "side_effect_class": "WORKSPACE_LOCAL",
+      "source_path": "prototypes/screens/checkout.html",
+      "source_revision": "cf7a8e549f2d83c193579d82b09c3355d33c72ff",
+      "state": "LIVE",
+      "state_detail": "browser loaded the exact code-backed candidate source",
+      "verification_request_id": "01a07789-17b1-78ff-bdc4-5391322e36a9",
+      "verification_request_reason": "screen acceptance binding is incomplete: bound_verification_kinds, authored_by_task_id, acceptance_oracle_version",
+      "verification_request_state": "BLOCKED",
+      "verification_required_kinds": [],
+      "viewport": "desktop-1440",
+      "workspace_id": "01a07789-1666-7222-963c-4ab0ffd3d1a0"
+    },
+    "rejected_hash_state": "STALE"
+  },
+  "promotion_denied": {
+    "correlation_id": "01a07789-183d-7b9e-870b-a5ffc4829458",
+    "details": {
+      "blockers": [
+        {
+          "detail": "candidate has no applied mutations; there is nothing to promote",
+          "gate": "mutations"
+        },
+        {
+          "detail": "no verification run is attached; unavailable verification is not approval",
+          "gate": "visual_verification"
+        },
+        {
+          "detail": "source-derived candidate has no candidate provenance",
+          "gate": "source_provenance"
+        }
+      ],
+      "candidate_id": "01a07789-15ec-7595-97ba-4d2d5e414ccb"
+    },
+    "error_code": "POLICY_DENIED",
+    "message": "promotion denied",
+    "retryable": false
+  },
+  "provider_status": {
+    "detail": "certified: claude-design connected at https://api.anthropic.com/v1/design/mcp.",
+    "display_name": "Claude Design",
+    "provider_id": "claude-design",
+    "state": "CERTIFIED",
+    "usable": true,
+    "version": "claude-design-mcp/dde.design.manifest/1;auth=claude.ai;plan=max;org=d7950bb1-79dd-4949-b643-1aeacdc2a29c;model=sonnet"
+  },
+  "recorded_at": "2026-09-06T16:17:51.869674+00:00",
+  "transport": {
+    "binary": "claude",
+    "model": "sonnet"
+  },
+  "try_live": {
+    "artifact_id": "01a07789-1599-7cd3-9530-ab52a516fbc3",
+    "candidate_id": "01a07789-15ec-7595-97ba-4d2d5e414ccb",
+    "direction_label": "A",
+    "side_effect_class": "WORKSPACE_LOCAL"
+  }
+}

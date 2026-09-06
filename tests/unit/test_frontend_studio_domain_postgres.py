@@ -19,6 +19,7 @@ from engine.studio.contract.service import (
     obligation_content_hash,
 )
 from engine.studio.coverage.service import CoverageService
+from engine.studio.locks.service import LockService
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.reads import Availability, FrontendReadService
 from tests.support.db import new_engine, seed_tenant
@@ -388,13 +389,12 @@ async def test_read_projection_reports_unknown_rather_than_zero() -> None:
             assert count.availability is Availability.NOT_CONFIGURED, key
             assert count.reason
 
-        # Lock inventory is still a later read projection and stays explicitly
-        # unimplemented rather than rendering a plausible zero.
+        # LockService is authoritative for the explorer inventory. No active
+        # locks is a real empty count rather than an unknown placeholder.
         lock_count = groups["locks"].count
-        assert lock_count.known is False
-        assert lock_count.value is None
-        assert lock_count.availability is Availability.NOT_IMPLEMENTED
-        assert lock_count.reason
+        assert lock_count.known is True
+        assert lock_count.value == 0
+        assert lock_count.availability is Availability.EMPTY
 
         # No coverage has been computed, so the ring has no number.
         assert snapshot.coverage.weighted_percent is None
@@ -450,5 +450,38 @@ async def test_stale_coverage_is_not_rendered_as_a_current_percentage() -> None:
         assert any(
             item.category == "coverage_stale" for item in snapshot.attention.items
         )
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_explorer_lock_count_tracks_real_active_inventory() -> None:
+    engine = new_engine()
+    try:
+        fixture = await seed_tenant(engine)
+        locks = LockService(engine)
+        scope = {
+            "tenant_id": fixture.tenant_id,
+            "project_id": fixture.project_id,
+        }
+        created = await locks.create(
+            **scope,
+            lock_kind="STYLE",
+            scope_key="screens/checkout#hero",
+            reason="approved style is frozen",
+            created_by=fixture.principal_id,
+        )
+        snapshot = await FrontendReadService(engine).snapshot(**scope)
+        groups = {group.key: group for group in snapshot.explorer.groups}
+        assert groups["locks"].count.value == 1
+        assert groups["locks"].count.availability is Availability.AVAILABLE
+
+        await locks.release(
+            **scope, lock_id=created.lock_id, released_by=fixture.principal_id
+        )
+        snapshot = await FrontendReadService(engine).snapshot(**scope)
+        groups = {group.key: group for group in snapshot.explorer.groups}
+        assert groups["locks"].count.value == 0
+        assert groups["locks"].count.availability is Availability.EMPTY
     finally:
         await engine.dispose()

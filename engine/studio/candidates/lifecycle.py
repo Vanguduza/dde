@@ -56,6 +56,10 @@ TERMINAL: Final[frozenset[CandidateState]] = frozenset(
 #: keep the badge is how an unverified change reaches promotion.
 MUTABLE: Final[frozenset[CandidateState]] = frozenset(
     {
+        # Generated candidates may receive a governed proposal mutation log
+        # before a worktree exists. Preview materialization then replays that
+        # exact log into the isolated workspace; accepted state is untouched.
+        CandidateState.GENERATED,
         CandidateState.READY,
         CandidateState.EDITING,
         CandidateState.DIRTY,
