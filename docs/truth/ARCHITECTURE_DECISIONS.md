@@ -423,7 +423,7 @@ in sequence.
 
 ## AD-039 — Golden visual authority: the approved artifact is absent from the repository
 
-**Status:** BLOCKED_EXTERNAL (2026-09-04). Owner action required.
+**Status:** BLOCKED_EXTERNAL (2026-09-04; external artifact recovered 2026-09-06). Repository pinning remains required.
 
 AD-035 makes a user-approved 1672x941 Frontend Studio mockup the canonical DDE
 visual baseline. During DDE-069 cold-start reconstruction the image was found
@@ -442,15 +442,22 @@ to have **never existed in this repository**, verified by `git log --all
   it.
 
 This does not weaken AD-035. The visual law stands; what is refused is the
-*claim* that DDE has verified against pixels it cannot read.
+*claim* that DDE has verified against pixels it cannot read from the repository.
 
-**To resolve.** Commit the approved image at
-`docs/truth/golden/frontend-studio-shell.png` and record its sha256 in
-`docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. The manifest state machine
-then reports `PINNED` and pixel-reference verification unblocks with no code
-change. If the approved artifact cannot be recovered, that is a Project Truth
-decision for the owner — either re-approve a regenerated mockup as revision 2,
-or amend AD-035 to make the structural specification the sole visual authority.
+**Recovery update (2026-09-06).** The exact owner-approved artifact was recovered
+outside the repository and identified as **1672×941**, **1,492,542 bytes**, SHA-256
+`8e24bb34e5fb5723bbc9e44c2716f05300f5f4e95f463770349f05fdba8a6377`.
+This removes uncertainty about which pixels are authoritative, but it does **not**
+resolve the repository gate: the exact bytes are still absent from Project Truth.
+A copy may exist in external transfer/storage locations; those locations are not
+canonical and must never be substituted by a reconstruction.
+
+**To resolve.** Commit the recovered bytes at
+`docs/truth/golden/frontend-studio-shell.png`, verify the exact dimensions/byte
+count/SHA-256 above on the repository copy, and record that hash in
+`docs/truth/golden/GOLDEN_VISUAL_MANIFEST.json`. The manifest state machine then
+reports `PINNED` and pixel-reference verification may proceed. Do not regenerate
+or visually approximate the image now that the exact authority is known.
 
 ---
 
@@ -498,6 +505,16 @@ By explicit owner direction, DDE-069 extends the existing `FrontendConversation`
 
 ---
 
+## AD-042 — AI Conversation Fabric is DDE-owned and provider-federated
+
+**Status:** USER-LOCKED PRODUCT DECISION (2026-09-05); runtime certification remains evidence-gated.
+
+By explicit owner direction, the Cursor-class Chat expands into the provider-neutral AI Conversation Fabric in `docs/truth/AI_CONVERSATION_FABRIC.md`. DDE owns canonical conversation history, policy, memory authority, context snapshots, provider/session lineage, skills, teams, research artifacts, hooks, schedules, usage/evidence and provider-capacity observations. Claude Code, Codex, Hermes, ACP/MCP agents and future providers remain replaceable runtimes.
+
+This decision accelerates shared conversation-facing primitives already planned for DDE-073/DDE-075/DDE-076, but does **not** waive those missions' original provider-runtime, Hermes experience-intelligence or fleet-certification acceptance gates. Discovered capability is not certified capability. Existing EDR-0001/EDR-0017 approval boundaries and Gateway/Capability/Workspace/Verification authority remain unchanged.
+
+**Consequence:** a provider may reason, stream, resume, fork, use admitted skills, or spawn bounded children only through the Fabric's persisted policy/session/interop authority. Provider private memory, hidden tool execution, dangerous permission bypass flags, silent fallback and self-promoted memory/skills are non-conformant.
+
 ---
 
 ## AD-043 — DDE Chat is universal; product studios are context adapters
@@ -520,6 +537,89 @@ Hermes ACP is launched by DDE under the installed runtime's verified `--ignore-r
 
 **Consequence:** providers reason over one inspectable DDE context package. Hermes, Claude, Codex, GPT-class and future providers benefit from the same approved memories without duplicating context or paying repeatedly for full transcript replay. R2 credentials remain runtime secrets and are never propagated into provider prompts, memory rows or conversation records.
 
+## AD-045 — Same-host DDE execution is isolated from Dial state and credentials
+
+**Status:** USER-LOCKED SECURITY/OPERATIONS DECISION (2026-09-06).
+
+DDE and Dial may run on the same authorized machine, but DDE development tooling
+must not gain ambient access to Dial's repository, Hermes state, Claude profile or
+other application-private configuration merely because the Linux account is shared.
+The current host implements this boundary with a dedicated DDE terminal wrapper and
+Bubblewrap sandbox: a DDE-only home/state tree, DDE-only Claude profile, the DDE repo
+mounted read/write, system binaries mounted read-only, and no mount of `/srv/dial/repo`
+or the shared `~/.hermes` tree. Network remains available for explicitly admitted
+provider/database operations. SSH access for the DDE terminal is constrained to the
+DDE console entrypoint rather than an unrestricted shell.
+
+The isolation is a **boundary**, not a convenience alias. DDE code, provider login,
+MCP configuration, GitHub configuration and future local credentials must use the
+DDE-scoped state directories. A working global/Dial Claude login or MCP registration
+is not evidence that DDE is configured, and DDE must not modify the global profile to
+make itself work. The resolver mount needed by the sandbox is part of the runtime
+implementation and must preserve the filesystem isolation above.
+
+**Consequence:** same-machine coexistence is allowed only while this separation is
+preserved. Any future terminal/container simplification that exposes Dial repo/state
+or silently reuses its provider credentials is a security regression and requires
+explicit owner approval before adoption.
+
+---
+
+## AD-046 — Source Intelligence uses a federated registry layer; 21st is optional
+
+**Status:** USER-LOCKED PRODUCT/ARCHITECTURE DECISION (2026-09-06).
+
+DDE Source Intelligence must not depend on one commercial component aggregator.
+The canonical discovery order is project-native sources, DDE Library, admitted public
+shadcn-compatible registries, optional 21st, then donor/mobile sources according to
+project policy. The first public-registry set is shadcn/ui, ReUI, Magic UI and
+Aceternity UI; future compatible registries may be added through the same adapter
+contract rather than bespoke install paths.
+
+The public-registry adapter is **read-only**: health/index/search/inspect/fetch only.
+It allows HTTPS to configured hosts, re-checks redirect hosts, bounds index/item
+sizes, accepts JSON only, requires item identities to come from the fetched index,
+and returns exact bytes for hashing/storage/admission. It has no package-manager,
+install, publish or accepted-project write capability. Every fetched artifact still
+passes DDE provenance, licence, dependency, security, accessibility/framework and
+Design System Compiler gates before candidate use. UNKNOWN licence state remains a
+hardly visible uncertainty and is never silently upgraded to reusable.
+
+21st remains a supported `DesignSourceAdapter` when an exact certified transport and
+auth state exist, but `NOT_CONFIGURED`/provider outage now degrades one source rather
+than blocking Source Intelligence or DDE-069. Paying for 21st is therefore an
+operator/product choice, not an architectural prerequisite.
+
+---
+
+## AD-047 — DesignArtifact Try-live materializes through governed mutations and pinned lineage
+
+**Status:** REV3-CONFORMANCE / IMPLEMENTATION LAW (2026-09-06).
+
+A Claude Design (or future provider) artifact is not implementation. `Try live` may
+turn a selected, current DesignArtifact into an isolated candidate only through DDE's
+existing mutation/candidate authority. For the implemented deterministic lane,
+provider proposals are restricted to exported PXG nodes whose context explicitly
+marks token editing materializable, and property/value pairs must be exact members of
+the exported design-system vocabulary. Duplicate-node ambiguity, off-token values,
+stale PXG revisions and empty/unmaterializable proposals fail closed.
+
+Materialization uses `MutationExecutor` with `origin=DESIGN_PROVIDER` and
+all-or-nothing semantics. A refusal may be recorded for evidence, but one failing
+operation cannot leave a partially applied direction. Accepted PXG is never changed by
+Try-live. Candidate provenance pins DesignArtifact id/content hash, DesignSession,
+provider id, design-system hash and base PXG revision; promotion re-reads and validates
+that lineage in addition to the ordinary DDE-068 verification gates.
+
+This implemented lane does **not** pretend to implement arbitrary structural/provider
+HTML changes. A proposal outside deterministic token materialization must remain
+blocked until the separately governed implementation-worker handoff exists. The
+Frontend Studio golden `Try live` control is not finally closed until a real direction
+selection UI and production end-to-end flow prove the selected proposal in the live
+candidate.
+
+---
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.
@@ -537,12 +637,4 @@ The same gate states that DDE-068 is the next sequential mission and that accept
 5. Update `DEV_PLAN_REV3.md` and `IMPLEMENTATION_STATE.md` if sequencing/current state changed.
 
 Do not use this file to bypass the EDR process.
-## AD-042 — AI Conversation Fabric is DDE-owned and provider-federated
-
-**Status:** USER-LOCKED PRODUCT DECISION (2026-09-05); runtime certification remains evidence-gated.
-
-By explicit owner direction, the Cursor-class Chat expands into the provider-neutral AI Conversation Fabric in `docs/truth/AI_CONVERSATION_FABRIC.md`. DDE owns canonical conversation history, policy, memory authority, context snapshots, provider/session lineage, skills, teams, research artifacts, hooks, schedules, usage/evidence and provider-capacity observations. Claude Code, Codex, Hermes, ACP/MCP agents and future providers remain replaceable runtimes.
-
-This decision accelerates shared conversation-facing primitives already planned for DDE-073/DDE-075/DDE-076, but does **not** waive those missions' original provider-runtime, Hermes experience-intelligence or fleet-certification acceptance gates. Discovered capability is not certified capability. Existing EDR-0001/EDR-0017 approval boundaries and Gateway/Capability/Workspace/Verification authority remain unchanged.
-
-**Consequence:** a provider may reason, stream, resume, fork, use admitted skills, or spawn bounded children only through the Fabric's persisted policy/session/interop authority. Provider private memory, hidden tool execution, dangerous permission bypass flags, silent fallback and self-promoted memory/skills are non-conformant.
+---

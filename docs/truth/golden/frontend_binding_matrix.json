@@ -2322,7 +2322,7 @@
         "UNAVAILABLE",
         "EMPTY"
       ],
-      "note": "M8 implements DDE Library inventory/search/fetch/admission. Explorer status-dot grammar and production PostgreSQL E2E remain open.",
+      "note": "M8 implements DDE Library inventory/search/fetch/admission with real PostgreSQL lifecycle proof. Explorer status-dot grammar and packaged React \u2192 production Gateway/PostgreSQL browser E2E remain open.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -2454,8 +2454,10 @@
             "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
             "tests/unit/test_source_intelligence_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "A PostgreSQL lifecycle specification now exists but cannot run on this host because DDE_DATABASE_URL is unset."
+          "evidence_refs": [
+            "docs/evidence/dde-069/POSTGRES_REDIS_CLOSURE.md"
+          ],
+          "note": "The DDE Library lifecycle passes on real PostgreSQL 16.15, while current React browser evidence uses TestHostBridge. Packaged VS Code-host \u2192 production Gateway \u2192 PostgreSQL browser E2E is not yet recorded."
         },
         "VISUAL": {
           "applicable": true,

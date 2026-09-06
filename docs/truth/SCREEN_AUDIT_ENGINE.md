@@ -1239,7 +1239,13 @@ Run Screen Audit against DDE Frontend Studio and reconcile with the 99-control l
 
 ## Packet G — M8 source intelligence and remaining golden closure
 
-Continue the existing DDE-069 source adapter/template/provenance work and remaining unbound golden controls. Screen Audit should then consume source/provenance evidence rather than reimplement it.
+The common M8 source adapter/template/provenance path is now implemented and Screen
+Audit consumes persisted source/provenance evidence; do not rebuild it here. The source
+layer is provider-federated (project/DDE Library → public shadcn-compatible registries →
+optional 21st → donors) and preserves UNKNOWN/degraded provider/licence states. Packet G
+therefore means: finish the remaining live-provider persistence/admission proof and the
+remaining unbound golden controls, while Screen Audit continues to read the resulting
+provenance rather than inventing a parallel source model.
 
 ---
 

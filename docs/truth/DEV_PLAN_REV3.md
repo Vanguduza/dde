@@ -1,13 +1,14 @@
 # DDE Rev 3 Development & Realisation Plan — Consolidated Canonical Edition
 
-**Canonical repository path:** `docs/truth/DEV_PLAN_REV3.md`  
-**Status:** **CANONICAL FORWARD DEVELOPMENT PLAN**  
-**Effective:** 2 September 2026  
-**Consolidated revision:** Rev 3.3 — Dial Depth-and-Breadth Hardened  
-**Repository:** `Vanguduza/dde`  
-**Architecture authority:** `docs/truth/BLUEPRINT_REV3.md`  
-**Inherited product baseline:** DDE-067 at `c30d2969e3205d1a277dd128e8b182137a8892e0`  
-**Inherited Rev 3 repository-memory baseline:** `fcc3e542ebc98ce769ec7ca74de72887dc5e5c02`  
+**Canonical repository path:** `docs/truth/DEV_PLAN_REV3.md`
+**Status:** **CANONICAL FORWARD DEVELOPMENT PLAN**
+**Effective:** 2 September 2026
+**Last implementation consolidation:** 6 September 2026 — DDE-069 evidence/sequence reconciliation
+**Consolidated revision:** Rev 3.3 — Dial Depth-and-Breadth Hardened
+**Repository:** `Vanguduza/dde`
+**Architecture authority:** `docs/truth/BLUEPRINT_REV3.md`
+**Inherited product baseline:** DDE-067 at `c30d2969e3205d1a277dd128e8b182137a8892e0`
+**Inherited Rev 3 repository-memory baseline:** `fcc3e542ebc98ce769ec7ca74de72887dc5e5c02`
 **Purpose:** move the existing DDE repository to the consolidated Rev 3 architecture without restarting, duplicating closed work, re-auditing unaffected evidence, or confusing documentation with runtime completion.
 
 > This plan absorbs the original Rev 3 Development Plan, the Rev 3 quantum audit/realisation findings, Rev 3.1 operational hardening, the Claude `/design` + high-value Opal integration plan, and the September 2026 live orchestrator-control/serving-model-attestation findings. Those inputs remain historical evidence after adoption; this file is the single forward implementation sequence. **Rev 3.3 adds normative Dial depth-and-breadth implementation packs so every mission closes traceability, contracts, state, failure, security, observability, operations, cross-platform parity and certification rather than leaving those concerns to implementation-agent inference.**
@@ -479,7 +480,7 @@ DDE-068 through DDE-083 retain their numbers. Changes below refine scope and acc
 
 # 5. DDE-068 — Visual Verification & Critique Loop
 
-**Priority:** P0  
+**Priority:** P0
 **Reason:** Existing sequence already names it as next; Frontend Studio V2 must be judged by a real visual pipeline rather than subjective screenshots.
 
 ## 5.1 Goals
@@ -704,10 +705,10 @@ New binding rules:
 
 # 6. DDE-069 — DDE Code / Frontend Studio V2 Foundation
 
-**Priority:** P0  
+**Priority:** P0
 **Objective:** Replace DDE-067's command-console UX with a professional IDE-class workbench without changing Core authority or the proven command paths.
 
-**Domain authority:** `docs/truth/FRONTEND_STUDIO_REV3.md` is the adopted, detailed technical architecture for this mission (AD-036) — read it alongside this section. It supersedes `docs/planning/frontend-studio-gui-spec.md`'s mission definition (that document was never formally adopted) and hardens/elaborates everything below: host-neutral React/TS/Vite runtime, PXG/Frontend Contract/Coverage Engine, unified mutation/candidate/lock architecture, governed source adapters (internal/21st/donor/mobile), and first-class `Claude /design` integration. DDE-068 remains a hard prerequisite for promotion.
+**Domain authority:** `docs/truth/FRONTEND_STUDIO_REV3.md` is the adopted, detailed technical architecture for this mission (AD-036) — read it alongside this section. It supersedes `docs/planning/frontend-studio-gui-spec.md`'s mission definition (that document was never formally adopted) and hardens/elaborates everything below: host-neutral React/TS/Vite runtime, PXG/Frontend Contract/Coverage Engine, unified mutation/candidate/lock architecture, governed source adapters (internal/federated public registries/optional 21st/donor/mobile), and first-class `Claude /design` integration. DDE-068 remains a hard prerequisite for promotion.
 
 ---
 
@@ -1186,6 +1187,28 @@ DesignSystemRegistry
 
 The implementation must remain provider-neutral even when Claude is the first certified provider.
 
+### 6.12.0 2026-09-06 conformance amendment
+
+The certified transport/control slice is now implemented: the official Claude Design
+MCP is reached through a dedicated bounded transport, typed provider state drives the
+toolbar, `/design` routes through the existing Universal DDE Chat conversation, and
+generic Claude Code invocation remains forbidden as a substitute. Provider output is
+accepted only through the machine-readable `dde.design.manifest/1` contract bound to
+exact exported context/design-system hashes and observed provider-side write evidence.
+
+The deterministic Try-live lane is also implemented in Core: current, materializable
+token proposals compile into ordinary governed frontend mutations with
+`origin=DESIGN_PROVIDER`, all-or-nothing application, accepted-PXG immutability, stale
+PXG refusal and pinned artifact/session/provider/design-system lineage at promotion.
+This does not close the golden Try-live UI: direction cards/selection and a production
+React end-to-end proof of the selected proposal remain required. Structural proposals
+still require the separately governed implementation-worker lane.
+
+Source discovery is now federated rather than 21st-dependent. Project-native and DDE
+Library precede a generic read-only public shadcn-registry layer (initial providers:
+shadcn/ui, ReUI, Magic UI, Aceternity UI), then optional 21st and donors/mobile sources.
+One provider being unavailable must degrade only that provider.
+
 ### 6.12.1 Minimal vertical slice
 
 Prove one real screen can:
@@ -1195,16 +1218,17 @@ select screen/element
 → compile DesignEditContext
 → request Claude design candidate
 → persist/version DesignArtifact
-→ user selects Try live
-→ create isolated LiveEditWorkspace
-→ route implementation worker
+→ user selects an exact direction
+→ Try live
+→ deterministic lane: atomically materialize admitted token proposal in isolated candidate
+   OR structural lane: create LiveEditWorkspace and route eligible implementation worker
 → build/render real application
-→ show LIVE badge
+→ prove the selected proposal in the LIVE preview
 → deterministic inspector edit
 → recompile live context
 → provider refinement
-→ promote exact design/code pair
 → DDE-068 visual verification
+→ promote exact design/code pair with pinned lineage
 ```
 
 If Claude Design capability is unavailable, a mandatory design task enters `WAITING_FOR_DESIGN_CAPABILITY` or routes to another certified design provider. It does not silently improvise a bypass.
@@ -1258,11 +1282,32 @@ DDE-069 also introduces a **read-only** execution graph projection in the Studio
 In addition to the original workbench acceptance:
 
 - design candidate is persisted as DDE artifact;
-- Try-Live does not touch accepted/main workspace;
-- real render proves candidate implementation;
-- promotion freezes design version and code revision;
-- independent verification is still required;
+- Try-Live does not touch accepted/main workspace/PXG;
+- selected artifact identity/content hash/session/provider/design-system/base revision are pinned;
+- provider proposals outside the exported materialization/token vocabulary fail closed;
+- real render proves the **selected proposal**, not merely an unchanged base candidate;
+- promotion freezes/revalidates design lineage and still consumes independent DDE-068 verification;
+- public-registry search/fetch is read-only, exact-byte hashed and one-provider degradation is visible;
 - graph projection cannot fabricate nodes.
+
+### 6.13.1 Consolidated implementation checkpoint — 2026-09-06
+
+Landed/evidenced in DDE-069: isolated PostgreSQL 16.15 + Redis 7.0.15 integration;
+functional Candidate Dock; six-tab semantic Inspector and real locks; Universal DDE
+Chat/AI Conversation Fabric; certified Claude Design transport; deterministic atomic
+DesignArtifact materialization; and a live-tested public-registry federation for
+shadcn/ui, ReUI, Magic UI and Aceternity UI. The 99-control binding ledger currently
+derives **6 VERIFIED / 51 BOUND / 6 TYPED_UNAVAILABLE / 36 UNBOUND**.
+
+Open completion evidence remains: golden `CA-07` direction-selection/Try-live UI and
+production E2E; a strengthened real-provider materialization rerun after manifest
+hardening (the 2026-09-06 rerun reached a certified provider but ended `PROVIDER_ERROR`
+before a successful result); remaining BOUND/UNBOUND golden controls; exact AD-039
+binary pinning; live R2 certification; design-system provider sync; structural
+implementation-worker handoff; and M12/M13/M14 hardening/migration work.
+
+Same-host development must preserve the DDE-isolated terminal/provider profile and may
+not mount/reuse Dial repository, Hermes state or provider credentials.
 
 
 ---

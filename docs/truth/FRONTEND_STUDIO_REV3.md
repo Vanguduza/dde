@@ -5,6 +5,7 @@
 **Repository:** `Vanguduza/dde`
 **Observed main HEAD when this document was prepared:** `b5753db672422aa4321188cf39302866f1c3cb88` (`docs: adopt Rev 3.3 orchestrator attestation truth`)
 **Observed last product implementation baseline:** `c30d2969e3205d1a277dd128e8b182137a8892e0` (`DDE-067 Frontend Studio surface`)
+**Latest implementation consolidation baseline:** `843c61e` (`DDE-069 close design transport inspector and source federation`), 2026-09-06; verify current HEAD before work
 **Golden UI authority:** user-approved DDE Frontend Studio mockup, 1672 × 941 px, approved 2026-09-03
 **Consolidates:** `DDE FRONTEND STUDIO — CANONICAL ARCHITECTURE, PRODUCT EXPERIENCE SYSTEM & IMPLEMENTATION BLUEPRINT REV 2` in full, included later in this file
 **Global DDE authorities to reconcile, not fork:** `docs/truth/BLUEPRINT_REV3.md`, `docs/truth/DEV_PLAN_REV3.md`, `docs/truth/ARCHITECTURE_DECISIONS.md`, `docs/truth/IMPLEMENTATION_STATE.md`, `docs/truth/RESUME_PROMPT.md`
@@ -102,22 +103,22 @@ The `Claude /design` button must:
 CLAUDE DESIGN SYNC
 Implement project design-system synchronization as a governed capability. DDE remains the authority for project design tokens/components/locks. Sync only the allowlisted design-system snapshot to Claude Design, record provider sync identity and content hash, and invalidate/resync when the project design-system hash changes. Expose Sync design system as a secondary action in the Claude /design control and Source mode; do not make provider state the project source of truth.
 
-21ST / TEMPLATE INTELLIGENCE
-Integrate 21st through a DesignSourceAdapter/MCP boundary for search, inspection and retrieval. Do not let 21st paste directly into production. Search internal approved components first, then approved external registries/donors according to source policy. Every external artifact passes provenance, license, dependency, security, framework, accessibility and Design System Compiler gates.
+FEDERATED SOURCE / TEMPLATE INTELLIGENCE
+Source Intelligence is provider-federated: search project/internal components and DDE Library first, then the admitted public registry federation (shadcn/ui, ReUI, Magic UI, Aceternity UI), optional 21st, and donors/mobile providers according to source policy. Public registries are read-only search/inspect/fetch sources, never installers. Every external artifact passes exact-byte hashing plus provenance, licence, dependency, security, framework, accessibility and Design System Compiler gates. One provider outage degrades that provider rather than disabling the feature.
 
-Change donor semantics: donor repositories are atomic evidence/directive sources, not automatic whole-project design law unless explicitly locked as such. At project/frontend intake, Frontend Studio must be able to recommend suitable full templates/foundations from DDE libraries, 21st and other enabled providers, then let the user lock a selected or blended direction.
+Change donor semantics: donor repositories are atomic evidence/directive sources, not automatic whole-project design law unless explicitly locked as such. At project/frontend intake, Frontend Studio must be able to recommend suitable full templates/foundations from DDE libraries, admitted public registries, optional 21st and other enabled providers, then let the user lock a selected or blended direction.
 
 MOBILE PATH
 For mobile projects, use platform-specific source adapters such as BNA UI/gluestack/React Native Reusables as qualified sources and Expo MCP/device tooling as runtime/validation capabilities. Do not treat mobile as resized web. Keep provider interfaces replaceable and version-gated.
 
 ONE MUTATION ARCHITECTURE
-Chat, drag/drop, property edits, template blending, 21st imports, Claude /design refinements, agent edits and keyboard operations must all compile to the same FrontendMutation/MutationPlan architecture. No client path may directly patch accepted code or bypass locks, coverage, provenance or candidate isolation.
+Chat, drag/drop, property edits, template blending, external-source imports, Claude /design refinements, agent edits and keyboard operations must all compile to the same FrontendMutation/MutationPlan architecture. No client path may directly patch accepted code or bypass locks, coverage, provenance or candidate isolation.
 
 ONE CONVERSATION/DESIGN SESSION
 Frontend chat is the conversational control surface for the entire studio. `/design` is a mode/capability within that same control plane, not a second chat system. Persist FrontendConversation/DesignSession lineage, selected-node references, candidate references and mutation history so the user can say things like "take Candidate B's sidebar, keep the locked nav, and ask /design for three hero alternatives" without context loss.
 
 GOLDEN UI FUNCTIONALITY LAW
-Map every visible feature in the approved mockup to a real capability before declaring reconstruction complete: project selector; save/sync state; Design/Coverage/Architecture/QA/Source modes; coverage gauge; notification/attention center; project explorer; screens/journeys/components counts; DDE Library/21st/donor/internal source states; templates; locks; QA counts; Manager Chair/Design Director status; viewport controls; selection/pan/comment/grid/zoom/fullscreen; real preview; selection handles; lock badges; inspector layout/style/behaviour/lock/provenance/accessibility/responsive controls; frontend chat; Claude /design; candidate cards; Source Blend; actual scores; error/warning status; Auto Layout; AI Suggest; breadcrumbs; build/version state. If backend support is not yet present, the UI must show a typed unavailable/pending state rather than fabricated information.
+Map every visible feature in the approved mockup to a real capability before declaring reconstruction complete: project selector; save/sync state; Design/Coverage/Architecture/QA/Source modes; coverage gauge; notification/attention center; project explorer; screens/journeys/components counts; DDE Library/public-registry/optional-21st/donor/internal source states; templates; locks; QA counts; Manager Chair/Design Director status; viewport controls; selection/pan/comment/grid/zoom/fullscreen; real preview; selection handles; lock badges; inspector layout/style/behaviour/lock/provenance/accessibility/responsive controls; frontend chat; Claude /design; candidate cards; Source Blend; actual scores; error/warning status; Auto Layout; AI Suggest; breadcrumbs; build/version state. If backend support is not yet present, the UI must show a typed unavailable/pending state rather than fabricated information.
 
 SAVE/SYNC HONESTY
 A 202 command acceptance is not "Saved" or "Synced". Introduce durable mutation/projection revision semantics. "Synced" is shown only when no local planned mutation is pending and the authoritative read projection confirms the accepted durable revision. Event push may use an admitted stream when available; explicit polling/read-after-write fallback is permitted but must be labeled honestly.
@@ -139,7 +140,7 @@ IMPLEMENTATION ORDER
 7. Implement real Frontend Studio read projections/list surfaces/events so the new UI can populate without fabrication.
 8. Implement PXG, Frontend Contract, Product Experience Template and multi-dimensional Coverage Engine.
 9. Implement unified mutation/lock/conflict engine and candidate/worktree/live-preview runtime.
-10. Implement source adapters, template recommendation, Design System Compiler and provenance/security gates; 21st first among external web registries.
+10. Implement source adapters, template recommendation, Design System Compiler and provenance/security gates; use the federated public-registry layer first, with 21st as an optional provider rather than a dependency.
 11. Implement Frontend Chat as the shared conversation/control plane.
 12. Implement DesignGateway + ClaudeDesignAdapter + `Claude /design` button + design-system sync + Design Dock; prove chat and button share one DesignSession.
 13. Implement mobile source/runtime adapters behind the same contracts when project scope requires them.
@@ -169,6 +170,33 @@ For every phase report:
 
 ---
 
+## 2026-09-06 implementation-conformance amendment
+
+The repository has now implemented several architecture slices that were still only
+planned when this document was adopted. This amendment changes no product scope; it
+records how the canonical contracts are now realized and prevents older "21st-first" or
+"DesignGateway foundation only" wording from being mistaken for current implementation
+truth.
+
+- Source Intelligence is federated: project-native → DDE Library → shadcn/ui → ReUI →
+  Magic UI → Aceternity UI → optional 21st → donors. The public registry boundary is
+  generic/read-only and exact-byte hashed; no installer writes accepted project state.
+- Claude `/design` has a certified official-MCP transport with typed provider status,
+  strict one-server/tool confinement and `dde.design.manifest/1` validation. Generic
+  Claude Code invocation remains an invalid fallback.
+- Deterministic DesignArtifact proposals may Try-live only through ordinary governed
+  candidate mutations, atomically, with stale-PXG refusal and pinned lineage at
+  promotion. Structural implementation remains a separate worker-handoff lane.
+- Candidate Dock and the six canonical Inspector tabs are functional for the landed
+  candidate loop. The distinct DesignArtifact Direction-card selection control (`CA-07`)
+  remains open and must not be conflated with generic candidate Try-live/compare.
+- The exact AD-039 golden image has been recovered externally and hash-identified, but
+  PIXEL_REFERENCE remains blocked until those exact bytes are committed/pinned.
+
+Current per-control implementation status remains authoritative only in
+`FRONTEND_STUDIO_BINDING_MATRIX.md`; this architecture document does not upgrade a row
+by describing its intended behavior.
+
 # 1. WHY REV 3 EXISTS
 
 Rev 2 established the correct product-experience model: golden visual law, Project Experience Graph (PXG), Frontend Contract, comprehensive Product Experience Template, source adapters, unified mutation protocol, functional locks, candidate isolation, provenance, Manager ownership, QA and cross-DDE migration. The live repository, however, is still at the DDE-067 implementation boundary and the global Rev 3 plan contains a mixture of already-proven seams, planned DDE-068/DDE-069 work, and older visual assumptions.
@@ -177,7 +205,7 @@ Rev 3 therefore does four things simultaneously:
 
 1. **grounds the Frontend Studio architecture in the actual current repository;**
 2. **closes technical gaps between the approved golden UI and software reality;**
-3. **makes Claude `/design`, 21st/template intelligence and mobile design sources first-class but governed capabilities;**
+3. **makes Claude `/design`, federated template/source intelligence (with optional 21st) and mobile design sources first-class but governed capabilities;**
 4. **turns every visible element of the locked mockup into a contract-backed usable feature.**
 
 Rev 3 does not remove Rev 2. The full Rev 2 canonical body is consolidated into Part XXVII of this document and remains binding except where Rev 3 explicitly hardens or clarifies its integration into the current repository.
@@ -268,7 +296,7 @@ The following gaps are normative closure items.
 | FS-GAP-014 | no governed design-system sync | provider may design off-brand | hashed `DesignSystemSnapshot` + sync record + invalidation |
 | FS-GAP-015 | donors can be overinterpreted as project law | unwanted cloning/design lock-in | atomic donor directives with explicit strength/scope |
 | FS-GAP-016 | no template recommendation intake | user forced to preselect donors | template/foundation recommendation across internal + external sources |
-| FS-GAP-017 | 21st not a first-class source adapter | manual copy/paste bypass | 21st MCP adapter → inspect → compiler → candidate only |
+| FS-GAP-017 | external registries were not first-class governed adapters | manual copy/paste / single-provider dependency | federated read-only registry adapters + optional 21st → inspect/fetch → compiler → candidate only |
 | FS-GAP-018 | external component compatibility not normalized | dependency/design conflicts | Design System Compiler and target-stack adapters |
 | FS-GAP-019 | mobile design source path not first class | resized-web mobile quality | BNA/gluestack/RN source adapters + Expo runtime validation |
 | FS-GAP-020 | candidate scores can be misunderstood | synthetic confidence/theatre | explainable scorecards; `UNSCORED` until evidence exists |
@@ -317,7 +345,7 @@ The following gaps are normative closure items.
            │                            │                            │
            ▼                            ▼                            ▼
    Design Source Plane           Interaction Plane             Evidence Plane
-   internal/21st/donors/         chat/direct edit/             coverage/QA/
+   internal/registries/donors/  chat/direct edit/             coverage/QA/
    templates/mobile              Claude /design                provenance
            │                            │                            │
            └────────────────────────────┼────────────────────────────┘
@@ -730,7 +758,8 @@ Every row below is part of the Definition of Done. "Backing capability" means a 
 | Components count/tree | project component inventory | ComponentInventory | filter by native/external/deprecated |
 | Sources group | source provider registry | DesignSourceInventory | health and scope aware |
 | DDE Library | approved internal components/templates | internal adapter | search/preview/add candidate |
-| 21st MCP | 21st source adapter | `TwentyFirstDesignSourceAdapter` | authenticate/search/inspect; no direct prod insertion |
+| Public registries | generic shadcn-compatible source adapter | `PublicShadcnRegistryAdapter` | read-only health/search/inspect/fetch; no install or direct prod insertion |
+| 21st MCP (optional) | 21st source adapter | `TwentyFirstDesignSourceAdapter` | authenticate/search/inspect when certified; absence degrades only this provider |
 | Donor Sources | approved/observed donor evidence | donor adapter | atomic directive view + adoption status |
 | Internal Components | project-native inventory | project adapter | reuse before inventing |
 | source numeric badges | actual indexed/returned eligible items | source inventory | `—`, error icon or stale marker when unknown |
@@ -1138,19 +1167,37 @@ A generated artboard is `GENERATED`, not implemented.
 
 ## 10.12 Try live
 
+The complete architecture supports two governed materialization lanes:
+
 ```text
 DesignArtifact
-  ↓ implementation packet
-Manager/Orchestrator selects eligible implementation worker
-  ↓
-isolated LiveEditWorkspace/worktree
-  ↓
-project-native code implementation
-  ↓
-build + real preview
-  ↓
-LIVE
+  ├─ deterministic token proposal
+  │    ↓ validate exported materialization capability + exact token vocabulary
+  │    ↓ MutationExecutor(origin=DESIGN_PROVIDER, all-or-nothing)
+  │    ↓ isolated candidate projection
+  │
+  └─ structural / arbitrary implementation proposal
+       ↓ implementation packet
+       ↓ Manager/Orchestrator selects eligible implementation worker
+       ↓ isolated LiveEditWorkspace/worktree
+       ↓ project-native code implementation
+       ↓ build + real preview
+       ↓ LIVE
 ```
+
+The deterministic lane is implemented in DDE-069. The provider receives only an
+explicit boolean materialization capability for each exported node; it does not receive
+internal DOM/source anchors merely to make token editing possible. A direction is
+refused when it names a non-materializable node, duplicates a PXG node ambiguously,
+uses a property/value outside the exported design-system vocabulary, contains no
+materializable mutation, or was generated against a stale PXG revision. Application is
+atomic: one refused mutation prevents a partially applied direction.
+
+Try-live never edits accepted PXG. Candidate lineage pins DesignArtifact id/hash,
+DesignSession, provider, design-system hash and base PXG revision; promotion must
+revalidate that lineage and still pass DDE-068 verification. The structural worker lane
+remains separately governed and must not be simulated by accepting provider HTML as
+project-native implementation.
 
 Implementation worker identity may differ from design provider. Claude Design is not automatically allowed to mutate source merely because it created the design.
 
@@ -1193,7 +1240,7 @@ Frontend Contract/PXG seed
   ↓
 Template Recommendation Query
   ↓ parallel governed sources
-project library / org library / DDE library / 21st / donors / mobile registries
+project library / org library / DDE library / public registry federation / optional 21st / donors / mobile registries
   ↓
 normalized FoundationCandidate[]
   ↓
@@ -1230,30 +1277,44 @@ interface FoundationCandidate {
 
 A hard failure cannot be averaged away by an overall score.
 
-## 11.3 21st adapter
+## 11.3 Federated public registries and optional 21st
 
-21st is treated as a high-value web registry/provider, not as a dependency that owns DDE UI.
+External component intelligence is provider-federated. DDE does not make one
+commercial aggregator the availability boundary for Source Intelligence.
 
 ```text
 DesignSourceAdapter
-└── TwentyFirstAdapter
-     ├── capabilities/health
-     ├── semantic search
-     ├── inspect code/dependencies
-     ├── retrieve candidate
-     ├── capture author/source/license metadata
-     ├── capture theme/template/component structure
-     └── hand artifact to Design System Compiler
+├── PublicShadcnRegistryAdapter
+│    ├── shadcn/ui
+│    ├── ReUI
+│    ├── Magic UI
+│    └── Aceternity UI
+├── TwentyFirstAdapter          # optional when certified/configured
+└── future admitted adapters
 ```
+
+The generic public-registry path is read-only: health/index/search/inspect/fetch.
+It executes no installer or package manager, performs no accepted-project write,
+restricts requests to configured HTTPS hosts (including redirects), bounds JSON
+responses, requires item identities from the fetched index, and returns exact bytes
+for DDE hashing/storage/admission. Search result metadata is never sufficient to
+claim licence/security/accessibility acceptance by itself.
 
 Rules:
 
-- internal/project component search precedes external search by default;
-- no `21st install`/MCP code lands directly on accepted project branch;
-- source results may be shown as previews before code retrieval;
+- internal/project and DDE Library search precedes external search by default;
+- default public-registry priority is shadcn/ui → ReUI → Magic UI → Aceternity UI;
+- 21st remains supported after the public federation, but `NOT_CONFIGURED` or outage
+  degrades one provider rather than blocking Source Intelligence;
+- no external install/MCP command may land code directly on accepted project state;
 - exact external usage limits/credits are provider state, not architectural constants;
-- provider outage marks source coverage degraded;
-- source content is versioned/hashed at retrieval.
+- UNKNOWN licence state stays UNKNOWN and may block reuse even when discovery/fetch works;
+- every fetched source is exact-byte hashed and then passes the ordinary provenance,
+  dependency, security, framework, accessibility and Design System Compiler gates.
+
+The live 2026-09-06 certification snapshot proved read-only fetch/hash against
+shadcn/ui, ReUI, Magic UI and Aceternity UI. That snapshot proves those transports,
+not permanent availability or complete end-to-end admission of every registry item.
 
 ## 11.4 Donor sources
 
@@ -2189,7 +2250,7 @@ Gate: drag/drop + inspector edits + rollback use real Gateway commands and canno
 
 ## M8 — Source intelligence
 
-Implement internal sources, donors, 21st adapter, template recommendations, compiler and provenance.
+Implement internal sources, federated public registries, optional 21st, donors, template recommendations, compiler and provenance.
 
 Gate: external artifact can be searched → inspected → sandbox-adapted → validated without accepted production mutation.
 
@@ -2397,8 +2458,8 @@ Claude Design artboards are design artifacts; only built code in a ready preview
 **FS-R3-012 — Templates before donor lock-in**
 At project intake Frontend Studio can recommend foundations/templates from approved sources. Donors are atomic directives unless explicitly promoted to global law.
 
-**FS-R3-013 — 21st source adapter**
-21st is a governed external design-source adapter and never writes accepted production directly.
+**FS-R3-013 — Federated external source adapters**
+Public shadcn-compatible registries and optional 21st are governed external design-source adapters. No provider writes accepted production directly; 21st is not a required availability dependency.
 
 **FS-R3-014 — 1Code concept donor only**
 1Code may inform worktree/preview/session UX but is not a production DDE dependency.
@@ -2462,7 +2523,7 @@ Frontend Studio Rev 3 is complete only when:
 5. Frontend Contract/PXG/Product Experience Template/Coverage are production-backed;
 6. one mutation/lock path governs chat, drag/drop, inspector, sources, agents and design providers;
 7. accepted design is isolated from exploratory work;
-8. 21st/templates/donors/mobile sources are governed adapters;
+8. public registries/optional 21st/templates/donors/mobile sources are governed adapters;
 9. Claude `/design` button works through the same Frontend Chat/DesignSession and produces versioned artifacts/candidates;
 10. design-system sync is hashed, scoped and provider-neutral;
 11. Try live produces a real code-backed preview;

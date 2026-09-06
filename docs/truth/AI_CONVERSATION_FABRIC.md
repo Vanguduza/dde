@@ -75,6 +75,16 @@ Every provider session records:
 
 The active provider for a turn is selected by policy/routing, not by provider memory.
 
+### 5.1 Same-host provider-profile isolation
+
+A provider session is scoped to DDE, not merely to the Unix account that launches it.
+When DDE shares a machine with another product, its CLI/MCP/OAuth state must live in a
+DDE-specific profile and filesystem boundary. Global or neighboring-product Claude,
+Hermes, GitHub or other provider configuration is not a fallback and is not evidence
+that DDE is authenticated. The current DDE host uses an isolated terminal/home/profile
+that mounts the DDE repository but not Dial's repository or shared Hermes state.
+Equivalent isolation is required if the host implementation changes (AD-045).
+
 ## 6. Interoperability
 
 DDE uses one AgentInteropLayer:

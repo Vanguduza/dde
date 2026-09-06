@@ -1,13 +1,14 @@
 # DDE Blueprint Rev 3 — Consolidated Canonical Edition
 
-**Canonical repository path:** `docs/truth/BLUEPRINT_REV3.md`  
-**Status:** **CANONICAL HUMAN-READABLE ARCHITECTURE SOURCE OF TRUTH**  
-**Effective:** 2 September 2026  
-**Consolidated revision:** Rev 3.3 — Dial Depth-and-Breadth Hardened  
-**Repository:** `Vanguduza/dde`  
-**Product implementation baseline inherited:** DDE-067 (`c30d2969e3205d1a277dd128e8b182137a8892e0`)  
-**Repository-memory baseline inherited:** Rev 3 source-of-truth bootstrap through `fcc3e542ebc98ce769ec7ca74de72887dc5e5c02`  
-**Companion implementation authority:** `docs/truth/DEV_PLAN_REV3.md`  
+**Canonical repository path:** `docs/truth/BLUEPRINT_REV3.md`
+**Status:** **CANONICAL HUMAN-READABLE ARCHITECTURE SOURCE OF TRUTH**
+**Effective:** 2 September 2026
+**Last implementation consolidation:** 6 September 2026 — DDE-069 design transport / Inspector / source federation / same-host isolation
+**Consolidated revision:** Rev 3.3 — Dial Depth-and-Breadth Hardened
+**Repository:** `Vanguduza/dde`
+**Product implementation baseline inherited:** DDE-067 (`c30d2969e3205d1a277dd128e8b182137a8892e0`)
+**Repository-memory baseline inherited:** Rev 3 source-of-truth bootstrap through `fcc3e542ebc98ce769ec7ca74de72887dc5e5c02`
+**Companion implementation authority:** `docs/truth/DEV_PLAN_REV3.md`
 **Supersedes for forward architecture work:** legacy Blueprint Rev 2 and all standalone Rev 3 addenda/amendments once this consolidated edition is adopted.
 
 > This edition consolidates the original DDE Blueprint Rev 3.0, the Rev 3 quantum audit and realization findings, the Rev 3.1 Operational Hardening / Adaptive Routing amendment, the Claude `/design` + high-value Opal integration addendum, and the September 2026 orchestrator-control/serving-model-attestation findings from live Dial Main development into one architecture. The source documents and incident discussions remain historical evidence; they are no longer competing forward-development authorities.
@@ -119,8 +120,8 @@ For human-readable forward development there are exactly two primary canonical d
 - **Blueprint Rev 3** — what DDE is, its invariants, contracts and target architecture.
 - **Development Plan Rev 3** — how the repository reaches that architecture, in what dependency order, with what acceptance gates.
 
-`ARCHITECTURE_DECISIONS.md` is an index of accepted/locked decisions, not a third competing architecture.  
-`IMPLEMENTATION_STATE.md` is a factual current-state projection, not target architecture.  
+`ARCHITECTURE_DECISIONS.md` is an index of accepted/locked decisions, not a third competing architecture.
+`IMPLEMENTATION_STATE.md` is a factual current-state projection, not target architecture.
 `RESUME_PROMPT.md` is a bootstrap helper, not authority.
 
 ### 2.2 Conflict rules
@@ -1438,6 +1439,22 @@ Concurrency is bounded by dependency, write-scope, provider, verification and op
 
 ---
 
+## 13.11 Same-host product isolation
+
+Running DDE beside another product on one authorized machine does not create implicit
+cross-product authority. DDE development/runtime tooling must use DDE-scoped filesystem
+and credential state and must not gain ambient mounts of another product repository,
+Hermes state or provider profile. The current DDE host implementation uses an isolated
+terminal/sandbox with a DDE-only home/config tree, DDE repo access, read-only system
+binaries and explicit network access; the Dial repository and shared Hermes state are
+not mounted into that environment. Provider login/MCP configuration performed inside
+that DDE profile is separate from any global or Dial profile.
+
+This is a security boundary. A future host/runtime implementation may use different
+sandbox technology, but equivalent isolation must be proven before replacing it.
+
+---
+
 # 14. Nested delegation
 
 Nested worker delegation is allowed only under explicit policy.
@@ -1887,6 +1904,31 @@ Records component/token inventories, typography, spacing, semantic colors, asset
 
 A stale design-system hash requires resynchronization or an explicit compatibility decision.
 
+### 20.5A Certified design transport and governed materialization
+
+The first certified implementation uses the official Claude Design MCP behind a
+DDE-owned transport. The Claude executable may host that MCP non-interactively, but
+DDE does not grant the invocation broad Claude Code development authority: the process
+is started with a strict one-server MCP configuration, a tool allowlist limited to the
+Claude Design server, no session persistence, and a machine-readable
+`dde.design.manifest/1` result contract. Provider/auth/version state is discovered and
+reported as typed capability state; generic `capability.claude_code_invoke` remains an
+invalid `/design` fallback.
+
+A provider manifest is not trusted because it is syntactically valid. It must bind to
+the exact exported DesignEditContext/design-system hashes, name only exported PXG keys,
+use only exact exported token properties/values, avoid duplicate-node ambiguity, and
+carry provider-side write evidence for its claimed design deliverables.
+
+For the deterministic materialization lane, `Try live` creates an isolated candidate
+and compiles the selected DesignArtifact into ordinary governed frontend mutations with
+`origin=DESIGN_PROVIDER`. Application is all-or-nothing and accepted PXG is immutable.
+Candidate provenance pins artifact id/content hash, DesignSession, provider,
+design-system hash and base PXG revision. Promotion revalidates that lineage and still
+requires the ordinary DDE-068 verification evidence. Structural/provider markup that
+cannot be expressed through the admitted deterministic lane requires the separate
+implementation-worker handoff; it is never silently accepted as project code.
+
 ### 20.6 Design Skill Registry
 
 External design skills/guidelines are immutable, pinned, licensed, scanned, evaluated and certified inputs. They advise design generation but never outrank ProductDesignAuthority or become merge-blocking oracles.
@@ -2198,12 +2240,12 @@ Frontend Studio is a professional visual product-engineering workbench in which 
 Brief → Explore → References → Build → Motion → Verify → Ship
 ```
 
-**Brief** — intent, requirements, design register, states, targets, active DesignAuthority.  
-**Explore** — divergent design candidates/artboards, provenance, rationale, branch/reject/select.  
-**References** — screenshots, URLs, video, donors, Figma/design refs, licenses and extracted design DNA.  
-**Build** — structure/assets + real live canvas + contextual inspector + verification/activity drawer.  
-**Motion** — selected-element/flow motion with governed tokens/contracts.  
-**Verify** — viewport/state matrices, deterministic findings, visual diff, accessibility, VLM/critic evidence and repair history.  
+**Brief** — intent, requirements, design register, states, targets, active DesignAuthority.
+**Explore** — divergent design candidates/artboards, provenance, rationale, branch/reject/select.
+**References** — screenshots, URLs, video, donors, Figma/design refs, licenses and extracted design DNA.
+**Build** — structure/assets + real live canvas + contextual inspector + verification/activity drawer.
+**Motion** — selected-element/flow motion with governed tokens/contracts.
+**Verify** — viewport/state matrices, deterministic findings, visual diff, accessibility, VLM/critic evidence and repair history.
 **Ship** — readiness, remaining gates, sign-off, evidence bundle and merge eligibility.
 
 ### 25.2 Claude `/design` as a first-class capability
@@ -2287,6 +2329,26 @@ The dock exposes:
 - modes: refine / alternatives / match reference / responsive adaptation / reseed.
 
 It is not a raw chat-history dump.
+
+### 25.5A Federated design-source discovery
+
+Source Intelligence is not coupled to one commercial registry. The default discovery
+priority is:
+
+```text
+project-native → DDE Library → shadcn/ui → ReUI → Magic UI → Aceternity UI
+               → optional 21st → donors/mobile sources
+```
+
+The public web sources share one generic shadcn-compatible adapter contract rather than
+bespoke installer integrations. That boundary supports health/index/search/inspect/fetch
+only; HTTPS hosts and redirects are allowlisted, JSON/response sizes are bounded, item
+identities must come from the fetched index, and exact fetched bytes are hashed before
+storage/admission. There is no install/publish/package-manager or accepted-project write
+capability at this layer. Provenance, licence, dependency, security,
+accessibility/framework and Design System Compiler gates remain authoritative after
+retrieval. An unavailable or unconfigured 21st provider therefore degrades source
+coverage but cannot make Source Intelligence unavailable as a whole.
 
 ### 25.6 Candidate strip
 

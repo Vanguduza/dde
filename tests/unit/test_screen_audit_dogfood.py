@@ -15,9 +15,9 @@ def test_real_99_control_ledger_is_reconciled_without_inventing_audit_passes() -
     # test is that the reconciler reports what the ledger says rather than
     # inventing an audit pass for an unproven control.
     assert report.verified == 6
-    assert report.bound == 39
+    assert report.bound == 51
     assert report.typed_unavailable == 6
-    assert report.unbound == 48
+    assert report.unbound == 36
     assert (
         report.verified + report.bound + report.typed_unavailable + report.unbound
         == report.control_count

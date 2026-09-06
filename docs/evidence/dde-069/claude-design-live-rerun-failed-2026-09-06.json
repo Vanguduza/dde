@@ -1,0 +1,104 @@
+{
+  "design_turn": {
+    "intent": "DESIGN_DIVERGENT",
+    "message": "the Claude Design transport ended without a successful result",
+    "outcome": "REFUSED",
+    "produced_refs": [],
+    "refusal_code": "PROVIDER_ERROR",
+    "refusal_detail": "the Claude Design transport ended without a successful result",
+    "reply_turn_id": "01a077fa-81bb-73fa-b35f-f2dfc2e451ab",
+    "resolved_context": {
+      "context": {
+        "active_artifact_ref": null,
+        "active_locks": [],
+        "active_plan_id": null,
+        "active_task_id": null,
+        "active_verification_run_id": null,
+        "active_worker_run_id": null,
+        "active_worker_session_id": null,
+        "active_workspace_id": null,
+        "candidate": null,
+        "chat_mode": "EXECUTE",
+        "compaction_snapshot_id": null,
+        "context_budget": {
+          "budget_tokens": 12183,
+          "estimated_tokens": 0,
+          "included_refs": [],
+          "items": [],
+          "omission_reasons": {},
+          "omitted_refs": []
+        },
+        "context_domain": "FRONTEND_STUDIO",
+        "context_omission_reasons": {},
+        "context_omitted_refs": [],
+        "contract_version": 1,
+        "coverage": {
+          "availability": "NOT_CONFIGURED",
+          "stale": false,
+          "state": "UNASSESSED"
+        },
+        "fabric_context_snapshot_id": "01a077fa-7642-71a3-a0ce-74ccd3b168e2",
+        "frontend_studio": {
+          "active_locks": [],
+          "candidate": null,
+          "contract_version": 1,
+          "coverage": {
+            "availability": "NOT_CONFIGURED",
+            "stale": false,
+            "state": "UNASSESSED"
+          },
+          "pxg_revision": 2,
+          "screen_key": "screens/checkout",
+          "selected_node_keys": [
+            "screens/checkout"
+          ],
+          "viewport": "desktop-1440"
+        },
+        "history_context": [],
+        "history_summary": null,
+        "inline_context_refs": [],
+        "memory_context": [],
+        "mission_id": "01a077fa-667b-7d76-b212-7832a0e79a46",
+        "model_profile_id": null,
+        "pinned_context_refs": [],
+        "project_id": "01a077fa-6644-7445-860c-5e5fefa3a357",
+        "pxg_revision": 2,
+        "screen_key": "screens/checkout",
+        "selected_node_keys": [
+          "screens/checkout"
+        ],
+        "token_management": {
+          "budget_tokens": 24000,
+          "live_context_tokens": 231,
+          "prompt_tokens": 20,
+          "system_reserve_tokens": 320,
+          "used_tokens": 571,
+          "utilization": 0.023791666666666666
+        },
+        "viewport": "desktop-1440"
+      },
+      "references": {
+        "explicit": "screens/checkout"
+      },
+      "target_keys": [
+        "screens/checkout"
+      ]
+    },
+    "sequence": 1,
+    "side_effect_class": "WORKSPACE_LOCAL",
+    "turn_id": "01a077fa-81b2-7501-a1db-4c4aecf82014"
+  },
+  "provider_status": {
+    "detail": "certified: claude-design connected at https://api.anthropic.com/v1/design/mcp.",
+    "display_name": "Claude Design",
+    "provider_id": "claude-design",
+    "state": "CERTIFIED",
+    "usable": true,
+    "version": "claude-design-mcp/dde.design.manifest/1;auth=claude.ai;plan=max;org=d7950bb1-79dd-4949-b643-1aeacdc2a29c;model=sonnet"
+  },
+  "recorded_at": "2026-09-06T18:28:14.020345+00:00",
+  "transport": {
+    "binary": "claude",
+    "model": "sonnet"
+  }
+}

@@ -76,7 +76,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 Notes:
 
 - **EX-07** — DesignSourceRegistry is DDE-069 M8. The explorer group is listed with an UNKNOWN count (Availability.NOT_IMPLEMENTED) rather than hidden or shown as zero.
-- **EX-08** — M8 implements DDE Library inventory/search/fetch/admission. Explorer status-dot grammar and production PostgreSQL E2E remain open.
+- **EX-08** — M8 implements DDE Library inventory/search/fetch/admission with real PostgreSQL lifecycle proof. Explorer status-dot grammar and packaged React → production Gateway/PostgreSQL browser E2E remain open.
 - **EX-09** — M8 implements a fail-closed 21st MCP adapter. Live provider execution remains externally blocked; no direct-network fallback exists.
 - **EX-10** — Existing Donor Lab remains authoritative and is now projected through M8 Source Intelligence; exact Explorer status-dot grammar remains open.
 - **EX-11** — M8 project-native adapter now supplies the real component inventory; final status remains BOUND pending production E2E.

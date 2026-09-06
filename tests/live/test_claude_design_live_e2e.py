@@ -338,10 +338,25 @@ async def test_claude_design_reaches_live_and_still_faces_the_promotion_gate(
             # than each opening their own.
             design_session_id = await _design_session_of(engine, conversation_id)
             assert design_session_id is not None
+            directions_read = await client.get(
+                f"/v1/missions/{worker.mission.mission_id}/frontend/design/sessions/"
+                f"{design_session_id}/artifacts",
+                headers={
+                    "X-Session-Id": str(session_id),
+                    "X-Principal-Id": str(tenant.principal_id),
+                },
+            )
+            assert directions_read.status_code == 200, directions_read.text
+            persisted_directions = directions_read.json()["artifacts"]
+            assert persisted_directions, "the workbench design-artifact read returned no rows"
+
             artifacts = await DesignGateway(engine).artifacts_for(
                 **scope, session_id=design_session_id
             )
             assert artifacts, "the live provider returned no artifacts"
+            assert {item["artifact_id"] for item in persisted_directions} == {
+                str(item.artifact_id) for item in artifacts
+            }
             usable = [item for item in artifacts if item.status == "GENERATED"]
             assert usable, [item.quarantine_reason for item in artifacts]
             for artifact in usable:
