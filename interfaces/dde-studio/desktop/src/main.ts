@@ -873,7 +873,7 @@ function wireIpc(): void {
           pushShell();
           break;
         }
-        const pasted = clipboard.readText();
+        const pasted = await clipboard.readText();
         const token = extractClaudeOAuthToken(pasted) ?? pasted.trim();
         if (!storeClaudeOAuthToken(token)) {
           applianceStatus =
@@ -964,7 +964,7 @@ function wireIpc(): void {
             },
           );
           if (response === 0 && checkboxChecked) {
-            setSessionToken(clipboard.readText());
+            setSessionToken(await clipboard.readText());
             refreshAuth();
           }
         }
