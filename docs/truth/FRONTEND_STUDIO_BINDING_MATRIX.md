@@ -10,9 +10,9 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 16 |
-| `TYPED_UNAVAILABLE` | 8 |
-| `BOUND` | 64 |
+| `UNBOUND` | 0 |
+| `TYPED_UNAVAILABLE` | 9 |
+| `BOUND` | 79 |
 | `VERIFIED` | 11 |
 | **total** | **99** |
 
@@ -26,7 +26,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
 | TB-01 | Product title / module identity | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| TB-02 | Project selector | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
+| TB-02 | Project selector | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | TB-03 | Saved timestamp | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | TB-04 | Sync status chip | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | TB-05 | Design mode tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
@@ -35,15 +35,20 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 | TB-08 | QA mode tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | TB-09 | Source mode tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | TB-10 | Coverage ring | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| TB-11 | Activity / metrics icon | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| TB-12 | Attention notification badge | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
-| TB-13 | Help | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| TB-14 | User avatar / principal | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| TB-11 | Activity / metrics icon | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| TB-12 | Attention notification badge | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| TB-13 | Help | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| TB-14 | User avatar / principal | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 
 Notes:
 
+- **TB-02** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
 - **TB-03** — Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.
 - **TB-04** — StudioSyncSnapshot distinguishes durable revision from command acceptance. The M7 mutation engine is implemented, but pending-mutation state is not yet projected into FrontendReadService, so the chip must not overclaim SYNCED.
+- **TB-11** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
+- **TB-12** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
+- **TB-13** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
+- **TB-14** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
 
 ## App rail and project explorer
 
@@ -51,9 +56,9 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| EX-01 | App rail module icons | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `UNBOUND` |
-| EX-02 | Project heading + menu | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `UNBOUND` |
-| EX-03 | Explorer search | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
+| EX-01 | App rail module icons | `NOT_APPLICABLE` | `VERIFIED` | `TYPED_UNAVAILABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
+| EX-02 | Project heading + menu | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-03 | Explorer search | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | EX-04 | Screens group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | EX-05 | Journeys group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-06 | Components group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
@@ -76,6 +81,9 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 
 Notes:
 
+- **EX-01** — Frontend Studio is the only packaged module; later modules remain explicitly unavailable and are not fabricated.
+- **EX-02** — Project heading and project-state menu are bound to current host/project projections.
+- **EX-03** — Reconciled after the 09c4249/23f773f closure packets; production-host E2E remains separate.
 - **EX-07** — DesignSourceRegistry is DDE-069 M8. The explorer group is listed with an UNKNOWN count (Availability.NOT_IMPLEMENTED) rather than hidden or shown as zero.
 - **EX-08** — M8 implements DDE Library inventory/search/fetch/admission with real PostgreSQL lifecycle proof. Explorer status-dot grammar and packaged React → production Gateway/PostgreSQL browser E2E remain open.
 - **EX-09** — M8 implements a fail-closed 21st MCP adapter. Live provider execution remains externally blocked; no direct-network fallback exists.
@@ -102,8 +110,8 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card`
 | OR-01 | Orchestrator status | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
 | OR-02 | Manager Chair identity | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
 | OR-03 | Desired/Configured/Serving split | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `TYPED_UNAVAILABLE` |
-| OR-04 | Design Director role | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| OR-05 | Activity visualisation | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| OR-04 | Design Director role | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| OR-05 | Activity visualisation | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | OR-06 | Status dot | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
 
 Notes:
@@ -111,7 +119,8 @@ Notes:
 - **OR-01** — No orchestrator runtime is wired to the Studio; runtime_state is UNKNOWN rather than a decorative ACTIVE dot.
 - **OR-02** — Manager Chair serving identity remains deliberately UNATTESTED until ModelServingEvidence exists; the typed unavailable projection is now wired to the visible card.
 - **OR-03** — Blueprint Rev 3 section 5.4 ModelServingEvidence is unimplemented, so serving_confidence is UNATTESTED and desired/configured/serving stay separate and empty.
-- **OR-05** — No frontend activity projection exists; the count is UNKNOWN, not a random waveform.
+- **OR-04** — Reconciled after the 09c4249/23f773f closure packets; production-host E2E remains separate.
+- **OR-05** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
 - **OR-06** — Role health has no backing projection; the dot renders UNKNOWN.
 
 ## Canvas toolbar
@@ -123,7 +132,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar`
 | CT-01 | Viewport selector | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CT-02 | Select tool | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | CT-03 | Hand / pan tool | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
-| CT-04 | Comment tool | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CT-04 | Comment tool | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CT-05 | Grid / overlay options | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | CT-06 | Claude /design button | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | CT-07 | Zoom control | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
@@ -134,6 +143,7 @@ Notes:
 - **CT-01** — Viewport changes start a new code-backed preview session. frontend.preview.set_state remains reserved for browser LIVE/RUNTIME_ERROR attestations.
 - **CT-02** — Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction.
 - **CT-03** — Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas.
+- **CT-04** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
 - **CT-05** — Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options.
 - **CT-06** — Closed by a dedicated certified Claude Design transport (engine/studio/design/claude_transport.py): the authenticated Claude Code executable is used only as a bounded structured host for the official claude-design MCP, with an ephemeral allowlist admitting nothing but mcp__claude-design__* (plus ToolSearch and the harness result emitter), no session persistence and a machine-readable manifest contract instead of final prose. The stream is checked against those flags: MCP connection, offered tools, executed tools, permission denials and per-direction write evidence. Activation is explicit (DDE_CLAUDE_DESIGN_ENABLED); an unconfigured deployment still reports NOT_CERTIFIED and the gateway still refuses with no fallback. capability.claude_code_invoke remains forbidden as a substitute. A recorded live run proved provider CERTIFIED, /design through Universal DDE Chat, persisted DesignSession/DesignArtifacts, Try live's isolated candidate, a code-backed preview reaching LIVE only on a matching content hash, and promotion still refused by the verification gate.
 - **CT-07** — Canvas zoom is presentation-only React state; it scales the live preview and selection overlay without issuing Gateway commands or mutating candidate/PXG state.
@@ -149,18 +159,20 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
 | CV-02 | LIVE badge | `BOUND` | `BOUND` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-03 | Route / screen navigation | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-04 | Selection outline | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
-| CV-05 | Resize handles | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CV-05 | Resize handles | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-06 | Section lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-07 | Style lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| CV-08 | State simulation controls | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CV-08 | State simulation controls | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 
 Notes:
 
 - **CV-01** — A real code-backed prototype-HTML PreviewRuntimeAdapter and PreviewService now exist. The React workbench still renders the prior honest unavailable Design surface, so UI/WIRED/E2E remain incomplete.
 - **CV-02** — No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9.
 - **CV-04** — Stable pxg_key instrumentation is implemented in the code-backed prototype preview. DOM geometry remains overlay metadata only; the React selection outline is still unbound.
+- **CV-05** — Reconciled after the 09c4249/23f773f closure packets; production-host E2E remains separate.
 - **CV-06** — Effective lock chips are projected from the same governed Inspector descriptor as the Lock tab; combined packaged editor-host browser E2E remains outstanding.
 - **CV-07** — Effective lock chips are projected from the same governed Inspector descriptor as the Lock tab; combined packaged editor-host browser E2E remains outstanding.
+- **CV-08** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
 
 ## Frontend Chat composer
 
@@ -259,12 +271,15 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar`
 |---|---|---|---|---|---|---|---|---|---|---|
 | ST-01 | Breadcrumb | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | ST-02 | Error count | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| ST-03 | Warning count | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| ST-04 | Auto Layout state | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| ST-05 | AI Suggest state | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| ST-03 | Warning count | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| ST-04 | Auto Layout state | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| ST-05 | AI Suggest state | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | ST-06 | Build / version | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 
 Notes:
 
 - **ST-01** — Breadcrumb now uses projected project/screen labels and the selected Inspector/PXG title; raw PXG keys and hard-coded Project text are no longer the visible selected path.
+- **ST-03** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
+- **ST-04** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
+- **ST-05** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
 - **ST-06** — Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.

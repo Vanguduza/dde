@@ -35,6 +35,7 @@ export function ContextSidebar({
   onSelectGroup,
 }: ContextSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const groups = useMemo(() => {
     const source = [...(explorer?.groups ?? []).filter((group) => group.key !== "qa")];
@@ -50,6 +51,16 @@ export function ContextSidebar({
         <button
           type="button"
           className="dde-icon-button"
+          aria-label="Project menu"
+          aria-expanded={projectMenuOpen}
+          data-testid="explorer-project-menu"
+          onClick={() => setProjectMenuOpen((value) => !value)}
+        >
+          <span aria-hidden="true">•••</span>
+        </button>
+        <button
+          type="button"
+          className="dde-icon-button"
           aria-label="Search project"
           aria-expanded={searchOpen}
           data-testid="explorer-search"
@@ -58,6 +69,14 @@ export function ContextSidebar({
           <span aria-hidden="true">⌕</span>
         </button>
       </div>
+      {projectMenuOpen ? (
+        <section className="dde-explorer-project-menu" data-testid="explorer-project-menu-popover">
+          <strong>{displaySlug(projectSlug) ?? "No project"}</strong>
+          <span>Project {explorer?.projectId ?? "unavailable"}</span>
+          <span>PXG revision {explorer?.pxgRevision ?? "—"}</span>
+          <span>{explorer?.groups.length ?? 0} projected group(s)</span>
+        </section>
+      ) : null}
       {searchOpen ? (
         <input
           type="search"

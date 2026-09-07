@@ -200,7 +200,7 @@
         "PROJECT_UNAVAILABLE",
         "SCOPE_DENIED"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -212,89 +212,115 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "Verified by current repository implementation and named tests."
         },
         "STATE": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The visible state exists, but the complete transition/failure contract is not verified."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The surface is rendered but does not yet satisfy the full golden control contract."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Partial presentation is not wired to the full declared behavior."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -1271,7 +1297,7 @@
       "failure_states": [
         "NOT_ADMITTED"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -1283,11 +1309,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -1299,43 +1331,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -1352,7 +1414,7 @@
       "failure_states": [
         "UNKNOWN_NOT_SHOWN_AS_COUNT"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -1380,15 +1442,18 @@
         },
         "COMMAND": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/studio/attention/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "A backend operation exists, but this ledger has no complete Gateway contract proof for the named command."
+          "note": "Verified by current repository implementation and named tests."
         },
         "STATE": {
           "applicable": true,
@@ -1417,16 +1482,18 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/attention/service.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The React control is not connected to the named production command/read path."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
@@ -1469,7 +1536,7 @@
       "capability": null,
       "permission": "any authenticated principal",
       "failure_states": [],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -1481,11 +1548,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -1505,35 +1578,59 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -1550,7 +1647,7 @@
       "failure_states": [
         "UNAUTHENTICATED"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -1562,11 +1659,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -1578,43 +1681,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -1631,7 +1764,7 @@
       "failure_states": [
         "MODULE_UNAVAILABLE"
       ],
-      "note": "",
+      "note": "Frontend Studio is the only packaged module; later modules remain explicitly unavailable and are not fabricated.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -1643,35 +1776,48 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named command has no verified production call path."
-        },
-        "STATE": {
-          "applicable": true,
-          "status": "BOUND",
+          "status": "TYPED_UNAVAILABLE",
           "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The visible state exists, but the complete transition/failure contract is not verified."
+          "note": "The module registry is real, but non-Frontend modules are not packaged in this build; selection fails closed as MODULE_UNAVAILABLE."
+        },
+        "STATE": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [],
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
@@ -1689,37 +1835,46 @@
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "React consumes or presents the state, but no production host read bridge proves the complete Core-to-UI path."
+          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/frontend.py",
+            "engine/gateway/commands.py",
             "interfaces/dde-studio/ui/src/shell/AppRail.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
         }
       }
     },
@@ -1734,7 +1889,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Project heading and project-state menu are bound to current host/project projections.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -1746,15 +1901,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -1776,49 +1933,57 @@
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": ""
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "React consumes or presents the state, but no production host read bridge proves the complete Core-to-UI path."
+          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },
@@ -1835,7 +2000,7 @@
       "failure_states": [
         "INDEX_UNAVAILABLE"
       ],
-      "note": "",
+      "note": "Reconciled after the 09c4249/23f773f closure packets; production-host E2E remains separate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -1847,11 +2012,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -1863,43 +2034,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The surface is rendered but does not yet satisfy the full golden control contract."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Partial presentation is not wired to the full declared behavior."
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },
@@ -5099,7 +5300,7 @@
       "failure_states": [
         "UNASSIGNED"
       ],
-      "note": "",
+      "note": "Reconciled after the 09c4249/23f773f closure packets; production-host E2E remains separate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -5111,11 +5312,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -5127,43 +5334,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -5180,31 +5417,37 @@
       "failure_states": [
         "NO_ACTIVITY"
       ],
-      "note": "No frontend activity projection exists; the count is UNKNOWN, not a random waveform.",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No frontend activity projection exists; the count is UNKNOWN, not a random waveform."
+          "note": "Verified by current repository implementation and named tests."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -5216,51 +5459,78 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "TYPED_UNAVAILABLE",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No frontend activity projection exists; the count is UNKNOWN, not a random waveform."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/reads.py"
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/events/repository.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -5794,71 +6064,135 @@
       "failure_states": [
         "ANCHOR_LOST"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
-          "applicable": false,
-          "status": "NOT_APPLICABLE",
-          "implementation_refs": [],
-          "test_refs": [],
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No separate domain capability is required for this presentation-only control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "Verified by current repository implementation and named tests."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/comments/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },
@@ -7051,7 +7385,7 @@
         "STALE_REVISION",
         "MUTATION_INVALID"
       ],
-      "note": "",
+      "note": "Reconciled after the 09c4249/23f773f closure packets; production-host E2E remains separate.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -7117,42 +7451,59 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
-        },
-        "WIRED": {
-          "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
-        },
-        "E2E": {
-          "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "engine/studio/mutations/planner.py",
-            "engine/studio/mutations/executor.py"
+            "engine/studio/mutations/executor.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Verified by current repository implementation and named tests."
+        },
+        "WIRED": {
+          "applicable": true,
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/mutations/executor.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_mutation_engine.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [],
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
+        },
+        "E2E": {
+          "applicable": true,
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/mutations/executor.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_mutation_engine.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [],
+          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/mutations/executor.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_mutation_engine.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },
@@ -7439,7 +7790,7 @@
       "failure_states": [
         "SCENARIO_UNSUPPORTED"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -7451,59 +7802,115 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "Verified by current repository implementation and named tests."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/preview_scenarios.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "tests/contract/test_frontend_studio_gateway.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },
@@ -13394,7 +13801,7 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -13406,11 +13813,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/audit/service.py",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_screen_audit_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": false,
@@ -13422,43 +13835,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/audit/service.py",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_screen_audit_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/audit/service.py",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_screen_audit_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/audit/service.py",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_screen_audit_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/audit/service.py",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_screen_audit_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/audit/service.py",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_screen_audit_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         }
       }
     },
@@ -13473,7 +13916,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -13485,59 +13928,108 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "Verified by current repository implementation and named tests."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },
@@ -13554,7 +14046,7 @@
       "failure_states": [
         "PROVIDER_UNAVAILABLE"
       ],
-      "note": "",
+      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -13566,59 +14058,108 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "note": "Verified by current repository implementation and named tests."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "Verified by current repository implementation and named tests."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "note": "Verified by current repository implementation and named tests."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "note": "Verified by current repository implementation and named tests."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/editor_assists.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_editor_assist_policy.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
           "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "note": "Verified by current repository implementation and named tests."
         }
       }
     },

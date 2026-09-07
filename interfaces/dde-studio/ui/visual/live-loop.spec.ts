@@ -194,6 +194,29 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("architecture-audit-mode")).toContainText("REQUIRED_VIEWPORT_UNVERIFIED");
   });
 
+  test("project explorer search filters real groups and Design Director stays honest", async ({ page }) => {
+    await expect(page.getByTestId("explorer-project-heading")).toHaveText(
+      "Logiflow Marketplace",
+    );
+    await expect(page.getByTestId("design-director-state")).toContainText(
+      "UNASSIGNED",
+    );
+
+    await page.getByTestId("explorer-project-menu").click();
+    const projectMenu = page.getByTestId("explorer-project-menu-popover");
+    await expect(projectMenu).toContainText("Logiflow Marketplace");
+    await expect(projectMenu).toContainText("PXG revision 4");
+    await expect(projectMenu).toContainText("projected group");
+
+    await page.getByTestId("explorer-search").click();
+    const search = page.getByTestId("explorer-search-input");
+    await search.fill("journeys");
+    await expect(page.getByTestId("explorer-group-journeys")).toBeVisible();
+    await expect(page.getByTestId("explorer-group-screens")).toHaveCount(0);
+    await search.fill("");
+    await expect(page.getByTestId("explorer-group-screens")).toBeVisible();
+  });
+
   test("top-bar project, activity, help, and principal controls use host-backed state", async ({ page }) => {
     await expect(page.getByTestId("principal-avatar")).toHaveAttribute(
       "aria-label",

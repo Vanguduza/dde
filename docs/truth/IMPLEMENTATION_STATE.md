@@ -56,12 +56,7 @@ This file originated as the close-out of the R3-0 source-of-truth migration.
 
 ### Latest observed DDE-069 implementation baseline
 
-At the 2026-09-06 consolidation, the latest committed DDE-069 baseline is
-`843c61e` — **DDE-069 close design transport inspector and source federation** —
-on branch `claude/dde-069-frontend-studio-v2-yn110e`. Later working-tree changes must
-be inspected rather than inferred from this line. The immediately preceding host
-integration commits are `0f9a236` (PostgreSQL/Redis closure) and `645a6f2`
-(Candidate Dock functional loop).
+The latest committed DDE-069 baseline is `23f773f` — **DDE-069 verify top bar host bindings** — on `main`. Its parent `09c4249` lands governed review comments, preview scenarios, editor-assist policy, attention acknowledgements and migration `0036`. The earlier consolidated design/source baseline was `843c61e`; host integration commits include `0f9a236` (PostgreSQL/Redis closure) and `645a6f2` (Candidate Dock functional loop).
 
 ---
 
@@ -75,7 +70,7 @@ integration commits are `0f9a236` (PostgreSQL/Redis closure) and `645a6f2`
 | DDE-066 Donor Discovery + taxonomy | `COMPLETE_EVIDENCED` | Landed in commit `32ae479...`; accepted EDR-0015 admits the bounded egress surface; chapter-gate exists. |
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
-| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Canonical domain: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Real PostgreSQL 16.15/Redis 7.0.15 integration, M7 candidate/mutation/lock runtime, host-neutral React workbench, code-backed preview, DDE-068 candidate re-verification, Screen Audit, Universal DDE Chat/AI Conversation Fabric, functional Candidate Dock and six-tab semantic Inspector are landed. `CT-06` Claude `/design` transport/control is live-certified against the official Claude Design MCP; deterministic DesignArtifact token proposals materialize atomically through the ordinary mutation engine with stale-PXG and promotion-lineage checks. `CA-07` Direction cards, selected-artifact Try Live, LIVE browser content and fresh DDE-068 rerun are now UI/VISUAL verified; its combined packaged VS Code-host → real Gateway → PostgreSQL browser E2E remains BOUND. Source Intelligence has real PostgreSQL lifecycle proof plus a live read/fetch/hash certification for shadcn/ui, ReUI, Magic UI and Aceternity UI through a generic public-registry adapter; 21st is optional/NOT_CONFIGURED rather than a DDE-069 blocker. Current 99-control ledger derives **11 VERIFIED / 64 BOUND / 8 TYPED_UNAVAILABLE / 16 UNBOUND**. AD-039 remains repository-blocked even though the exact 1672×941 artifact was externally recovered and hash-identified; live R2 certification still requires complete correctly classified scoped credentials. |
+| DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Canonical domain: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Real PostgreSQL 16.15/Redis 7.0.15 integration, M7 candidate/mutation/lock runtime, host-neutral React workbench, code-backed preview, DDE-068 candidate re-verification, Screen Audit, Universal DDE Chat/AI Conversation Fabric, functional Candidate Dock and six-tab semantic Inspector are landed. `CT-06` Claude `/design` transport/control is live-certified against the official Claude Design MCP; deterministic DesignArtifact token proposals materialize atomically through the ordinary mutation engine with stale-PXG and promotion-lineage checks. `CA-07` Direction cards, selected-artifact Try Live, LIVE browser content and fresh DDE-068 rerun are now UI/VISUAL verified; its combined packaged VS Code-host → real Gateway → PostgreSQL browser E2E remains BOUND. Source Intelligence has real PostgreSQL lifecycle proof plus a live read/fetch/hash certification for shadcn/ui, ReUI, Magic UI and Aceternity UI through a generic public-registry adapter; 21st is optional/NOT_CONFIGURED rather than a DDE-069 blocker. Current 99-control ledger derives **11 VERIFIED / 79 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**. AD-039 remains repository-blocked even though the exact 1672×941 artifact was externally recovered and hash-identified; live R2 certification still requires complete correctly classified scoped credentials. |
 | Same-host DDE/Dial isolation | `IMPLEMENTED_PARTIAL` | On the current authorized host, DDE uses a dedicated Bubblewrap-backed terminal/home/Claude profile and DDE-only console entrypoint. The DDE repo is mounted; `/srv/dial/repo` and shared `~/.hermes` are not. DDE provider login/MCP configuration is therefore separate from global/Dial state. This is host-specific implementation evidence for AD-045, not a claim that every future installer/runtime already enforces equivalent isolation. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | AI Conversation Fabric now discovers the installed Hermes runtime, requires evidence-backed endpoint certification, and has a fail-closed ACP client. DDE-managed Hermes ACP context isolation is proven with `--ignore-rules`; shared approved DDE memory is object-backed (R2 when configured) and replaces duplicate provider-private memory injection. Full downstream Hermes experience/fleet acceptance gates remain in DDE-075/076. |
@@ -384,13 +379,13 @@ the authoritative per-control projection of
 `docs/truth/golden/frontend_binding_matrix.json` v2. Final status derives from explicit
 `DOMAIN / READ / COMMAND / STATE / UI / WIRED / E2E / VISUAL` evidence; backend files
 cannot certify a missing React control or production binding. The current derived
-snapshot is **11 VERIFIED / 64 BOUND / 8 TYPED_UNAVAILABLE / 16 UNBOUND** of 99 rows.
+snapshot is **11 VERIFIED / 79 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND** of 99 rows.
 `CT-06` is VERIFIED; `CA-06` remains BOUND because packaged VS Code-host → Gateway →
 PostgreSQL browser E2E is not recorded; `CA-07` now has VERIFIED UI/VISUAL and BOUND
 WIRED/E2E evidence, with the same combined packaged-host proof still outstanding. `EX-16`
 through `EX-19` now project the authoritative per-kind LockService inventory into the
 canonical Explorer children, and `ST-01` renders projected project/screen/selection labels;
-all five are BOUND pending the same packaged-host proof. `EX-20`/`EX-21` now adapt the
+all five are BOUND pending the same packaged-host proof. Review comments (`CT-04`), preview scenario simulation (`CV-08`), warning counts and editor assists (`ST-03`..`ST-05`), activity (`TB-11`/`OR-05`), project switching (`TB-02`), attention acknowledgement (`TB-12`), help (`TB-13`) and principal identity (`TB-14`) now have real domain/read/command/UI evidence where applicable and host-neutral Playwright proof; each remains BOUND rather than VERIFIED until the packaged production-host E2E requirement is met. `EX-20`/`EX-21` now adapt the
 current Screen Audit matrix into collapsible QA/issue Explorer counts, while `EX-22`
 remains honestly TYPED_UNAVAILABLE whenever accessibility is not evaluated for every
 current audited screen. `TB-03` now renders the durable revision timestamp and `ST-06`
@@ -560,16 +555,16 @@ neither is a completion claim under v2.
   reversible, and source/provenance/accessibility stay evidence-backed. The current
   token authority still maps `space8` to 40px, so the implementation does not fabricate
   the golden mockup's 64px padding value. `CA-06` is BOUND only at packaged production
-  E2E; `CA-07` is the remaining distinct DesignArtifact direction-selection/Try-live UI
-  gap. Full workbench Playwright at the latest committed tranche is **58/58**; extension
+  E2E; `CA-07` has its direction-selection/Try-live UI and remains BOUND on that same packaged-host proof. Full workbench Playwright in the latest closure packet is **76/76**; extension
   tests remain green. Evidence: `docs/evidence/dde-069/CANDIDATE_DOCK_CLOSURE.md` and
   `docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md`.
+- **Review, simulation, editor-assist and top-bar closure packet** — commits `09c4249` and `23f773f` add anchored design-comment create/resolve with anchor-loss refusal, durable preview scenarios kept separate from runtime attestation, provider-honest Auto Layout/AI Suggest policy, derived attention acknowledgement, project switching, retained-event activity, help routing and principal identity. Migration `0036` is reversible and handles current-schema snapshots idempotently while failing closed on partial pre-existing state. The uninterrupted repository gate passed 1,483 Python tests with 6 skipped, generated-contract/design checks, 77 extension tests, all TypeScript checks and the Vite build; the expanded workbench Playwright suite passes 76/76.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / evidence-gated:** `CA-07` packaged production-host Try-live E2E;
 strengthened real-provider materialization rerun after the strict manifest change; general React/Vite/Expo PreviewRuntimeAdapters beyond admitted
 prototype HTML; packaged VS Code-host → Gateway → PostgreSQL browser E2E for rows that
-explicitly require it; remaining BOUND/UNBOUND golden controls; provider design-system
+explicitly require it; remaining BOUND and typed-unavailable golden controls; provider design-system
 sync; structural implementation-worker handoff for non-deterministic design proposals;
 AD-039 exact binary repository pinning; live R2 certification; cross-DDE migration (M12),
 mobile adapters (M13) and hardening (M14).

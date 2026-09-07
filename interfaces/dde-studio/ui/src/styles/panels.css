@@ -195,6 +195,22 @@
   border-bottom: 1px solid var(--dde-border);
 }
 
+.dde-explorer-project-menu {
+  display: grid;
+  gap: var(--dde-gap-dense);
+  margin: 0 var(--dde-panel-padding) var(--dde-gap-dense);
+  padding: var(--dde-gap-normal);
+  border: 1px solid var(--dde-border);
+  border-radius: var(--dde-radius-sm);
+  background: var(--dde-surface);
+  color: var(--dde-text-secondary);
+  font-size: var(--dde-text-11);
+}
+
+.dde-explorer-project-menu strong {
+  color: var(--dde-text);
+}
+
 .dde-explorer-title {
   font-size: var(--dde-text-13);
   font-weight: 600;
