@@ -311,7 +311,7 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "note": "",
+      "note": "Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -323,11 +323,25 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         },
         "COMMAND": {
           "applicable": false,
@@ -339,43 +353,113 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Production Gateway and React seams are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Production Gateway and React seams are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         }
       }
     },
@@ -3504,7 +3588,7 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "note": "",
+      "note": "Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -3576,44 +3660,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         }
       }
     },
@@ -3630,7 +3753,7 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "note": "",
+      "note": "Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -3702,44 +3825,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         }
       }
     },
@@ -3756,7 +3918,7 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "note": "",
+      "note": "Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -3828,44 +3990,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         }
       }
     },
@@ -3882,7 +4083,7 @@
       "failure_states": [
         "LOCK_DENIED"
       ],
-      "note": "",
+      "note": "Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -3954,44 +4155,83 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py",
-            "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/locks/service.py",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The canonical nested lock count is rendered from the projected per-kind LockService inventory and is browser-verified."
         }
       }
     },
@@ -4008,7 +4248,7 @@
       "failure_states": [
         "VERIFICATION_UNAVAILABLE"
       ],
-      "note": "",
+      "note": "Explorer QA adapts the current mission-scoped Screen Audit matrix; no duplicate QA persistence authority is introduced.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -4020,11 +4260,25 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The existing Screen Audit matrix supplies the required unresolved-finding inventory; a distinct QaFindingInventory projection is not yet a separate backend type."
         },
         "COMMAND": {
           "applicable": false,
@@ -4036,43 +4290,113 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Current Screen Audit state is rendered directly in the Explorer and browser-verified."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Current Screen Audit state is rendered directly in the Explorer and browser-verified."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React and production Screen Audit transport seams are implemented, but packaged editor-host -> real Gateway -> PostgreSQL browser E2E is not recorded on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React and production Screen Audit transport seams are implemented, but packaged editor-host -> real Gateway -> PostgreSQL browser E2E is not recorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Current Screen Audit state is rendered directly in the Explorer and browser-verified."
         }
       }
     },
@@ -4089,7 +4413,7 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "note": "",
+      "note": "Explorer QA adapts the current mission-scoped Screen Audit matrix; no duplicate QA persistence authority is introduced.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -4101,11 +4425,25 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The existing Screen Audit matrix supplies the required unresolved-finding inventory; a distinct QaFindingInventory projection is not yet a separate backend type."
         },
         "COMMAND": {
           "applicable": false,
@@ -4117,43 +4455,113 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Current Screen Audit state is rendered directly in the Explorer and browser-verified."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Current Screen Audit state is rendered directly in the Explorer and browser-verified."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React and production Screen Audit transport seams are implemented, but packaged editor-host -> real Gateway -> PostgreSQL browser E2E is not recorded on this host."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React and production Screen Audit transport seams are implemented, but packaged editor-host -> real Gateway -> PostgreSQL browser E2E is not recorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Current Screen Audit state is rendered directly in the Explorer and browser-verified."
         }
       }
     },
@@ -4170,7 +4578,7 @@
       "failure_states": [
         "NOT_EVALUATED"
       ],
-      "note": "Generated screens now carry mandatory visual_critique bindings whose rubric includes accessibility, so evidence has a real producer; the QaFindingInventory read that aggregates it is DDE-069 M17. Until then the badge renders Not evaluated rather than a fabricated AA.",
+      "note": "Accessibility count is derived from current Screen Audit dimensions only when every current screen is assessed; otherwise the Explorer renders a typed unknown reason.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -4191,16 +4599,23 @@
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/acceptance/defaults.py",
-            "engine/studio/acceptance/service.py",
-            "schemas/design/screen_acceptance_defaults.json"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
           ],
           "test_refs": [
-            "tests/unit/test_screen_acceptance_binding.py",
-            "tests/unit/test_screen_acceptance_binding_postgres.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
           ],
-          "evidence_refs": [],
-          "note": "An honest unavailable/read seam exists, but the requested product data cannot yet be returned."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Screen Audit exposes accessibility dimension state and findings; current UNKNOWN assessment prevents a numeric inventory claim."
         },
         "COMMAND": {
           "applicable": false,
@@ -4227,42 +4642,91 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The Explorer visibly renders the Accessibility child and preserves NOT_EVALUATED as an honest em-dash state."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The adapter consumes the production Screen Audit read contract; packaged editor-host -> real Gateway -> PostgreSQL browser E2E is not recorded."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/acceptance/defaults.py",
-            "engine/studio/acceptance/service.py",
-            "schemas/design/screen_acceptance_defaults.json"
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
           ],
           "test_refs": [
-            "tests/unit/test_screen_acceptance_binding.py",
-            "tests/unit/test_screen_acceptance_binding_postgres.py"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The adapter consumes the production Screen Audit read contract; packaged editor-host -> real Gateway -> PostgreSQL browser E2E is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/audit/service.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_screen_audit_postgres.py",
+            "tests/unit/test_screen_audit_rules.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The Explorer visibly renders the Accessibility child and preserves NOT_EVALUATED as an honest em-dash state."
         }
       }
     },
@@ -9014,7 +9478,7 @@
         "BUILD_FAILED",
         "WORKTREE_CONFLICT"
       ],
-      "note": "",
+      "note": "Direction A/B/C React cards and selected-artifact Try Live are implemented; the combined packaged VS Code-host -> real Gateway -> PostgreSQL browser run remains the final CA-07 proof obligation.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -9106,49 +9570,87 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/CA07_TRY_LIVE_CLOSURE.md"
+          ],
+          "note": "Persisted DesignArtifacts render as functional Direction cards with one governed Try Live action per eligible artifact."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
+            "engine/gateway/commands.py",
+            "engine/studio/frontend.py",
+            "engine/studio/design/gateway.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
+            "tests/unit/test_design_gateway_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/CA07_TRY_LIVE_CLOSURE.md"
+          ],
+          "note": "React -> host bridge -> shared Gateway client -> mission-scoped Core API -> DesignGateway is implemented and independently verified; packaged production-host execution against the real stack is not yet recorded."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/candidates/lifecycle.py",
-            "engine/studio/candidates/service.py",
-            "engine/studio/design/context.py",
-            "engine/studio/design/gateway.py",
-            "engine/studio/design/providers.py",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/studioGateway.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts",
+            "engine/gateway/api.py",
             "engine/gateway/commands.py",
-            "engine/gateway/scopes.py"
+            "engine/studio/frontend.py",
+            "engine/studio/design/gateway.py"
           ],
           "test_refs": [
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts",
+            "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
             "tests/unit/test_design_gateway_postgres.py",
-            "tests/unit/test_frontend_chat_intent.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py",
-            "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "tests/contract/test_frontend_studio_gateway.py"
+            "tests/unit/test_frontend_studio_e2e_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/CA07_TRY_LIVE_CLOSURE.md"
+          ],
+          "note": "Browser selected-direction -> LIVE -> fresh verification and real Gateway/PostgreSQL materialization are proven in separate executable legs; one packaged VS Code-host end-to-end run is still required."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/styles/panels.css"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/claude-design.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/CA07_TRY_LIVE_CLOSURE.md"
+          ],
+          "note": "Structural Playwright proof renders and operates the golden Try Live control; exact AD-039 pixel-reference comparison remains separately blocked until the approved binary is pinned."
         }
       }
     },
@@ -12320,7 +12822,7 @@
       "failure_states": [
         "NO_SELECTION"
       ],
-      "note": "",
+      "note": "Breadcrumb now uses projected project/screen labels and the selected Inspector/PXG title; raw PXG keys and hard-coded Project text are no longer the visible selected path.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -12371,54 +12873,79 @@
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "The surface is rendered but does not yet satisfy the full golden control contract."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The rendered selection path is browser-verified from current projected labels and the Inspector descriptor."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "engine/studio/reads.py",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "Partial presentation is not wired to the full declared behavior."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React uses current projection/Inspector reads; packaged editor-host -> real Gateway -> PostgreSQL browser E2E remains unrecorded on this host."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "engine/studio/pxg/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
             "engine/studio/reads.py",
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React uses current projection/Inspector reads; packaged editor-host -> real Gateway -> PostgreSQL browser E2E remains unrecorded on this host."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
+            "engine/studio/reads.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "tests/unit/test_frontend_studio_domain_postgres.py"
           ],
-          "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The rendered selection path is browser-verified from current projected labels and the Inspector descriptor."
         }
       }
     },
@@ -12804,7 +13331,7 @@
       "failure_states": [
         "UNKNOWN"
       ],
-      "note": "",
+      "note": "Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -12816,15 +13343,25 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         },
         "COMMAND": {
           "applicable": false,
@@ -12836,63 +13373,113 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The visible state exists, but the complete transition/failure contract is not verified."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         },
         "UI": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": ""
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         },
         "WIRED": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "React consumes or presents the state, but no production host read bridge proves the complete Core-to-UI path."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Production Gateway and React seams are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Production Gateway and React seams are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx"
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/shell/GlobalTopBar.tsx",
+            "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts",
+            "interfaces/dde-studio/shared/gatewayClient.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Gateway/PostgreSQL sync provenance and the rendered control are explicitly tested."
         }
       }
     }

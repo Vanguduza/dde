@@ -80,9 +80,16 @@ test.describe("DDE-069 Inspector golden closure", () => {
   test("Style Lock is real, visible, counted and reversible", async ({ page }) => {
     await page.getByTestId("inspector-tab-lock").click();
     await expect(page.getByTestId("inspector-locks")).toContainText("No effective lock");
+    const lockChildren = page.getByTestId("explorer-children-locks");
+    await expect(lockChildren).toContainText("Style Locks");
+    await expect(lockChildren).toContainText("Section Locks");
+    await expect(lockChildren).toContainText("Component Locks");
+    await expect(lockChildren).toContainText("Behaviour Locks");
+    await expect(page.getByTestId("explorer-group-lock:style").locator(".dde-count")).toHaveText("0");
     await page.getByTestId("create-style-lock").click();
     await expect(page.getByTestId("inspector-locks")).toContainText("STYLE");
     await expect(page.getByTestId("explorer-group-locks")).toContainText("1");
+    await expect(page.getByTestId("explorer-group-lock:style").locator(".dde-count")).toHaveText("1");
     await expect(page.getByTestId("candidate-current")).toContainText("Current (Locked)");
     await expect(page.getByTestId("candidate-current-lock-state")).toHaveText("1 ACTIVE LOCK");
 
@@ -93,6 +100,7 @@ test.describe("DDE-069 Inspector golden closure", () => {
     await page.getByRole("button", { name: "Release" }).click();
     await expect(page.getByTestId("inspector-locks")).toContainText("No effective lock");
     await expect(page.getByTestId("explorer-group-locks")).toContainText("0");
+    await expect(page.getByTestId("explorer-group-lock:style").locator(".dde-count")).toHaveText("0");
     await expect(page.getByTestId("candidate-current-lock-state")).toHaveText("NO ACTIVE LOCKS");
   });
 

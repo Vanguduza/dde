@@ -41,6 +41,14 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     );
   });
 
+  test("saved timestamp and build revision come from the current sync projection", async ({ page }) => {
+    const saved = page.getByTestId("saved-at");
+    await expect(saved).toHaveAttribute("data-known", "true");
+    await expect(saved).toContainText("Saved ");
+    expect(await saved.getAttribute("title")).toContain("Durable frontend revision observed at");
+    await expect(page.getByTestId("build-version")).toHaveText("dde-studio test · PXG r4");
+  });
+
   test("browser handshake is required before LIVE is shown", async ({ page }) => {
     const badge = page.getByTestId("preview-badge");
     await expect(badge).toBeVisible();
@@ -61,6 +69,23 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("qa-check-silhouette")).toContainText("PASSED");
     await expect(page.getByTestId("qa-check-visual_critique")).toContainText("PASSED");
     await expect(page.getByTestId("qa-mode")).toContainText("Evidence: 2");
+  });
+
+  test("Explorer QA uses the current Screen Audit inventory and keeps accessibility unknown honestly", async ({ page }) => {
+    const qa = page.getByTestId("explorer-group-qa");
+    await expect(qa.locator(".dde-count")).toHaveText("2");
+    await expect(qa).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByTestId("explorer-group-qa:issues").locator(".dde-count")).toHaveText("2");
+    const accessibility = page.getByTestId("explorer-group-qa:accessibility").locator(".dde-count");
+    await expect(accessibility).toHaveText("—");
+    await expect(accessibility).toHaveAttribute("data-known", "false");
+    expect(await accessibility.getAttribute("title")).toContain("not evaluated");
+
+    await qa.click();
+    await expect(qa).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("explorer-children-qa")).toHaveCount(0);
+    await qa.click();
+    await expect(page.getByTestId("explorer-children-qa")).toBeVisible();
   });
 
   test("Screen Audit matrix, QA and architecture modes render one current projection", async ({ page }) => {
@@ -87,6 +112,9 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     const outline = page.getByTestId("selection-outline");
     await expect(outline).toBeVisible();
     await expect(outline).toHaveAttribute("data-pxg-key", "screens/checkout#hero");
+    await expect(page.getByTestId("breadcrumb")).toHaveText(
+      "LogiFlow Marketplace / Checkout / Checkout hero",
+    );
 
     const gap = page.getByTestId("inspector-property-gap");
     await expect(gap).toBeVisible();

@@ -6,15 +6,19 @@
  * honest gaps beats a shorter, tidier lie about what the product does.
  */
 
+import { useState } from "react";
 import { Count } from "../components/Honest";
 import type {
+  CountValue,
   ExplorerGroup,
   OrchestratorFrontendStatus,
   ProjectExplorerSnapshot,
+  ScreenAuditMatrix,
 } from "../state/projections";
 
 export interface ContextSidebarProps {
   readonly explorer: ProjectExplorerSnapshot | null;
+  readonly auditMatrix: ScreenAuditMatrix | null;
   readonly orchestrator: OrchestratorFrontendStatus | null;
   readonly selectedGroup: string | null;
   readonly onSelectGroup: (key: string) => void;
@@ -22,10 +26,13 @@ export interface ContextSidebarProps {
 
 export function ContextSidebar({
   explorer,
+  auditMatrix,
   orchestrator,
   selectedGroup,
   onSelectGroup,
 }: ContextSidebarProps) {
+  const groups = [...(explorer?.groups ?? []).filter((group) => group.key !== "qa")];
+  groups.push(qaExplorerGroup(auditMatrix));
   return (
     <div className="dde-explorer-inner">
       <div className="dde-explorer-header">
@@ -41,7 +48,7 @@ export function ContextSidebar({
       </div>
 
       <ul className="dde-explorer-groups" data-testid="explorer-groups">
-        {(explorer?.groups ?? []).map((group) => (
+        {groups.map((group) => (
           <GroupRow
             key={group.key}
             group={group}
@@ -67,6 +74,7 @@ function GroupRow({
 }) {
   const selected = group.key === selectedKey;
   const unavailable = group.count.value === null;
+  const [expanded, setExpanded] = useState(true);
   return (
     <li>
       <button
@@ -76,12 +84,16 @@ function GroupRow({
         data-unavailable={unavailable}
         data-testid={`explorer-group-${group.key}`}
         aria-current={selected ? "true" : undefined}
-        onClick={() => onSelect(group.key)}
+        aria-expanded={group.children?.length ? expanded : undefined}
+        onClick={() => {
+          onSelect(group.key);
+          if (group.children?.length) setExpanded((value) => !value);
+        }}
       >
         <span className="dde-explorer-group-title">{group.title}</span>
         <Count value={group.count} />
       </button>
-      {group.children?.length ? (
+      {group.children?.length && expanded ? (
         <ul className="dde-explorer-children" data-testid={`explorer-children-${group.key}`}>
           {group.children.map((child) => (
             <GroupRow
@@ -95,6 +107,48 @@ function GroupRow({
       ) : null}
     </li>
   );
+}
+
+function qaExplorerGroup(auditMatrix: ScreenAuditMatrix | null): ExplorerGroup {
+  if (!auditMatrix) {
+    const unknown: CountValue = {
+      value: null,
+      availability: "UNAVAILABLE",
+      reason: "Screen Audit matrix is unavailable for the current project.",
+    };
+    return {
+      key: "qa",
+      title: "QA",
+      count: unknown,
+      children: [
+        { key: "qa:issues", title: "QA Issues", count: unknown },
+        { key: "qa:accessibility", title: "Accessibility", count: unknown },
+      ],
+    };
+  }
+  const issueCount: CountValue = {
+    value: auditMatrix.summary.unresolvedFindings,
+    availability: auditMatrix.summary.unresolvedFindings ? "AVAILABLE" : "EMPTY",
+  };
+  const accessibilityAssessed = auditMatrix.screens.every((screen) => {
+    const state = screen.dimensionStates.ACCESSIBILITY;
+    return Boolean(state && !["UNKNOWN", "UNASSESSED", "NOT_EVALUATED"].includes(state));
+  });
+  const accessibilityFindings = auditMatrix.findings.filter(
+    (finding) => finding.dimension === "ACCESSIBILITY" && finding.status !== "RESOLVED",
+  ).length;
+  const accessibilityCount: CountValue = accessibilityAssessed
+    ? { value: accessibilityFindings, availability: accessibilityFindings ? "AVAILABLE" : "EMPTY" }
+    : { value: null, availability: "UNAVAILABLE", reason: "Accessibility is not evaluated for every current audited screen." };
+  return {
+    key: "qa",
+    title: "QA",
+    count: issueCount,
+    children: [
+      { key: "qa:issues", title: "QA Issues", count: issueCount },
+      { key: "qa:accessibility", title: "Accessibility", count: accessibilityCount },
+    ],
+  };
 }
 
 /**

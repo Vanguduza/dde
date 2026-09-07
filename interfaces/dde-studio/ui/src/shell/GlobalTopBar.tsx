@@ -53,6 +53,7 @@ export function GlobalTopBar({
           {projectName ?? "No project"}
         </button>
         <SyncChip snapshot={snapshot} />
+        <SavedStamp snapshot={snapshot} />
       </div>
 
       <nav className="dde-mode-tabs" aria-label="Workspace mode">
@@ -107,6 +108,23 @@ function SyncChip({ snapshot }: { readonly snapshot: FrontendStudioSnapshot | nu
       }
     >
       {pending ? `Pending (${sync.pendingMutationCount})` : state}
+    </span>
+  );
+}
+
+function SavedStamp({ snapshot }: { readonly snapshot: FrontendStudioSnapshot | null }) {
+  const savedAt = snapshot?.sync.durableRevisionAt ?? null;
+  if (!savedAt) {
+    return (
+      <span className="dde-saved-at dde-muted" data-testid="saved-at" data-known="false" title="No durable frontend revision has been observed yet.">
+        Saved —
+      </span>
+    );
+  }
+  const clock = savedAt.length >= 16 ? savedAt.slice(11, 16) : savedAt;
+  return (
+    <span className="dde-saved-at dde-muted" data-testid="saved-at" data-known="true" title={`Durable frontend revision observed at ${savedAt}`}>
+      Saved {clock} UTC
     </span>
   );
 }

@@ -44,3 +44,15 @@ This tranche repairs blockers without deleting, weakening, bypassing or silently
 The desktop dependency install reports 15 npm audit findings (1 moderate, 13 high, 1 critical). They pre-exist the byte-copy repair and remain explicit security/hardening work; they are not waived by this recovery.
 
 The repository design lint currently reports the known DD206 baseline violations. They remain visible evidence and are not converted into a false pass.
+
+## Continuation preservation additions
+
+| Capability / invariant | Risk avoided | Continuation result |
+| --- | --- | --- |
+| CA-07 selected-design Try Live | Rebuilding an already-landed UI or marking a stub as complete | Existing persisted Direction cards were retained and strengthened with selected-artifact LIVE-byte and fresh DDE-068 verification proof |
+| Explorer lock authority | Duplicating lock counts in React-local state | EX-16..EX-19 now consume per-kind counts from the existing `LockService.inventory()` projection |
+| Screen Audit / QA authority | Creating a second QA truth store only to satisfy Explorer chrome | EX-20/EX-21 derive current issue counts from Screen Audit; EX-22 stays honestly unknown when accessibility is not evaluated |
+| Sync/build provenance | Showing a plausible saved time or build string without backend evidence | TB-03 uses durable revision time; ST-06 now receives the installed DDE package version through the real Gateway snapshot |
+| Screen Audit dogfood | Freezing tests to a remembered ledger count | Dogfood compares reconciliation counts directly with the matrix's derived statuses, preserving the no-invented-pass invariant as controls advance |
+
+Latest complete gate after these additions: 1489 passed / 6 skipped, 220/220 contract rerun, 77/77 extension tests, desktop/UI TypeScript and Vite build green, and 61/61 Playwright visual tests. Current ledger: 6 VERIFIED / 61 BOUND / 7 TYPED_UNAVAILABLE / 25 UNBOUND.

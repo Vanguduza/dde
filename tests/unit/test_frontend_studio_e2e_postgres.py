@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 from datetime import UTC, datetime
+from importlib.metadata import version
 
 import httpx
 import pytest
@@ -120,6 +121,18 @@ async def test_the_full_governed_frontend_workflow(tmp_path) -> None:
                 "silhouette",
                 "visual_critique",
             }
+
+            snapshot_read = await client.get(
+                f"/v1/missions/{worker.mission.mission_id}/frontend/snapshot",
+                headers={
+                    "X-Session-Id": str(session_id),
+                    "X-Principal-Id": str(tenant.principal_id),
+                },
+            )
+            assert snapshot_read.status_code == 200, snapshot_read.text
+            sync = snapshot_read.json()["sync"]
+            assert sync["build_version"] == version("dde")
+            assert sync["durable_revision_at"] is not None
 
             # 2. Declare what the frontend owes, then compute coverage. The
             #    accessibility obligation needs a critique that has not run,

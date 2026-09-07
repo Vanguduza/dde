@@ -1275,10 +1275,19 @@ export function DdeStudioApp({
     selectChatConversation, sendFrontendCommand,
   ]);
 
+  const projectBreadcrumb = projectName ?? hostContext?.projectName ?? "Project";
+  const screenBreadcrumb =
+    snapshot?.screens.find((screen) => screen.pxgKey === screenKey)?.title ??
+    screenKey ??
+    "Screen";
+  const selectionBreadcrumb =
+    descriptor?.pxgKey === selectedKey
+      ? descriptor.title
+      : selectedKey;
   const breadcrumb = selectedKey
-    ? ["Project", screenKey ?? "Screen", selectedKey]
+    ? [projectBreadcrumb, screenBreadcrumb, selectionBreadcrumb ?? selectedKey]
     : group
-      ? ["Project", group]
+      ? [projectBreadcrumb, group]
       : [];
 
   const displayedPreview =
@@ -1300,6 +1309,7 @@ export function DdeStudioApp({
       explorer={
         <ContextSidebar
           explorer={snapshot?.explorer ?? null}
+          auditMatrix={auditMatrix}
           orchestrator={snapshot?.orchestrator ?? null}
           selectedGroup={group}
           onSelectGroup={setGroup}

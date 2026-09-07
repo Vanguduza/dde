@@ -32,10 +32,17 @@ describe("Frontend Studio Gateway transport", () => {
       "candidate",
       "screens/checkout#hero",
     );
+    await client.readFrontendDesignArtifacts(
+      "session",
+      "principal",
+      "mission",
+      "design-session",
+    );
     assert.deepEqual(seen, [
       "http://core.test/v1/missions/mission/frontend/snapshot",
       "http://core.test/v1/missions/mission/frontend/previews/preview",
       "http://core.test/v1/missions/mission/frontend/inspector/candidate?pxg_key=screens%2Fcheckout%23hero",
+      "http://core.test/v1/missions/mission/frontend/design/sessions/design-session/artifacts",
     ]);
   });
 

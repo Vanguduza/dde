@@ -391,10 +391,40 @@ async def test_read_projection_reports_unknown_rather_than_zero() -> None:
 
         # LockService is authoritative for the explorer inventory. No active
         # locks is a real empty count rather than an unknown placeholder.
-        lock_count = groups["locks"].count
+        lock_group = groups["locks"]
+        lock_count = lock_group.count
         assert lock_count.known is True
         assert lock_count.value == 0
         assert lock_count.availability is Availability.EMPTY
+        lock_children = {child.key: child for child in lock_group.children}
+        assert set(lock_children) == {
+            "lock:style",
+            "lock:section",
+            "lock:component",
+            "lock:behaviour",
+        }
+        assert all(child.count.value == 0 for child in lock_children.values())
+
+        locks = LockService(engine)
+        for kind in ("STYLE", "SECTION", "COMPONENT", "BEHAVIOUR"):
+            await locks.create(
+                **scope,
+                lock_kind=kind,
+                scope_key="screens/a",
+                reason=f"{kind.lower()} regression fixture",
+                created_by=fixture.principal_id,
+            )
+        locked_snapshot = await FrontendReadService(engine).snapshot(**scope)
+        locked_groups = {group.key: group for group in locked_snapshot.explorer.groups}
+        locked_group = locked_groups["locks"]
+        assert locked_group.count.value == 4
+        locked_children = {child.key: child for child in locked_group.children}
+        assert {key: child.count.value for key, child in locked_children.items()} == {
+            "lock:style": 1,
+            "lock:section": 1,
+            "lock:component": 1,
+            "lock:behaviour": 1,
+        }
 
         # No coverage has been computed, so the ring has no number.
         assert snapshot.coverage.weighted_percent is None

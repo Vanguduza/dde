@@ -392,7 +392,17 @@ function snapshot(): FrontendStudioSnapshot {
           title: "Templates",
           count: { value: 1, availability: "AVAILABLE" },
         },
-        { key: "locks", title: "Locks", count: { value: inspectorLocks.length, availability: inspectorLocks.length ? "AVAILABLE" : "EMPTY" } },
+        {
+          key: "locks",
+          title: "Locks",
+          count: { value: inspectorLocks.length, availability: inspectorLocks.length ? "AVAILABLE" : "EMPTY" },
+          children: [
+            { key: "lock:style", title: "Style Locks", count: { value: inspectorLocks.filter((item) => item.lockKind === "STYLE").length, availability: inspectorLocks.some((item) => item.lockKind === "STYLE") ? "AVAILABLE" : "EMPTY" } },
+            { key: "lock:section", title: "Section Locks", count: { value: inspectorLocks.filter((item) => item.lockKind === "SECTION").length, availability: inspectorLocks.some((item) => item.lockKind === "SECTION") ? "AVAILABLE" : "EMPTY" } },
+            { key: "lock:component", title: "Component Locks", count: { value: inspectorLocks.filter((item) => item.lockKind === "COMPONENT").length, availability: inspectorLocks.some((item) => item.lockKind === "COMPONENT") ? "AVAILABLE" : "EMPTY" } },
+            { key: "lock:behaviour", title: "Behaviour Locks", count: { value: inspectorLocks.filter((item) => item.lockKind === "BEHAVIOUR").length, availability: inspectorLocks.some((item) => item.lockKind === "BEHAVIOUR") ? "AVAILABLE" : "EMPTY" } },
+          ],
+        },
       ],
     },
     coverage: {

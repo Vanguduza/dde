@@ -376,7 +376,6 @@ class FrontendReadService:
         lock_inventory = await self._locks.inventory(
             tenant_id=tenant_id, project_id=project_id
         )
-        active_lock_count = sum(lock_inventory.values())
 
         return FrontendStudioSnapshot(
             project_id=project_id,
@@ -384,7 +383,7 @@ class FrontendReadService:
             pxg_revision=graph.revision,
             contract_version=contract.contract_version if contract else None,
             explorer=explorer_snapshot(
-                project_id, graph, sources, active_lock_count=active_lock_count
+                project_id, graph, sources, lock_inventory=lock_inventory
             ),
             coverage=coverage,
             orchestrator=_orchestrator_status(),
@@ -705,9 +704,12 @@ def explorer_snapshot(
     graph: PxgGraph,
     sources: SourceInventorySnapshot | None = None,
     *,
-    active_lock_count: int | None = None,
+    lock_inventory: dict[str, int] | None = None,
 ) -> ProjectExplorerSnapshot:
-    """Counts come from the graph; groups without a domain say UNKNOWN."""
+    """Counts come from authoritative projections; unavailable domains stay UNKNOWN."""
+    active_lock_count = (
+        sum(lock_inventory.values()) if lock_inventory is not None else None
+    )
     groups: list[ExplorerGroup] = [
         ExplorerGroup(
             key="screens",
@@ -759,6 +761,23 @@ def explorer_snapshot(
                     Availability.UNAVAILABLE,
                     "active lock inventory was not supplied to this projection",
                 )
+            ),
+            children=(
+                tuple(
+                    ExplorerGroup(
+                        key=f"lock:{kind.lower()}",
+                        title=title,
+                        count=CountValue.of(lock_inventory.get(kind, 0)),
+                    )
+                    for kind, title in (
+                        ("STYLE", "Style Locks"),
+                        ("SECTION", "Section Locks"),
+                        ("COMPONENT", "Component Locks"),
+                        ("BEHAVIOUR", "Behaviour Locks"),
+                    )
+                )
+                if lock_inventory is not None
+                else ()
             ),
         )
     )

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import asdict, dataclass
+from importlib.metadata import PackageNotFoundError, version
 from uuid import UUID
 
 from sqlalchemy import select
@@ -1100,6 +1101,14 @@ def budget_decision_payload(result: BudgetDecision) -> dict[str, object]:
     }
 
 
+def _dde_build_version() -> str | None:
+    """Installed DDE package version for Studio build provenance."""
+    try:
+        return version("dde")
+    except PackageNotFoundError:
+        return None
+
+
 class GatewayCommandService:
     """Composes session authorization, project authorization, the idempotency
     ledger and domain dispatch into one command-acceptance path (Chapter
@@ -1173,9 +1182,9 @@ class GatewayCommandService:
         session, mission = await self._frontend_mission_context(
             session_id=session_id, principal_id=principal_id, mission_id=mission_id
         )
-        snapshot = await FrontendReadService(self._engine).snapshot(
-            tenant_id=session.tenant_id, project_id=mission.project_id
-        )
+        snapshot = await FrontendReadService(
+            self._engine, build_version=_dde_build_version()
+        ).snapshot(tenant_id=session.tenant_id, project_id=mission.project_id)
         return asdict(snapshot)
 
     async def read_frontend_audit_summary(

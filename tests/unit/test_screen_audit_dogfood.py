@@ -14,10 +14,12 @@ def test_real_99_control_ledger_is_reconciled_without_inventing_audit_passes() -
     # These move whenever a control genuinely closes; the property under
     # test is that the reconciler reports what the ledger says rather than
     # inventing an audit pass for an unproven control.
-    assert report.verified == 6
-    assert report.bound == 51
-    assert report.typed_unavailable == 6
-    assert report.unbound == 36
+    assert report.verified == len(matrix.by_status(BindingStatus.VERIFIED))
+    assert report.bound == len(matrix.by_status(BindingStatus.BOUND))
+    assert report.typed_unavailable == len(
+        matrix.by_status(BindingStatus.TYPED_UNAVAILABLE)
+    )
+    assert report.unbound == len(matrix.by_status(BindingStatus.UNBOUND))
     assert (
         report.verified + report.bound + report.typed_unavailable + report.unbound
         == report.control_count

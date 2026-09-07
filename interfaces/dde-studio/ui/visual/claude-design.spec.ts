@@ -106,7 +106,16 @@ test.describe("Claude /design control", () => {
 
     await page.getByTestId("design-try-live-A").click();
     await expect(page.getByTestId("design-try-live-A")).toHaveText("Tried Live");
-    await expect(page.getByTestId("preview-badge")).toBeVisible();
+    await expect(page.getByTestId("design-direction-B")).toContainText("GENERATED");
+    await expect(page.getByTestId("design-direction-C")).toContainText("GENERATED");
+
+    // Direction A carries spacing=space6 in this deterministic provider fixture.
+    // Prove the selected artifact, rather than another candidate or stale preview,
+    // is what reached the browser-backed LIVE surface.
+    await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    const preview = page.frameLocator('iframe[title^="Candidate preview "]');
+    await expect(preview.locator('[data-spacing="space6"]')).toContainText("Hero space6");
+    await expect(page.locator('[data-testid^="candidate-verification-"]')).toContainText("VERIFY PASSED");
 
     const commands = await page.evaluate(() =>
       (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string }> } })
@@ -114,6 +123,8 @@ test.describe("Claude /design control", () => {
     );
     expect(commands).toContain("frontend.design.try_live");
     expect(commands).toContain("frontend.preview.start");
+    expect(commands).toContain("frontend.preview.set_state");
+    expect(commands).toContain("frontend.verification.run");
     expect(commands).not.toContain("frontend.design.request");
   });
 

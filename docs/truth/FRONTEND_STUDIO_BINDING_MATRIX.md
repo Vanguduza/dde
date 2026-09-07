@@ -10,9 +10,9 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 36 |
-| `TYPED_UNAVAILABLE` | 6 |
-| `BOUND` | 51 |
+| `UNBOUND` | 25 |
+| `TYPED_UNAVAILABLE` | 7 |
+| `BOUND` | 61 |
 | `VERIFIED` | 6 |
 | **total** | **99** |
 
@@ -27,7 +27,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 |---|---|---|---|---|---|---|---|---|---|---|
 | TB-01 | Product title / module identity | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | TB-02 | Project selector | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
-| TB-03 | Saved timestamp | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| TB-03 | Saved timestamp | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | TB-04 | Sync status chip | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | TB-05 | Design mode tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | TB-06 | Coverage mode tab | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
@@ -42,6 +42,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 
 Notes:
 
+- **TB-03** — Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.
 - **TB-04** — StudioSyncSnapshot distinguishes durable revision from command acceptance. The M7 mutation engine is implemented, but pending-mutation state is not yet projected into FrontendReadService, so the chip must not overclaim SYNCED.
 
 ## App rail and project explorer
@@ -65,13 +66,13 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | EX-13 | Templates group | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
 | EX-14 | Template entries | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-15 | Locks group + count | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| EX-16 | Style Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-17 | Section Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-18 | Component Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-19 | Behaviour Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-20 | QA group | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-21 | QA Issues count | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| EX-22 | Accessibility count | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| EX-16 | Style Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-17 | Section Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-18 | Component Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-19 | Behaviour Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-20 | QA group | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-21 | QA Issues count | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-22 | Accessibility count | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `TYPED_UNAVAILABLE` |
 
 Notes:
 
@@ -84,7 +85,13 @@ Notes:
 - **EX-13** — TemplateRecommendationService is DDE-069 M8; the group reports NOT_IMPLEMENTED.
 - **EX-14** — M8 implements durable template recommendations; golden Explorer nesting remains to be closed.
 - **EX-15** — LockService is implemented. The current FrontendReadService still exposes the Locks group as an unavailable count; a real LockInventory projection is required before this read is complete.
-- **EX-22** — Generated screens now carry mandatory visual_critique bindings whose rubric includes accessibility, so evidence has a real producer; the QaFindingInventory read that aggregates it is DDE-069 M17. Until then the badge renders Not evaluated rather than a fabricated AA.
+- **EX-16** — Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.
+- **EX-17** — Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.
+- **EX-18** — Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.
+- **EX-19** — Authoritative LockService per-kind inventory now projects into the four canonical nested Explorer lock counts. Packaged editor-host E2E remains outstanding.
+- **EX-20** — Explorer QA adapts the current mission-scoped Screen Audit matrix; no duplicate QA persistence authority is introduced.
+- **EX-21** — Explorer QA adapts the current mission-scoped Screen Audit matrix; no duplicate QA persistence authority is introduced.
+- **EX-22** — Accessibility count is derived from current Screen Audit dimensions only when every current screen is assessed; otherwise the Explorer renders a typed unknown reason.
 
 ## Orchestrator card
 
@@ -178,7 +185,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#87-candidatedirections-dock`
 | CA-04 | Score classification | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-05 | Change count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-06 | Current (Locked) card | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
-| CA-07 | Try live | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CA-07 | Try live | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-08 | Compare | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CA-09 | Promote / accept | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 
@@ -188,6 +195,7 @@ Notes:
 - **CA-03** — M8 CandidateScorecard is implemented and evidence-backed; final status remains BOUND pending production E2E.
 - **CA-04** — Clickable evidence-backed score explanation is implemented; final status remains BOUND pending production E2E.
 - **CA-06** — Accepted Current is sourced from durable PXG revision and effective LockService inventory. The golden locked chip appears only when active locks actually exist; zero locks renders NO ACTIVE LOCKS rather than inventing a lock.
+- **CA-07** — Direction A/B/C React cards and selected-artifact Try Live are implemented; the combined packaged VS Code-host -> real Gateway -> PostgreSQL browser run remains the final CA-07 proof obligation.
 - **CA-08** — Candidate compare is implemented for two real LIVE preview documents; production E2E remains BOUND.
 
 ## Source Blend
@@ -241,9 +249,14 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| ST-01 | Breadcrumb | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
+| ST-01 | Breadcrumb | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | ST-02 | Error count | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | ST-03 | Warning count | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | ST-04 | Auto Layout state | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | ST-05 | AI Suggest state | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| ST-06 | Build / version | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `UNBOUND` |
+| ST-06 | Build / version | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+
+Notes:
+
+- **ST-01** — Breadcrumb now uses projected project/screen labels and the selected Inspector/PXG title; raw PXG keys and hard-coded Project text are no longer the visible selected path.
+- **ST-06** — Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.

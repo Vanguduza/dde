@@ -33,7 +33,9 @@ export function StatusBar({ snapshot, breadcrumb, buildVersion }: StatusBarProps
               ? "No errors"
               : `${blocking} blocking`}
         </span>
-        <span data-testid="build-version">{buildVersion ?? "build —"}</span>
+        <span data-testid="build-version">
+          {buildVersion ?? "build —"} · PXG r{snapshot?.pxgRevision ?? "—"}
+        </span>
       </div>
     </div>
   );
