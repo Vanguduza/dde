@@ -5,6 +5,7 @@ export interface RailModule {
   readonly label: string;
   readonly glyph: string;
   readonly available: boolean;
+  readonly reason?: string | null;
 }
 
 export interface AppRailProps {
@@ -28,9 +29,9 @@ export function AppRail({ modules, activeId, onSelect }: AppRailProps) {
             aria-label={
               module.available
                 ? module.label
-                : `${module.label} — not available in this build`
+                : `${module.label} — ${module.reason ?? "not available in this build"}`
             }
-            title={module.available ? module.label : `${module.label} — unavailable`}
+            title={module.available ? module.label : `${module.label} — ${module.reason ?? "unavailable"}`}
             onClick={() => onSelect(module.id)}
           >
             <span aria-hidden="true">{module.glyph}</span>

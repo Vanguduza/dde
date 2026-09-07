@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_editor_assist_state.json",
+  "title": "FrontendEditorAssistState",
+  "description": "DDE-069 project editor-assist policy. Auto Layout constrains deterministic direct manipulation; AI Suggest enables passive non-authoritative suggestions only. Neither state authorizes mutation or auto-application.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_editor_assist_states",
+    "order": 346,
+    "pk": [
+      "assist_state_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "project_id"
+      ]
+    ],
+    "checks": [
+      {
+        "name": "frontend_editor_assist_lock_positive",
+        "expression": "lock_version >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_editor_assist_states_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_editor_assist_states_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_editor_assist_updated_by_fkey",
+        "columns": [
+          "updated_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "assist_state_id",
+    "tenant_id",
+    "project_id",
+    "auto_layout",
+    "ai_suggest",
+    "updated_by",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "assist_state_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "auto_layout": {
+      "type": "boolean"
+    },
+    "ai_suggest": {
+      "type": "boolean"
+    },
+    "updated_by": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

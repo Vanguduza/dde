@@ -40,9 +40,12 @@ from engine.donor.service import DonorLabService
 from engine.events.service import EventService
 from engine.governance.hashing import approval_scope_hash
 from engine.governance.service import ApprovalService
+from engine.missions.repository import MissionsRepository
 from engine.missions.service import MissionService
+from engine.missions.states import TERMINAL_MISSION
 from engine.studio.acceptance.defaults import GENERATED_SCREEN
 from engine.studio.acceptance.service import ScreenAcceptanceService
+from engine.studio.attention.service import AttentionAcknowledgementService
 from engine.studio.audit.service import ScreenAuditService
 from engine.studio.candidates.lifecycle import CandidateState
 from engine.studio.candidates.promotion import PromotionService
@@ -58,16 +61,19 @@ from engine.studio.canvas import (
     parse_manifest,
     screen_relative_path,
 )
+from engine.studio.comments.service import DesignCommentService
 from engine.studio.compiler import compile_generation_prompt
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageService
 from engine.studio.design.gateway import DesignGateway
+from engine.studio.editor_assists import EditorAssistService
 from engine.studio.locks.service import LockService
 from engine.studio.models import CompileRequest, FeatureSurface, RequirementInput
 from engine.studio.mutations.executor import MutationExecutor
 from engine.studio.mutations.governed import GovernedMutationService
 from engine.studio.mutations.planner import MutationRequest
 from engine.studio.preview_runtime.service import PreviewService, PreviewState
+from engine.studio.preview_scenarios import PreviewScenarioService
 from engine.studio.pxg.service import EdgeInput, NodeInput, PxgService
 from engine.studio.source.service import SourceIntelligenceService
 from engine.studio.tokens_catalog import BASE_KINDS
@@ -127,6 +133,18 @@ class FrontendStudioService:
 
     def _lock_service(self) -> LockService:
         return LockService(self._engine)
+
+    def _attention_acknowledgements(self) -> AttentionAcknowledgementService:
+        return AttentionAcknowledgementService(self._engine)
+
+    def _comment_service(self) -> DesignCommentService:
+        return DesignCommentService(self._engine, pxg=self._pxg)
+
+    def _preview_scenarios(self) -> PreviewScenarioService:
+        return PreviewScenarioService(self._engine)
+
+    def _editor_assists(self) -> EditorAssistService:
+        return EditorAssistService(self._engine)
 
     def _mutation_executor(self) -> MutationExecutor:
         return MutationExecutor(
@@ -250,6 +268,64 @@ class FrontendStudioService:
         if self._screens_service is None:
             self._screens_service = ScreenAcceptanceService(self._engine, pxg=self._pxg)
         return self._screens_service
+
+    async def resolve_project_switch(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        """Resolve an authorized project navigation target to one mission.
+
+        The Gateway has already authorized the target project. We refuse an
+        ambiguous implicit choice rather than silently selecting one of several
+        active missions.
+        """
+        requested = _optional_uuid(parameters, "mission_id")
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            missions = await MissionsRepository().list_missions(
+                uow.connection, project_id=project_id
+            )
+        active = [item for item in missions if item.status not in TERMINAL_MISSION]
+        if requested is not None:
+            selected = next(
+                (item for item in active if item.mission_id == requested), None
+            )
+            if selected is None:
+                raise DdeError(
+                    "PROJECT_UNAVAILABLE",
+                    "Requested mission is not an active mission for the target project",
+                    details={
+                        "project_id": str(project_id),
+                        "mission_id": str(requested),
+                    },
+                )
+        elif len(active) == 1:
+            selected = active[0]
+        elif not active:
+            raise DdeError(
+                "PROJECT_UNAVAILABLE",
+                "Target project has no non-terminal mission for Frontend Studio",
+                details={"project_id": str(project_id)},
+            )
+        else:
+            raise DdeError(
+                "PROJECT_UNAVAILABLE",
+                "Target project has multiple active missions; choose one explicitly",
+                details={
+                    "project_id": str(project_id),
+                    "mission_ids": [str(item.mission_id) for item in active],
+                },
+            )
+        return {
+            "project_id": str(project_id),
+            "mission_id": str(selected.mission_id),
+            "mission_slug": selected.slug,
+            "side_effect_class": "NAVIGATION_ONLY",
+        }
 
     async def initialize_sources(
         self, *, tenant_id: UUID, project_id: UUID
@@ -1654,6 +1730,127 @@ class FrontendStudioService:
             "verification_run_status": result.run.status if result.run else None,
             "candidate_id": str(result.candidate.candidate_id),
             "candidate_state": result.candidate.state,
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def create_comment(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        comment = await self._comment_service().create(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            candidate_id=_optional_uuid(parameters, "candidate_id"),
+            pxg_key=_str(parameters, "pxg_key"),
+            body=_str(parameters, "body"),
+        )
+        return {
+            "comment": comment.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def resolve_comment(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        comment = await self._comment_service().resolve(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            comment_id=_uuid(parameters, "comment_id"),
+        )
+        return {
+            "comment": comment.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_preview_scenario(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        scenario = await self._preview_scenarios().set(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            preview_session_id=_uuid(parameters, "preview_session_id"),
+            scenario=_str(parameters, "scenario"),
+            role=_optional_str(parameters, "role"),
+        )
+        return {
+            "scenario": scenario.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def set_editor_assist(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        assist = _str(parameters, "assist")
+        enabled = _bool(parameters, "enabled")
+        if assist == "ai_suggest" and enabled:
+            statuses = await self._design_gateway().provider_statuses()
+            if not any(item.usable for item in statuses):
+                raise DdeError(
+                    "PROVIDER_UNAVAILABLE",
+                    "AI Suggest requires a certified design provider; "
+                    "policy was not changed",
+                    retryable=False,
+                    details={
+                        "providers": [
+                            {
+                                "provider_id": item.provider_id,
+                                "state": item.state.value,
+                                "detail": item.detail,
+                            }
+                            for item in statuses
+                        ]
+                    },
+                )
+        state = await self._editor_assists().set(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            assist=assist,
+            enabled=enabled,
+        )
+        return {
+            "state": state.model_dump(mode="json"),
+            "side_effect_class": "WORKSPACE_LOCAL",
+        }
+
+    async def acknowledge_attention(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        principal_id: UUID,
+        parameters: dict[str, object],
+    ) -> dict[str, object]:
+        acknowledgement = await self._attention_acknowledgements().acknowledge(
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            attention_key=_str(parameters, "attention_key"),
+        )
+        return {
+            "acknowledgement": acknowledgement.model_dump(mode="json"),
             "side_effect_class": "WORKSPACE_LOCAL",
         }
 

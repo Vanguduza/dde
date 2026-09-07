@@ -25,6 +25,7 @@ FRONTEND_COMMANDS = (
 )
 
 DDE_069_COMMANDS = (
+    "frontend.project.switch",
     "frontend.screen.register",
     "frontend.design.provider_status",
     "frontend.design.request",
@@ -63,6 +64,11 @@ DDE_069_COMMANDS = (
     "frontend.preview.start",
     "frontend.preview.set_state",
     "frontend.preview.stop",
+    "frontend.preview.set_scenario",
+    "frontend.comment.create",
+    "frontend.comment.resolve",
+    "frontend.editor.set_assist",
+    "frontend.attention.acknowledge",
     "frontend.verification.run",
     "frontend.lock.create",
     "frontend.lock.release",
@@ -90,7 +96,10 @@ def test_frontend_commands_are_registered() -> None:
     for command_type in FRONTEND_COMMANDS + DDE_069_COMMANDS:
         assert command_type in COMMAND_SCOPES
         assert command_type in COMMAND_TARGET_TYPE
-        assert COMMAND_TARGET_TYPE[command_type] == "mission"
+        expected_target = (
+            "project" if command_type == "frontend.project.switch" else "mission"
+        )
+        assert COMMAND_TARGET_TYPE[command_type] == expected_target
         required_scope(command_type)
 
 

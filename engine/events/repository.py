@@ -63,6 +63,30 @@ class EventsRepository:
         )
         return [Event.model_validate(dict(row)) for row in result.mappings().all()]
 
+    async def list_recent_for_project(
+        self,
+        connection: AsyncConnection,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        limit: int = 12,
+    ) -> list[Event]:
+        """Newest real Core events for a project-scoped activity projection.
+
+        This is a read-only projection helper. It deliberately does not synthesize
+        telemetry: an empty result means the project has no retained events.
+        """
+        result = await connection.execute(
+            select(events)
+            .where(
+                events.c.tenant_id == tenant_id,
+                events.c.project_id == project_id,
+            )
+            .order_by(events.c.occurred_at.desc(), events.c.sequence.desc())
+            .limit(limit)
+        )
+        return [Event.model_validate(dict(row)) for row in result.mappings().all()]
+
     async def insert_outbox(self, connection: AsyncConnection, record: Outbox) -> None:
         await connection.execute(outbox.insert().values(**record.model_dump()))
 

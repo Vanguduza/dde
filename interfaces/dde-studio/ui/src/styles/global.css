@@ -39,6 +39,8 @@ body {
 
 .dde-topbar {
   grid-area: topbar;
+  position: relative;
+  z-index: 30;
 }
 .dde-rail {
   grid-area: rail;

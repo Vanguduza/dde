@@ -60,11 +60,19 @@ export interface ModelRoleView {
   readonly servingConfidence: string;
 }
 
+export interface FrontendActivityEventView {
+  readonly eventType: string;
+  readonly occurredAt: string;
+  readonly missionId: string | null;
+  readonly aggregateType: string;
+}
+
 export interface OrchestratorFrontendStatus {
   readonly runtimeState: string;
   readonly roles: readonly ModelRoleView[];
   readonly designDirector: string | null;
   readonly activityEventCount: CountValue;
+  readonly activityWindow: readonly FrontendActivityEventView[];
   readonly availability: Availability;
   readonly reason?: string | null;
 }
@@ -78,6 +86,7 @@ export interface StudioSyncSnapshot {
 }
 
 export interface AttentionItemView {
+  readonly attentionKey: string;
   readonly category: string;
   readonly detail: string;
   readonly pxgKey: string | null;
@@ -88,6 +97,33 @@ export interface AttentionCenterSnapshot {
   readonly count: CountValue;
   readonly availability: Availability;
   readonly reason?: string | null;
+}
+
+export interface DesignCommentView {
+  readonly commentId: string;
+  readonly candidateId: string | null;
+  readonly pxgKey: string;
+  readonly body: string;
+  readonly status: "OPEN" | "RESOLVED";
+  readonly anchorState: "BOUND" | "ANCHOR_LOST";
+  readonly createdBy: string;
+  readonly createdAt: string;
+  readonly resolvedBy: string | null;
+  readonly resolvedAt: string | null;
+}
+
+export interface PreviewScenarioView {
+  readonly scenario: "DEFAULT" | "LOADING" | "EMPTY" | "ERROR" | "OFFLINE" | "ROLE";
+  readonly role: string | null;
+  readonly availability: Availability;
+  readonly reason: string | null;
+}
+
+export interface EditorAssistState {
+  readonly autoLayout: boolean;
+  readonly aiSuggest: boolean;
+  readonly availability: Availability;
+  readonly reason: string | null;
 }
 
 
@@ -579,10 +615,42 @@ export interface FrontendChatContextBudget {
   readonly contextSnapshot?: FrontendChatContextSnapshotProjection | null;
 }
 
+export interface FrontendProjectOption {
+  readonly projectId: string;
+  readonly projectSlug: string;
+  readonly missionId: string | null;
+  readonly available: boolean;
+  readonly reason: string | null;
+}
+
+export interface FrontendShellModule {
+  readonly id: string;
+  readonly label: string;
+  readonly glyph: string;
+  readonly available: boolean;
+  readonly reason: string | null;
+}
+
+export function displaySlug(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export interface FrontendHostContext {
   readonly missionId: string;
+  readonly missionSlug: string;
+  readonly missionTitle: string;
   readonly projectId: string;
-  readonly projectName: string;
+  readonly projectSlug: string;
+  readonly principalId: string;
+  readonly principalSlug: string;
+  readonly availableProjects: readonly FrontendProjectOption[];
+  readonly modules: readonly FrontendShellModule[];
+  readonly helpRef: string;
 }
 
 export interface ScreenAuditSummary {

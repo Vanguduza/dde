@@ -55,6 +55,9 @@ _HTTP_STATUS = {
     "RESOURCE_LOCKED": 409,
     "WRITE_SCOPE_CONFLICT": 409,
     "CONTEXT_INCOMPLETE": 409,
+    "ANCHOR_LOST": 409,
+    "PROJECT_UNAVAILABLE": 409,
+    "SCENARIO_UNSUPPORTED": 400,
     "DIFF_STALE": 409,
     "CHECKPOINT_STALE": 409,
     "ACTIVITY_NOT_CANCELLABLE": 409,
@@ -156,6 +159,64 @@ async def close_session(session_id: UUID, request: Request) -> ClientSession:
 @router.post("/commands", status_code=202)
 async def accept_command(command: Command, request: Request) -> dict[str, object]:
     return _acceptance_dict(await _services(request).commands.accept(command=command))
+
+
+@router.get("/missions/{mission_id}/frontend/context")
+async def read_frontend_context(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_context(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/comments")
+async def read_frontend_comments(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+    candidate_id: UUID | None = None,
+    pxg_key: str | None = None,
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_comments(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        candidate_id=candidate_id,
+        pxg_key=pxg_key,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/previews/{preview_session_id}/scenario")
+async def read_frontend_preview_scenario(
+    mission_id: UUID,
+    preview_session_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_preview_scenario(
+        session_id=session_id,
+        principal_id=principal_id,
+        mission_id=mission_id,
+        preview_session_id=preview_session_id,
+    )
+
+
+@router.get("/missions/{mission_id}/frontend/editor/assists")
+async def read_frontend_editor_assists(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_frontend_editor_assists(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
 
 
 @router.get("/missions/{mission_id}/frontend/snapshot")

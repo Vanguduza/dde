@@ -436,7 +436,9 @@ async def test_read_projection_reports_unknown_rather_than_zero() -> None:
         )
         assert manager.serving is None
         assert manager.serving_confidence == "UNATTESTED"
-        assert snapshot.orchestrator.availability is Availability.NOT_IMPLEMENTED
+        assert snapshot.orchestrator.availability is Availability.AVAILABLE
+        assert snapshot.orchestrator.activity_event_count.value is not None
+        assert snapshot.orchestrator.reason
     finally:
         await engine.dispose()
 

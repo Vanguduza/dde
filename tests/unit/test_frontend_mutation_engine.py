@@ -294,6 +294,36 @@ def test_token_discipline_survives_the_new_write_path() -> None:
     assert accepted.planned and not accepted.refused
 
 
+def test_direct_resize_uses_only_governed_grid_span_tokens() -> None:
+    accepted = plan(
+        [
+            _request(
+                origin="DIRECT_MANIPULATION",
+                payload={"property": "grid_span", "value": "span11"},
+            )
+        ],
+        candidate=_candidate(),
+        graph=_graph(),
+        locks=[],
+    )
+    assert accepted.planned and not accepted.refused
+
+    for freehand in ("381px", "span13", "100%"):
+        refused = plan(
+            [
+                _request(
+                    origin="DIRECT_MANIPULATION",
+                    payload={"property": "grid_span", "value": freehand},
+                )
+            ],
+            candidate=_candidate(),
+            graph=_graph(),
+            locks=[],
+        )
+        assert refused.planned == ()
+        assert refused.refused[0].code == "OFF_TOKEN_REFUSED"
+
+
 def test_a_non_style_property_is_not_forced_through_the_token_catalogue() -> None:
     result = plan(
         [_request(payload={"property": "aria_label", "value": "Continue"})],

@@ -21,7 +21,10 @@ import type {
   ScreenAuditMatrix,
   SourceCatalogRead,
   DesignSourceArtifact,
+  DesignCommentView,
   DesignDirectionArtifact,
+  EditorAssistState,
+  PreviewScenarioView,
   FrontendTemplate,
   FrontendProvenanceRecord,
   FrontendSourceBlendPreference,
@@ -87,6 +90,11 @@ let gap = "space6";
 let padding = "space8";
 let currentPreviewViewport = "1440";
 let inspectorLocks: InspectorDescriptor["locks"] = [];
+let gridSpan = "span12";
+let designComments: DesignCommentView[] = [];
+let previewScenario: PreviewScenarioView = { scenario: "DEFAULT", role: null, availability: "EMPTY", reason: "no simulated state selected" };
+let editorAssists: EditorAssistState = { autoLayout: false, aiSuggest: false, availability: "EMPTY", reason: "defaults OFF" };
+let attentionAcknowledged = false;
 let verificationRequestState: "PENDING" | "PASSED" | "FAILED" | "BLOCKED" | "SUPERSEDED" | null =
   promotableCandidate ? "PASSED" : (freshCandidate ? null : "PENDING");
 let verificationRequestNumber = 1;
@@ -420,7 +428,11 @@ function snapshot(): FrontendStudioSnapshot {
       runtimeState: "UNKNOWN",
       roles: [],
       designDirector: null,
-      activityEventCount: { value: null, availability: "NOT_IMPLEMENTED", reason: "not wired" },
+      activityEventCount: { value: 2, availability: "AVAILABLE", reason: null },
+      activityWindow: [
+        { eventType: "frontend.design.requested", occurredAt: new Date().toISOString(), missionId, aggregateType: "mission" },
+        { eventType: "frontend.preview.live", occurredAt: new Date().toISOString(), missionId, aggregateType: "mission" },
+      ],
       availability: "NOT_IMPLEMENTED",
       reason: "serving identity unattested",
     },
@@ -432,8 +444,8 @@ function snapshot(): FrontendStudioSnapshot {
       buildVersion: "dde-studio test",
     },
     attention: {
-      items: [],
-      count: { value: 0, availability: "EMPTY" },
+      items: attentionAcknowledged ? [] : [{ attentionKey: "b".repeat(64), category: "coverage_missing", detail: "Checkout responsive proof needs attention", pxgKey }],
+      count: { value: attentionAcknowledged ? 0 : 1, availability: attentionAcknowledged ? "EMPTY" : "AVAILABLE" },
       availability: "AVAILABLE",
     },
     screens: [
@@ -658,6 +670,7 @@ function inspector(): InspectorDescriptor {
     properties: [
       property("layout_type", layoutType, ["grid", "row", "stack"], layoutType, "ENUM"),
       property("direction", direction, ["horizontal", "vertical"], direction, "ENUM"),
+      property("grid_span", gridSpan, Array.from({ length: 12 }, (_, index) => `span${index + 1}`), gridSpan, "ENUM"),
       property("gap", gap, spaces, `${spacePx[gap as keyof typeof spacePx]}px`),
       property("padding", padding, spaces, `${spacePx[padding as keyof typeof spacePx]}px`),
       property("spacing", spacing, spaces, `${spacePx[spacing as keyof typeof spacePx]}px`),
@@ -1190,6 +1203,7 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
     const propertyName = String(payload.property ?? "");
     const nextValue = String(payload.value ?? "");
     if (propertyName === "spacing") spacing = nextValue;
+    if (propertyName === "grid_span") gridSpan = nextValue;
     else if (propertyName === "layout_type") layoutType = nextValue;
     else if (propertyName === "direction") direction = nextValue;
     else if (propertyName === "gap") gap = nextValue;
@@ -1237,6 +1251,28 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
     inspectorLocks = inspectorLocks.filter((item) => item.lockId !== lockId);
     return { lockId, status: "RELEASED" };
   }
+  if (command.commandType === "frontend.comment.create") {
+    const now = new Date().toISOString();
+    const comment: DesignCommentView = { commentId: `comment-${designComments.length + 1}`, candidateId, pxgKey: String(command.parameters.pxg_key ?? pxgKey), body: String(command.parameters.body ?? ""), status: "OPEN", anchorState: "BOUND", createdBy: "principal-fixture", createdAt: now, resolvedBy: null, resolvedAt: null };
+    designComments = [...designComments, comment];
+    return { comment };
+  }
+  if (command.commandType === "frontend.comment.resolve") {
+    const id = String(command.parameters.comment_id ?? "");
+    designComments = designComments.map((item) => item.commentId === id ? { ...item, status: "RESOLVED", resolvedBy: "principal-fixture", resolvedAt: new Date().toISOString() } : item);
+    return { comment: designComments.find((item) => item.commentId === id) };
+  }
+  if (command.commandType === "frontend.preview.set_scenario") {
+    previewScenario = { scenario: String(command.parameters.scenario ?? "DEFAULT") as PreviewScenarioView["scenario"], role: typeof command.parameters.role === "string" ? command.parameters.role : null, availability: "AVAILABLE", reason: null };
+    return { scenario: previewScenario };
+  }
+  if (command.commandType === "frontend.editor.set_assist") {
+    const assist = String(command.parameters.assist ?? "");
+    const enabled = command.parameters.enabled === true;
+    editorAssists = { ...editorAssists, autoLayout: assist === "auto_layout" ? enabled : editorAssists.autoLayout, aiSuggest: assist === "ai_suggest" ? enabled : editorAssists.aiSuggest, availability: "AVAILABLE", reason: null };
+    return { state: editorAssists };
+  }
+  if (command.commandType === "frontend.attention.acknowledge") { attentionAcknowledged = true; return { attentionKey: String(command.parameters.attention_key ?? ""), status: "ACKNOWLEDGED" }; }
   if (command.commandType === "frontend.preview.start") {
     currentPreviewViewport = String(command.parameters.viewport ?? currentPreviewViewport);
     if (freshCandidate && !candidateWorkspaceId) {
@@ -1273,8 +1309,22 @@ const bridge = new TestHostBridge({
     return { attachment: chatAttachments.find((item) => item.attachmentId === request.attachmentId) };
   },
   reads: {
-    "frontend.host.context": { missionId, projectId, projectName: "LogiFlow Marketplace" },
+    "frontend.host.context": {
+      missionId,
+      missionSlug: "frontend-studio",
+      missionTitle: "Frontend Studio",
+      projectId,
+      projectSlug: "logiflow-marketplace",
+      principalId: "00000000-0000-0000-0000-000000000020",
+      principalSlug: "tapiwa",
+      availableProjects: [{ projectId, projectSlug: "logiflow-marketplace", missionId, available: true, reason: null }],
+      modules: [{ id: "frontend", label: "Frontend Studio", glyph: "◧", available: true, reason: null }],
+      helpRef: "docs/truth/FRONTEND_STUDIO_REV3.md",
+    },
     "frontend.studio.snapshot": () => snapshot(),
+    "frontend.comments": () => ({ comments: [...designComments] }),
+    "frontend.preview.scenario": () => ({ ...previewScenario }),
+    "frontend.editor.assists": () => ({ ...editorAssists }),
     "frontend.audit.matrix": () => auditMatrix(),
     "frontend.audit.summary": () => auditMatrix().summary,
     "frontend.audit.findings": () => ({ findings: auditMatrix().findings }),
@@ -1339,6 +1389,11 @@ const bridge = new TestHostBridge({
     "frontend.chat.workspace.apply_patch": commandPayload,
     "frontend.chat.send": commandPayload,
     "frontend.preview.set_state": commandPayload,
+    "frontend.preview.set_scenario": commandPayload,
+    "frontend.comment.create": commandPayload,
+    "frontend.comment.resolve": commandPayload,
+    "frontend.editor.set_assist": commandPayload,
+    "frontend.attention.acknowledge": commandPayload,
     "frontend.mutation.apply": commandPayload,
     "frontend.lock.create": commandPayload,
     "frontend.lock.release": commandPayload,

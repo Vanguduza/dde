@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Unavailable } from "../components/Honest";
 import type {
   CandidateCardSnapshot,
+  DesignCommentView,
   DesignDirectionArtifact,
   DesignProviderStatus,
+  EditorAssistState,
   FrontendStudioSnapshot,
   InspectorDescriptor,
   PreviewDocument,
+  PreviewScenarioView,
   ScreenAuditMatrix,
   ScreenAuditFinding,
   SourceCatalogRead,
@@ -91,6 +94,16 @@ export interface WorkspaceProps {
   readonly promotionError: string | null;
   readonly selection: PreviewSelection | null;
   readonly inspectorDescriptor: InspectorDescriptor | null;
+  readonly comments: readonly DesignCommentView[];
+  readonly reviewBusy: boolean;
+  readonly reviewError: string | null;
+  readonly onCreateComment: (body: string) => void;
+  readonly onResolveComment: (commentId: string) => void;
+  readonly previewScenario: PreviewScenarioView;
+  readonly onPreviewScenarioChange: (scenario: PreviewScenarioView["scenario"], role: string | null) => void;
+  readonly editorAssists: EditorAssistState;
+  readonly onEditorAssistChange: (assist: "auto_layout" | "ai_suggest", enabled: boolean) => void;
+  readonly onResizeGridSpan: (value: string) => void;
   readonly onStartPreview: () => void;
   readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
   readonly onTryCandidateLive: (candidateId: string) => void;
@@ -140,6 +153,16 @@ export function FrontendStudioWorkspace({
   promotionError,
   selection,
   inspectorDescriptor,
+  comments,
+  reviewBusy,
+  reviewError,
+  onCreateComment,
+  onResolveComment,
+  previewScenario,
+  onPreviewScenarioChange,
+  editorAssists,
+  onEditorAssistChange,
+  onResizeGridSpan,
   onStartPreview,
   onLoadPreviewDocument,
   onTryCandidateLive,
@@ -150,6 +173,11 @@ export function FrontendStudioWorkspace({
   const [interactionMode, setInteractionMode] = useState<"SELECT" | "PAN">("SELECT");
   const [gridVisible, setGridVisible] = useState(false);
   const [fullscreenState, setFullscreenState] = useState<"IDLE" | "FULLSCREEN" | "HOST_UNSUPPORTED" | "ERROR">("IDLE");
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [scenarioDraft, setScenarioDraft] = useState<PreviewScenarioView["scenario"]>(previewScenario.scenario);
+  const [scenarioRole, setScenarioRole] = useState(previewScenario.role ?? "");
+  useEffect(() => { setScenarioDraft(previewScenario.scenario); setScenarioRole(previewScenario.role ?? ""); }, [previewScenario.scenario, previewScenario.role]);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const changeZoom = (delta: number) => {
     setZoomPercent((current) => Math.min(200, Math.max(50, current + delta)));
@@ -202,7 +230,29 @@ export function FrontendStudioWorkspace({
         onFit={fitCanvas}
         onFullscreen={() => void toggleFullscreen()}
         fullscreenState={fullscreenState}
+        commentOpen={commentOpen}
+        onCommentToggle={() => setCommentOpen((value) => !value)}
+        previewScenario={previewScenario}
+        scenarioDraft={scenarioDraft}
+        scenarioRole={scenarioRole}
+        onScenarioDraftChange={setScenarioDraft}
+        onScenarioRoleChange={setScenarioRole}
+        onScenarioApply={() => onPreviewScenarioChange(scenarioDraft, scenarioDraft === "ROLE" ? scenarioRole.trim() || null : null)}
+        editorAssists={editorAssists}
+        onEditorAssistChange={onEditorAssistChange}
       />
+      {commentOpen ? (
+        <section className="dde-review-panel" data-testid="comment-panel" aria-label="Design comments">
+          <div className="dde-review-composer">
+            <input data-testid="comment-input" value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="Comment on current selection" disabled={!selection || reviewBusy} />
+            <button type="button" data-testid="comment-create" disabled={!selection || !commentDraft.trim() || reviewBusy} onClick={() => { const body = commentDraft.trim(); if (!body) return; onCreateComment(body); setCommentDraft(""); }}>Comment</button>
+          </div>
+          {reviewError ? <Unavailable availability="UNAVAILABLE" reason={reviewError} /> : null}
+          <ul className="dde-review-list">
+            {comments.map((comment) => <li key={comment.commentId} data-anchor-state={comment.anchorState}><span>{comment.body}</span><span className="dde-chip">{comment.anchorState}</span>{comment.status === "OPEN" ? <button type="button" onClick={() => onResolveComment(comment.commentId)} disabled={reviewBusy}>Resolve</button> : <span className="dde-muted">Resolved</span>}</li>)}
+          </ul>
+        </section>
+      ) : null}
       <div
         ref={canvasRef}
         className="dde-canvas"
@@ -250,6 +300,7 @@ export function FrontendStudioWorkspace({
             interactionMode={interactionMode}
             selection={selection}
             inspectorDescriptor={inspectorDescriptor}
+            onResizeGridSpan={onResizeGridSpan}
             onStartPreview={onStartPreview}
             onPreviewSignal={onPreviewSignal}
           />
@@ -588,6 +639,16 @@ function CanvasToolbar({
   onFit,
   onFullscreen,
   fullscreenState,
+  commentOpen,
+  onCommentToggle,
+  previewScenario,
+  scenarioDraft,
+  scenarioRole,
+  onScenarioDraftChange,
+  onScenarioRoleChange,
+  onScenarioApply,
+  editorAssists,
+  onEditorAssistChange,
 }: {
   readonly mode: StudioMode;
   readonly viewport: string;
@@ -609,6 +670,16 @@ function CanvasToolbar({
   readonly onFit: () => void;
   readonly onFullscreen: () => void;
   readonly fullscreenState: "IDLE" | "FULLSCREEN" | "HOST_UNSUPPORTED" | "ERROR";
+  readonly commentOpen: boolean;
+  readonly onCommentToggle: () => void;
+  readonly previewScenario: PreviewScenarioView;
+  readonly scenarioDraft: PreviewScenarioView["scenario"];
+  readonly scenarioRole: string;
+  readonly onScenarioDraftChange: (value: PreviewScenarioView["scenario"]) => void;
+  readonly onScenarioRoleChange: (value: string) => void;
+  readonly onScenarioApply: () => void;
+  readonly editorAssists: EditorAssistState;
+  readonly onEditorAssistChange: (assist: "auto_layout" | "ai_suggest", enabled: boolean) => void;
 }) {
   const designRefusal = claudeDesignRefusal(designProvider, designProviderDetail);
   return (
@@ -657,6 +728,7 @@ function CanvasToolbar({
       <button type="button" className="dde-icon-button" data-testid="select-tool" data-active={interactionMode === "SELECT"} aria-pressed={interactionMode === "SELECT"} aria-label="Select tool" onClick={() => onInteractionModeChange("SELECT")}>⌖</button>
       <button type="button" className="dde-icon-button" data-testid="pan-tool" data-active={interactionMode === "PAN"} aria-pressed={interactionMode === "PAN"} aria-label="Pan tool" onClick={() => onInteractionModeChange("PAN")}>✋</button>
       <button type="button" className="dde-icon-button" data-testid="grid-toggle" data-active={gridVisible} aria-pressed={gridVisible} aria-label="Grid overlay" onClick={onGridToggle}>#</button>
+      <button type="button" className="dde-icon-button" data-testid="comment-tool" data-active={commentOpen} aria-pressed={commentOpen} aria-label="Design comments" onClick={onCommentToggle}>◌</button>
       <button type="button" className="dde-icon-button" data-testid="fit-canvas" aria-label="Fit canvas" onClick={onFit}>↔</button>
       <button
         type="button"
@@ -669,6 +741,18 @@ function CanvasToolbar({
       >
         ⛶
       </button>
+      {preview ? (
+        <div className="dde-scenario-controls" data-testid="scenario-controls">
+          <select data-testid="scenario-select" value={scenarioDraft} onChange={(event) => onScenarioDraftChange(event.target.value as PreviewScenarioView["scenario"])}>
+            {(["DEFAULT","LOADING","EMPTY","ERROR","OFFLINE","ROLE"] as const).map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          {scenarioDraft === "ROLE" ? <input data-testid="scenario-role" aria-label="Scenario role" value={scenarioRole} onChange={(event) => onScenarioRoleChange(event.target.value)} placeholder="role" /> : null}
+          <button type="button" data-testid="scenario-apply" disabled={scenarioDraft === "ROLE" && !scenarioRole.trim()} onClick={onScenarioApply}>Apply</button>
+          <span className="dde-muted" title={previewScenario.reason ?? undefined}>{previewScenario.scenario}</span>
+        </div>
+      ) : null}
+      <button type="button" data-testid="auto-layout-toggle" aria-pressed={editorAssists.autoLayout} onClick={() => onEditorAssistChange("auto_layout", !editorAssists.autoLayout)}>Auto Layout {editorAssists.autoLayout ? "On" : "Off"}</button>
+      <button type="button" data-testid="ai-suggest-toggle" aria-pressed={editorAssists.aiSuggest} disabled={!editorAssists.aiSuggest && designProvider?.state !== "CERTIFIED"} title={!editorAssists.aiSuggest && designProvider?.state !== "CERTIFIED" ? "AI Suggest unavailable: no certified design provider" : undefined} onClick={() => onEditorAssistChange("ai_suggest", !editorAssists.aiSuggest)}>AI Suggest {editorAssists.aiSuggest ? "On" : "Off"}</button>
       <span className="dde-toolbar-spacer" />
       <button
         type="button"
@@ -720,6 +804,7 @@ function DesignMode({
   interactionMode,
   selection,
   inspectorDescriptor,
+  onResizeGridSpan,
   onStartPreview,
   onPreviewSignal,
 }: {
@@ -740,6 +825,7 @@ function DesignMode({
   readonly interactionMode: "SELECT" | "PAN";
   readonly selection: PreviewSelection | null;
   readonly inspectorDescriptor: InspectorDescriptor | null;
+  readonly onResizeGridSpan: (value: string) => void;
   readonly onStartPreview: () => void;
   readonly onPreviewSignal: (signal: PreviewRuntimeSignal) => void;
 }) {
@@ -783,7 +869,7 @@ function DesignMode({
     );
   } else {
     stage = (
-      <LivePreview preview={preview} viewport={viewport} zoomPercent={zoomPercent} interactionMode={interactionMode} selection={selection} inspectorDescriptor={inspectorDescriptor} onSignal={onPreviewSignal} />
+      <LivePreview preview={preview} viewport={viewport} zoomPercent={zoomPercent} interactionMode={interactionMode} selection={selection} inspectorDescriptor={inspectorDescriptor} onResizeGridSpan={onResizeGridSpan} onSignal={onPreviewSignal} />
     );
   }
 
@@ -875,6 +961,7 @@ function LivePreview({
   interactionMode,
   selection,
   inspectorDescriptor,
+  onResizeGridSpan,
   onSignal,
 }: {
   readonly preview: PreviewDocument;
@@ -883,10 +970,12 @@ function LivePreview({
   readonly interactionMode: "SELECT" | "PAN";
   readonly selection: PreviewSelection | null;
   readonly inspectorDescriptor: InspectorDescriptor | null;
+  readonly onResizeGridSpan: (value: string) => void;
   readonly onSignal: (signal: PreviewRuntimeSignal) => void;
 }) {
   const frame = useRef<HTMLIFrameElement | null>(null);
   const panStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const resizeStart = useRef<number | null>(null);
   useEffect(() => {
     const receive = (event: MessageEvent<unknown>) => {
       if (event.source !== frame.current?.contentWindow) return;
@@ -978,13 +1067,26 @@ function LivePreview({
             className="dde-selection-outline"
             data-testid="selection-outline"
             data-pxg-key={selection.pxgKey}
-            style={{
-              left: selection.geometry.x,
-              top: selection.geometry.y,
-              width: selection.geometry.width,
-              height: selection.geometry.height,
-            }}
-          />
+            style={{ left: selection.geometry.x, top: selection.geometry.y, width: selection.geometry.width, height: selection.geometry.height }}
+          >
+            <button
+              type="button"
+              className="dde-resize-handle"
+              data-testid="resize-handle-east"
+              aria-label="Resize selected region by grid span"
+              onPointerDown={(event) => { resizeStart.current = event.clientX; event.currentTarget.setPointerCapture(event.pointerId); }}
+              onPointerUp={(event) => {
+                const start = resizeStart.current; resizeStart.current = null;
+                if (start === null) return;
+                const current = inspectorDescriptor?.properties.find((item) => item.propertyName === "grid_span")?.value;
+                const base = typeof current === "string" && /^span(?:[1-9]|1[0-2])$/.test(current) ? Number(current.slice(4)) : 12;
+                const delta = event.clientX - start;
+                if (Math.abs(delta) < 12) return;
+                const next = Math.max(1, Math.min(12, base + (delta > 0 ? 1 : -1)));
+                onResizeGridSpan(`span${next}`);
+              }}
+            />
+          </div>
         ) : null}
         {selection && inspectorDescriptor?.pxgKey === selection.pxgKey ? (
           <div

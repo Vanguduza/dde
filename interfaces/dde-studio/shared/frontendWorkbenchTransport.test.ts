@@ -23,6 +23,7 @@ describe("Frontend Studio Gateway transport", () => {
       });
     };
     const client = new GatewayApiClient("http://core.test");
+    await client.readFrontendContext("session", "principal", "mission");
     await client.readFrontendSnapshot("session", "principal", "mission");
     await client.readFrontendPreview("session", "principal", "mission", "preview");
     await client.readFrontendInspector(
@@ -39,6 +40,7 @@ describe("Frontend Studio Gateway transport", () => {
       "design-session",
     );
     assert.deepEqual(seen, [
+      "http://core.test/v1/missions/mission/frontend/context",
       "http://core.test/v1/missions/mission/frontend/snapshot",
       "http://core.test/v1/missions/mission/frontend/previews/preview",
       "http://core.test/v1/missions/mission/frontend/inspector/candidate?pxg_key=screens%2Fcheckout%23hero",

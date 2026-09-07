@@ -46,6 +46,7 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext,
     private readonly gateway: () => StudioGatewayService | undefined,
     private readonly missionId: () => string | null,
+    private readonly setMissionId: (missionId: string) => Promise<void>,
   ) {}
 
   show(): void {
@@ -116,6 +117,8 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
         return this.revealFile(payload);
       case "notify":
         return this.notify(payload);
+      case "switchMission":
+        return this.switchMission(payload);
       case "openExternal":
         throw bridgeError(
           "FORBIDDEN",
@@ -123,6 +126,22 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
         );
       default:
         throw bridgeError("FORBIDDEN", `Unsupported host bridge operation: ${kind}`);
+    }
+  }
+
+  private async switchMission(payload: unknown): Promise<void> {
+    const missionId =
+      typeof payload === "object" && payload !== null &&
+      typeof (payload as { missionId?: unknown }).missionId === "string"
+        ? (payload as { missionId: string }).missionId
+        : "";
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(missionId)) {
+      throw bridgeError("VALIDATION_FAILED", "A valid target mission UUID is required.");
+    }
+    await this.setMissionId(missionId);
+    if (this.panel) {
+      const uiRoot = vscode.Uri.joinPath(this.context.extensionUri, "ui", "dist");
+      this.panel.webview.html = this.html(this.panel.webview, uiRoot);
     }
   }
 
@@ -151,15 +170,33 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
     }
     const { gateway, missionId } = this.requireContext();
     if (query.resource === "frontend.host.context") {
-      const result = await gateway.readMission(missionId);
-      if (!result.ok || !result.mission) {
-        throw bridgeError("CONTEXT_INCOMPLETE", result.reason ?? "Mission read unavailable.");
+      const result = await gateway.readFrontendContext(missionId);
+      if (!result.ok || !result.value) {
+        throw bridgeError(
+          "CONTEXT_INCOMPLETE",
+          result.reason ?? "Authenticated Frontend Studio context unavailable.",
+        );
       }
-      return {
-        missionId,
-        projectId: result.mission.project_id,
-        projectName: result.mission.title,
-      };
+      return camelizeResult(result);
+    }
+    if (query.resource === "frontend.comments") {
+      return camelizeResult(
+        await gateway.readFrontendComments(
+          missionId,
+          optionalParameter(query, "candidateId"),
+          optionalParameter(query, "pxgKey"),
+        ),
+      );
+    }
+    if (query.resource === "frontend.preview.scenario") {
+      return camelizeResult(
+        await gateway.readFrontendPreviewScenario(
+          missionId, requiredParameter(query, "previewSessionId"),
+        ),
+      );
+    }
+    if (query.resource === "frontend.editor.assists") {
+      return camelizeResult(await gateway.readFrontendEditorAssists(missionId));
     }
     if (query.resource === "frontend.studio.snapshot") {
       return camelizeResult(await gateway.readFrontendSnapshot(missionId));
@@ -277,19 +314,28 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
       throw bridgeError("VALIDATION_FAILED", "A Frontend Studio command is required.");
     }
     const { gateway, missionId } = this.requireContext();
-    if (command.targetType !== "mission" || command.targetId !== missionId) {
+    const projectSwitch = command.commandType === "frontend.project.switch";
+    if (!projectSwitch && (command.targetType !== "mission" || command.targetId !== missionId)) {
       throw bridgeError(
         "TENANT_SCOPE_VIOLATION",
         "Workbench commands may address only the configured Frontend Studio mission.",
       );
     }
-    const result = await gateway.sendFrontendCommand(
-      command.commandType,
-      missionId,
-      command.parameters ?? {},
-      command.idempotencyKey,
-      command.commandId,
-    );
+    if (projectSwitch && command.targetType !== "project") {
+      throw bridgeError(
+        "VALIDATION_FAILED",
+        "frontend.project.switch requires a project target.",
+      );
+    }
+    const result = projectSwitch
+      ? await gateway.sendFrontendProjectCommand(
+          command.commandType, command.targetId, command.parameters ?? {},
+          command.idempotencyKey, command.commandId,
+        )
+      : await gateway.sendFrontendCommand(
+          command.commandType, missionId, command.parameters ?? {},
+          command.idempotencyKey, command.commandId,
+        );
     if (!result.ok || !result.acceptance) {
       throw bridgeError("POLICY_DENIED", result.reason ?? "Gateway command refused.");
     }

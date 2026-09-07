@@ -22,7 +22,7 @@ from dataclasses import asdict, dataclass
 from importlib.metadata import PackageNotFoundError, version
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.broker.capture import StaticSecretCaptureService
@@ -67,9 +67,13 @@ from engine.planning.repository import TaskGraphRepository
 from engine.projections.service import MissionControlService
 from engine.studio.audit.reads import ScreenAuditReadService
 from engine.studio.candidates.service import CandidateService
+from engine.studio.comments.service import DesignCommentService
+from engine.studio.editor_assists import EditorAssistService
 from engine.studio.frontend import FrontendStudioService
 from engine.studio.inspector import InspectorService
 from engine.studio.preview_runtime.service import PreviewService
+from engine.studio.preview_scenarios import PreviewScenarioService
+from engine.studio.pxg.service import PxgService
 from engine.studio.reads import FrontendReadService
 from engine.studio.source.service import SourceIntelligenceService
 from engine.studio.tables import design_sessions
@@ -582,7 +586,11 @@ class CommandDispatcher:
         params = command.parameters
         mission_id = command.target_id
         key = command.idempotency_key
-        if command_type.startswith("frontend.fabric."):
+        if command_type == "frontend.project.switch":
+            payload = await studio.resolve_project_switch(
+                tenant_id=tenant_id, project_id=project_id, parameters=params
+            )
+        elif command_type.startswith("frontend.fabric."):
             payload = await AiConversationFabricFacade(self._engine).execute(
                 command_type=command_type,
                 tenant_id=tenant_id,
@@ -835,6 +843,41 @@ class CommandDispatcher:
                 project_id=project_id,
                 parameters=params,
             )
+        elif command_type == "frontend.preview.set_scenario":
+            payload = await studio.set_preview_scenario(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.comment.create":
+            payload = await studio.create_comment(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.comment.resolve":
+            payload = await studio.resolve_comment(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.editor.set_assist":
+            payload = await studio.set_editor_assist(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
+        elif command_type == "frontend.attention.acknowledge":
+            payload = await studio.acknowledge_attention(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                principal_id=command.principal_id,
+                parameters=params,
+            )
         elif command_type == "frontend.verification.run":
             payload = await studio.run_candidate_verification(
                 tenant_id=tenant_id,
@@ -1006,8 +1049,8 @@ class CommandDispatcher:
         return CommandAcceptance(
             command_id=command.command_id,
             status="accepted",
-            target_type="mission",
-            target_id=mission_id,
+            target_type=command.target_type,
+            target_id=command.target_id,
             payload=payload,
         )
 
@@ -1176,6 +1219,163 @@ class GatewayCommandService:
         )
         return acceptance
 
+    async def read_frontend_context(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        """Authenticated shell identity and navigation registry for Frontend Studio.
+
+        Project/principal labels come from authoritative identity rows after normal
+        mission + project authorization. Available project targets are grant-filtered;
+        a project is switchable only when it has one unambiguous non-terminal mission.
+        """
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        async with open_unit_of_work(
+            self._engine, tenant_id=session.tenant_id, project_id=mission.project_id
+        ) as uow:
+            identity = (
+                (
+                    await uow.connection.execute(
+                        text(
+                            "SELECT project.slug AS project_slug, "
+                            "principal.slug AS principal_slug "
+                            "FROM projects project JOIN principals principal "
+                            "ON principal.principal_id = :principal_id "
+                            "WHERE project.project_id = :project_id "
+                            "AND project.tenant_id = :tenant_id "
+                            "AND principal.tenant_id = :tenant_id"
+                        ),
+                        {
+                            "principal_id": session.principal_id,
+                            "project_id": mission.project_id,
+                            "tenant_id": session.tenant_id,
+                        },
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            projects = (
+                (
+                    await uow.connection.execute(
+                        text(
+                            "SELECT p.project_id, p.slug AS project_slug, "
+                            "COUNT(m.mission_id) FILTER (WHERE m.status NOT IN "
+                            "('COMPLETED','FAILED','CANCELLED')) "
+                            "AS active_mission_count, "
+                            "MAX(m.mission_id::text) FILTER (WHERE m.status NOT IN "
+                            "('COMPLETED','FAILED','CANCELLED')) "
+                            "AS candidate_mission_id "
+                            "FROM projects p "
+                            "LEFT JOIN missions m ON m.project_id = p.project_id "
+                            "AND m.tenant_id = p.tenant_id "
+                            "WHERE p.tenant_id = :tenant_id AND EXISTS ("
+                            "SELECT 1 FROM principal_grants g "
+                            "WHERE g.tenant_id = :tenant_id "
+                            "AND g.principal_id = :principal_id "
+                            "AND (g.project_id = p.project_id OR "
+                            "(g.project_id IS NULL AND g.grant_scope IN "
+                            "('TENANT','ORGANIZATION')))) "
+                            "GROUP BY p.project_id, p.slug ORDER BY p.slug"
+                        ),
+                        {
+                            "principal_id": session.principal_id,
+                            "tenant_id": session.tenant_id,
+                        },
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        if identity is None:
+            raise DdeError(
+                "CONTEXT_INCOMPLETE",
+                "Authorized Frontend Studio identity rows are unavailable",
+                details={
+                    "project_id": str(mission.project_id),
+                    "principal_id": str(session.principal_id),
+                },
+            )
+        available_projects: list[dict[str, object]] = []
+        for item in projects:
+            count = int(item["active_mission_count"] or 0)
+            current = item["project_id"] == mission.project_id
+            resolved_mission = (
+                str(mission.mission_id)
+                if current
+                else str(item["candidate_mission_id"])
+                if count == 1 and item["candidate_mission_id"]
+                else None
+            )
+            reason = None
+            if not current and count == 0:
+                reason = "No non-terminal mission is available for this project."
+            elif not current and count > 1:
+                reason = (
+                    "Multiple non-terminal missions exist; choose a mission explicitly "
+                    "before switching this workbench."
+                )
+            available_projects.append(
+                {
+                    "project_id": str(item["project_id"]),
+                    "project_slug": str(item["project_slug"]),
+                    "mission_id": resolved_mission,
+                    "available": resolved_mission is not None,
+                    "reason": reason,
+                }
+            )
+        return {
+            "mission_id": str(mission.mission_id),
+            "mission_slug": mission.slug,
+            "mission_title": mission.title,
+            "project_id": str(mission.project_id),
+            "project_slug": str(identity["project_slug"]),
+            "principal_id": str(session.principal_id),
+            "principal_slug": str(identity["principal_slug"]),
+            "available_projects": available_projects,
+            "modules": [
+                {
+                    "id": "frontend",
+                    "label": "Frontend Studio",
+                    "glyph": "◧",
+                    "available": True,
+                    "reason": None,
+                },
+                {
+                    "id": "projects",
+                    "label": "Projects",
+                    "glyph": "▤",
+                    "available": False,
+                    "reason": "Projects shell module is not packaged in this build.",
+                },
+                {
+                    "id": "models",
+                    "label": "Models",
+                    "glyph": "◈",
+                    "available": False,
+                    "reason": "Models shell module is not packaged in this build.",
+                },
+                {
+                    "id": "orchestration",
+                    "label": "Orchestration",
+                    "glyph": "⌘",
+                    "available": False,
+                    "reason": (
+                        "Orchestration shell module is not packaged in this build."
+                    ),
+                },
+                {
+                    "id": "knowledge",
+                    "label": "Knowledge",
+                    "glyph": "◎",
+                    "available": False,
+                    "reason": "Knowledge shell module is not packaged in this build.",
+                },
+            ],
+            "help_ref": "docs/truth/FRONTEND_STUDIO_REV3.md",
+        }
+
     async def read_frontend_snapshot(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
     ) -> dict[str, object]:
@@ -1186,6 +1386,90 @@ class GatewayCommandService:
             self._engine, build_version=_dde_build_version()
         ).snapshot(tenant_id=session.tenant_id, project_id=mission.project_id)
         return asdict(snapshot)
+
+    async def read_frontend_comments(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        candidate_id: UUID | None = None,
+        pxg_key: str | None = None,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        comments = await DesignCommentService(self._engine).list(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            candidate_id=candidate_id,
+            pxg_key=pxg_key,
+            include_resolved=True,
+        )
+        graph = await PxgService(self._engine).load(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        keys = {node.pxg_key for node in graph.nodes}
+        return {
+            "comments": [
+                {
+                    **item.model_dump(mode="json"),
+                    "anchor_state": "BOUND" if item.pxg_key in keys else "ANCHOR_LOST",
+                }
+                for item in comments
+            ]
+        }
+
+    async def read_frontend_preview_scenario(
+        self,
+        *,
+        session_id: UUID,
+        principal_id: UUID,
+        mission_id: UUID,
+        preview_session_id: UUID,
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        value = await PreviewScenarioService(self._engine).get(
+            tenant_id=session.tenant_id,
+            project_id=mission.project_id,
+            preview_session_id=preview_session_id,
+        )
+        if value is None:
+            return {
+                "scenario": "DEFAULT",
+                "role": None,
+                "availability": "EMPTY",
+                "reason": "no simulated state selected",
+            }
+        return {
+            **value.model_dump(mode="json"),
+            "availability": "AVAILABLE",
+            "reason": None,
+        }
+
+    async def read_frontend_editor_assists(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        value = await EditorAssistService(self._engine).get(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
+        if value is None:
+            return {
+                "auto_layout": False,
+                "ai_suggest": False,
+                "availability": "EMPTY",
+                "reason": "project assist policy defaults OFF until explicitly enabled",
+            }
+        return {
+            **value.model_dump(mode="json"),
+            "availability": "AVAILABLE",
+            "reason": None,
+        }
 
     async def read_frontend_audit_summary(
         self, *, session_id: UUID, principal_id: UUID, mission_id: UUID

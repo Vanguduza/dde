@@ -1377,3 +1377,39 @@ button.dde-chat-chip,
   transform: translateY(calc(-100% - var(--dde-gap-normal)));
   pointer-events: none;
 }
+
+/* Interactive top-bar overlays must stay above the responsive Inspector. */
+.dde-topbar-popover-anchor {
+  position: relative;
+  z-index: 35;
+}
+
+.dde-topbar-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 45;
+  min-width: 240px;
+  max-width: min(360px, 80vw);
+  padding: 10px;
+  background: var(--dde-surface);
+  border: 1px solid var(--dde-border);
+  border-radius: var(--dde-radius-md);
+  box-shadow: var(--dde-shadow-float);
+}
+
+/* The selection outline itself is non-interactive; handles opt back in. */
+.dde-resize-handle {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  width: 14px;
+  height: 28px;
+  padding: 0;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  cursor: ew-resize;
+  border: 2px solid var(--dde-primary);
+  border-radius: 4px;
+  background: var(--dde-surface);
+}

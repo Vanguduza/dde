@@ -1,19 +1,17 @@
-/**
- * Global top bar (binding matrix rows TB-01..TB-14).
- *
- * Every value here comes from a projection. Where the projection cannot
- * answer, the control renders a typed unavailable state rather than a
- * plausible one — the sync chip in particular never says "Synced" off the
- * back of an accepted command (FS-GAP-022).
- */
+/** Global top bar (binding matrix rows TB-01..TB-14). */
 
+import { useState } from "react";
 import { Count } from "../components/Honest";
 import {
+  type AttentionItemView,
   type CoverageSummary,
+  type FrontendHostContext,
+  type FrontendProjectOption,
   type FrontendStudioSnapshot,
   STUDIO_MODES,
   type StudioMode,
   formatCoverage,
+  displaySlug,
 } from "../state/projections";
 
 const MODE_LABEL: Record<StudioMode, string> = {
@@ -26,32 +24,58 @@ const MODE_LABEL: Record<StudioMode, string> = {
 
 export interface GlobalTopBarProps {
   readonly snapshot: FrontendStudioSnapshot | null;
-  readonly projectName: string | null;
+  readonly context: FrontendHostContext | null;
   readonly mode: StudioMode;
   readonly onModeChange: (mode: StudioMode) => void;
+  readonly onProjectSwitch: (project: FrontendProjectOption) => void;
+  readonly onHelp: () => void;
+  readonly onAcknowledgeAttention?: (item: AttentionItemView) => void;
 }
 
 export function GlobalTopBar({
   snapshot,
-  projectName,
+  context,
   mode,
   onModeChange,
+  onProjectSwitch,
+  onHelp,
+  onAcknowledgeAttention,
 }: GlobalTopBarProps) {
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [attentionOpen, setAttentionOpen] = useState(false);
+  const projects = context?.availableProjects ?? [];
+  const activity = snapshot?.orchestrator.activityWindow ?? [];
+  const principal = context?.principalSlug ?? null;
+  const principalGlyph = principal?.trim().slice(0, 1).toUpperCase() ?? "?";
+
   return (
     <div className="dde-topbar-inner">
       <div className="dde-topbar-identity">
         <span className="dde-product">DDE</span>
         <span className="dde-module">Frontend Studio</span>
-        <button
-          type="button"
+        <select
           className="dde-project-selector"
           data-testid="project-selector"
-          aria-label={
-            projectName ? `Project: ${projectName}` : "No project selected"
-          }
+          aria-label="Active project"
+          value={context?.projectId ?? ""}
+          disabled={!context || projects.length === 0}
+          onChange={(event) => {
+            const target = projects.find((item) => item.projectId === event.target.value);
+            if (target?.available) onProjectSwitch(target);
+          }}
         >
-          {projectName ?? "No project"}
-        </button>
+          {!context ? <option value="">No project</option> : null}
+          {projects.map((project) => (
+            <option
+              key={project.projectId}
+              value={project.projectId}
+              disabled={!project.available}
+              title={project.reason ?? undefined}
+            >
+              {displaySlug(project.projectSlug) ?? project.projectSlug}{project.available ? "" : " — unavailable"}
+            </option>
+          ))}
+        </select>
         <SyncChip snapshot={snapshot} />
         <SavedStamp snapshot={snapshot} />
       </div>
@@ -75,23 +99,68 @@ export function GlobalTopBar({
 
       <div className="dde-topbar-status">
         <CoverageRing coverage={snapshot?.coverage ?? null} />
-        <AttentionBadge snapshot={snapshot} />
+        <div className="dde-topbar-popover-anchor">
+          <button
+            type="button"
+            className="dde-icon-button"
+            data-testid="activity-button"
+            aria-label={`Project activity: ${activity.length} recent event(s)`}
+            aria-expanded={activityOpen}
+            onClick={() => setActivityOpen((value) => !value)}
+          >
+            ≋
+          </button>
+          {activityOpen ? (
+            <div className="dde-topbar-popover" data-testid="activity-popover">
+              <strong>Recent project activity</strong>
+              {activity.length ? (
+                <ol className="dde-activity-list">
+                  {activity.map((item, index) => (
+                    <li key={`${item.occurredAt}-${index}`} title={item.occurredAt}>
+                      <span className="dde-activity-pulse" aria-hidden="true" />
+                      <span>{item.eventType}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <span className="dde-muted">No retained project activity</span>
+              )}
+            </div>
+          ) : null}
+        </div>
+        <AttentionBadge
+          snapshot={snapshot}
+          open={attentionOpen}
+          onToggle={() => setAttentionOpen((value) => !value)}
+          onAcknowledge={onAcknowledgeAttention}
+        />
+        <button
+          type="button"
+          className="dde-icon-button"
+          data-testid="help-button"
+          aria-label="Open Frontend Studio help"
+          disabled={!context?.helpRef}
+          onClick={onHelp}
+        >
+          ?
+        </button>
+        <span
+          className="dde-principal-avatar"
+          data-testid="principal-avatar"
+          data-known={Boolean(principal)}
+          title={principal ? `Signed in as ${principal}` : "Principal unavailable"}
+          aria-label={principal ? `Signed in as ${principal}` : "Principal unavailable"}
+        >
+          {principalGlyph}
+        </span>
       </div>
     </div>
   );
 }
 
-/**
- * TB-04. A 202 command acceptance is not "Synced". The chip shows the
- * durable state and, when local mutations are outstanding, says so.
- */
 function SyncChip({ snapshot }: { readonly snapshot: FrontendStudioSnapshot | null }) {
   if (!snapshot) {
-    return (
-      <span className="dde-sync" data-state="UNKNOWN" data-testid="sync-chip">
-        Unknown
-      </span>
-    );
+    return <span className="dde-sync" data-state="UNKNOWN" data-testid="sync-chip">Unknown</span>;
   }
   const { sync } = snapshot;
   const pending = sync.pendingMutationCount > 0;
@@ -101,11 +170,9 @@ function SyncChip({ snapshot }: { readonly snapshot: FrontendStudioSnapshot | nu
       className="dde-sync"
       data-state={state}
       data-testid="sync-chip"
-      title={
-        pending
-          ? `${sync.pendingMutationCount} local mutation(s) not yet durable`
-          : `durable at PXG revision ${sync.durablePxgRevision}`
-      }
+      title={pending
+        ? `${sync.pendingMutationCount} local mutation(s) not yet durable`
+        : `durable at PXG revision ${sync.durablePxgRevision}`}
     >
       {pending ? `Pending (${sync.pendingMutationCount})` : state}
     </span>
@@ -129,18 +196,9 @@ function SavedStamp({ snapshot }: { readonly snapshot: FrontendStudioSnapshot | 
   );
 }
 
-/**
- * TB-10. Renders an em-dash whenever the summary carries no number —
- * unassessed, partially assessed, blocked or stale. One percentage must
- * never launder a project nobody has checked.
- */
 function CoverageRing({ coverage }: { readonly coverage: CoverageSummary | null }) {
   if (!coverage) {
-    return (
-      <span className="dde-coverage" data-state="UNASSESSED" data-testid="coverage-ring">
-        —
-      </span>
-    );
+    return <span className="dde-coverage" data-state="UNASSESSED" data-testid="coverage-ring">—</span>;
   }
   const title = coverage.stale
     ? (coverage.reason ?? "coverage is stale")
@@ -161,35 +219,51 @@ function CoverageRing({ coverage }: { readonly coverage: CoverageSummary | null 
   );
 }
 
-/** TB-12. Zero real items means no badge; unknown is never shown as a count. */
 function AttentionBadge({
   snapshot,
+  open,
+  onToggle,
+  onAcknowledge,
 }: {
   readonly snapshot: FrontendStudioSnapshot | null;
+  readonly open: boolean;
+  readonly onToggle: () => void;
+  readonly onAcknowledge?: (item: AttentionItemView) => void;
 }) {
   const attention = snapshot?.attention;
-  if (!attention || attention.count.value === 0) {
-    return (
+  const items = attention?.items ?? [];
+  return (
+    <div className="dde-topbar-popover-anchor">
       <button
         type="button"
         className="dde-attention"
         data-testid="attention-badge"
-        data-empty="true"
-        aria-label="Attention centre: nothing needs attention"
+        data-empty={!attention || attention.count.value === 0}
+        aria-label={`Attention centre: ${attention?.count.value ?? "unknown"} item(s)`}
+        aria-expanded={open}
+        onClick={onToggle}
       >
-        Attention
+        Attention {attention && attention.count.value !== 0 ? <Count value={attention.count} /> : null}
       </button>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className="dde-attention"
-      data-testid="attention-badge"
-      data-empty="false"
-      aria-label={`Attention centre: ${attention.count.value ?? "unknown"} item(s)`}
-    >
-      Attention <Count value={attention.count} />
-    </button>
+      {open ? (
+        <div className="dde-topbar-popover" data-testid="attention-popover">
+          <strong>Attention</strong>
+          {items.length ? (
+            <ul className="dde-attention-list">
+              {items.map((item, index) => (
+                <li key={`${item.category}-${item.pxgKey ?? "project"}-${index}`}>
+                  <span>{item.detail}</span>
+                  {onAcknowledge ? (
+                    <button type="button" onClick={() => onAcknowledge(item)}>Acknowledge</button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span className="dde-muted">Nothing currently needs attention</span>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -40,7 +40,8 @@ STYLE_PROPERTIES = frozenset(
         "z_index",
     }
 )
-LAYOUT_PROPERTIES = frozenset({"layout_type", "direction"})
+GRID_SPANS = frozenset({f"span{value}" for value in range(1, 13)})
+LAYOUT_PROPERTIES = frozenset({"layout_type", "direction", "grid_span"})
 LAYOUT_TYPES = frozenset({"stack", "grid", "row"})
 LAYOUT_DIRECTIONS = frozenset({"vertical", "horizontal"})
 VARIANTS = frozenset({"primary", "secondary", "ghost"})
@@ -117,6 +118,8 @@ def allowed_values(property_name: str) -> frozenset[str]:
         return LAYOUT_TYPES
     if property_name == "direction":
         return LAYOUT_DIRECTIONS
+    if property_name == "grid_span":
+        return GRID_SPANS
     if property_name == "variant":
         return VARIANTS
     raise DdeError(

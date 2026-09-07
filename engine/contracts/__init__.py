@@ -38,6 +38,7 @@ from engine.contracts.credential_handle import CredentialHandle
 from engine.contracts.dependency_admission import DependencyAdmission
 from engine.contracts.derived_edge import DerivedEdge
 from engine.contracts.design_artifact import DesignArtifact
+from engine.contracts.design_comment import DesignComment
 from engine.contracts.design_session import DesignSession
 from engine.contracts.design_source import DesignSource
 from engine.contracts.design_source_admission import DesignSourceAdmission
@@ -59,6 +60,9 @@ from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
+from engine.contracts.frontend_attention_acknowledgement import (
+    FrontendAttentionAcknowledgement,
+)
 from engine.contracts.frontend_candidate import FrontendCandidate
 from engine.contracts.frontend_candidate_score import FrontendCandidateScore
 from engine.contracts.frontend_chat_activity import FrontendChatActivity
@@ -70,8 +74,10 @@ from engine.contracts.frontend_contract import FrontendContract
 from engine.contracts.frontend_conversation import FrontendConversation
 from engine.contracts.frontend_conversation_turn import FrontendConversationTurn
 from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
+from engine.contracts.frontend_editor_assist_state import FrontendEditorAssistState
 from engine.contracts.frontend_lock import FrontendLock
 from engine.contracts.frontend_mutation import FrontendMutation
+from engine.contracts.frontend_preview_scenario import FrontendPreviewScenario
 from engine.contracts.frontend_preview_session import FrontendPreviewSession
 from engine.contracts.frontend_provenance_record import FrontendProvenanceRecord
 from engine.contracts.frontend_source_blend_preference import (
@@ -169,6 +175,7 @@ __all__ = [
     "DependencyAdmission",
     "DerivedEdge",
     "DesignArtifact",
+    "DesignComment",
     "DesignSession",
     "DesignSource",
     "DesignSourceAdmission",
@@ -190,6 +197,7 @@ __all__ = [
     "ExternalEffect",
     "FailureAttribution",
     "FeatureDNA",
+    "FrontendAttentionAcknowledgement",
     "FrontendCandidate",
     "FrontendCandidateScore",
     "FrontendChatActivity",
@@ -201,8 +209,10 @@ __all__ = [
     "FrontendConversation",
     "FrontendConversationTurn",
     "FrontendCoverageSnapshot",
+    "FrontendEditorAssistState",
     "FrontendLock",
     "FrontendMutation",
+    "FrontendPreviewScenario",
     "FrontendPreviewSession",
     "FrontendProvenanceRecord",
     "FrontendSourceBlendPreference",

@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_preview_scenario.json",
+  "title": "FrontendPreviewScenario",
+  "description": "DDE-069 explicit simulated product state for one preview session. This is distinct from PreviewState, which attests browser/runtime lifecycle. Scenario selection never claims the preview itself is loading/error/offline.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_preview_scenarios",
+    "order": 345,
+    "pk": [
+      "scenario_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "uniques": [
+      [
+        "preview_session_id"
+      ]
+    ],
+    "checks": [
+      {
+        "name": "frontend_preview_scenario_known",
+        "expression": "scenario IN ('DEFAULT','LOADING','EMPTY','ERROR','OFFLINE','ROLE')"
+      },
+      {
+        "name": "frontend_preview_scenario_lock_positive",
+        "expression": "lock_version >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "frontend_preview_scenarios_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_scenarios_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_scenarios_preview_fkey",
+        "columns": [
+          "preview_session_id"
+        ],
+        "ref_table": "frontend_preview_sessions",
+        "ref_columns": [
+          "preview_session_id"
+        ]
+      },
+      {
+        "name": "frontend_preview_scenarios_updated_by_fkey",
+        "columns": [
+          "updated_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "scenario_id",
+    "tenant_id",
+    "project_id",
+    "preview_session_id",
+    "scenario",
+    "updated_by",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "preview_session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scenario": {
+      "type": "string",
+      "enum": [
+        "DEFAULT",
+        "LOADING",
+        "EMPTY",
+        "ERROR",
+        "OFFLINE",
+        "ROLE"
+      ]
+    },
+    "role": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "updated_by": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

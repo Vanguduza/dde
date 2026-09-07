@@ -28,6 +28,7 @@ dump.rdb
 # Node / VS Code extension builds
 node_modules/
 *.vsix
+.wrangler/
 
 # Local JDK / Android SDK / Gradle caches (DDE-053 tooling)
 .tooling/

@@ -423,6 +423,53 @@ frontend_chat_change_reviews = Table(
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
 
+design_comments = Table(
+    "design_comments",
+    metadata,
+    Column("comment_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("candidate_id", Uuid(as_uuid=True), nullable=True),
+    Column("pxg_key", Text, nullable=False),
+    Column("body", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("created_by", Uuid(as_uuid=True), nullable=False),
+    Column("resolved_by", Uuid(as_uuid=True), nullable=True),
+    Column("resolved_at", TIMESTAMP(timezone=True), nullable=True),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+frontend_preview_scenarios = Table(
+    "frontend_preview_scenarios",
+    metadata,
+    Column("scenario_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("preview_session_id", Uuid(as_uuid=True), nullable=False, unique=True),
+    Column("scenario", Text, nullable=False),
+    Column("role", Text, nullable=True),
+    Column("updated_by", Uuid(as_uuid=True), nullable=False),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
+frontend_editor_assist_states = Table(
+    "frontend_editor_assist_states",
+    metadata,
+    Column("assist_state_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False, unique=True),
+    Column("auto_layout", Boolean, nullable=False),
+    Column("ai_suggest", Boolean, nullable=False),
+    Column("updated_by", Uuid(as_uuid=True), nullable=False),
+    Column("lock_version", Integer, nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+)
+
 # Screen Audit / Experience Completeness Engine. Schema authority lives in
 # schemas/objects/screen_audit_*.json; these tables mirror generated SQL.
 screen_audit_runs = Table(
@@ -593,3 +640,18 @@ screen_audit_resolutions = Table(
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
 Index("ix_screen_audit_resolutions_finding", screen_audit_resolutions.c.finding_id)
+
+
+frontend_attention_acknowledgements = Table(
+    "frontend_attention_acknowledgements",
+    metadata,
+    Column("acknowledgement_id", Uuid(as_uuid=True), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), nullable=False),
+    Column("project_id", Uuid(as_uuid=True), nullable=False),
+    Column("attention_key", Text, nullable=False),
+    Column("acknowledged_by", Uuid(as_uuid=True), nullable=False),
+    Column("acknowledged_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("created_at", TIMESTAMP(timezone=True), nullable=False),
+    Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
+    UniqueConstraint("project_id", "attention_key"),
+)

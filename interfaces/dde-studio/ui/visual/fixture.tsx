@@ -80,10 +80,14 @@ const SNAPSHOT: FrontendStudioSnapshot = {
     ],
     designDirector: null,
     activityEventCount: {
-      value: null,
-      availability: "NOT_IMPLEMENTED",
-      reason: "no frontend activity projection is wired yet",
+      value: 2,
+      availability: "AVAILABLE",
+      reason: null,
     },
+    activityWindow: [
+      { eventType: "frontend.design.requested", occurredAt: "2026-09-04T11:57:00Z", missionId: "00000000-0000-0000-0000-000000000010", aggregateType: "mission" },
+      { eventType: "frontend.preview.live", occurredAt: "2026-09-04T11:58:00Z", missionId: "00000000-0000-0000-0000-000000000010", aggregateType: "mission" },
+    ],
     availability: "NOT_IMPLEMENTED",
     reason:
       "no ModelServingEvidence source is implemented (Blueprint Rev 3 section 5.4); serving identity stays unattested",
@@ -120,6 +124,7 @@ const SNAPSHOT: FrontendStudioSnapshot = {
   attention: {
     items: [
       {
+        attentionKey: "a".repeat(64),
         category: "coverage_missing",
         detail: "no PXG node implements screens/settings",
         pxgKey: "screens/settings",
@@ -136,9 +141,22 @@ const bridge = new TestHostBridge({
     "frontend.host.context": {
       missionId: "00000000-0000-0000-0000-000000000010",
       projectId: SNAPSHOT.projectId,
-      projectName: "LogiFlow Marketplace",
+      missionSlug: "frontend-studio",
+      missionTitle: "Frontend Studio",
+      projectSlug: "logiflow-marketplace",
+      principalId: "00000000-0000-0000-0000-000000000020",
+      principalSlug: "tapiwa",
+      availableProjects: [
+        { projectId: SNAPSHOT.projectId, projectSlug: "logiflow-marketplace", missionId: "00000000-0000-0000-0000-000000000010", available: true, reason: null },
+      ],
+      modules: [
+        { id: "frontend", label: "Frontend Studio", glyph: "◧", available: true, reason: null },
+      ],
+      helpRef: "docs/truth/FRONTEND_STUDIO_REV3.md",
     },
     "frontend.studio.snapshot": SNAPSHOT,
+    "frontend.comments": { comments: [] },
+    "frontend.editor.assists": { autoLayout: false, aiSuggest: false, availability: "EMPTY", reason: "defaults off" },
     "frontend.chat.thread": { conversation: null, turns: [] },
   },
 });

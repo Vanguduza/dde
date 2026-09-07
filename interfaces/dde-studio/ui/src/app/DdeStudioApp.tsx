@@ -16,6 +16,7 @@ import { ContextSidebar } from "../shell/ContextSidebar";
 import { DdeShell } from "../shell/DdeShell";
 import { GlobalTopBar } from "../shell/GlobalTopBar";
 import { StatusBar } from "../shell/StatusBar";
+import { displaySlug } from "../state/projections";
 import type {
   FrontendChatActivity,
   FrontendChatAttachment,
@@ -29,17 +30,22 @@ import type {
   FrontendChatPlan,
   FrontendChatPlanStep,
   FrontendChatThread,
+  DesignCommentView,
   DesignDirectionArtifact,
   DesignProviderStatus,
+  EditorAssistState,
   FrontendHostContext,
+  FrontendProjectOption,
   FrontendStudioSnapshot,
   InspectorDescriptor,
   PreviewDocument,
+  PreviewScenarioView,
   ScreenAuditMatrix,
   SourceCatalogRead,
   FrontendProvenanceRecord,
   FrontendSourceBlendPreference,
   StudioMode,
+  AttentionItemView,
 } from "../state/projections";
 
 const MODULES: readonly RailModule[] = [
@@ -114,6 +120,17 @@ export function DdeStudioApp({
   const [chatModels, setChatModels] = useState<readonly FrontendChatModelOption[]>([]);
   const [chatContextBudget, setChatContextBudget] = useState<FrontendChatContextBudget | null>(null);
   const [canPickLocalFile, setCanPickLocalFile] = useState(false);
+  const [canRevealFile, setCanRevealFile] = useState(false);
+  const [projectSwitchError, setProjectSwitchError] = useState<string | null>(null);
+  const [designComments, setDesignComments] = useState<readonly DesignCommentView[]>([]);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [previewScenario, setPreviewScenarioState] = useState<PreviewScenarioView>({
+    scenario: "DEFAULT", role: null, availability: "EMPTY", reason: "no simulated state selected",
+  });
+  const [editorAssists, setEditorAssists] = useState<EditorAssistState>({
+    autoLayout: false, aiSuggest: false, availability: "EMPTY", reason: "defaults OFF",
+  });
 
   const refreshSnapshot = useCallback(async () => {
     const value = await bridge.requestRead<FrontendStudioSnapshot>({
@@ -238,9 +255,15 @@ export function DdeStudioApp({
   useEffect(() => {
     let cancelled = false;
     bridge.getCapabilities().then((value) => {
-      if (!cancelled) setCanPickLocalFile(value.canPickLocalFile);
+      if (!cancelled) {
+        setCanPickLocalFile(value.canPickLocalFile);
+        setCanRevealFile(value.canRevealFile);
+      }
     }).catch(() => {
-      if (!cancelled) setCanPickLocalFile(false);
+      if (!cancelled) {
+        setCanPickLocalFile(false);
+        setCanRevealFile(false);
+      }
     });
     return () => { cancelled = true; };
   }, [bridge]);
@@ -1275,7 +1298,128 @@ export function DdeStudioApp({
     selectChatConversation, sendFrontendCommand,
   ]);
 
-  const projectBreadcrumb = projectName ?? hostContext?.projectName ?? "Project";
+  const refreshComments = useCallback(async () => {
+    if (!activeCandidateId || !selectedKey) { setDesignComments([]); return []; }
+    const value = await bridge.requestRead<{ comments: readonly DesignCommentView[] }>({
+      resource: "frontend.comments", parameters: { candidateId: activeCandidateId, pxgKey: selectedKey },
+    });
+    const comments = value.comments ?? [];
+    setDesignComments(comments);
+    return comments;
+  }, [activeCandidateId, bridge, selectedKey]);
+
+  useEffect(() => {
+    void refreshComments().catch((error: unknown) => {
+      setDesignComments([]); setReviewError(error instanceof Error ? error.message : String(error));
+    });
+  }, [refreshComments]);
+
+  useEffect(() => {
+    if (!preview?.previewSessionId) {
+      setPreviewScenarioState({ scenario: "DEFAULT", role: null, availability: "EMPTY", reason: "no simulated state selected" });
+      return;
+    }
+    void bridge.requestRead<PreviewScenarioView>({
+      resource: "frontend.preview.scenario", parameters: { previewSessionId: preview.previewSessionId },
+    }).then(setPreviewScenarioState).catch((error: unknown) => {
+      setPreviewScenarioState({ scenario: "DEFAULT", role: null, availability: "UNAVAILABLE", reason: error instanceof Error ? error.message : String(error) });
+    });
+  }, [bridge, preview?.previewSessionId]);
+
+  useEffect(() => {
+    if (!hostContext) return;
+    void bridge.requestRead<EditorAssistState>({ resource: "frontend.editor.assists" })
+      .then(setEditorAssists)
+      .catch((error: unknown) => setEditorAssists({ autoLayout: false, aiSuggest: false, availability: "UNAVAILABLE", reason: error instanceof Error ? error.message : String(error) }));
+  }, [bridge, hostContext]);
+
+  const createDesignComment = useCallback(async (body: string) => {
+    if (!activeCandidateId || !selectedKey || !body.trim()) return;
+    setReviewBusy(true); setReviewError(null);
+    try {
+      await sendFrontendCommand("frontend.comment.create", { candidate_id: activeCandidateId, pxg_key: selectedKey, body: body.trim() });
+      await refreshComments();
+    } catch (error) { setReviewError(error instanceof Error ? error.message : String(error)); }
+    finally { setReviewBusy(false); }
+  }, [activeCandidateId, refreshComments, selectedKey, sendFrontendCommand]);
+
+  const resolveDesignComment = useCallback(async (commentId: string) => {
+    setReviewBusy(true); setReviewError(null);
+    try { await sendFrontendCommand("frontend.comment.resolve", { comment_id: commentId }); await refreshComments(); }
+    catch (error) { setReviewError(error instanceof Error ? error.message : String(error)); }
+    finally { setReviewBusy(false); }
+  }, [refreshComments, sendFrontendCommand]);
+
+  const changePreviewScenario = useCallback(async (scenario: PreviewScenarioView["scenario"], role: string | null = null) => {
+    if (!preview?.previewSessionId) return;
+    const acceptance = await sendFrontendCommand("frontend.preview.set_scenario", { preview_session_id: preview.previewSessionId, scenario, role });
+    const raw = acceptance.payload.scenario;
+    if (raw && typeof raw === "object") setPreviewScenarioState(raw as unknown as PreviewScenarioView);
+    else {
+      const value = await bridge.requestRead<PreviewScenarioView>({ resource: "frontend.preview.scenario", parameters: { previewSessionId: preview.previewSessionId } });
+      setPreviewScenarioState(value);
+    }
+  }, [bridge, preview?.previewSessionId, sendFrontendCommand]);
+
+  const changeEditorAssist = useCallback(async (assist: "auto_layout" | "ai_suggest", enabled: boolean) => {
+    await sendFrontendCommand("frontend.editor.set_assist", { assist, enabled });
+    const value = await bridge.requestRead<EditorAssistState>({ resource: "frontend.editor.assists" });
+    setEditorAssists(value);
+  }, [bridge, sendFrontendCommand]);
+
+  const acknowledgeAttention = useCallback(async (item: AttentionItemView) => {
+    await sendFrontendCommand("frontend.attention.acknowledge", { attention_key: item.attentionKey });
+    await refreshSnapshot();
+  }, [refreshSnapshot, sendFrontendCommand]);
+
+  const applyResizeGridSpan = useCallback(async (value: string) => {
+    if (!activeCandidateId || !selectedKey) return;
+    setInspectorError(null);
+    const acceptance = await sendFrontendCommand("frontend.mutation.apply", {
+      candidate_id: activeCandidateId, mutations: [{ operation: "SET_PROPERTY", target_key: selectedKey, origin: "DIRECT_MANIPULATION", payload: { property: "grid_span", value } }],
+    });
+    const refused = acceptance.payload.refused;
+    if (Array.isArray(refused) && refused.length) {
+      const first = refused[0] as Record<string, unknown>;
+      setInspectorError(String(first.refusalDetail ?? first.refusalCode ?? "Resize refused."));
+      return;
+    }
+    setSelection(null); setPreview(null); setPreviewBrowserReady(false);
+    await refreshSnapshot(); await startPreview();
+  }, [activeCandidateId, refreshSnapshot, selectedKey, sendFrontendCommand, startPreview]);
+
+  const switchProject = useCallback(async (project: FrontendProjectOption) => {
+    if (!hostContext || !project.missionId) {
+      setProjectSwitchError(project.reason ?? "Target project has no unambiguous Frontend Studio mission.");
+      return;
+    }
+    setProjectSwitchError(null);
+    try {
+      const acceptance = await bridge.sendCommand({
+        commandType: "frontend.project.switch",
+        targetType: "project",
+        targetId: project.projectId,
+        parameters: { mission_id: project.missionId },
+        idempotencyKey: `frontend.project.switch:${actionId()}`,
+      });
+      const missionId = payloadString(acceptance, "mission_id");
+      if (!missionId) throw new Error("Project switch returned no mission identity.");
+      await bridge.switchFrontendMission(missionId);
+    } catch (error) {
+      setProjectSwitchError(error instanceof Error ? error.message : String(error));
+    }
+  }, [bridge, hostContext]);
+
+  const openHelp = useCallback(async () => {
+    if (!hostContext?.helpRef || !canRevealFile) return;
+    try {
+      await bridge.revealFile({ path: hostContext.helpRef });
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : String(error));
+    }
+  }, [bridge, canRevealFile, hostContext?.helpRef]);
+
+  const projectBreadcrumb = displaySlug(hostContext?.projectSlug) ?? projectName ?? "Project";
   const screenBreadcrumb =
     snapshot?.screens.find((screen) => screen.pxgKey === screenKey)?.title ??
     screenKey ??
@@ -1300,29 +1444,39 @@ export function DdeStudioApp({
       topBar={
         <GlobalTopBar
           snapshot={snapshot}
-          projectName={projectName ?? hostContext?.projectName ?? null}
+          context={hostContext}
           mode={mode}
           onModeChange={setMode}
+          onProjectSwitch={(project) => void switchProject(project)}
+          onHelp={() => void openHelp()}
+          onAcknowledgeAttention={(item) => void acknowledgeAttention(item)}
         />
       }
-      rail={<AppRail modules={MODULES} activeId="frontend" onSelect={() => {}} />}
+      rail={
+        <AppRail
+          modules={(hostContext?.modules ?? MODULES) as readonly RailModule[]}
+          activeId="frontend"
+          onSelect={() => {}}
+        />
+      }
       explorer={
         <ContextSidebar
           explorer={snapshot?.explorer ?? null}
           auditMatrix={auditMatrix}
           orchestrator={snapshot?.orchestrator ?? null}
+          projectSlug={hostContext?.projectSlug ?? projectName ?? null}
           selectedGroup={group}
           onSelectGroup={setGroup}
         />
       }
       workspace={
-        loadError ? (
+        loadError || projectSwitchError ? (
           <div className="dde-workspace-inner">
             <div className="dde-canvas">
               <div className="dde-unavailable" role="alert">
                 <span className="dde-unavailable-label">Unavailable</span>
                 <span className="dde-unavailable-reason">
-                  Could not read Frontend Studio context: {loadError}
+                  Frontend Studio context unavailable: {loadError ?? projectSwitchError}
                 </span>
               </div>
             </div>
@@ -1377,6 +1531,16 @@ export function DdeStudioApp({
             promotionError={promotionError}
             selection={selection}
             inspectorDescriptor={descriptor}
+            comments={designComments}
+            reviewBusy={reviewBusy}
+            reviewError={reviewError}
+            onCreateComment={(body) => void createDesignComment(body)}
+            onResolveComment={(commentId) => void resolveDesignComment(commentId)}
+            previewScenario={previewScenario}
+            onPreviewScenarioChange={(scenario, role) => void changePreviewScenario(scenario, role)}
+            editorAssists={editorAssists}
+            onEditorAssistChange={(assist, enabled) => void changeEditorAssist(assist, enabled)}
+            onResizeGridSpan={(value) => void applyResizeGridSpan(value)}
             onStartPreview={() => void startPreview()}
             onLoadPreviewDocument={readPreviewDocument}
             onTryCandidateLive={(candidateId) => void tryCandidateLive(candidateId)}
@@ -1428,6 +1592,7 @@ export function DdeStudioApp({
           snapshot={snapshot}
           breadcrumb={breadcrumb}
           buildVersion={buildVersion ?? snapshot?.sync.buildVersion ?? null}
+          auditMatrix={auditMatrix}
         />
       }
     />

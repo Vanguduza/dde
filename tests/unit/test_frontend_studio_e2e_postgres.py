@@ -122,6 +122,45 @@ async def test_the_full_governed_frontend_workflow(tmp_path) -> None:
                 "visual_critique",
             }
 
+            context_read = await client.get(
+                f"/v1/missions/{worker.mission.mission_id}/frontend/context",
+                headers={
+                    "X-Session-Id": str(session_id),
+                    "X-Principal-Id": str(tenant.principal_id),
+                },
+            )
+            assert context_read.status_code == 200, context_read.text
+            shell_context = context_read.json()
+            assert shell_context["project_id"] == str(tenant.project_id)
+            assert shell_context["principal_id"] == str(tenant.principal_id)
+            assert shell_context["project_slug"].startswith("project-")
+            assert shell_context["principal_slug"].startswith("principal-")
+            assert shell_context["help_ref"] == "docs/truth/FRONTEND_STUDIO_REV3.md"
+            assert any(
+                item["project_id"] == str(tenant.project_id) and item["available"]
+                for item in shell_context["available_projects"]
+            )
+
+            switched = await client.post(
+                "/v1/commands",
+                json={
+                    "command_id": str(uuid7()),
+                    "idempotency_key": "e2e-project-switch",
+                    "principal_id": str(tenant.principal_id),
+                    "client_session_id": str(session_id),
+                    "target_type": "project",
+                    "target_id": str(tenant.project_id),
+                    "command_type": "frontend.project.switch",
+                    "parameters": {"mission_id": str(worker.mission.mission_id)},
+                    "requested_at": datetime.now(UTC).isoformat(),
+                    "protocol_version": "1",
+                },
+            )
+            assert switched.status_code == 202, switched.text
+            assert switched.json()["payload"]["mission_id"] == str(
+                worker.mission.mission_id
+            )
+
             snapshot_read = await client.get(
                 f"/v1/missions/{worker.mission.mission_id}/frontend/snapshot",
                 headers={
@@ -140,6 +179,12 @@ async def test_the_full_governed_frontend_workflow(tmp_path) -> None:
             )
             assert manager["serving"] is None
             assert manager["serving_confidence"] == "UNATTESTED"
+            activity = snapshot_read.json()["orchestrator"]["activity_window"]
+            activity_count = snapshot_read.json()["orchestrator"][
+                "activity_event_count"
+            ]
+            assert activity_count["value"] == len(activity)
+            assert activity_count["availability"] in {"AVAILABLE", "EMPTY"}
 
             # 2. Declare what the frontend owes, then compute coverage. The
             #    accessibility obligation needs a critique that has not run,

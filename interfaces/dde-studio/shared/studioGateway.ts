@@ -237,6 +237,79 @@ export class StudioGatewayService {
     }
   }
 
+  async sendFrontendProjectCommand(
+    commandType: string,
+    projectId: string,
+    parameters: Record<string, unknown>,
+    idempotencyKey?: string,
+    commandId?: string,
+  ): Promise<{ ok: boolean; acceptance?: CommandAcceptance; reason?: string }> {
+    if (commandType !== "frontend.project.switch" || !isUuid(projectId.trim())) {
+      return { ok: false, reason: "Unsupported Frontend Studio project command." };
+    }
+    const state = await this.state();
+    if (state.kind !== "ready" || !this.session) {
+      return {
+        ok: false,
+        reason: state.kind === "ready" ? "session not open yet" : state.reason,
+      };
+    }
+    try {
+      const acceptance = await this.client!.acceptCommand({
+        commandId: commandId ?? randomUUID(),
+        idempotencyKey: idempotencyKey ?? `${commandType}:${projectId}:${randomUUID()}`,
+        principalId: this.principalId,
+        clientSessionId: this.session.session_id,
+        targetType: "project",
+        targetId: projectId,
+        commandType,
+        parameters,
+      });
+      return { ok: true, acceptance };
+    } catch (err) {
+      if (err instanceof Error && /SESSION_EXPIRED|401/.test(err.message)) {
+        this.session = null;
+      }
+      return { ok: false, reason: describe(err) };
+    }
+  }
+
+  async readFrontendContext(
+    missionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendContext(session, this.principalId, missionId),
+    );
+  }
+
+  async readFrontendComments(
+    missionId: string, candidateId?: string, pxgKey?: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendComments(
+        session, this.principalId, missionId, candidateId, pxgKey,
+      ),
+    );
+  }
+
+  async readFrontendPreviewScenario(
+    missionId: string, previewSessionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendPreviewScenario(
+        session, this.principalId, missionId, previewSessionId,
+      ),
+    );
+  }
+
+  async readFrontendEditorAssists(
+    missionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readFrontendEditorAssists(session, this.principalId, missionId),
+    );
+  }
+
   async readFrontendSnapshot(
     missionId: string,
   ): Promise<{

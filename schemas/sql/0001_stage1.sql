@@ -2550,6 +2550,70 @@ CREATE TABLE frontend_source_blend_preferences (
     CHECK (status IN ('ACTIVE','SUPERSEDED'))
 );
 
+CREATE TABLE design_comments (
+    comment_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    candidate_id uuid,
+    pxg_key text NOT NULL,
+    body text NOT NULL,
+    status text NOT NULL,
+    created_by uuid NOT NULL,
+    resolved_by uuid,
+    resolved_at timestamptz,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (comment_id),
+    CHECK (status IN ('OPEN','RESOLVED')),
+    CHECK (lock_version >= 1)
+);
+
+CREATE TABLE frontend_preview_scenarios (
+    scenario_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    preview_session_id uuid NOT NULL,
+    scenario text NOT NULL,
+    role text,
+    updated_by uuid NOT NULL,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (scenario_id),
+    UNIQUE (preview_session_id),
+    CHECK (scenario IN ('DEFAULT','LOADING','EMPTY','ERROR','OFFLINE','ROLE')),
+    CHECK (lock_version >= 1)
+);
+
+CREATE TABLE frontend_editor_assist_states (
+    assist_state_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    auto_layout boolean NOT NULL,
+    ai_suggest boolean NOT NULL,
+    updated_by uuid NOT NULL,
+    lock_version integer NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (assist_state_id),
+    UNIQUE (project_id),
+    CHECK (lock_version >= 1)
+);
+
+CREATE TABLE frontend_attention_acknowledgements (
+    acknowledgement_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    attention_key text NOT NULL,
+    acknowledged_by uuid NOT NULL,
+    acknowledged_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (acknowledgement_id),
+    UNIQUE (project_id, attention_key)
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -3123,6 +3187,25 @@ ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_ble
 ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
 ALTER TABLE frontend_source_blend_preferences ADD CONSTRAINT frontend_source_blend_supersedes_fkey FOREIGN KEY (supersedes_id) REFERENCES frontend_source_blend_preferences (preference_id);
 
+ALTER TABLE design_comments ADD CONSTRAINT design_comments_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE design_comments ADD CONSTRAINT design_comments_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE design_comments ADD CONSTRAINT design_comments_candidate_fkey FOREIGN KEY (candidate_id) REFERENCES frontend_candidates (candidate_id);
+ALTER TABLE design_comments ADD CONSTRAINT design_comments_created_by_fkey FOREIGN KEY (created_by) REFERENCES principals (principal_id);
+ALTER TABLE design_comments ADD CONSTRAINT design_comments_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES principals (principal_id);
+
+ALTER TABLE frontend_preview_scenarios ADD CONSTRAINT frontend_preview_scenarios_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_preview_scenarios ADD CONSTRAINT frontend_preview_scenarios_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_preview_scenarios ADD CONSTRAINT frontend_preview_scenarios_preview_fkey FOREIGN KEY (preview_session_id) REFERENCES frontend_preview_sessions (preview_session_id);
+ALTER TABLE frontend_preview_scenarios ADD CONSTRAINT frontend_preview_scenarios_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES principals (principal_id);
+
+ALTER TABLE frontend_editor_assist_states ADD CONSTRAINT frontend_editor_assist_states_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_editor_assist_states ADD CONSTRAINT frontend_editor_assist_states_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_editor_assist_states ADD CONSTRAINT frontend_editor_assist_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES principals (principal_id);
+
+ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attention_ack_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attention_ack_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attention_ack_principal_fkey FOREIGN KEY (acknowledged_by) REFERENCES principals (principal_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -3586,3 +3669,19 @@ CREATE POLICY frontend_candidate_scores_tenant_isolation ON frontend_candidate_s
 ALTER TABLE frontend_source_blend_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_source_blend_preferences FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_source_blend_preferences_tenant_isolation ON frontend_source_blend_preferences USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE design_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_comments FORCE ROW LEVEL SECURITY;
+CREATE POLICY design_comments_tenant_isolation ON design_comments USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_preview_scenarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_preview_scenarios FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_preview_scenarios_tenant_isolation ON frontend_preview_scenarios USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_editor_assist_states ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_editor_assist_states FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_editor_assist_states_tenant_isolation ON frontend_editor_assist_states USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE frontend_attention_acknowledgements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE frontend_attention_acknowledgements FORCE ROW LEVEL SECURITY;
+CREATE POLICY frontend_attention_acknowledgements_tenant_isolation ON frontend_attention_acknowledgements USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

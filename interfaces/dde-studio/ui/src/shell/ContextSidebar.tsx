@@ -6,8 +6,9 @@
  * honest gaps beats a shorter, tidier lie about what the product does.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Count } from "../components/Honest";
+import { displaySlug } from "../state/projections";
 import type {
   CountValue,
   ExplorerGroup,
@@ -20,6 +21,7 @@ export interface ContextSidebarProps {
   readonly explorer: ProjectExplorerSnapshot | null;
   readonly auditMatrix: ScreenAuditMatrix | null;
   readonly orchestrator: OrchestratorFrontendStatus | null;
+  readonly projectSlug: string | null;
   readonly selectedGroup: string | null;
   readonly onSelectGroup: (key: string) => void;
 }
@@ -28,24 +30,45 @@ export function ContextSidebar({
   explorer,
   auditMatrix,
   orchestrator,
+  projectSlug,
   selectedGroup,
   onSelectGroup,
 }: ContextSidebarProps) {
-  const groups = [...(explorer?.groups ?? []).filter((group) => group.key !== "qa")];
-  groups.push(qaExplorerGroup(auditMatrix));
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const groups = useMemo(() => {
+    const source = [...(explorer?.groups ?? []).filter((group) => group.key !== "qa")];
+    source.push(qaExplorerGroup(auditMatrix));
+    return query.trim() ? source.map((group) => filterGroup(group, query)).filter(Boolean) as ExplorerGroup[] : source;
+  }, [explorer, auditMatrix, query]);
   return (
     <div className="dde-explorer-inner">
       <div className="dde-explorer-header">
-        <span className="dde-explorer-title">Project</span>
+        <span className="dde-explorer-title" data-testid="explorer-project-heading">
+          {displaySlug(projectSlug) ?? "No project"}
+        </span>
         <button
           type="button"
           className="dde-icon-button"
           aria-label="Search project"
+          aria-expanded={searchOpen}
           data-testid="explorer-search"
+          onClick={() => setSearchOpen((value) => !value)}
         >
           <span aria-hidden="true">⌕</span>
         </button>
       </div>
+      {searchOpen ? (
+        <input
+          type="search"
+          className="dde-explorer-search-input"
+          data-testid="explorer-search-input"
+          value={query}
+          autoFocus
+          placeholder="Filter project tree"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      ) : null}
 
       <ul className="dde-explorer-groups" data-testid="explorer-groups">
         {groups.map((group) => (
@@ -61,6 +84,17 @@ export function ContextSidebar({
       <OrchestratorCard status={orchestrator} />
     </div>
   );
+}
+
+function filterGroup(group: ExplorerGroup, rawQuery: string): ExplorerGroup | null {
+  const query = rawQuery.trim().toLowerCase();
+  const children = (group.children ?? [])
+    .map((child) => filterGroup(child, query))
+    .filter(Boolean) as ExplorerGroup[];
+  if (group.title.toLowerCase().includes(query) || group.key.toLowerCase().includes(query) || children.length) {
+    return { ...group, children };
+  }
+  return null;
 }
 
 function GroupRow({
@@ -207,6 +241,24 @@ function OrchestratorCard({
           </div>
         </dl>
       ))}
+      <div className="dde-design-director" data-testid="design-director-state">
+        <span>Design Director</span>
+        <strong>{status.designDirector ?? "UNASSIGNED"}</strong>
+      </div>
+      <div className="dde-orchestrator-activity" data-testid="orchestrator-activity">
+        {status.activityWindow.length ? (
+          status.activityWindow.map((event, index) => (
+            <span
+              key={`${event.occurredAt}-${index}`}
+              className="dde-activity-bar"
+              title={`${event.eventType} · ${event.occurredAt}`}
+              aria-label={event.eventType}
+            />
+          ))
+        ) : (
+          <span className="dde-muted">No recent activity</span>
+        )}
+      </div>
       {status.reason ? (
         <p className="dde-orchestrator-reason">{status.reason}</p>
       ) : null}

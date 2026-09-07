@@ -929,3 +929,35 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: true
+
+## DesignComment
+
+- table: `design_comments`
+- primary key: comment_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendPreviewScenario
+
+- table: `frontend_preview_scenarios`
+- primary key: scenario_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendEditorAssistState
+
+- table: `frontend_editor_assist_states`
+- primary key: assist_state_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: true
+
+## FrontendAttentionAcknowledgement
+
+- table: `frontend_attention_acknowledgements`
+- primary key: acknowledgement_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

@@ -204,7 +204,7 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(outline).toBeVisible();
     await expect(outline).toHaveAttribute("data-pxg-key", "screens/checkout#hero");
     await expect(page.getByTestId("breadcrumb")).toHaveText(
-      "LogiFlow Marketplace / Checkout / Checkout hero",
+      "Logiflow Marketplace / Checkout / Checkout hero",
     );
 
     const gap = page.getByTestId("inspector-property-gap");
@@ -231,6 +231,90 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("selection-section-lock")).toHaveText("SECTION LOCK");
     await page.getByTestId("create-style-lock").click();
     await expect(page.getByTestId("selection-style-lock")).toHaveText("STYLE LOCK");
+  });
+
+  test("anchored design comments create and resolve through governed commands", async ({ page }) => {
+    const hero = page.frameLocator("iframe.dde-preview-frame").locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await page.getByTestId("comment-tool").click();
+    await expect(page.getByTestId("comment-panel")).toBeVisible();
+    await page.getByTestId("comment-input").fill("Keep the checkout promise visible");
+    await page.getByTestId("comment-create").click();
+    await expect(page.getByTestId("comment-panel")).toContainText("Keep the checkout promise visible");
+    await expect(page.getByTestId("comment-panel")).toContainText("BOUND");
+    await page.getByTestId("comment-panel").getByRole("button", { name: "Resolve" }).click();
+    await expect(page.getByTestId("comment-panel")).toContainText("Resolved");
+    const commands = await page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string }> } }).__ddeTestBridge.sentCommands.map((item) => item.commandType));
+    expect(commands).toContain("frontend.comment.create");
+    expect(commands).toContain("frontend.comment.resolve");
+  });
+
+  test("preview scenarios are separate from browser runtime attestation", async ({ page }) => {
+    await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    const before = await page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string }> } }).__ddeTestBridge.sentCommands.filter((item) => item.commandType === "frontend.preview.set_state").length);
+    await page.getByTestId("scenario-select").selectOption("EMPTY");
+    await page.getByTestId("scenario-apply").click();
+    await expect(page.getByTestId("scenario-controls")).toContainText("EMPTY");
+    const result = await page.evaluate(() => {
+      const commands = (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string; parameters: Record<string, unknown> }> } }).__ddeTestBridge.sentCommands;
+      return {
+        scenario: commands.filter((item) => item.commandType === "frontend.preview.set_scenario").at(-1)?.parameters,
+        runtimeCount: commands.filter((item) => item.commandType === "frontend.preview.set_state").length,
+      };
+    });
+    expect(result.scenario?.scenario).toBe("EMPTY");
+    expect(result.runtimeCount).toBe(before);
+  });
+
+  test("editor assists are durable policy and AI Suggest stays provider-honest", async ({ page }) => {
+    const auto = page.getByTestId("auto-layout-toggle");
+    await expect(auto).toHaveAttribute("aria-pressed", "false");
+    await auto.click();
+    await expect(auto).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("ai-suggest-toggle")).toBeDisabled();
+
+    await page.goto(`${FIXTURE}?design=certified`);
+    await expect(page.getByTestId("dde-shell")).toBeVisible();
+    const ai = page.getByTestId("ai-suggest-toggle");
+    await expect(ai).toBeEnabled();
+    await ai.click();
+    await expect(ai).toHaveAttribute("aria-pressed", "true");
+    const commands = await page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string; parameters: Record<string, unknown> }> } }).__ddeTestBridge.sentCommands.filter((item) => item.commandType === "frontend.editor.set_assist").map((item) => item.parameters));
+    expect(commands.at(-1)).toMatchObject({ assist: "ai_suggest", enabled: true });
+  });
+
+  test("attention acknowledgement suppresses only the derived attention item", async ({ page }) => {
+    const badge = page.getByTestId("attention-badge");
+    await expect(badge).toContainText("1");
+    await badge.click();
+    await page.getByTestId("attention-popover").getByRole("button", { name: "Acknowledge" }).click();
+    await expect(badge).not.toContainText("1");
+    const command = await page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string; parameters: Record<string, unknown> }> } }).__ddeTestBridge.sentCommands.find((item) => item.commandType === "frontend.attention.acknowledge"));
+    expect(command?.parameters.attention_key).toHaveLength(64);
+  });
+
+  test("resize handle emits a governed grid-span mutation rather than pixel width", async ({ page }) => {
+    const hero = page.frameLocator("iframe.dde-preview-frame").locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    const handle = page.getByTestId("resize-handle-east");
+    await expect(handle).toBeVisible();
+    await handle.dispatchEvent("pointerdown", { pointerId: 17, clientX: 240, clientY: 120, bubbles: true });
+    await handle.dispatchEvent("pointerup", { pointerId: 17, clientX: 190, clientY: 120, bubbles: true });
+    const mutation = await page.evaluate(() => {
+      const commands = (window as unknown as { __ddeTestBridge: { sentCommands: Array<{ commandType: string; parameters: Record<string, unknown> }> } }).__ddeTestBridge.sentCommands;
+      return commands.filter((item) => item.commandType === "frontend.mutation.apply").at(-1)?.parameters;
+    });
+    const row = (mutation?.mutations as Array<Record<string, unknown>>)?.[0];
+    const payload = row?.payload as Record<string, unknown>;
+    expect(row?.origin).toBe("DIRECT_MANIPULATION");
+    expect(payload?.property).toBe("grid_span");
+    expect(payload?.value).toBe("span11");
+    expect(JSON.stringify(payload)).not.toContain("px");
+  });
+
+  test("status bar warning count comes from current Screen Audit findings", async ({ page }) => {
+    await expect(page.getByTestId("warning-count")).toHaveText(/warning|No warnings|Warnings —/);
+    await expect(page.getByTestId("warning-count")).not.toHaveText("Warnings —");
   });
 
   test("View source resolves the descriptor source through the host bridge", async ({ page }) => {

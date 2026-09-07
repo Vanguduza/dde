@@ -104,6 +104,7 @@ export interface DdeHostBridge {
   revealFile(ref: SourceFileRef): Promise<void>;
   openExternal(target: string): Promise<void>;
   showNativeNotification(message: string): Promise<void>;
+  switchFrontendMission(missionId: string): Promise<void>;
   pickLocalFile?(): Promise<PickedLocalFile | null>;
   uploadPickedFile?(request: PickedFileUploadRequest): Promise<Record<string, unknown>>;
 }

@@ -1,5 +1,9 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS frontend_attention_acknowledgements CASCADE;
+DROP TABLE IF EXISTS frontend_editor_assist_states CASCADE;
+DROP TABLE IF EXISTS frontend_preview_scenarios CASCADE;
+DROP TABLE IF EXISTS design_comments CASCADE;
 DROP TABLE IF EXISTS frontend_source_blend_preferences CASCADE;
 DROP TABLE IF EXISTS frontend_candidate_scores CASCADE;
 DROP TABLE IF EXISTS frontend_templates CASCADE;

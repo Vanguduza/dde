@@ -27,12 +27,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
+from hashlib import sha256
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.contracts.event import Event
 from engine.contracts.pxg_node import PxgNode
 from engine.contracts.workspace import Workspace
+from engine.events.repository import EventsRepository
+from engine.studio.attention.service import AttentionAcknowledgementService
 from engine.studio.candidates.service import CandidateService
 from engine.studio.contract.service import FrontendContractService
 from engine.studio.coverage.service import CoverageRead, CoverageService
@@ -163,11 +167,20 @@ class ModelRoleView:
 
 
 @dataclass(frozen=True)
+class FrontendActivityEventView:
+    event_type: str
+    occurred_at: datetime
+    mission_id: str | None
+    aggregate_type: str
+
+
+@dataclass(frozen=True)
 class OrchestratorFrontendStatus:
     runtime_state: str
     roles: tuple[ModelRoleView, ...]
     design_director: str | None
     activity_event_count: CountValue
+    activity_window: tuple[FrontendActivityEventView, ...]
     availability: Availability
     reason: str | None = None
 
@@ -189,6 +202,7 @@ class StudioSyncSnapshot:
 
 @dataclass(frozen=True)
 class AttentionItemView:
+    attention_key: str
     category: str
     detail: str
     pxg_key: str | None
@@ -327,6 +341,7 @@ class FrontendReadService:
         sources: SourceIntelligenceService | None = None,
         locks: LockService | None = None,
         build_version: str | None = None,
+        attention: AttentionAcknowledgementService | None = None,
     ) -> None:
         self._engine = engine
         self._pxg = pxg or PxgService(engine)
@@ -341,12 +356,14 @@ class FrontendReadService:
             verification_requests or CandidateVerificationRequestService(engine)
         )
         self._verification_runs = VerificationRunRepository()
+        self._events = EventsRepository()
         self._mutations = mutations or MutationExecutor(
             engine, candidates=self._candidates
         )
         self._sources = sources or SourceIntelligenceService(engine)
         self._locks = locks or LockService(engine)
         self._build_version = build_version
+        self._attention = attention or AttentionAcknowledgementService(engine)
 
     async def snapshot(
         self, *, tenant_id: UUID, project_id: UUID
@@ -361,6 +378,21 @@ class FrontendReadService:
 
         coverage = _coverage_summary(coverage_read)
         attention = _attention_from(coverage_read, graph)
+        acknowledged = await self._attention.acknowledged_keys(
+            tenant_id=tenant_id, project_id=project_id
+        )
+        if acknowledged:
+            visible = tuple(
+                item
+                for item in attention.items
+                if item.attention_key not in acknowledged
+            )
+            attention = AttentionCenterSnapshot(
+                items=visible,
+                count=CountValue.of(len(visible)),
+                availability=attention.availability,
+                reason=attention.reason,
+            )
         degraded: list[str] = []
         if coverage.availability is not Availability.AVAILABLE and coverage.reason:
             degraded.append(coverage.reason)
@@ -376,6 +408,12 @@ class FrontendReadService:
         lock_inventory = await self._locks.inventory(
             tenant_id=tenant_id, project_id=project_id
         )
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            recent_events = await self._events.list_recent_for_project(
+                uow.connection, tenant_id=tenant_id, project_id=project_id, limit=12
+            )
 
         return FrontendStudioSnapshot(
             project_id=project_id,
@@ -386,7 +424,7 @@ class FrontendReadService:
                 project_id, graph, sources, lock_inventory=lock_inventory
             ),
             coverage=coverage,
-            orchestrator=_orchestrator_status(),
+            orchestrator=_orchestrator_status(recent_events),
             sync=StudioSyncSnapshot(
                 state="SYNCED" if graph.revision else "UNASSESSED",
                 durable_pxg_revision=graph.revision,
@@ -829,11 +867,22 @@ def _coverage_summary(read: CoverageRead) -> CoverageSummary:
     )
 
 
+def _attention_key(category: str, detail: str, pxg_key: str | None) -> str:
+    canonical = f"{category}\n{pxg_key or ''}\n{detail}"
+    return sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def _attention_from(read: CoverageRead, graph: PxgGraph) -> AttentionCenterSnapshot:
     items: list[AttentionItemView] = []
     if read.stale:
         items.append(
             AttentionItemView(
+                attention_key=_attention_key(
+                    "coverage_stale",
+                    "coverage was computed against an older PXG revision "
+                    "and needs recomputing",
+                    None,
+                ),
                 category="coverage_stale",
                 detail=(
                     "coverage was computed against an older PXG revision and "
@@ -845,6 +894,9 @@ def _attention_from(read: CoverageRead, graph: PxgGraph) -> AttentionCenterSnaps
     if read.snapshot is not None:
         items.extend(
             AttentionItemView(
+                attention_key=_attention_key(
+                    "coverage_missing", finding.detail, finding.pxg_key
+                ),
                 category="coverage_missing",
                 detail=finding.detail,
                 pxg_key=finding.pxg_key,
@@ -854,6 +906,11 @@ def _attention_from(read: CoverageRead, graph: PxgGraph) -> AttentionCenterSnaps
         )
     items.extend(
         AttentionItemView(
+            attention_key=_attention_key(
+                "pxg_orphan",
+                f"node names a parent that does not exist: {node.parent_key}",
+                node.pxg_key,
+            ),
             category="pxg_orphan",
             detail=f"node names a parent that does not exist: {node.parent_key}",
             pxg_key=node.pxg_key,
@@ -867,13 +924,22 @@ def _attention_from(read: CoverageRead, graph: PxgGraph) -> AttentionCenterSnaps
     )
 
 
-def _orchestrator_status() -> OrchestratorFrontendStatus:
-    """No orchestrator runtime is wired to the Studio in this build.
+def _orchestrator_status(events: list[Event]) -> OrchestratorFrontendStatus:
+    """Role truth plus a real project activity window.
 
-    Reporting NOT_IMPLEMENTED with an UNATTESTED serving identity is the
-    honest answer; an 'ACTIVE' dot with a model name next to it would be
-    exactly the overclaim Blueprint Rev 3 section 5.10 forbids.
+    Recent Core events prove activity only; they do not prove an orchestrator
+    runtime or serving-model identity. Those remain UNKNOWN/UNATTESTED until
+    ModelServingEvidence exists.
     """
+    activity = tuple(
+        FrontendActivityEventView(
+            event_type=event.event_type,
+            occurred_at=event.occurred_at,
+            mission_id=str(event.mission_id) if event.mission_id is not None else None,
+            aggregate_type=event.aggregate_type,
+        )
+        for event in events
+    )
     return OrchestratorFrontendStatus(
         runtime_state="UNKNOWN",
         roles=(
@@ -892,15 +958,13 @@ def _orchestrator_status() -> OrchestratorFrontendStatus:
                 serving_confidence="UNATTESTED",
             ),
         ),
-        design_director=None,
-        activity_event_count=CountValue.unknown(
-            Availability.NOT_IMPLEMENTED,
-            "no frontend activity projection is wired yet",
-        ),
-        availability=Availability.NOT_IMPLEMENTED,
+        design_director="UNASSIGNED",
+        activity_event_count=CountValue.of(len(activity)),
+        activity_window=activity,
+        availability=Availability.AVAILABLE,
         reason=(
-            "no ModelServingEvidence source is implemented (Blueprint Rev 3 "
-            "section 5.4); serving identity stays unattested"
+            "activity is backed by retained project Core events; orchestrator "
+            "runtime and serving identity remain unattested"
         ),
     )
 

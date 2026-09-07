@@ -51,6 +51,7 @@ export class TestHostBridge implements DdeHostBridge {
 
   readonly sentCommands: DdeCommand[] = [];
   readonly revealedFiles: SourceFileRef[] = [];
+  readonly switchedMissionIds: string[] = [];
 
   private readonly capabilities: HostCapabilities;
   private readonly reads: Record<string, unknown | TestReadHandler>;
@@ -166,4 +167,8 @@ export class TestHostBridge implements DdeHostBridge {
   async openExternal(): Promise<void> {}
 
   async showNativeNotification(): Promise<void> {}
+
+  async switchFrontendMission(missionId: string): Promise<void> {
+    this.switchedMissionIds.push(missionId);
+  }
 }

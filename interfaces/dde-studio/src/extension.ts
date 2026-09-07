@@ -57,6 +57,15 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     () => gatewayService,
     resolveFrontendMissionId,
+    async (missionId) => {
+      await vscode.workspace
+        .getConfiguration(CONFIG_SECTION)
+        .update(
+          "frontendMissionId",
+          missionId,
+          vscode.ConfigurationTarget.Workspace,
+        );
+    },
   );
 
   const overviewView = new OverviewViewProvider((msg) =>

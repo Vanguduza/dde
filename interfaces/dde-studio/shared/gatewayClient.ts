@@ -180,6 +180,51 @@ export class GatewayApiClient {
     return this.get(`/mission-control/${missionId}`, sessionId, principalId);
   }
 
+  async readFrontendContext(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/context`,
+      sessionId,
+      principalId,
+    );
+  }
+
+  async readFrontendComments(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+    candidateId?: string,
+    pxgKey?: string,
+  ): Promise<Record<string, unknown>> {
+    const query = new URLSearchParams();
+    if (candidateId) query.set("candidate_id", candidateId);
+    if (pxgKey) query.set("pxg_key", pxgKey);
+    const tail = [...query.keys()].length ? `?${query.toString()}` : "";
+    return this.get(
+      `/missions/${missionId}/frontend/comments${tail}`, sessionId, principalId,
+    );
+  }
+
+  async readFrontendPreviewScenario(
+    sessionId: string, principalId: string, missionId: string, previewSessionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/previews/${previewSessionId}/scenario`,
+      sessionId, principalId,
+    );
+  }
+
+  async readFrontendEditorAssists(
+    sessionId: string, principalId: string, missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(
+      `/missions/${missionId}/frontend/editor/assists`, sessionId, principalId,
+    );
+  }
+
   async readFrontendSnapshot(
     sessionId: string,
     principalId: string,

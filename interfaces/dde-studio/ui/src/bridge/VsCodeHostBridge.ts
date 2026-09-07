@@ -122,6 +122,10 @@ export class VsCodeHostBridge implements DdeHostBridge {
     return this.call<void>("notify", { message });
   }
 
+  switchFrontendMission(missionId: string): Promise<void> {
+    return this.call<void>("switchMission", { missionId });
+  }
+
   pickLocalFile(): Promise<PickedLocalFile | null> {
     return this.call<PickedLocalFile | null>("pickLocalFile", {});
   }

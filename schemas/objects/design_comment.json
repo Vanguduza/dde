@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/design_comment.json",
+  "title": "DesignComment",
+  "description": "DDE-069 anchored design review comment. Comments are project-scoped review records anchored to a PXG key and optionally an isolated candidate. Resolution is explicit and auditable; losing the anchor never silently deletes the comment.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "design_comments",
+    "order": 344,
+    "pk": [
+      "comment_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": true,
+    "checks": [
+      {
+        "name": "design_comments_status_known",
+        "expression": "status IN ('OPEN','RESOLVED')"
+      },
+      {
+        "name": "design_comments_lock_positive",
+        "expression": "lock_version >= 1"
+      }
+    ],
+    "foreign_keys": [
+      {
+        "name": "design_comments_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "design_comments_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "design_comments_candidate_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "frontend_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "design_comments_created_by_fkey",
+        "columns": [
+          "created_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      },
+      {
+        "name": "design_comments_resolved_by_fkey",
+        "columns": [
+          "resolved_by"
+        ],
+        "ref_table": "principals",
+        "ref_columns": [
+          "principal_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "comment_id",
+    "tenant_id",
+    "project_id",
+    "pxg_key",
+    "body",
+    "status",
+    "created_by",
+    "lock_version",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "comment_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "candidate_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pxg_key": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "RESOLVED"
+      ]
+    },
+    "created_by": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resolved_by": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolved_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lock_version": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
