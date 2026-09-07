@@ -35,6 +35,8 @@ import "../src/styles/panels.css";
 
 const missionId = "00000000-0000-0000-0000-000000000010";
 const projectId = "00000000-0000-0000-0000-000000000001";
+const alternateProjectId = "00000000-0000-0000-0000-000000000002";
+const alternateMissionId = "00000000-0000-0000-0000-000000000011";
 const candidateId = "00000000-0000-0000-0000-000000000020";
 const compareCandidateId = "00000000-0000-0000-0000-000000000021";
 const pxgKey = "screens/checkout#hero";
@@ -681,6 +683,10 @@ function inspector(): InspectorDescriptor {
 }
 
 function commandPayload(command: DdeCommand): Record<string, unknown> {
+  if (command.commandType === "frontend.project.switch") {
+    if (command.targetId !== alternateProjectId) throw new Error("unknown project");
+    return { project_id: alternateProjectId, mission_id: alternateMissionId };
+  }
   if (command.commandType === "frontend.design.provider_status") { return { providers: [designProviderStatus] }; }
   if (command.commandType === "frontend.design.try_live") {
     const artifactId = String(command.parameters.artifact_id ?? "");
@@ -1302,7 +1308,7 @@ function commandPayload(command: DdeCommand): Record<string, unknown> {
 }
 
 const bridge = new TestHostBridge({
-  capabilities: { canPickLocalFile: true },
+  capabilities: { canPickLocalFile: true, canRevealFile: true },
   pickLocalFile: () => ({ token: "pick-token-1", filename: "requirements.md", mediaType: "text/markdown", sizeBytes: 24 }),
   uploadPickedFile: (request) => {
     chatAttachments = chatAttachments.map((item) => item.attachmentId === request.attachmentId ? { ...item, status: "ACTIVE", extractionState: "EXTRACTED", contentHash: "attachment-hash" } : item);
@@ -1317,7 +1323,10 @@ const bridge = new TestHostBridge({
       projectSlug: "logiflow-marketplace",
       principalId: "00000000-0000-0000-0000-000000000020",
       principalSlug: "tapiwa",
-      availableProjects: [{ projectId, projectSlug: "logiflow-marketplace", missionId, available: true, reason: null }],
+      availableProjects: [
+        { projectId, projectSlug: "logiflow-marketplace", missionId, available: true, reason: null },
+        { projectId: alternateProjectId, projectSlug: "design-system", missionId: alternateMissionId, available: true, reason: null },
+      ],
       modules: [{ id: "frontend", label: "Frontend Studio", glyph: "◧", available: true, reason: null }],
       helpRef: "docs/truth/FRONTEND_STUDIO_REV3.md",
     },
@@ -1353,6 +1362,7 @@ const bridge = new TestHostBridge({
     "frontend.inspector.describe": () => inspector(),
   },
   commands: {
+    "frontend.project.switch": commandPayload,
     "frontend.design.provider_status": commandPayload,
     "frontend.design.try_live": commandPayload,
     "frontend.source.initialize": commandPayload,

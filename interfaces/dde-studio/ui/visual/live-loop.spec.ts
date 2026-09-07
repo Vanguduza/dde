@@ -194,6 +194,55 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("architecture-audit-mode")).toContainText("REQUIRED_VIEWPORT_UNVERIFIED");
   });
 
+  test("top-bar project, activity, help, and principal controls use host-backed state", async ({ page }) => {
+    await expect(page.getByTestId("principal-avatar")).toHaveAttribute(
+      "aria-label",
+      "Signed in as tapiwa",
+    );
+
+    await page.getByTestId("activity-button").click();
+    await expect(page.getByTestId("activity-popover")).toContainText(
+      "frontend.design.requested",
+    );
+    await expect(page.getByTestId("activity-popover")).toContainText(
+      "frontend.preview.live",
+    );
+
+    await page.getByTestId("help-button").click();
+    await expect.poll(async () => page.evaluate(() => (
+      window as unknown as { __ddeTestBridge: { revealedFiles: Array<{ path: string }> } }
+    ).__ddeTestBridge.revealedFiles)).toEqual([
+      { path: "docs/truth/FRONTEND_STUDIO_REV3.md" },
+    ]);
+
+    await page.getByTestId("project-selector").selectOption(
+      "00000000-0000-0000-0000-000000000002",
+    );
+    const switched = await page.evaluate(() => {
+      const bridge = (
+        window as unknown as {
+          __ddeTestBridge: {
+            sentCommands: Array<{ commandType: string; targetType: string; targetId: string }>;
+            switchedMissionIds: string[];
+          };
+        }
+      ).__ddeTestBridge;
+      return {
+        command: bridge.sentCommands.find(
+          (item) => item.commandType === "frontend.project.switch",
+        ),
+        missions: bridge.switchedMissionIds,
+      };
+    });
+    expect(switched.command).toMatchObject({
+      targetType: "project",
+      targetId: "00000000-0000-0000-0000-000000000002",
+    });
+    expect(switched.missions).toContain(
+      "00000000-0000-0000-0000-000000000011",
+    );
+  });
+
   test("stable pxg selection resolves a real Inspector descriptor", async ({ page }) => {
     const frame = page.frameLocator("iframe.dde-preview-frame");
     const hero = frame.locator('[data-dde-pxg-key="screens/checkout#hero"]');
