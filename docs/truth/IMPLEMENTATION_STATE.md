@@ -56,7 +56,7 @@ This file originated as the close-out of the R3-0 source-of-truth migration.
 
 ### Latest observed DDE-069 implementation baseline
 
-The latest committed DDE-069 baseline is `23f773f` — **DDE-069 verify top bar host bindings** — on `main`. Its parent `09c4249` lands governed review comments, preview scenarios, editor-assist policy, attention acknowledgements and migration `0036`. The earlier consolidated design/source baseline was `843c61e`; host integration commits include `0f9a236` (PostgreSQL/Redis closure) and `645a6f2` (Candidate Dock functional loop).
+The latest committed DDE-069 baseline is `e4347df` — **DDE-069 close unbound frontend controls** — on `main`. Its parent `09c4249` lands governed review comments, preview scenarios, editor-assist policy, attention acknowledgements and migration `0036`. The earlier consolidated design/source baseline was `843c61e`; host integration commits include `0f9a236` (PostgreSQL/Redis closure) and `645a6f2` (Candidate Dock functional loop).
 
 ---
 
@@ -558,7 +558,7 @@ neither is a completion claim under v2.
   E2E; `CA-07` has its direction-selection/Try-live UI and remains BOUND on that same packaged-host proof. Full workbench Playwright in the latest closure packet is **76/76**; extension
   tests remain green. Evidence: `docs/evidence/dde-069/CANDIDATE_DOCK_CLOSURE.md` and
   `docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md`.
-- **Review, simulation, editor-assist and top-bar closure packet** — commits `09c4249` and `23f773f` add anchored design-comment create/resolve with anchor-loss refusal, durable preview scenarios kept separate from runtime attestation, provider-honest Auto Layout/AI Suggest policy, derived attention acknowledgement, project switching, retained-event activity, help routing and principal identity. Migration `0036` is reversible and handles current-schema snapshots idempotently while failing closed on partial pre-existing state. The uninterrupted repository gate passed 1,483 Python tests with 6 skipped, generated-contract/design checks, 77 extension tests, all TypeScript checks and the Vite build; the expanded workbench Playwright suite passes 76/76.
+- **Review, simulation, editor-assist and top-bar closure packet** — commits `09c4249`, `23f773f` and `e4347df` add anchored design-comment create/resolve with anchor-loss refusal, durable preview scenarios kept separate from runtime attestation, provider-honest Auto Layout/AI Suggest policy, derived attention acknowledgement, project switching, retained-event activity, help routing and principal identity. Migration `0036` is reversible and handles current-schema snapshots idempotently while failing closed on partial pre-existing state. The uninterrupted repository gate passed 1,483 Python tests with 6 skipped, generated-contract/design checks, 77 extension tests, all TypeScript checks and the Vite build; the expanded workbench Playwright suite passes 76/76.
 - **DDE-068 carry-over CLOSED** — see the dedicated subsection below.
 
 **Still incomplete / evidence-gated:** `CA-07` packaged production-host Try-live E2E;
