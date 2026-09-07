@@ -4860,7 +4860,7 @@
       "failure_states": [
         "SERVING_UNKNOWN"
       ],
-      "note": "Manager-chair identity has no backing projection yet; the card shows no name.",
+      "note": "Manager Chair serving identity remains deliberately UNATTESTED until ModelServingEvidence exists; the typed unavailable projection is now wired to the visible card.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -4921,16 +4921,23 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
-            "interfaces/dde-studio/ui/src/components/Honest.tsx",
+            "engine/studio/reads.py",
+            "engine/gateway/commands.py",
+            "engine/gateway/api.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "tests/unit/test_frontend_studio_e2e_postgres.py",
             "interfaces/dde-studio/ui/visual/shell.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Partial presentation is not wired to the full declared behavior."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The real Gateway snapshot is consumed by the React Orchestrator card; packaged editor-host E2E remains outstanding."
         },
         "E2E": {
           "applicable": true,
@@ -5379,13 +5386,13 @@
       "region": "canvas_toolbar",
       "feature": "Viewport selector",
       "visual_contract": "Compact select, e.g. Desktop 1440",
-      "read_model": "PreviewViewportState",
-      "command": "frontend.preview.set_state",
+      "read_model": "FrontendPreviewSession.viewport",
+      "command": "frontend.preview.start",
       "state_transition": "viewport changes",
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Viewport changes start a new code-backed preview session. frontend.preview.set_state remains reserved for browser LIVE/RUNTIME_ERROR attestations.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -5397,83 +5404,150 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The typed preview session, governed preview-start path and row-specific browser assertion prove this layer."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named command has no verified production call path."
-        },
-        "STATE": {
-          "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The visible state exists, but the complete transition/failure contract is not verified."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The typed preview session, governed preview-start path and row-specific browser assertion prove this layer."
+        },
+        "STATE": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The typed preview session, governed preview-start path and row-specific browser assertion prove this layer."
         },
         "UI": {
           "applicable": true,
           "status": "VERIFIED",
           "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": ""
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The typed preview session, governed preview-start path and row-specific browser assertion prove this layer."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The React control is not connected to the named production command/read path."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React and production Gateway/preview seams are proven, but one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
         },
         "E2E": {
           "applicable": true,
           "status": "BOUND",
           "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "React and production Gateway/preview seams are proven, but one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
+            "engine/contracts/frontend_preview_session.py",
+            "engine/studio/frontend.py",
+            "engine/studio/preview_runtime/service.py",
+            "engine/gateway/commands.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "tests/contract/test_frontend_studio_gateway.py",
+            "tests/live/test_claude_design_live_e2e.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "The typed preview session, governed preview-start path and row-specific browser assertion prove this layer."
         }
       }
     },
@@ -5488,7 +5562,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -5500,11 +5574,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction."
         },
         "COMMAND": {
           "applicable": false,
@@ -5516,43 +5596,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction."
         }
       }
     },
@@ -5567,7 +5677,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -5579,11 +5689,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas."
         },
         "COMMAND": {
           "applicable": false,
@@ -5595,43 +5711,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas."
         }
       }
     },
@@ -5721,13 +5867,13 @@
       "region": "canvas_toolbar",
       "feature": "Grid / overlay options",
       "visual_contract": "Icon toggle + menu",
-      "read_model": "PreviewOverlayState",
-      "command": "frontend.preview.set_state",
+      "read_model": "editor.preview_overlay_state",
+      "command": null,
       "state_transition": "overlay toggles",
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -5739,59 +5885,95 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options."
         },
         "COMMAND": {
-          "applicable": true,
-          "status": "UNBOUND",
+          "applicable": false,
+          "status": "NOT_APPLICABLE",
           "implementation_refs": [],
           "test_refs": [],
           "evidence_refs": [],
-          "note": "The named command has no verified production call path."
+          "note": "Grid overlay is editor-local presentation state; no server command is legitimate."
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options."
         }
       }
     },
@@ -6005,7 +6187,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Canvas zoom is presentation-only React state; it scales the live preview and selection overlay without issuing Gateway commands or mutating candidate/PXG state.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -6017,15 +6199,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific Playwright proves bounded 50\u2013200% zoom, live-canvas transform, and zero Gateway-command side effects."
         },
         "COMMAND": {
           "applicable": false,
@@ -6045,51 +6229,59 @@
         },
         "UI": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The surface is rendered but does not yet satisfy the full golden control contract."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific Playwright proves bounded 50\u2013200% zoom, live-canvas transform, and zero Gateway-command side effects."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Partial presentation is not wired to the full declared behavior."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific Playwright proves bounded 50\u2013200% zoom, live-canvas transform, and zero Gateway-command side effects."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific Playwright proves bounded 50\u2013200% zoom, live-canvas transform, and zero Gateway-command side effects."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "The current surface participates in structural rendering, but no row-specific visual assertion proves the complete visual contract. AD-039 separately blocks pixel-reference conformance."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific Playwright proves bounded 50\u2013200% zoom, live-canvas transform, and zero Gateway-command side effects."
         }
       }
     },
@@ -6106,7 +6298,7 @@
       "failure_states": [
         "HOST_UNSUPPORTED"
       ],
-      "note": "",
+      "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -6118,11 +6310,17 @@
         },
         "READ": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No verified production read path satisfies this row yet."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure."
         },
         "COMMAND": {
           "applicable": false,
@@ -6134,43 +6332,73 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "Required operational/failure state is not implemented at the visible control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure."
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure."
         }
       }
     },
@@ -6939,7 +7167,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Effective lock chips are projected from the same governed Inspector descriptor as the Lock tab; combined packaged editor-host browser E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -6987,41 +7215,79 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/locks/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific browser proof renders the effective governed lock on the selected PXG node."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/locks/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/inspector.py",
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/locks/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific browser proof renders the effective governed lock on the selected PXG node."
         }
       }
     },
@@ -7036,7 +7302,7 @@
       "capability": null,
       "permission": "project read",
       "failure_states": [],
-      "note": "",
+      "note": "Effective lock chips are projected from the same governed Inspector descriptor as the Lock tab; combined packaged editor-host browser E2E remains outstanding.",
       "layers": {
         "DOMAIN": {
           "applicable": true,
@@ -7084,41 +7350,79 @@
         },
         "UI": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "The named golden control is not present as a functional React surface."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/locks/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific browser proof renders the effective governed lock on the selected PXG node."
         },
         "WIRED": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No React-to-production binding exists for this control."
+          "status": "BOUND",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/locks/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
         },
         "E2E": {
           "applicable": true,
-          "status": "UNBOUND",
+          "status": "BOUND",
           "implementation_refs": [
+            "engine/studio/inspector.py",
             "engine/studio/locks/service.py",
-            "engine/studio/locks/resolution.py"
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
           ],
           "test_refs": [
-            "tests/unit/test_frontend_mutation_engine.py",
-            "tests/unit/test_frontend_mutation_engine_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
           ],
-          "evidence_refs": [],
-          "note": "No real React workbench end-to-end flow exists for this control."
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "UNBOUND",
-          "implementation_refs": [],
-          "test_refs": [],
-          "evidence_refs": [],
-          "note": "No rendered golden control exists to verify visually. AD-039 also blocks pixel-reference conformance until the approved artifact is supplied."
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "engine/studio/inspector.py",
+            "engine/studio/locks/service.py",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx"
+          ],
+          "test_refs": [
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+          ],
+          "note": "Row-specific browser proof renders the effective governed lock on the selected PXG node."
         }
       }
     },

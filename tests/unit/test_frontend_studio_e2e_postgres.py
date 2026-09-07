@@ -133,6 +133,13 @@ async def test_the_full_governed_frontend_workflow(tmp_path) -> None:
             sync = snapshot_read.json()["sync"]
             assert sync["build_version"] == version("dde")
             assert sync["durable_revision_at"] is not None
+            manager = next(
+                role
+                for role in snapshot_read.json()["orchestrator"]["roles"]
+                if role["role"] == "manager_chair"
+            )
+            assert manager["serving"] is None
+            assert manager["serving_confidence"] == "UNATTESTED"
 
             # 2. Declare what the frontend owes, then compute coverage. The
             #    accessibility obligation needs a critique that has not run,

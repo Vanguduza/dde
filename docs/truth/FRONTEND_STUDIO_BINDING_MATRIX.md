@@ -10,10 +10,10 @@
 
 | Final status | Rows |
 |---|---:|
-| `UNBOUND` | 25 |
-| `TYPED_UNAVAILABLE` | 7 |
-| `BOUND` | 61 |
-| `VERIFIED` | 6 |
+| `UNBOUND` | 16 |
+| `TYPED_UNAVAILABLE` | 8 |
+| `BOUND` | 64 |
+| `VERIFIED` | 11 |
 | **total** | **99** |
 
 Final status is derived. It is never authored independently of the eight layers.
@@ -100,7 +100,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card`
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
 | OR-01 | Orchestrator status | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
-| OR-02 | Manager Chair identity | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
+| OR-02 | Manager Chair identity | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
 | OR-03 | Desired/Configured/Serving split | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `TYPED_UNAVAILABLE` |
 | OR-04 | Design Director role | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 | OR-05 | Activity visualisation | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
@@ -109,7 +109,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#83-orchestrator-card`
 Notes:
 
 - **OR-01** — No orchestrator runtime is wired to the Studio; runtime_state is UNKNOWN rather than a decorative ACTIVE dot.
-- **OR-02** — Manager-chair identity has no backing projection yet; the card shows no name.
+- **OR-02** — Manager Chair serving identity remains deliberately UNATTESTED until ModelServingEvidence exists; the typed unavailable projection is now wired to the visible card.
 - **OR-03** — Blueprint Rev 3 section 5.4 ModelServingEvidence is unimplemented, so serving_confidence is UNATTESTED and desired/configured/serving stay separate and empty.
 - **OR-05** — No frontend activity projection exists; the count is UNKNOWN, not a random waveform.
 - **OR-06** — Role health has no backing projection; the dot renders UNKNOWN.
@@ -120,18 +120,24 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#84-canvas-toolbar`
 
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CT-01 | Viewport selector | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
-| CT-02 | Select tool | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CT-03 | Hand / pan tool | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CT-01 | Viewport selector | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| CT-02 | Select tool | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| CT-03 | Hand / pan tool | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | CT-04 | Comment tool | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CT-05 | Grid / overlay options | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CT-05 | Grid / overlay options | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | CT-06 | Claude /design button | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
-| CT-07 | Zoom control | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `BOUND` | `UNBOUND` | `BOUND` | `BOUND` | `UNBOUND` |
-| CT-08 | Fullscreen / fit | `NOT_APPLICABLE` | `UNBOUND` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CT-07 | Zoom control | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| CT-08 | Fullscreen / fit | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 
 Notes:
 
+- **CT-01** — Viewport changes start a new code-backed preview session. frontend.preview.set_state remains reserved for browser LIVE/RUNTIME_ERROR attestations.
+- **CT-02** — Select is presentation-only editor interaction state; row-specific browser proof shows SELECT restores iframe pointer interaction.
+- **CT-03** — Pan is presentation-only editor interaction state; row-specific browser proof shows PAN disables iframe pointer capture and physically scrolls the canvas.
+- **CT-05** — Grid is presentation-only overlay state. Contract corrected: frontend.preview.set_state is reserved for browser LIVE/RUNTIME_ERROR lifecycle attestation and must not carry grid options.
 - **CT-06** — Closed by a dedicated certified Claude Design transport (engine/studio/design/claude_transport.py): the authenticated Claude Code executable is used only as a bounded structured host for the official claude-design MCP, with an ephemeral allowlist admitting nothing but mcp__claude-design__* (plus ToolSearch and the harness result emitter), no session persistence and a machine-readable manifest contract instead of final prose. The stream is checked against those flags: MCP connection, offered tools, executed tools, permission denials and per-direction write evidence. Activation is explicit (DDE_CLAUDE_DESIGN_ENABLED); an unconfigured deployment still reports NOT_CERTIFIED and the gateway still refuses with no fallback. capability.claude_code_invoke remains forbidden as a substitute. A recorded live run proved provider CERTIFIED, /design through Universal DDE Chat, persisted DesignSession/DesignArtifacts, Try live's isolated candidate, a code-backed preview reaching LIVE only on a matching content hash, and promotion still refused by the verification gate.
+- **CT-07** — Canvas zoom is presentation-only React state; it scales the live preview and selection overlay without issuing Gateway commands or mutating candidate/PXG state.
+- **CT-08** — Fit and Fullscreen are presentation-only host/editor state; browser proof covers fit, real fullscreen, and typed HOST_UNSUPPORTED failure.
 
 ## Real canvas and selection
 
@@ -144,8 +150,8 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#85-real-canvas-and-selection`
 | CV-03 | Route / screen navigation | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-04 | Selection outline | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-05 | Resize handles | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CV-06 | Section lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
-| CV-07 | Style lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
+| CV-06 | Section lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| CV-07 | Style lock chip | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | CV-08 | State simulation controls | `NOT_APPLICABLE` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` | `UNBOUND` |
 
 Notes:
@@ -153,6 +159,8 @@ Notes:
 - **CV-01** — A real code-backed prototype-HTML PreviewRuntimeAdapter and PreviewService now exist. The React workbench still renders the prior honest unavailable Design surface, so UI/WIRED/E2E remain incomplete.
 - **CV-02** — No LIVE badge is rendered because nothing satisfies its five conditions (revision + build + runtime + health + route). DDE-069 M9.
 - **CV-04** — Stable pxg_key instrumentation is implemented in the code-backed prototype preview. DOM geometry remains overlay metadata only; the React selection outline is still unbound.
+- **CV-06** — Effective lock chips are projected from the same governed Inspector descriptor as the Lock tab; combined packaged editor-host browser E2E remains outstanding.
+- **CV-07** — Effective lock chips are projected from the same governed Inspector descriptor as the Lock tab; combined packaged editor-host browser E2E remains outstanding.
 
 ## Frontend Chat composer
 

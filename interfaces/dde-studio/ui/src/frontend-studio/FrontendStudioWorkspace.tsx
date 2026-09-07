@@ -5,6 +5,7 @@ import type {
   DesignDirectionArtifact,
   DesignProviderStatus,
   FrontendStudioSnapshot,
+  InspectorDescriptor,
   PreviewDocument,
   ScreenAuditMatrix,
   ScreenAuditFinding,
@@ -89,6 +90,7 @@ export interface WorkspaceProps {
   readonly promotionBusyCandidateId: string | null;
   readonly promotionError: string | null;
   readonly selection: PreviewSelection | null;
+  readonly inspectorDescriptor: InspectorDescriptor | null;
   readonly onStartPreview: () => void;
   readonly onLoadPreviewDocument: (previewSessionId: string) => Promise<PreviewDocument | null>;
   readonly onTryCandidateLive: (candidateId: string) => void;
@@ -137,12 +139,46 @@ export function FrontendStudioWorkspace({
   promotionBusyCandidateId,
   promotionError,
   selection,
+  inspectorDescriptor,
   onStartPreview,
   onLoadPreviewDocument,
   onTryCandidateLive,
   onPromoteCandidate,
   onPreviewSignal,
 }: WorkspaceProps) {
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [interactionMode, setInteractionMode] = useState<"SELECT" | "PAN">("SELECT");
+  const [gridVisible, setGridVisible] = useState(false);
+  const [fullscreenState, setFullscreenState] = useState<"IDLE" | "FULLSCREEN" | "HOST_UNSUPPORTED" | "ERROR">("IDLE");
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const changeZoom = (delta: number) => {
+    setZoomPercent((current) => Math.min(200, Math.max(50, current + delta)));
+  };
+  const fitCanvas = () => {
+    const available = canvasRef.current?.clientWidth ?? 0;
+    const frameWidth = Number.parseInt(viewport, 10) || 1440;
+    if (!available) return;
+    const next = Math.floor(((available - 2 * 16) / frameWidth) * 100 / 25) * 25;
+    setZoomPercent(Math.min(200, Math.max(50, next)));
+  };
+  const toggleFullscreen = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !document.fullscreenEnabled || typeof canvas.requestFullscreen !== "function") {
+      setFullscreenState("HOST_UNSUPPORTED");
+      return;
+    }
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setFullscreenState("IDLE");
+      } else {
+        await canvas.requestFullscreen();
+        setFullscreenState("FULLSCREEN");
+      }
+    } catch {
+      setFullscreenState("ERROR");
+    }
+  };
   return (
     <div className="dde-workspace-inner" data-mode={mode}>
       <CanvasToolbar
@@ -157,8 +193,23 @@ export function FrontendStudioWorkspace({
         designProviderDetail={designProviderDetail}
         designBusy={designBusy}
         onClaudeDesign={onClaudeDesign}
+        zoomPercent={zoomPercent}
+        onZoomChange={changeZoom}
+        interactionMode={interactionMode}
+        onInteractionModeChange={setInteractionMode}
+        gridVisible={gridVisible}
+        onGridToggle={() => setGridVisible((current) => !current)}
+        onFit={fitCanvas}
+        onFullscreen={() => void toggleFullscreen()}
+        fullscreenState={fullscreenState}
       />
-      <div className="dde-canvas" data-testid="canvas">
+      <div
+        ref={canvasRef}
+        className="dde-canvas"
+        data-testid="canvas"
+        data-grid={gridVisible}
+        data-interaction-mode={interactionMode}
+      >
         {mode === "coverage" ? (
           <CoverageMode snapshot={snapshot} auditMatrix={auditMatrix} />
         ) : mode === "qa" ? (
@@ -195,7 +246,10 @@ export function FrontendStudioWorkspace({
             previewError={previewError}
             previewBusy={previewBusy}
             viewport={viewport}
+            zoomPercent={zoomPercent}
+            interactionMode={interactionMode}
             selection={selection}
+            inspectorDescriptor={inspectorDescriptor}
             onStartPreview={onStartPreview}
             onPreviewSignal={onPreviewSignal}
           />
@@ -525,6 +579,15 @@ function CanvasToolbar({
   designProviderDetail,
   designBusy,
   onClaudeDesign,
+  zoomPercent,
+  onZoomChange,
+  interactionMode,
+  onInteractionModeChange,
+  gridVisible,
+  onGridToggle,
+  onFit,
+  onFullscreen,
+  fullscreenState,
 }: {
   readonly mode: StudioMode;
   readonly viewport: string;
@@ -537,6 +600,15 @@ function CanvasToolbar({
   readonly designProviderDetail: string | null;
   readonly designBusy: boolean;
   readonly onClaudeDesign: () => void;
+  readonly zoomPercent: number;
+  readonly onZoomChange: (delta: number) => void;
+  readonly interactionMode: "SELECT" | "PAN";
+  readonly onInteractionModeChange: (mode: "SELECT" | "PAN") => void;
+  readonly gridVisible: boolean;
+  readonly onGridToggle: () => void;
+  readonly onFit: () => void;
+  readonly onFullscreen: () => void;
+  readonly fullscreenState: "IDLE" | "FULLSCREEN" | "HOST_UNSUPPORTED" | "ERROR";
 }) {
   const designRefusal = claudeDesignRefusal(designProvider, designProviderDetail);
   return (
@@ -582,6 +654,21 @@ function CanvasToolbar({
           {preview.state}
         </span>
       ) : null}
+      <button type="button" className="dde-icon-button" data-testid="select-tool" data-active={interactionMode === "SELECT"} aria-pressed={interactionMode === "SELECT"} aria-label="Select tool" onClick={() => onInteractionModeChange("SELECT")}>⌖</button>
+      <button type="button" className="dde-icon-button" data-testid="pan-tool" data-active={interactionMode === "PAN"} aria-pressed={interactionMode === "PAN"} aria-label="Pan tool" onClick={() => onInteractionModeChange("PAN")}>✋</button>
+      <button type="button" className="dde-icon-button" data-testid="grid-toggle" data-active={gridVisible} aria-pressed={gridVisible} aria-label="Grid overlay" onClick={onGridToggle}>#</button>
+      <button type="button" className="dde-icon-button" data-testid="fit-canvas" aria-label="Fit canvas" onClick={onFit}>↔</button>
+      <button
+        type="button"
+        className="dde-icon-button"
+        data-testid="fullscreen-canvas"
+        data-state={fullscreenState}
+        aria-label="Fullscreen canvas"
+        title={fullscreenState === "HOST_UNSUPPORTED" ? "Fullscreen unavailable in this host" : fullscreenState === "ERROR" ? "Fullscreen request failed" : undefined}
+        onClick={onFullscreen}
+      >
+        ⛶
+      </button>
       <span className="dde-toolbar-spacer" />
       <button
         type="button"
@@ -605,9 +692,11 @@ function CanvasToolbar({
       >
         Claude /design
       </button>
-      <span className="dde-zoom" data-testid="zoom">
-        100%
-      </span>
+      <div className="dde-zoom-stepper" role="group" aria-label="Canvas zoom">
+        <button type="button" className="dde-icon-button" aria-label="Zoom out" onClick={() => onZoomChange(-25)} disabled={zoomPercent <= 50}>−</button>
+        <output className="dde-zoom" data-testid="zoom" aria-live="polite">{zoomPercent}%</output>
+        <button type="button" className="dde-icon-button" aria-label="Zoom in" onClick={() => onZoomChange(25)} disabled={zoomPercent >= 200}>+</button>
+      </div>
       <span className="dde-muted dde-mode-label">{mode}</span>
     </div>
   );
@@ -627,7 +716,10 @@ function DesignMode({
   previewError,
   previewBusy,
   viewport,
+  zoomPercent,
+  interactionMode,
   selection,
+  inspectorDescriptor,
   onStartPreview,
   onPreviewSignal,
 }: {
@@ -644,7 +736,10 @@ function DesignMode({
   readonly previewError: string | null;
   readonly previewBusy: boolean;
   readonly viewport: string;
+  readonly zoomPercent: number;
+  readonly interactionMode: "SELECT" | "PAN";
   readonly selection: PreviewSelection | null;
+  readonly inspectorDescriptor: InspectorDescriptor | null;
   readonly onStartPreview: () => void;
   readonly onPreviewSignal: (signal: PreviewRuntimeSignal) => void;
 }) {
@@ -688,7 +783,7 @@ function DesignMode({
     );
   } else {
     stage = (
-      <LivePreview preview={preview} viewport={viewport} selection={selection} onSignal={onPreviewSignal} />
+      <LivePreview preview={preview} viewport={viewport} zoomPercent={zoomPercent} interactionMode={interactionMode} selection={selection} inspectorDescriptor={inspectorDescriptor} onSignal={onPreviewSignal} />
     );
   }
 
@@ -776,15 +871,22 @@ function SourceWorkspacePicker({
 function LivePreview({
   preview,
   viewport,
+  zoomPercent,
+  interactionMode,
   selection,
+  inspectorDescriptor,
   onSignal,
 }: {
   readonly preview: PreviewDocument;
   readonly viewport: string;
+  readonly zoomPercent: number;
+  readonly interactionMode: "SELECT" | "PAN";
   readonly selection: PreviewSelection | null;
+  readonly inspectorDescriptor: InspectorDescriptor | null;
   readonly onSignal: (signal: PreviewRuntimeSignal) => void;
 }) {
   const frame = useRef<HTMLIFrameElement | null>(null);
+  const panStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   useEffect(() => {
     const receive = (event: MessageEvent<unknown>) => {
       if (event.source !== frame.current?.contentWindow) return;
@@ -831,16 +933,42 @@ function LivePreview({
 
   const frameWidth = Number.parseInt(viewport, 10) || 1440;
   return (
-    <div className="dde-preview-stage" data-testid="live-preview-surface">
+    <div
+      className="dde-preview-stage"
+      data-testid="live-preview-surface"
+      data-interaction-mode={interactionMode}
+      onPointerDown={(event) => {
+        if (interactionMode !== "PAN") return;
+        const canvas = event.currentTarget.closest(".dde-canvas") as HTMLElement | null;
+        if (!canvas) return;
+        panStart.current = { x: event.clientX, y: event.clientY, left: canvas.scrollLeft, top: canvas.scrollTop };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (interactionMode !== "PAN" || !panStart.current) return;
+        const canvas = event.currentTarget.closest(".dde-canvas") as HTMLElement | null;
+        if (!canvas) return;
+        canvas.scrollLeft = panStart.current.left - (event.clientX - panStart.current.x);
+        canvas.scrollTop = panStart.current.top - (event.clientY - panStart.current.y);
+      }}
+      onPointerUp={() => { panStart.current = null; }}
+      onPointerCancel={() => { panStart.current = null; }}
+    >
+      <div
+        className="dde-preview-scale-shell"
+        data-testid="preview-scale-shell"
+        style={{ width: `${frameWidth * (zoomPercent / 100)}px`, minHeight: `${520 * (zoomPercent / 100)}px` }}
+      >
       <div
         className="dde-preview-frame-wrap"
-        style={{ width: `${frameWidth}px` }}
+        style={{ width: `${frameWidth}px`, transform: `scale(${zoomPercent / 100})`, transformOrigin: "top left" }}
         data-preview-state={preview.state}
       >
         <iframe
           ref={frame}
           key={preview.previewSessionId}
           className="dde-preview-frame"
+          style={{ pointerEvents: interactionMode === "PAN" ? "none" : "auto" }}
           title={`Candidate preview ${preview.screenKey}`}
           sandbox="allow-scripts"
           srcDoc={preview.content}
@@ -858,6 +986,17 @@ function LivePreview({
             }}
           />
         ) : null}
+        {selection && inspectorDescriptor?.pxgKey === selection.pxgKey ? (
+          <div
+            className="dde-selection-lock-chips"
+            style={{ left: selection.geometry.x, top: selection.geometry.y }}
+            aria-label="Effective selection locks"
+          >
+            {inspectorDescriptor.locks.some((lock) => lock.lockKind === "SECTION") ? <span className="dde-chip" data-testid="selection-section-lock">SECTION LOCK</span> : null}
+            {inspectorDescriptor.locks.some((lock) => lock.lockKind === "STYLE") ? <span className="dde-chip" data-testid="selection-style-lock">STYLE LOCK</span> : null}
+          </div>
+        ) : null}
+      </div>
       </div>
     </div>
   );

@@ -881,6 +881,6 @@ Latest continuation state after reconstructing `0a39299`:
 1. M8 checkpoint gates were re-run: 49 focused Python tests, 41 workbench Playwright tests, 77 extension tests and real 89-file / 1.57 MB VSIX packaging are green;
 2. `tests/unit/test_source_intelligence_postgres.py` now executes against isolated PostgreSQL 16.15 and passes; the broader DDE-069 PostgreSQL/Redis focused suite is 34/34 green;
 3. public read-only registry adapters for shadcn/ui, ReUI, Magic UI and Aceternity UI have a live fetch/hash certification; 21st remains optional NOT_CONFIGURED;
-4. the current 99-control ledger is **6 VERIFIED / 61 BOUND / 7 TYPED_UNAVAILABLE / 25 UNBOUND**;
+4. the current 99-control ledger is **11 VERIFIED / 64 BOUND / 8 TYPED_UNAVAILABLE / 16 UNBOUND**;
 5. Candidate Dock, Inspector and CA-07 UI/VISUAL closure are landed; `CA-07` remains BOUND only on the combined packaged VS Code-host → real Gateway → PostgreSQL browser proof. The same shell reconciliation now projects EX-16..EX-19 per-kind lock counts, EX-20/EX-21 Screen-Audit-backed QA counts, an honest typed-unavailable EX-22 accessibility count, TB-03 durable saved time, ST-06 build/PXG provenance, and a real ST-01 selection breadcrumb; do not rebuild these surfaces;
 6. AD-039 remains fail-closed until the exact recovered hash-identified artifact is committed; `/design` transport certification is closed but strict materialization live proof must be rerun.

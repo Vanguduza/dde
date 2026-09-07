@@ -49,6 +49,97 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     await expect(page.getByTestId("build-version")).toHaveText("dde-studio test · PXG r4");
   });
 
+  test("canvas viewport selector restarts the code-backed preview at the selected viewport", async ({ page }) => {
+    const selector = page.getByTestId("viewport-select");
+    await selector.selectOption("390");
+    await expect(selector).toHaveValue("390");
+    await expect(page.getByTestId("preview-badge")).toHaveText("LIVE");
+    await expect(page.locator(".dde-preview-frame-wrap")).toHaveAttribute(
+      "style",
+      /width: 390px/,
+    );
+    const parameters = await page.evaluate(() => {
+      const bridge = (window as unknown as {
+        __ddeTestBridge: {
+          sentCommands: Array<{ commandType: string; parameters: Record<string, unknown> }>;
+        };
+      }).__ddeTestBridge;
+      return bridge.sentCommands
+        .filter((command) => command.commandType === "frontend.preview.start")
+        .at(-1)?.parameters;
+    });
+    expect(parameters?.viewport).toBe("390");
+  });
+
+  test("canvas zoom scales the live preview without mutating preview or candidate state", async ({ page }) => {
+    const zoom = page.getByTestId("zoom");
+    await expect(zoom).toHaveText("100%");
+    await expect(page.getByTestId("candidate-verification-00000000-0000-0000-0000-000000000020")).toHaveText("VERIFY PASSED");
+    const before = await page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: unknown[] } }).__ddeTestBridge.sentCommands.length);
+    await page.getByRole("button", { name: "Zoom out" }).click();
+    await expect(zoom).toHaveText("75%");
+    await expect(page.locator(".dde-preview-frame-wrap")).toHaveAttribute("style", /scale\(0.75\)/);
+    const after = await page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: unknown[] } }).__ddeTestBridge.sentCommands.length);
+    expect(after).toBe(before);
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await expect(zoom).toHaveText("100%");
+  });
+
+  test("Select and Pan tools switch real canvas interaction and pan the overflow surface", async ({ page }) => {
+    const canvas = page.getByTestId("canvas");
+    const select = page.getByTestId("select-tool");
+    const pan = page.getByTestId("pan-tool");
+    await expect(select).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".dde-preview-frame")).toHaveCSS("pointer-events", "auto");
+    await pan.click();
+    await expect(pan).toHaveAttribute("aria-pressed", "true");
+    await expect(canvas).toHaveAttribute("data-interaction-mode", "PAN");
+    await expect(page.locator(".dde-preview-frame")).toHaveCSS("pointer-events", "none");
+    await canvas.evaluate((element) => { element.scrollLeft = 80; });
+    const stage = page.getByTestId("live-preview-surface");
+    const box = await stage.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      await page.mouse.move(box.x + 300, box.y + 200);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 200, box.y + 200);
+      await page.mouse.up();
+    }
+    expect(await canvas.evaluate((element) => element.scrollLeft)).toBeGreaterThan(80);
+    await select.click();
+    await expect(canvas).toHaveAttribute("data-interaction-mode", "SELECT");
+  });
+
+  test("Grid and Fit are presentation-only canvas controls with no Gateway side effects", async ({ page }) => {
+    await expect(page.getByTestId("candidate-verification-00000000-0000-0000-0000-000000000020")).toHaveText("VERIFY PASSED");
+    const commandCount = async () => page.evaluate(() => (window as unknown as { __ddeTestBridge: { sentCommands: unknown[] } }).__ddeTestBridge.sentCommands.length);
+    const before = await commandCount();
+    const canvas = page.getByTestId("canvas");
+    await page.getByTestId("grid-toggle").click();
+    await expect(canvas).toHaveAttribute("data-grid", "true");
+    expect(await canvas.evaluate((element) => getComputedStyle(element).backgroundImage)).not.toBe("none");
+    await page.getByTestId("fit-canvas").click();
+    await expect(page.getByTestId("zoom")).not.toHaveText("100%");
+    expect(await commandCount()).toBe(before);
+  });
+
+  test("Fullscreen reports host support state instead of becoming a dead control", async ({ page }) => {
+    const fullscreen = page.getByTestId("fullscreen-canvas");
+    await expect(fullscreen).toHaveAttribute("data-state", "IDLE");
+    await fullscreen.click();
+    await expect(fullscreen).not.toHaveAttribute("data-state", "IDLE");
+    const state = await fullscreen.getAttribute("data-state");
+    expect(["FULLSCREEN", "HOST_UNSUPPORTED", "ERROR"]).toContain(state);
+  });
+
+  test("Fullscreen exposes HOST_UNSUPPORTED when the editor host lacks the API", async ({ page }) => {
+    await page.evaluate(() => { Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: false }); });
+    const fullscreen = page.getByTestId("fullscreen-canvas");
+    await fullscreen.click();
+    await expect(fullscreen).toHaveAttribute("data-state", "HOST_UNSUPPORTED");
+    expect(await fullscreen.getAttribute("title")).toContain("unavailable");
+  });
+
   test("browser handshake is required before LIVE is shown", async ({ page }) => {
     const badge = page.getByTestId("preview-badge");
     await expect(badge).toBeVisible();
@@ -129,6 +220,17 @@ test.describe("DDE-069 code-backed workbench loop", () => {
     );
     await expect(page.getByTestId("inspector-audit")).toContainText("PARTIAL");
     await expect(page.getByTestId("inspector-audit")).toContainText("2 unresolved finding");
+  });
+
+  test("effective Section and Style locks render as chips on the selected canvas node", async ({ page }) => {
+    const hero = page.frameLocator('iframe[title^="Candidate preview"]').locator('[data-dde-pxg-key="screens/checkout#hero"]');
+    await hero.click();
+    await expect(page.getByTestId("selection-outline")).toBeVisible();
+    await page.getByTestId("inspector-tab-lock").click();
+    await page.getByTestId("create-section-lock").click();
+    await expect(page.getByTestId("selection-section-lock")).toHaveText("SECTION LOCK");
+    await page.getByTestId("create-style-lock").click();
+    await expect(page.getByTestId("selection-style-lock")).toHaveText("STYLE LOCK");
   });
 
   test("View source resolves the descriptor source through the host bridge", async ({ page }) => {

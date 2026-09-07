@@ -1041,7 +1041,7 @@ export function DdeStudioApp({
     ],
   );
 
-  const changeInspectorViewport = useCallback(async (nextViewport: string) => {
+  const changePreviewViewport = useCallback(async (nextViewport: string) => {
     setViewport(nextViewport);
     if (activeCandidateId && screenKey) {
       await startPreview(nextViewport);
@@ -1346,7 +1346,7 @@ export function DdeStudioApp({
               void sourceArtifactAction(action, artifactId)
             }
             viewport={viewport}
-            onViewportChange={setViewport}
+            onViewportChange={(value) => void changePreviewViewport(value)}
             screenKey={screenKey}
             onScreenChange={(value) => {
               setScreenKey(value || null);
@@ -1376,6 +1376,7 @@ export function DdeStudioApp({
             promotionBusyCandidateId={promotionBusyCandidateId}
             promotionError={promotionError}
             selection={selection}
+            inspectorDescriptor={descriptor}
             onStartPreview={() => void startPreview()}
             onLoadPreviewDocument={readPreviewDocument}
             onTryCandidateLive={(candidateId) => void tryCandidateLive(candidateId)}
@@ -1417,7 +1418,7 @@ export function DdeStudioApp({
           onApply={(propertyName, value) =>
             void applyInspectorProperty(propertyName, value)
           }
-          onViewportChange={(nextViewport) => void changeInspectorViewport(nextViewport)}
+          onViewportChange={(nextViewport) => void changePreviewViewport(nextViewport)}
           onCreateLock={(kind) => void createInspectorLock(kind)}
           onReleaseLock={(lockId) => void releaseInspectorLock(lockId)}
         />

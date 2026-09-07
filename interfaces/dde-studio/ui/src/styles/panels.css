@@ -1347,3 +1347,33 @@ button.dde-chat-chip,
   border-radius: var(--dde-radius-sm);
   background: var(--dde-surface-muted);
 }
+
+.dde-icon-button[data-active="true"] {
+  background: var(--dde-primary-soft);
+  color: var(--dde-primary-strong);
+  border-color: color-mix(in srgb, var(--dde-primary) 30%, var(--dde-border));
+}
+
+.dde-canvas[data-grid="true"] {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--dde-border) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--dde-border) 55%, transparent) 1px, transparent 1px);
+  background-size: calc(var(--dde-gutter) * 2) calc(var(--dde-gutter) * 2);
+}
+
+.dde-preview-stage[data-interaction-mode="PAN"] {
+  cursor: grab;
+}
+
+.dde-preview-stage[data-interaction-mode="PAN"]:active {
+  cursor: grabbing;
+}
+
+.dde-selection-lock-chips {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  gap: var(--dde-gap-normal);
+  transform: translateY(calc(-100% - var(--dde-gap-normal)));
+  pointer-events: none;
+}

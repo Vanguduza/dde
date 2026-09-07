@@ -84,3 +84,21 @@ Evidence from the uninterrupted run:
 - full Playwright structural/functional visual suite: 61/61.
 
 The desktop install still reports 15 npm audit findings (1 moderate, 13 high, 1 critical); this remains open hardening debt and is not hidden by the green functional gate. The current binding projection is 6 VERIFIED / 61 BOUND / 7 TYPED_UNAVAILABLE / 25 UNBOUND.
+## Viewport and manager-chair reconciliation
+
+`CT-01` had a contract error in the old ledger: `frontend.preview.set_state` is browser attestation only and accepts LIVE or RUNTIME_ERROR. Viewport selection must not use that command. The canonical Canvas and Inspector viewport controls now share one handler that starts a new code-backed `frontend.preview.start` session for the selected viewport, then follows the ordinary browser hash/LIVE/verification path.
+
+Playwright proves selecting Mobile 390 sends `frontend.preview.start` with viewport `390`, renders a 390 px preview frame and returns to LIVE. The focused live-loop suite is 16/16 green.
+
+`OR-02` was stale evidence rather than missing UI. The real Gateway snapshot carries the Manager Chair role to the React Orchestrator card. A fresh PostgreSQL Gateway E2E now asserts serving identity remains null with confidence `UNATTESTED`; no configured/desired model is laundered into a serving claim.
+
+Focused matrix/dogfood verification and the fresh Gateway/PostgreSQL E2E are green. Current ledger: 6 VERIFIED / 62 BOUND / 8 TYPED_UNAVAILABLE / 23 UNBOUND.
+## Canvas interaction and lock-chip tranche
+
+`CT-02`, `CT-03`, `CT-05`, `CT-07` and `CT-08` now use real editor presentation state rather than static controls. Select and Pan alter iframe interaction; Pan moves the overflow surface; Grid is a local canvas overlay; Fit computes bounded zoom; Zoom is bounded to 50–200%; Fullscreen uses the host Fullscreen API and reports `HOST_UNSUPPORTED`/error explicitly. None of these presentation controls fabricates candidate/PXG mutations or reuses preview lifecycle attestation as an editor-state command.
+
+Playwright proves these controls through the code-backed live canvas, including a zero-Gateway-command invariant for Grid/Fit/Zoom and deterministic unsupported-host Fullscreen evidence. The focused live-loop suite reached **21/21 green** for this tranche.
+
+`CV-06` Section Lock and `CV-07` Style Lock chips now render on the selected canvas element from the existing authoritative Inspector descriptor after ordinary governed lock creation. No duplicate lock authority was added. The live-loop suite reached **22/22 green** with both chips. These two rows remain `BOUND`, not final `VERIFIED`, because the combined packaged editor-host → real Gateway → PostgreSQL browser execution remains unavailable on this host.
+
+Current 99-control ledger: **11 VERIFIED / 64 BOUND / 8 TYPED_UNAVAILABLE / 16 UNBOUND**.
