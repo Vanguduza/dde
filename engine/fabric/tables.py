@@ -349,8 +349,8 @@ ai_claims = Table(
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
 )
 
-experience_records = Table(
-    "experience_records",
+execution_experience_records = Table(
+    "execution_experience_records",
     metadata,
     Column("experience_id", Uuid(as_uuid=True), primary_key=True),
     Column("tenant_id", Uuid(as_uuid=True), nullable=False),

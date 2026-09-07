@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/execution_experience_record.json",
+  "title": "ExecutionExperienceRecord",
+  "description": "Blueprint §6.3 DDE execution-experience record for full worker-configuration history; this is distinct from the Chapter 6.8 routing-learning ExperienceRecord so both authoritative capabilities remain preserved.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "execution_experience_records",
+    "order": 334,
+    "pk": [
+      "experience_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [],
+    "foreign_keys": [
+      {
+        "name": "execution_experience_records_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "execution_experience_records_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "execution_experience_records_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "execution_experience_records_task_id_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "execution_experience_records_worker_run_id_fkey",
+        "columns": [
+          "worker_run_id"
+        ],
+        "ref_table": "worker_runs",
+        "ref_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "name": "execution_experience_records_worker_session_id_fkey",
+        "columns": [
+          "worker_session_id"
+        ],
+        "ref_table": "worker_sessions",
+        "ref_columns": [
+          "worker_session_id"
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "required": [
+    "experience_id",
+    "tenant_id",
+    "project_id",
+    "task_signature",
+    "worker_configuration",
+    "outcome",
+    "economics",
+    "failure_signatures",
+    "verification_refs",
+    "authority_refs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "experience_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_signature": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "worker_configuration": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "economics": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "failure_signatures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authority_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

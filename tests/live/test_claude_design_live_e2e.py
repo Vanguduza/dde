@@ -348,7 +348,9 @@ async def test_claude_design_reaches_live_and_still_faces_the_promotion_gate(
             )
             assert directions_read.status_code == 200, directions_read.text
             persisted_directions = directions_read.json()["artifacts"]
-            assert persisted_directions, "the workbench design-artifact read returned no rows"
+            assert persisted_directions, (
+                "the workbench design-artifact read returned no rows"
+            )
 
             artifacts = await DesignGateway(engine).artifacts_for(
                 **scope, session_id=design_session_id

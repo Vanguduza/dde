@@ -486,6 +486,43 @@ CREATE TABLE routing_simulation_runs (
     PRIMARY KEY (run_id)
 );
 
+CREATE TABLE experience_records (
+    experience_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    task_id uuid,
+    route_decision_id uuid,
+    task_attempt_id uuid,
+    verification_run_id uuid,
+    routing_simulation_run_id uuid,
+    outcome_id uuid,
+    experience_origin text NOT NULL,
+    routing_policy_version text NOT NULL,
+    candidate_set_hash text NOT NULL,
+    selection_propensity numeric NOT NULL,
+    prediction_vector jsonb NOT NULL DEFAULT '{}'::jsonb,
+    observed_outcome_vector jsonb NOT NULL DEFAULT '{}'::jsonb,
+    verification_confidence numeric NOT NULL,
+    failure_attribution text NOT NULL,
+    attribution_confidence numeric NOT NULL,
+    holdout_partition text NOT NULL,
+    promotion_evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    drift_snapshot_id uuid,
+    learning_run_id uuid,
+    eligible_for_routing_training boolean NOT NULL,
+    eligibility_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
+    down_weighted boolean NOT NULL,
+    promotion_state text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (experience_id),
+    UNIQUE (verification_run_id),
+    UNIQUE (routing_simulation_run_id),
+    CHECK ((experience_origin <> 'simulation' OR eligible_for_routing_training = false)),
+    CHECK (((experience_origin = 'real' AND verification_run_id IS NOT NULL) OR (experience_origin = 'simulation' AND routing_simulation_run_id IS NOT NULL)))
+);
+
 CREATE TABLE learned_routing_policies (
     policy_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
@@ -2297,7 +2334,7 @@ CREATE TABLE ai_claims (
     PRIMARY KEY (claim_id)
 );
 
-CREATE TABLE experience_records (
+CREATE TABLE execution_experience_records (
     experience_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
     project_id uuid NOT NULL,
@@ -2617,6 +2654,13 @@ ALTER TABLE routing_decision_outcomes ADD CONSTRAINT routing_decision_outcomes_f
 
 ALTER TABLE routing_simulation_runs ADD CONSTRAINT routing_simulation_runs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE routing_simulation_runs ADD CONSTRAINT routing_simulation_runs_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_route_decision_id_fkey FOREIGN KEY (route_decision_id) REFERENCES route_decisions (decision_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_verification_run_id_fkey FOREIGN KEY (verification_run_id) REFERENCES verification_runs (verification_run_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_routing_simulation_run_id_fkey FOREIGN KEY (routing_simulation_run_id) REFERENCES routing_simulation_runs (run_id);
+ALTER TABLE experience_records ADD CONSTRAINT experience_records_outcome_id_fkey FOREIGN KEY (outcome_id) REFERENCES routing_decision_outcomes (outcome_id);
 
 ALTER TABLE learned_routing_policies ADD CONSTRAINT learned_routing_policies_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE learned_routing_policies ADD CONSTRAINT learned_routing_policies_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -3031,12 +3075,12 @@ ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_project_id_fkey FOREIGN KEY (proj
 ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES frontend_conversations (conversation_id);
 ALTER TABLE ai_claims ADD CONSTRAINT ai_claims_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES frontend_conversation_turns (turn_id);
 
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
-ALTER TABLE experience_records ADD CONSTRAINT experience_records_worker_session_id_fkey FOREIGN KEY (worker_session_id) REFERENCES worker_sessions (worker_session_id);
+ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_worker_session_id_fkey FOREIGN KEY (worker_session_id) REFERENCES worker_sessions (worker_session_id);
 
 ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE routing_insight_candidates ADD CONSTRAINT routing_insight_candidates_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -3182,6 +3226,10 @@ CREATE POLICY routing_decision_outcomes_tenant_isolation ON routing_decision_out
 ALTER TABLE routing_simulation_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routing_simulation_runs FORCE ROW LEVEL SECURITY;
 CREATE POLICY routing_simulation_runs_tenant_isolation ON routing_simulation_runs USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE experience_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE experience_records FORCE ROW LEVEL SECURITY;
+CREATE POLICY experience_records_tenant_isolation ON experience_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE learned_routing_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learned_routing_policies FORCE ROW LEVEL SECURITY;
@@ -3499,9 +3547,9 @@ ALTER TABLE ai_claims ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_claims FORCE ROW LEVEL SECURITY;
 CREATE POLICY ai_claims_tenant_isolation ON ai_claims USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
-ALTER TABLE experience_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE experience_records FORCE ROW LEVEL SECURITY;
-CREATE POLICY experience_records_tenant_isolation ON experience_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+ALTER TABLE execution_experience_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE execution_experience_records FORCE ROW LEVEL SECURITY;
+CREATE POLICY execution_experience_records_tenant_isolation ON execution_experience_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
 
 ALTER TABLE routing_insight_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE routing_insight_candidates FORCE ROW LEVEL SECURITY;

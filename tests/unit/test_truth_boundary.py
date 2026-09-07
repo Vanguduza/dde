@@ -83,6 +83,7 @@ DDE-023 adds `checkpoints`, owned by `engine.recovery` (Chapter 3.6:
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -119,17 +120,73 @@ TABLE_OWNERS = {
 }
 
 
-def test_only_the_owning_module_mentions_its_table_writes() -> None:
+_SQL_WRITE = re.compile(
+    r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+([a-z_][a-z0-9_]*)",
+    re.IGNORECASE,
+)
+_WRITE_CALLS = frozenset({"insert", "update", "delete"})
+
+
+def _imported_table_aliases(tree: ast.Module) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.ImportFrom) or not node.module:
+            continue
+        if not node.module.endswith(".tables"):
+            continue
+        for imported in node.names:
+            if imported.name in TABLE_OWNERS:
+                aliases[imported.asname or imported.name] = imported.name
+    return aliases
+
+
+def _table_name(expr: ast.expr, aliases: dict[str, str]) -> str | None:
+    if isinstance(expr, ast.Name):
+        if expr.id in aliases:
+            return aliases[expr.id]
+        if expr.id in TABLE_OWNERS:
+            return expr.id
+    return None
+
+
+def _call_name(func: ast.expr) -> str | None:
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
+def test_only_the_owning_module_writes_its_tables() -> None:
     offenders: list[str] = []
     for path in (ROOT / "engine").rglob("*.py"):
         if "contracts" in path.parts:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
+        aliases = _imported_table_aliases(tree)
         for node in ast.walk(tree):
-            if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+            if not isinstance(node, ast.Call):
                 continue
-            owner = TABLE_OWNERS.get(node.value)
-            if owner is None or owner in path.parts:
+            call_name = _call_name(node.func)
+            table: str | None = None
+            if call_name in _WRITE_CALLS:
+                if isinstance(node.func, ast.Attribute):
+                    table = _table_name(node.func.value, aliases)
+                elif node.args:
+                    table = _table_name(node.args[0], aliases)
+            if table is not None:
+                owner = TABLE_OWNERS[table]
+                if owner not in path.parts:
+                    offenders.append(f"{path}:{table}:{call_name}")
+
+            if call_name != "text" or not node.args:
                 continue
-            offenders.append(f"{path}:{node.value}")
+            sql = node.args[0]
+            if not isinstance(sql, ast.Constant) or not isinstance(sql.value, str):
+                continue
+            for match in _SQL_WRITE.finditer(sql.value):
+                table = match.group(1).lower()
+                owner = TABLE_OWNERS.get(table)
+                if owner is not None and owner not in path.parts:
+                    offenders.append(f"{path}:{table}:sql")
     assert offenders == []

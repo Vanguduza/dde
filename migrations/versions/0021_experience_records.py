@@ -10,6 +10,7 @@ exists.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from alembic import op
@@ -39,7 +40,11 @@ def _statements() -> list[str]:
             buf = []
     if buf:
         statements.append("\n".join(buf).rstrip().rstrip(";"))
-    return [item for item in statements if any(name in item for name in _TABLES)]
+    return [
+        item
+        for item in statements
+        if any(re.search(rf"\b{re.escape(name)}\b", item) for name in _TABLES)
+    ]
 
 
 def upgrade() -> None:

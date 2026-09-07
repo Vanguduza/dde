@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.contracts.frontend_mutation import FrontendMutation, Preconditions
+from engine.fabric.lifecycle import FabricLifecycleService
 from engine.studio.candidates.lifecycle import CandidateState
 from engine.studio.mutations.executor import MutationExecutor, MutationOutcome
 from engine.studio.mutations.governed import GovernedMutationService
@@ -85,6 +86,15 @@ class _Requests:
         return (self.request_id,)
 
 
+class _Lifecycle:
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+    async def emit(self, *, event_kind: str, **_: object) -> object:
+        self.events.append(event_kind)
+        return object()
+
+
 def _service(
     executor: _Executor, previews: _Previews, requests: _Requests
 ) -> GovernedMutationService:
@@ -93,6 +103,7 @@ def _service(
         executor=cast(MutationExecutor, executor),
         previews=cast(PreviewService, previews),
         verification_requests=cast(CandidateVerificationRequestService, requests),
+        lifecycle=cast(FabricLifecycleService, _Lifecycle()),
     )
 
 

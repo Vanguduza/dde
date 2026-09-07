@@ -99,6 +99,17 @@ class _Runner:
         return self.run
 
 
+class _Lifecycle:
+    def __init__(self) -> None:
+        self.events: list[tuple[str, dict[str, object]]] = []
+
+    async def emit(
+        self, *, event_kind: str, context: dict[str, object], **_: object
+    ) -> object:
+        self.events.append((event_kind, context))
+        return object()
+
+
 def _request(
     *, tenant: UUID, project: UUID, mission: UUID, candidate: UUID
 ) -> FrontendVerificationRequest:
@@ -272,6 +283,7 @@ class _Service(CandidateVerificationExecutionService):
         context: _ExecutionContext,
         runner: _Runner,
     ):
+        self.lifecycle = _Lifecycle()
         super().__init__(
             None,  # type: ignore[arg-type]
             requests=requests,  # type: ignore[arg-type]
@@ -282,6 +294,7 @@ class _Service(CandidateVerificationExecutionService):
             attempts=object(),  # type: ignore[arg-type]
             leases=object(),  # type: ignore[arg-type]
             runner_factory=lambda *args, **kwargs: runner,  # type: ignore[arg-type]
+            lifecycle=self.lifecycle,  # type: ignore[arg-type]
         )
         self.context = context
 

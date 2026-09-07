@@ -483,9 +483,7 @@ async def test_a_direction_with_an_unknown_design_property_is_refused(
 ) -> None:
     request = _request()
     manifest = _manifest(request)
-    manifest["directions"][0]["nodes"][0]["tokens"] = {
-        "background": "--surface-card"
-    }
+    manifest["directions"][0]["nodes"][0]["tokens"] = {"background": "--surface-card"}
     with pytest.raises(DdeError) as excinfo:
         await _transport(FakeHost(generate=(0, _stream(manifest)))).generate(request)
     assert excinfo.value.error_code == "PROVIDER_ERROR"

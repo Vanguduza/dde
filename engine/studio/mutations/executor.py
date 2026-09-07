@@ -241,7 +241,7 @@ class MutationExecutor:
                 )
                 refused_rows.append(record)
 
-            for accepted in (() if suppress_planned else computed.planned):
+            for accepted in () if suppress_planned else computed.planned:
                 sequence += 1
                 record = _row(
                     tenant_id=tenant_id,

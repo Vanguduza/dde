@@ -111,7 +111,7 @@ def upgrade() -> None:
     )
     op.execute(
         text(
-            "CREATE TABLE experience_records (\n    experience_id uuid NOT NULL,\n    tenant_id uuid NOT NULL,\n    project_id uuid NOT NULL,\n    mission_id uuid,\n    task_id uuid,\n    worker_run_id uuid,\n    worker_session_id uuid,\n    task_signature jsonb NOT NULL DEFAULT '{}'::jsonb,\n    worker_configuration jsonb NOT NULL DEFAULT '{}'::jsonb,\n    outcome jsonb NOT NULL DEFAULT '{}'::jsonb,\n    economics jsonb NOT NULL DEFAULT '{}'::jsonb,\n    failure_signatures jsonb NOT NULL DEFAULT '[]'::jsonb,\n    verification_refs jsonb NOT NULL DEFAULT '[]'::jsonb,\n    authority_refs jsonb NOT NULL DEFAULT '[]'::jsonb,\n    created_at timestamptz NOT NULL,\n    updated_at timestamptz NOT NULL,\n    PRIMARY KEY (experience_id)\n);"
+            "CREATE TABLE execution_experience_records (\n    experience_id uuid NOT NULL,\n    tenant_id uuid NOT NULL,\n    project_id uuid NOT NULL,\n    mission_id uuid,\n    task_id uuid,\n    worker_run_id uuid,\n    worker_session_id uuid,\n    task_signature jsonb NOT NULL DEFAULT '{}'::jsonb,\n    worker_configuration jsonb NOT NULL DEFAULT '{}'::jsonb,\n    outcome jsonb NOT NULL DEFAULT '{}'::jsonb,\n    economics jsonb NOT NULL DEFAULT '{}'::jsonb,\n    failure_signatures jsonb NOT NULL DEFAULT '[]'::jsonb,\n    verification_refs jsonb NOT NULL DEFAULT '[]'::jsonb,\n    authority_refs jsonb NOT NULL DEFAULT '[]'::jsonb,\n    created_at timestamptz NOT NULL,\n    updated_at timestamptz NOT NULL,\n    PRIMARY KEY (experience_id)\n);"
         )
     )
     op.execute(
@@ -421,32 +421,32 @@ def upgrade() -> None:
     )
     op.execute(
         text(
-            "ALTER TABLE experience_records ADD CONSTRAINT experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);"
+            "ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);"
         )
     )
     op.execute(
         text(
-            "ALTER TABLE experience_records ADD CONSTRAINT experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);"
+            "ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);"
         )
     )
     op.execute(
         text(
-            "ALTER TABLE experience_records ADD CONSTRAINT experience_records_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);"
+            "ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);"
         )
     )
     op.execute(
         text(
-            "ALTER TABLE experience_records ADD CONSTRAINT experience_records_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);"
+            "ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_task_id_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);"
         )
     )
     op.execute(
         text(
-            "ALTER TABLE experience_records ADD CONSTRAINT experience_records_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);"
+            "ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_worker_run_id_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);"
         )
     )
     op.execute(
         text(
-            "ALTER TABLE experience_records ADD CONSTRAINT experience_records_worker_session_id_fkey FOREIGN KEY (worker_session_id) REFERENCES worker_sessions (worker_session_id);"
+            "ALTER TABLE execution_experience_records ADD CONSTRAINT execution_experience_records_worker_session_id_fkey FOREIGN KEY (worker_session_id) REFERENCES worker_sessions (worker_session_id);"
         )
     )
     op.execute(
@@ -535,7 +535,7 @@ def upgrade() -> None:
     _rls("ai_automations")
     _rls("ai_hooks")
     _rls("ai_claims")
-    _rls("experience_records")
+    _rls("execution_experience_records")
     _rls("routing_insight_candidates")
     op.execute(
         text(
@@ -592,7 +592,7 @@ def upgrade() -> None:
     )
     op.execute(
         text(
-            "CREATE INDEX experience_records_task_idx ON experience_records (project_id, task_id, created_at DESC)"
+            "CREATE INDEX execution_experience_records_task_idx ON execution_experience_records (project_id, task_id, created_at DESC)"
         )
     )
     op.execute(
@@ -604,7 +604,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute(text("DROP INDEX IF EXISTS routing_insight_state_idx"))
-    op.execute(text("DROP INDEX IF EXISTS experience_records_task_idx"))
+    op.execute(text("DROP INDEX IF EXISTS execution_experience_records_task_idx"))
     op.execute(text("DROP INDEX IF EXISTS worker_sessions_activity_idx"))
     op.execute(text("DROP INDEX IF EXISTS provider_capacity_endpoint_idx"))
     op.execute(text("DROP INDEX IF EXISTS ai_claims_turn_idx"))
@@ -681,7 +681,7 @@ def downgrade() -> None:
         text("ALTER TABLE frontend_conversations DROP COLUMN IF EXISTS policy_id")
     )
     op.execute(text("DROP TABLE IF EXISTS routing_insight_candidates"))
-    op.execute(text("DROP TABLE IF EXISTS experience_records"))
+    op.execute(text("DROP TABLE IF EXISTS execution_experience_records"))
     op.execute(text("DROP TABLE IF EXISTS ai_claims"))
     op.execute(text("DROP TABLE IF EXISTS ai_hooks"))
     op.execute(text("DROP TABLE IF EXISTS ai_automations"))

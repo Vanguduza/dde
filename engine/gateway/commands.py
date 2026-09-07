@@ -1290,7 +1290,7 @@ class GatewayCommandService:
                 retryable=False,
                 details={"design_session_id": str(design_session_id)},
             )
-        return await self._studio().design_artifacts(
+        return await FrontendStudioService(self._engine).design_artifacts(
             tenant_id=session.tenant_id,
             project_id=mission.project_id,
             session_id=design_session_id,

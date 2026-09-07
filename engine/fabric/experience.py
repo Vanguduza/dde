@@ -7,12 +7,17 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from engine.contracts.experience_record import ExperienceRecord
+from engine.contracts.execution_experience_record import (
+    ExecutionExperienceRecord,
+)
 from engine.contracts.routing_insight_candidate import RoutingInsightCandidate
 from engine.core.errors import DdeError
 from engine.core.ids import uuid7
 from engine.fabric.repository import FabricRepository
-from engine.fabric.tables import experience_records, routing_insight_candidates
+from engine.fabric.tables import (
+    execution_experience_records,
+    routing_insight_candidates,
+)
 
 _INSIGHT_TRANSITIONS: dict[str, frozenset[str]] = {
     "CANDIDATE": frozenset({"OFFLINE_REPLAY", "REJECTED", "SUPERSEDED"}),
@@ -46,7 +51,7 @@ class ExperienceService:
         task_id: UUID | None = None,
         worker_run_id: UUID | None = None,
         worker_session_id: UUID | None = None,
-    ) -> ExperienceRecord:
+    ) -> ExecutionExperienceRecord:
         if bool(outcome.get("verified")) and not verification_refs:
             raise DdeError(
                 "EVIDENCE_MISSING",
@@ -76,10 +81,10 @@ class ExperienceService:
             "created_at": now,
             "updated_at": now,
         }
-        ExperienceRecord.model_validate(values)
+        ExecutionExperienceRecord.model_validate(values)
         return await self.repo.insert_model(
-            table=experience_records,
-            model=ExperienceRecord,
+            table=execution_experience_records,
+            model=ExecutionExperienceRecord,
             tenant_id=tenant_id,
             project_id=project_id,
             values=values,
@@ -92,14 +97,14 @@ class ExperienceService:
         project_id: UUID,
         task_id: UUID | None = None,
         limit: int = 200,
-    ) -> tuple[ExperienceRecord, ...]:
+    ) -> tuple[ExecutionExperienceRecord, ...]:
         return await self.repo.list_models(
-            table=experience_records,
-            model=ExperienceRecord,
+            table=execution_experience_records,
+            model=ExecutionExperienceRecord,
             tenant_id=tenant_id,
             project_id=project_id,
             filters={"task_id": task_id} if task_id else None,
-            order_by=(experience_records.c.created_at.desc(),),
+            order_by=(execution_experience_records.c.created_at.desc(),),
             limit=limit,
         )
 
@@ -110,12 +115,12 @@ class ExperienceService:
         project_id: UUID,
         task_signature: dict[str, object],
         limit: int = 50,
-    ) -> tuple[ExperienceRecord, ...]:
+    ) -> tuple[ExecutionExperienceRecord, ...]:
         rows = await self.list_records(
             tenant_id=tenant_id, project_id=project_id, limit=500
         )
         keys = ("domain", "platform", "framework", "operation", "risk_class")
-        scored: list[tuple[int, ExperienceRecord]] = []
+        scored: list[tuple[int, ExecutionExperienceRecord]] = []
         for row in rows:
             score = sum(
                 1

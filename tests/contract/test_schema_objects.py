@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.edr import Edr
 from engine.contracts.event import Event
+from engine.contracts.execution_experience_record import ExecutionExperienceRecord
 from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.mission import Mission
@@ -283,6 +284,28 @@ def test_experience_record_rejects_unknown_origin() -> None:
     payload["experience_origin"] = "synthetic"
     with pytest.raises(ValidationError):
         ExperienceRecord.model_validate(payload)
+
+
+def test_execution_experience_record_remains_distinct_from_routing_learning() -> None:
+    now = _now()
+    record = ExecutionExperienceRecord.model_validate(
+        {
+            "experience_id": uuid7(),
+            "tenant_id": uuid7(),
+            "project_id": uuid7(),
+            "task_signature": {"domain": "frontend", "operation": "implement"},
+            "worker_configuration": {"model": "verified-model"},
+            "outcome": {"completed": True, "verified": True},
+            "economics": {"duration_ms": 10},
+            "failure_signatures": [],
+            "verification_refs": ["verification:example"],
+            "authority_refs": ["task:example"],
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+    assert record.task_signature["operation"] == "implement"
+    assert not hasattr(record, "eligible_for_routing_training")
 
 
 def test_graph_amendment_rejects_unknown_type() -> None:

@@ -53,6 +53,7 @@ from engine.contracts.eval_case import EvalCase
 from engine.contracts.event import Event
 from engine.contracts.evidence import Evidence
 from engine.contracts.execution_environment import ExecutionEnvironment
+from engine.contracts.execution_experience_record import ExecutionExperienceRecord
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
@@ -183,6 +184,7 @@ __all__ = [
     "Event",
     "Evidence",
     "ExecutionEnvironment",
+    "ExecutionExperienceRecord",
     "ExecutionPlan",
     "ExperienceRecord",
     "ExternalEffect",

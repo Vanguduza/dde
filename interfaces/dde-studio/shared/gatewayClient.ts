@@ -231,6 +231,8 @@ export class GatewayApiClient {
     bytes: Uint8Array,
     idempotencyKey: string,
   ): Promise<Record<string, unknown>> {
+    const body = new Uint8Array(bytes.byteLength);
+    body.set(bytes);
     const response = await fetch(
       `${this.getBasePath()}/missions/${missionId}/chat/conversations/${conversationId}/attachments/${attachmentId}/content`,
       {
@@ -242,7 +244,7 @@ export class GatewayApiClient {
           "X-Principal-Id": principalId,
           "X-Idempotency-Key": idempotencyKey,
         },
-        body: bytes,
+        body,
       },
     );
     return this.parse<Record<string, unknown>>(response);

@@ -210,6 +210,14 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
+## ExperienceRecord
+
+- table: `experience_records`
+- primary key: experience_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
 ## LearnedRoutingPolicy
 
 - table: `learned_routing_policies`
@@ -842,9 +850,9 @@ Generated from `schemas/objects`. Do not edit.
 - project scoped: true
 - lock_version: false
 
-## ExperienceRecord
+## ExecutionExperienceRecord
 
-- table: `experience_records`
+- table: `execution_experience_records`
 - primary key: experience_id
 - tenant scoped: true
 - project scoped: true

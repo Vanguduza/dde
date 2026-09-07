@@ -17,9 +17,24 @@ Pins the production verification mechanism:
 from __future__ import annotations
 
 import pytest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 from engine.product_env.verification import MigrationVerifier
 from tests.support.db import new_engine
+
+
+def _head_and_previous() -> tuple[str, str]:
+    config = Config("alembic.ini")
+    config.set_main_option("script_location", "migrations")
+    script = ScriptDirectory.from_config(config)
+    head = script.get_current_head()
+    assert head is not None
+    revision = script.get_revision(head)
+    assert revision is not None
+    previous = revision.down_revision
+    assert isinstance(previous, str)
+    return head, previous
 
 
 @pytest.mark.asyncio
@@ -28,8 +43,9 @@ async def test_forward_empty_verifies_full_chain_on_fresh_database() -> None:
     try:
         verifier = await MigrationVerifier.create(engine)
         try:
+            head, previous = _head_and_previous()
             result = await verifier.verify_forward_empty(
-                head="0026", previous_release_revision="0025"
+                head=head, previous_release_revision=previous
             )
         finally:
             await verifier.dispose()
@@ -65,8 +81,9 @@ async def test_downgrade_from_head_lands_on_baseline_reversibly() -> None:
     try:
         verifier = await MigrationVerifier.create(engine)
         try:
+            head, previous = _head_and_previous()
             result = await verifier.verify_downgrade_reversible(
-                head="0026", baseline="0025"
+                head=head, baseline=previous
             )
         finally:
             await verifier.dispose()
@@ -81,8 +98,9 @@ async def test_both_halves_run_against_the_same_snapshot_contract() -> None:
     try:
         verifier = await MigrationVerifier.create(engine)
         try:
+            head, baseline = _head_and_previous()
             empty = await verifier.verify_forward_empty(
-                head="0026", previous_release_revision="0025"
+                head=head, previous_release_revision=baseline
             )
             previous = await verifier.verify_forward_previous(
                 previous_release_revision="0012"

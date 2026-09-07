@@ -84,7 +84,11 @@ describe("Frontend Studio Gateway transport", () => {
   });
   it("uses Cursor-class chat read routes and scoped binary upload headers", async () => {
     const seen: Array<{ url: string; method: string; headers: Headers }> = [];
+    const uploadedBytes: number[][] = [];
     globalThis.fetch = async (input, init) => {
+      if (init?.body instanceof Uint8Array) {
+        uploadedBytes.push([...init.body]);
+      }
       seen.push({
         url: String(input),
         method: String(init?.method ?? "GET"),
@@ -111,6 +115,7 @@ describe("Frontend Studio Gateway transport", () => {
     assert.equal(seen[1]?.method, "PUT");
     assert.equal(seen[1]?.headers.get("X-Idempotency-Key"), "upload-key-1");
     assert.equal(seen[1]?.headers.get("Content-Type"), "application/octet-stream");
+    assert.deepEqual(uploadedBytes, [[1, 2, 3]]);
   });
 
   it("preserves an explicit plan command id as well as idempotency identity", async () => {
