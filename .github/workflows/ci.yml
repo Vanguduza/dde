@@ -56,6 +56,8 @@ jobs:
           uv run alembic upgrade head
           uv run alembic downgrade base
           uv run alembic upgrade head
+      - name: Provision accepted Project Truth
+        run: uv run python -m scripts.accept_owner_edrs
       - name: Integration
         run: uv run pytest tests/integration
       - name: Fail on generated drift
