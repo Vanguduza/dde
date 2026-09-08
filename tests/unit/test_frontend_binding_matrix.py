@@ -74,7 +74,7 @@ def test_every_golden_region_and_layer_is_present() -> None:
         assert set(row.layers) == set(EvidenceLayerName)
 
 
-def test_chat_ui_cannot_claim_final_verified_without_production_e2e() -> None:
+def test_chat_ui_final_verification_requires_packaged_production_e2e() -> None:
     matrix = load_matrix(repo_root())
     row = next(item for item in matrix.rows if item.id == "CH-01")
     assert row.layer(EvidenceLayerName.DOMAIN).status is EvidenceStatus.VERIFIED
@@ -82,8 +82,11 @@ def test_chat_ui_cannot_claim_final_verified_without_production_e2e() -> None:
     assert row.layer(EvidenceLayerName.UI).status is EvidenceStatus.VERIFIED
     assert row.layer(EvidenceLayerName.WIRED).status is EvidenceStatus.VERIFIED
     assert row.layer(EvidenceLayerName.VISUAL).status is EvidenceStatus.VERIFIED
-    assert row.layer(EvidenceLayerName.E2E).status is EvidenceStatus.BOUND
-    assert row.status is BindingStatus.BOUND
+    e2e = row.layer(EvidenceLayerName.E2E)
+    assert e2e.status is EvidenceStatus.VERIFIED
+    assert "interfaces/dde-studio/e2e/runPackagedHostE2E.ts" in e2e.test_refs
+    assert "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md" in e2e.evidence_refs
+    assert row.status is BindingStatus.VERIFIED
 
 
 def test_inspector_gap_control_stays_bound_until_production_e2e() -> None:

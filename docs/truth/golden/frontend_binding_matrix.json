@@ -8095,7 +8095,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
@@ -8116,13 +8116,15 @@
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/cursor-chat.spec.ts"
+            "interfaces/dde-studio/ui/visual/cursor-chat.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
             "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md",
-            "docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md"
+            "docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
+          "note": "Installed VSIX in VS Code 1.95.3 opened/persisted Universal DDE Chat context and executed a deterministic coverage query through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -8422,7 +8424,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
@@ -8441,13 +8443,15 @@
             "tests/unit/test_frontend_chat_intent.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/cursor-chat.spec.ts"
+            "interfaces/dde-studio/ui/visual/cursor-chat.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
             "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md",
-            "docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md"
+            "docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
+          "note": "Installed VSIX in VS Code 1.95.3 opened/persisted Universal DDE Chat context and executed a deterministic coverage query through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -8606,7 +8610,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/chat/intent.py",
             "engine/studio/chat/service.py",
@@ -8627,13 +8631,15 @@
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/cursor-chat.spec.ts"
+            "interfaces/dde-studio/ui/visual/cursor-chat.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
             "docs/evidence/dde-069/REACT_FRONTEND_CHAT.md",
-            "docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md"
+            "docs/evidence/dde-069/CURSOR_CLASS_AI_CHAT.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Browser composition is proven through fail-closed TestHostBridge; real VS Code \u2192 Gateway \u2192 PostgreSQL execution is unavailable on this host, so production E2E is not VERIFIED."
+          "note": "Installed VSIX in VS Code 1.95.3 opened/persisted Universal DDE Chat context and executed a deterministic coverage query through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,

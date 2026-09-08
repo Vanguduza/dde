@@ -75,6 +75,12 @@ The installed-VSIX harness now also asserts authoritative data for eight control
 
 The passing marker includes `verifiedControls=["EX-02","EX-03","EX-04","EX-16","EX-17","EX-18","EX-19","ST-06"]`. Their WIRED and E2E layers are therefore VERIFIED. The derived ledger is now **20 VERIFIED / 70 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**.
 
+## Universal DDE Chat packaged closure — 2026-09-08
+
+The installed VSIX now proves `CH-01`, `CH-03` and `CH-04` through a provider-independent deterministic read query. The real webview exposes the composer, projects `checkout` + `Desktop 1440` into context/settings, opens a durable conversation, persists `frontend.chat.set_context`, executes `frontend.chat.send` with `how much coverage do we have?`, and renders `COVERAGE_QUERY` plus the honest fresh-project answer `Coverage UNASSESSED: percentage unavailable`. No external model/runtime participates in this proof.
+
+The pass marker now includes `CH-01`, `CH-03`, `CH-04`. Their remaining E2E layers are VERIFIED; the derived ledger is **23 VERIFIED / 67 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**.
+
 ## Non-overclaim boundary
 
 This baseline proves installed VSIX -> VS Code -> React webview -> real Gateway -> PostgreSQL, and `TB-02` now has its own action/state proof. It does **not** by itself verify other row-specific commands such as Try Live, lock create/release, chat send, promotion or preview attestation. Those controls remain BOUND until the same packaged-host path exercises their own action and resulting durable state.

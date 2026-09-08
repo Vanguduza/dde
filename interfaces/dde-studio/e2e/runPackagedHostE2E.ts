@@ -360,6 +360,26 @@ async function main(): Promise<void> {
   await waitForText(buildVersion, "0.1.0", "installed DDE build version");
   await waitForText(buildVersion, "PXG r1", "packaged-host PXG revision");
 
+  // Universal DDE Chat is exercised through the installed extension with a
+  // deterministic project-evidence query, so this proof does not depend on
+  // any external model/provider.
+  const chatInput = frame.getByTestId("chat-input");
+  await chatInput.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(frame.getByTestId("chat-context-chips"), "checkout", "Chat screen context");
+  await waitForText(frame.getByTestId("chat-context-chips"), "Desktop 1440", "Chat viewport context");
+  await frame.getByTestId("chat-settings").click();
+  const chatSettings = frame.getByTestId("chat-context-settings");
+  await chatSettings.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(chatSettings, "checkout", "Chat context settings screen");
+  await waitForText(chatSettings, "Desktop 1440", "Chat context settings viewport");
+  await frame.getByTestId("chat-settings").click();
+  await chatInput.fill("how much coverage do we have?");
+  await frame.getByTestId("chat-send").click();
+  const chatThread = frame.getByTestId("chat-thread");
+  await waitForText(chatThread, "COVERAGE_QUERY", "Chat persisted intent");
+  await waitForText(chatThread, "Coverage UNASSESSED", "Chat project-evidence response");
+  await waitForText(chatThread, "percentage unavailable", "Chat honest coverage state");
+
   await project.selectOption(fixture.second_project_id);
   const secondFrame = await projectFrame(page, fixture.second_project_id);
   const secondScreen = secondFrame.getByTestId("screen-select");
@@ -411,6 +431,9 @@ async function main(): Promise<void> {
         "EX-18",
         "EX-19",
         "ST-06",
+        "CH-01",
+        "CH-03",
+        "CH-04",
       ],
       database: ready.database,
       migrations: ready.migrations,
