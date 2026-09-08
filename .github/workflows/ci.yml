@@ -49,13 +49,15 @@ jobs:
         run: just contract-test
       - name: Design lints (shrink-only budget)
         run: just design-lints
-      - name: Unit tests
-        run: just test
-      - name: Migration validation (empty database, reversible)
+      - name: Migration validation and test schema provisioning
+        # Database-backed unit/recovery tests require the migrated schema.
+        # Prove the empty database is reversible first, then leave it at head.
         run: |
           uv run alembic upgrade head
           uv run alembic downgrade base
           uv run alembic upgrade head
+      - name: Unit tests
+        run: just test
       - name: Provision accepted Project Truth
         run: uv run python -m scripts.accept_owner_edrs
       - name: Integration
