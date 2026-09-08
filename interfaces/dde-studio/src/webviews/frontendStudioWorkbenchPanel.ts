@@ -201,6 +201,9 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
     if (query.resource === "frontend.studio.snapshot") {
       return camelizeResult(await gateway.readFrontendSnapshot(missionId));
     }
+    if (query.resource === "vekl.projection") {
+      return camelizeResult(await gateway.readVeklProjection(missionId));
+    }
     if (query.resource === "frontend.chat.thread") {
       return camelizeResult(await gateway.readFrontendChat(missionId));
     }
@@ -432,6 +435,7 @@ export class FrontendStudioWorkbenchPanel implements vscode.Disposable {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="dde-csp-nonce" content="${nonce}" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} data: blob:; script-src 'nonce-${nonce}' 'unsafe-inline'; frame-src 'self' data: blob:;" />
 <link rel="stylesheet" href="${style}" />
 <title>DDE Frontend Studio</title>

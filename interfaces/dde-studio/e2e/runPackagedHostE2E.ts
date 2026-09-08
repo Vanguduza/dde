@@ -35,6 +35,7 @@ const extensionsDir = path.join(tempRoot, "extensions");
 let server: ChildProcess | undefined;
 let vscodeProcess: ChildProcess | undefined;
 let browser: Browser | undefined;
+let fixtureEnv: NodeJS.ProcessEnv | undefined;
 
 function run(
   command: string,
@@ -117,6 +118,25 @@ async function waitForCdp(): Promise<void> {
   throw new Error("VS Code CDP endpoint did not become ready");
 }
 
+
+async function waitForProcessExit(
+  process: ChildProcess,
+  label: string,
+  timeoutMs = 10_000,
+): Promise<void> {
+  if (process.exitCode !== null) return;
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      process.kill("SIGKILL");
+      reject(new Error(`${label} did not exit after cleanup within ${timeoutMs}ms`));
+    }, timeoutMs);
+    process.once("exit", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
 async function workbenchPage(): Promise<Page> {
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`);
   const deadline = Date.now() + 30_000;
@@ -150,6 +170,23 @@ async function waitForText(
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   throw new Error(`${label} did not contain ${expected}; observed ${observed}`);
+}
+
+
+async function waitForAttribute(
+  locator: Locator,
+  name: string,
+  expected: string,
+  label: string,
+): Promise<void> {
+  const deadline = Date.now() + 20_000;
+  let observed: string | null = null;
+  while (Date.now() < deadline) {
+    observed = await locator.getAttribute(name);
+    if (observed === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  throw new Error(`${label} did not bind ${name}=${expected}; observed ${observed}`);
 }
 
 async function waitForInputValue(
@@ -219,6 +256,7 @@ async function main(): Promise<void> {
     DDE_PACKAGED_E2E_FIXTURE_REPO: fixtureRepo,
     DDE_PACKAGED_E2E_GATEWAY_PORT: String(gatewayPort),
   };
+  fixtureEnv = env;
   run(python, ["-m", "alembic", "upgrade", "head"], env);
   server = spawn(
     python,
@@ -380,6 +418,141 @@ async function main(): Promise<void> {
   await waitForText(chatThread, "Coverage UNASSESSED", "Chat project-evidence response");
   await waitForText(chatThread, "percentage unavailable", "Chat honest coverage state");
 
+  // READY candidate / code-backed preview / Inspector proof. The candidate
+  // and workspace are persisted through production services by fixture_server.py.
+  const candidateCard = frame.getByTestId(`candidate-${fixture.candidate_id}`);
+  await candidateCard.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(candidateCard, "Packaged Direction A", "candidate title");
+  await waitForText(candidateCard, "READY", "candidate state");
+  await waitForText(candidateCard, "0 changes", "candidate change count");
+  const candidateScore = frame.getByTestId(`candidate-score-${fixture.candidate_id}`);
+  await waitForText(candidateScore, "UNSCORED", "candidate score classification");
+  await candidateScore.click();
+  await waitForText(
+    frame.getByTestId(`candidate-score-explanation-${fixture.candidate_id}`),
+    "No complete score dimensions are available",
+    "candidate score explanation",
+  );
+  const candidateThumbnail = frame.getByTestId(`candidate-thumbnail-${fixture.candidate_id}`);
+  await candidateThumbnail.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForAttribute(candidateThumbnail, "data-state", "NOT_RENDERED", "candidate thumbnail before Try Live");
+
+  await frame.getByTestId(`candidate-try-live-${fixture.candidate_id}`).click();
+  const previewBadge = frame.getByTestId("preview-badge");
+  await waitForText(previewBadge, "LIVE", "candidate Try Live preview state");
+  await waitForAttribute(candidateThumbnail, "data-state", "RENDERED", "candidate thumbnail after Try Live");
+
+  const previewFrame = frame.locator("iframe.dde-preview-frame").contentFrame();
+  const hero = previewFrame.locator('[data-dde-pxg-key="screens/checkout#hero"]');
+  await hero.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(hero, "Hero space2", "instrumented code-backed hero");
+  await frame.evaluate(() => {
+    const host = globalThis as any;
+    host.__ddePackagedPreviewMessages = [];
+    host.addEventListener("message", (event: any) => {
+      const data = event.data as { type?: unknown };
+      if (data?.type === "dde.preview") host.__ddePackagedPreviewMessages.push(data);
+    });
+  });
+  await hero.evaluate((element: any) => {
+    const child = globalThis as any;
+    child.__ddePackagedClickTargets = [];
+    element.ownerDocument.addEventListener("click", (event: any) => {
+      const target = event.target?.closest?.("[data-dde-pxg-key]") ?? null;
+      child.__ddePackagedClickTargets.push(target?.getAttribute?.("data-dde-pxg-key") ?? "NONE");
+    }, true);
+  });
+  await hero.click();
+  const physicalClickTargets = await hero.evaluate(
+    () => (globalThis as any).__ddePackagedClickTargets ?? [],
+  );
+  if (physicalClickTargets.length === 0) {
+    // VS Code's CDP target does not route Playwright's physical click into a
+    // nested srcdoc frame on this headless host. Host-neutral Playwright
+    // separately proves real click delivery; dispatch the same production
+    // click event here so the installed-VSIX runtime/postMessage/React
+    // path is still exercised without a test-only application bypass.
+    await hero.dispatchEvent("click", { bubbles: true, composed: true });
+  }
+
+  const selectionOutline = frame.getByTestId("selection-outline");
+  try {
+    await selectionOutline.waitFor({ state: "visible", timeout: 20_000 });
+  } catch (error) {
+    console.error("PACKAGED_HOST_SELECTION_DEBUG", JSON.stringify({
+      clickTargets: await hero.evaluate(() => (globalThis as any).__ddePackagedClickTargets ?? []),
+      previewMessages: await frame.evaluate(() => (globalThis as any).__ddePackagedPreviewMessages ?? []),
+    }));
+    throw error;
+  }
+  await waitForAttribute(
+    selectionOutline,
+    "data-pxg-key",
+    "screens/checkout#hero",
+    "stable PXG selection",
+  );
+  const breadcrumb = frame.getByTestId("breadcrumb");
+  await waitForText(breadcrumb, projectDisplay, "selection breadcrumb project");
+  await waitForText(breadcrumb, "Checkout", "selection breadcrumb screen");
+  await waitForText(breadcrumb, "Checkout hero", "selection breadcrumb node");
+
+  const inspector = frame.getByTestId("inspector");
+  await waitForText(inspector, "Checkout hero", "Inspector selected-node title");
+  await waitForText(inspector, "region", "Inspector selected-node kind");
+  await waitForText(inspector, "source verified", "Inspector source mapping");
+  for (const [property, value] of [
+    ["layout_type", "stack"],
+    ["direction", "vertical"],
+    ["gap", "space2"],
+    ["padding", "space2"],
+  ] as const) {
+    await waitForText(
+      frame.getByTestId(`inspector-property-${property}`),
+      value,
+      `Inspector ${property}`,
+    );
+  }
+  await waitForText(
+    frame.getByTestId("inspector-property-gap"),
+    "space2 · 8px",
+    "Inspector gap token and computed pixels",
+  );
+
+  await frame.getByTestId("inspector-tab-style").click();
+  await frame.getByTestId("inspector-panel-style").waitFor({ state: "visible", timeout: 20_000 });
+
+  await frame.getByTestId("inspector-tab-lock").click();
+  await frame.getByTestId("create-style-lock").click();
+  await frame.getByTestId("selection-style-lock").waitFor({ state: "visible", timeout: 20_000 });
+  await frame.getByTestId("create-section-lock").click();
+  await frame.getByTestId("selection-section-lock").waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(frame.getByTestId("candidate-current"), "Current (Locked)", "accepted lock state");
+
+  await frame.getByTestId("inspector-tab-source").click();
+  await waitForText(
+    frame.getByTestId("inspector-source-code"),
+    "prototypes/screens/checkout.html",
+    "Inspector source path",
+  );
+  await waitForText(
+    frame.getByTestId("inspector-provenance"),
+    "No attributable external/source provenance",
+    "Inspector project-native provenance state",
+  );
+  await waitForText(
+    frame.getByTestId("inspector-accessibility"),
+    "Not evaluated",
+    "Inspector accessibility evidence state",
+  );
+
+  // Responsive preview starts a new session and intentionally clears stale
+  // selection geometry. Exercise it last while the selected-node Inspector is
+  // still authoritative, then require the replacement session to reach LIVE.
+  await frame.getByTestId("inspector-tab-responsive").click();
+  await frame.getByTestId("inspector-breakpoint-390").click();
+  await waitForInputValue(frame.getByTestId("viewport-select"), "390", "responsive viewport selector");
+  await waitForText(previewBadge, "LIVE", "responsive code-backed preview state");
+
   await project.selectOption(fixture.second_project_id);
   const secondFrame = await projectFrame(page, fixture.second_project_id);
   const secondScreen = secondFrame.getByTestId("screen-select");
@@ -434,6 +607,25 @@ async function main(): Promise<void> {
         "CH-01",
         "CH-03",
         "CH-04",
+        "CT-01",
+        "CV-01",
+        "CV-02",
+        "CV-04",
+        "CV-06",
+        "CV-07",
+        "CA-01",
+        "CA-02",
+        "CA-03",
+        "CA-04",
+        "CA-05",
+        "CA-06",
+        "IN-01",
+        "IN-06",
+        "IN-07",
+        "IN-13",
+        "IN-15",
+        "IN-16",
+        "ST-01",
       ],
       database: ready.database,
       migrations: ready.migrations,
@@ -449,9 +641,22 @@ main()
   .finally(async () => {
     if (browser) await browser.close().catch(() => undefined);
     if (vscodeProcess && vscodeProcess.exitCode === null) vscodeProcess.kill("SIGTERM");
+    if (fixtureEnv && existsSync(fixtureFile)) {
+      try {
+        run(python, [path.join(extensionRoot, "e2e", "fixture_server.py"), "--cleanup-only"], fixtureEnv);
+      } catch (error) {
+        console.error("packaged-host fixture workspace cleanup failed", error);
+        process.exitCode = 1;
+      }
+    }
     if (server && server.exitCode === null) {
       server.kill("SIGTERM");
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        await waitForProcessExit(server, "packaged-host Gateway fixture");
+      } catch (error) {
+        console.error(error);
+        process.exitCode = 1;
+      }
     }
     try {
       databaseScript(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`);

@@ -22,10 +22,12 @@ CREATE TABLE projects (
     project_id uuid NOT NULL,
     tenant_id uuid NOT NULL,
     slug text NOT NULL,
+    kind text,
     created_at timestamptz NOT NULL,
     updated_at timestamptz NOT NULL,
     PRIMARY KEY (project_id),
-    UNIQUE (tenant_id, slug)
+    UNIQUE (tenant_id, slug),
+    CHECK (kind IS NULL OR kind IN ('TARGET_APPLICATION', 'DDE_CONTROL_PLANE'))
 );
 
 CREATE TABLE principals (
@@ -2617,6 +2619,148 @@ CREATE TABLE frontend_attention_acknowledgements (
     UNIQUE (project_id, attention_key)
 );
 
+CREATE TABLE vekl_resources (
+    resource_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    parent_resource_id uuid,
+    source_id uuid,
+    source_artifact_id uuid,
+    resource_kind text NOT NULL,
+    component_kind text,
+    title text NOT NULL,
+    publisher text NOT NULL,
+    source_uri text,
+    revision text NOT NULL,
+    content_hash text NOT NULL,
+    source_trust text NOT NULL,
+    reuse_class text NOT NULL,
+    lifecycle_state text NOT NULL,
+    activation_modes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    exact_versions jsonb NOT NULL DEFAULT '{}'::jsonb,
+    license_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    required_capabilities jsonb NOT NULL DEFAULT '[]'::jsonb,
+    filesystem_scopes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    network_scopes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    secret_scopes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    sandbox_requirements jsonb NOT NULL DEFAULT '{}'::jsonb,
+    side_effect_class text NOT NULL,
+    required_verifiers jsonb NOT NULL DEFAULT '[]'::jsonb,
+    stack_constraints jsonb NOT NULL DEFAULT '{}'::jsonb,
+    truth_constraints jsonb NOT NULL DEFAULT '{}'::jsonb,
+    freshness jsonb NOT NULL DEFAULT '{}'::jsonb,
+    budget jsonb NOT NULL DEFAULT '{}'::jsonb,
+    injection_findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    content_excerpt text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (resource_id),
+    UNIQUE (project_id, resource_id, revision)
+);
+
+CREATE TABLE stack_fingerprints (
+    fingerprint_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    project_truth_hash text NOT NULL,
+    facts jsonb NOT NULL DEFAULT '{}'::jsonb,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    fingerprint_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (fingerprint_id),
+    UNIQUE (project_id, fingerprint_hash)
+);
+
+CREATE TABLE task_signatures (
+    signature_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    task_id uuid NOT NULL,
+    fingerprint_id uuid NOT NULL,
+    lifecycle_stage text NOT NULL,
+    task_class text NOT NULL,
+    constraints jsonb NOT NULL DEFAULT '{}'::jsonb,
+    risk_category text NOT NULL,
+    error_signatures jsonb,
+    required_capabilities jsonb NOT NULL DEFAULT '[]'::jsonb,
+    allowed_filesystem_scopes jsonb,
+    allowed_network_scopes jsonb,
+    allowed_secret_scopes jsonb,
+    required_verifiers jsonb NOT NULL DEFAULT '[]'::jsonb,
+    freshness_needs jsonb NOT NULL DEFAULT '{}'::jsonb,
+    budget jsonb NOT NULL DEFAULT '{}'::jsonb,
+    signature_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (signature_id),
+    UNIQUE (task_id, signature_hash)
+);
+
+CREATE TABLE vekl_activation_manifests (
+    manifest_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid,
+    task_id uuid NOT NULL,
+    task_attempt_id uuid,
+    worker_run_id uuid,
+    task_signature_id uuid NOT NULL,
+    stack_fingerprint_id uuid NOT NULL,
+    project_truth_hash text NOT NULL,
+    stack_fingerprint_hash text NOT NULL,
+    policy_hash text NOT NULL,
+    selected_resources jsonb NOT NULL DEFAULT '[]'::jsonb,
+    tools jsonb NOT NULL DEFAULT '[]'::jsonb,
+    hooks jsonb NOT NULL DEFAULT '[]'::jsonb,
+    loops jsonb NOT NULL DEFAULT '[]'::jsonb,
+    community_evidence jsonb NOT NULL DEFAULT '[]'::jsonb,
+    freshness_state jsonb NOT NULL DEFAULT '{}'::jsonb,
+    manifest_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (manifest_id),
+    UNIQUE (project_id, manifest_hash)
+);
+
+CREATE TABLE vekl_manifest_invalidations (
+    invalidation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    manifest_id uuid NOT NULL,
+    reason_code text NOT NULL,
+    detail jsonb NOT NULL DEFAULT '{}'::jsonb,
+    observed_policy_hash text NOT NULL,
+    observed_truth_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (invalidation_id),
+    UNIQUE (manifest_id, observed_policy_hash, observed_truth_hash)
+);
+
+CREATE TABLE vekl_resource_outcomes (
+    outcome_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    manifest_id uuid NOT NULL,
+    resource_revisions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    verifier_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    verified_outcome text NOT NULL,
+    regressions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    iterations integer NOT NULL,
+    rework jsonb NOT NULL DEFAULT '{}'::jsonb,
+    cost jsonb NOT NULL DEFAULT '{}'::jsonb,
+    latency_ms integer NOT NULL,
+    failure_signatures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    evidence_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    recorded_by text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (outcome_id),
+    UNIQUE (manifest_id, outcome_id)
+);
+
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
 ALTER TABLE projects ADD CONSTRAINT projects_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -3209,6 +3353,37 @@ ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attentio
 ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attention_ack_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attention_ack_principal_fkey FOREIGN KEY (acknowledged_by) REFERENCES principals (principal_id);
 
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_parent_fkey FOREIGN KEY (parent_resource_id) REFERENCES vekl_resources (resource_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_source_fkey FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+
+ALTER TABLE stack_fingerprints ADD CONSTRAINT stack_fingerprints_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE stack_fingerprints ADD CONSTRAINT stack_fingerprints_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE task_signatures ADD CONSTRAINT task_signatures_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE task_signatures ADD CONSTRAINT task_signatures_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE task_signatures ADD CONSTRAINT task_signatures_task_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE task_signatures ADD CONSTRAINT task_signatures_fingerprint_fkey FOREIGN KEY (fingerprint_id) REFERENCES stack_fingerprints (fingerprint_id);
+
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_mission_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_task_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_attempt_fkey FOREIGN KEY (task_attempt_id) REFERENCES task_attempts (attempt_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_run_fkey FOREIGN KEY (worker_run_id) REFERENCES worker_runs (run_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_signature_fkey FOREIGN KEY (task_signature_id) REFERENCES task_signatures (signature_id);
+ALTER TABLE vekl_activation_manifests ADD CONSTRAINT vekl_manifests_fingerprint_fkey FOREIGN KEY (stack_fingerprint_id) REFERENCES stack_fingerprints (fingerprint_id);
+
+ALTER TABLE vekl_manifest_invalidations ADD CONSTRAINT vekl_invalidations_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_manifest_invalidations ADD CONSTRAINT vekl_invalidations_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_manifest_invalidations ADD CONSTRAINT vekl_invalidations_manifest_fkey FOREIGN KEY (manifest_id) REFERENCES vekl_activation_manifests (manifest_id);
+
+ALTER TABLE vekl_resource_outcomes ADD CONSTRAINT vekl_outcomes_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_resource_outcomes ADD CONSTRAINT vekl_outcomes_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_resource_outcomes ADD CONSTRAINT vekl_outcomes_manifest_fkey FOREIGN KEY (manifest_id) REFERENCES vekl_activation_manifests (manifest_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -3688,3 +3863,27 @@ CREATE POLICY frontend_editor_assist_states_tenant_isolation ON frontend_editor_
 ALTER TABLE frontend_attention_acknowledgements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE frontend_attention_acknowledgements FORCE ROW LEVEL SECURITY;
 CREATE POLICY frontend_attention_acknowledgements_tenant_isolation ON frontend_attention_acknowledgements USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_resources FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_resources_tenant_isolation ON vekl_resources USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE stack_fingerprints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stack_fingerprints FORCE ROW LEVEL SECURITY;
+CREATE POLICY stack_fingerprints_tenant_isolation ON stack_fingerprints USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE task_signatures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_signatures FORCE ROW LEVEL SECURITY;
+CREATE POLICY task_signatures_tenant_isolation ON task_signatures USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_activation_manifests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_activation_manifests FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_activation_manifests_tenant_isolation ON vekl_activation_manifests USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_manifest_invalidations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_manifest_invalidations FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_manifest_invalidations_tenant_isolation ON vekl_manifest_invalidations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_resource_outcomes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_resource_outcomes FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_resource_outcomes_tenant_isolation ON vekl_resource_outcomes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

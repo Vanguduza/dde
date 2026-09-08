@@ -364,6 +364,52 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("planning",),
         network_requirements={"egress": "none"},
     ),
+    SeedCapability(
+        capability_id="capability.vekl.qualify",
+        version="1",
+        category="vekl",
+        summary=(
+            "Qualify exact, provenance-bearing VEKL resource/component records "
+            "already present behind admitted Source Intelligence state. No fetch "
+            "or executable permission is implied."
+        ),
+        side_effect_class="WORKSPACE_LOCAL",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("engine.vekl.service.VEKLService",),
+        supported_workloads=("planning", "verification"),
+        network_requirements={"egress": "none", "source_authority": "EDR-0015"},
+    ),
+    SeedCapability(
+        capability_id="capability.vekl.resolve",
+        version="1",
+        category="vekl",
+        summary=(
+            "Resolve hard-eligible target-application resources and persist an "
+            "immutable exact-pin activation manifest."
+        ),
+        side_effect_class="WORKSPACE_LOCAL",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=("engine.vekl.service.VEKLService",),
+        supported_workloads=("planning",),
+        network_requirements={"egress": "none"},
+    ),
+    SeedCapability(
+        capability_id="capability.vekl.compile_context",
+        version="1",
+        category="vekl",
+        summary=(
+            "Compile the smallest sufficient provenance-bearing context capsule "
+            "from an immutable VEKL activation manifest."
+        ),
+        side_effect_class="PURE_READ",
+        risk_class="low",
+        enforcement_tier="T1",
+        implementations=("engine.vekl.compiler.VEKLKnowledgeCompiler",),
+        supported_workloads=("planning", "verification"),
+        network_requirements={"egress": "none", "secret_access": "none"},
+    ),
 )
 
 

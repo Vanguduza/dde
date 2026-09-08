@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Unavailable } from "../components/Honest";
 import type {
   CandidateCardSnapshot,
@@ -954,6 +954,16 @@ function SourceWorkspacePicker({
   );
 }
 
+function previewDocumentForWebview(content: string): string {
+  const nonce = document.querySelector<HTMLMetaElement>('meta[name="dde-csp-nonce"]')?.content;
+  if (!nonce) return content;
+  const marker = '<script id="dde-preview-runtime">';
+  const index = content.lastIndexOf(marker);
+  if (index < 0) return content;
+  const stamped = `<script id="dde-preview-runtime" nonce="${nonce}">`;
+  return content.slice(0, index) + stamped + content.slice(index + marker.length);
+}
+
 function LivePreview({
   preview,
   viewport,
@@ -976,6 +986,10 @@ function LivePreview({
   const frame = useRef<HTMLIFrameElement | null>(null);
   const panStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const resizeStart = useRef<number | null>(null);
+  const signalHandler = useRef(onSignal);
+  useEffect(() => {
+    signalHandler.current = onSignal;
+  }, [onSignal]);
   useEffect(() => {
     const receive = (event: MessageEvent<unknown>) => {
       if (event.source !== frame.current?.contentWindow) return;
@@ -989,7 +1003,7 @@ function LivePreview({
         return;
       }
       if (message.kind === "ready" && typeof message.contentHash === "string") {
-        onSignal({
+        signalHandler.current({
           kind: "ready",
           previewSessionId: preview.previewSessionId,
           contentHash: message.contentHash,
@@ -999,7 +1013,7 @@ function LivePreview({
         typeof message.pxgKey === "string" &&
         isGeometry(message.geometry)
       ) {
-        onSignal({
+        signalHandler.current({
           kind: "selection",
           previewSessionId: preview.previewSessionId,
           contentHash: String(message.contentHash),
@@ -1007,7 +1021,7 @@ function LivePreview({
           geometry: message.geometry,
         });
       } else if (message.kind === "runtime_error") {
-        onSignal({
+        signalHandler.current({
           kind: "runtime_error",
           previewSessionId: preview.previewSessionId,
           contentHash: String(message.contentHash),
@@ -1016,11 +1030,21 @@ function LivePreview({
         });
       }
     };
+    const ping = () => frame.current?.contentWindow?.postMessage({
+      type: "dde.preview.host_ping",
+      previewSessionId: preview.previewSessionId,
+      contentHash: preview.contentHash,
+    }, "*");
     window.addEventListener("message", receive);
+    ping();
     return () => window.removeEventListener("message", receive);
-  }, [onSignal, preview.contentHash, preview.previewSessionId]);
+  }, [preview.contentHash, preview.previewSessionId]);
 
   const frameWidth = Number.parseInt(viewport, 10) || 1440;
+  const previewContent = useMemo(
+    () => previewDocumentForWebview(preview.content),
+    [preview.content],
+  );
   return (
     <div
       className="dde-preview-stage"
@@ -1060,7 +1084,12 @@ function LivePreview({
           style={{ pointerEvents: interactionMode === "PAN" ? "none" : "auto" }}
           title={`Candidate preview ${preview.screenKey}`}
           sandbox="allow-scripts"
-          srcDoc={preview.content}
+          srcDoc={previewContent}
+          onLoad={() => frame.current?.contentWindow?.postMessage({
+            type: "dde.preview.host_ping",
+            previewSessionId: preview.previewSessionId,
+            contentHash: preview.contentHash,
+          }, "*")}
         />
         {selection ? (
           <div

@@ -1,5 +1,11 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS vekl_resource_outcomes CASCADE;
+DROP TABLE IF EXISTS vekl_manifest_invalidations CASCADE;
+DROP TABLE IF EXISTS vekl_activation_manifests CASCADE;
+DROP TABLE IF EXISTS task_signatures CASCADE;
+DROP TABLE IF EXISTS stack_fingerprints CASCADE;
+DROP TABLE IF EXISTS vekl_resources CASCADE;
 DROP TABLE IF EXISTS frontend_attention_acknowledgements CASCADE;
 DROP TABLE IF EXISTS frontend_editor_assist_states CASCADE;
 DROP TABLE IF EXISTS frontend_preview_scenarios CASCADE;

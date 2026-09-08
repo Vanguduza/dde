@@ -151,6 +151,11 @@ def test_materialization_mutates_candidate_code_and_instruments_stable_identity(
     assert "padding: var(--space-6)" in candidate_source
     assert 'data-dde-pxg-key="screens/checkout#hero"' in preview
     assert str(session_id) in preview
+    assert 'message.type !== "dde.preview.host_ping"' in preview
+    assert 'document.addEventListener("click"' in preview
+    assert "message.previewSessionId !== meta.previewSessionId" in preview
+    assert "message.contentHash !== meta.contentHash" in preview
+    assert 'addEventListener("DOMContentLoaded", ready' in preview
     assert result.content_hash == hashlib.sha256(candidate_source.encode()).hexdigest()
     assert result.route == "/checkout"
     assert result.instrumented_keys == ("screens/checkout#hero",)

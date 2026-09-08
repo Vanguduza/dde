@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://dde.dev/schemas/objects/hook_ir.json", "title": "HookIR", "description": "Harness-neutral executable hook policy with explicit scopes and evidence.", "type": "object", "additionalProperties": false,
+  "required": ["hook_id", "hook_class", "event", "matcher", "filesystem_scopes", "network_scopes", "secret_scopes", "timeout_seconds", "failure_policy", "evidence_types"],
+  "properties": {"hook_id": {"type": "string"}, "hook_class": {"type": "string"}, "event": {"type": "string"}, "matcher": {"type": "object", "additionalProperties": true}, "command": {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}]}, "capability_id": {"anyOf": [{"type": "string"}, {"type": "null"}]}, "filesystem_scopes": {"type": "array", "items": {"type": "string"}}, "network_scopes": {"type": "array", "items": {"type": "string"}}, "secret_scopes": {"type": "array", "items": {"type": "string"}}, "timeout_seconds": {"type": "integer", "minimum": 1}, "failure_policy": {"type": "string", "enum": ["BLOCK", "WARN", "ESCALATE"]}, "evidence_types": {"type": "array", "items": {"type": "string"}}}
+}

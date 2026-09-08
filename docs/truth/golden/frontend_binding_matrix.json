@@ -5801,7 +5801,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
@@ -5813,16 +5813,18 @@
           "test_refs": [
             "tests/contract/test_frontend_studio_gateway.py",
             "tests/live/test_claude_design_live_e2e.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "React and production Gateway/preview seams are proven, but one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/contracts/frontend_preview_session.py",
             "engine/studio/frontend.py",
@@ -5834,12 +5836,14 @@
           "test_refs": [
             "tests/contract/test_frontend_studio_gateway.py",
             "tests/live/test_claude_design_live_e2e.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "React and production Gateway/preview seams are proven, but one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -6798,7 +6802,7 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
@@ -6810,16 +6814,18 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "PreviewSession/PreviewService and the prototype-HTML runtime implement the real code-backed lifecycle; PostgreSQL-backed service execution is not available on this host, so domain closure remains BOUND."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "interfaces/dde-studio/shared/gatewayClient.ts",
@@ -6835,16 +6841,18 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Mission-scoped Core reads and the production VS Code host expose the candidate board and materialized preview document. Route/transport contracts are tested; live PostgreSQL read execution is unavailable here."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "COMMAND": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
@@ -6858,16 +6866,18 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "frontend.preview.start|set_state|stop are registered and the workbench sends them through the real Gateway client while preserving caller idempotency. PostgreSQL command execution was not runnable on this host."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "STATE": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
@@ -6880,12 +6890,14 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "BUILDING/LOADING/LIVE/STALE/error states, browser-hash attestation, mutation invalidation and DIRTY verification invalidation are implemented; persisted-state E2E awaits a database-backed run."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "UI": {
           "applicable": true,
@@ -6925,7 +6937,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
@@ -6940,12 +6952,14 @@
             "interfaces/dde-studio/src/webviews/frontendStudioWorkbenchPanel.ts"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Browser E2E proves candidate document \u2192 handshake \u2192 selection \u2192 mutation \u2192 invalidation \u2192 rerender, but uses explicit TestHostBridge because this host has no PostgreSQL/Redis runtime."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -6984,7 +6998,7 @@
       "layers": {
         "DOMAIN": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
@@ -6996,16 +7010,18 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "LIVE is server-owned and requires source/content/revision checks; persisted execution awaits PostgreSQL-backed E2E."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "interfaces/dde-studio/shared/gatewayClient.ts",
@@ -7021,12 +7037,14 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Preview state is exposed by mission-scoped reads and candidate-board projections; live database execution is unavailable here."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "COMMAND": {
           "applicable": false,
@@ -7038,7 +7056,7 @@
         },
         "STATE": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
@@ -7052,12 +7070,14 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "A persisted LIVE row is downgraded to LOADING in a newly opened browser until that iframe re-attests the exact content hash."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "UI": {
           "applicable": true,
@@ -7096,7 +7116,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
@@ -7107,12 +7127,14 @@
             "engine/gateway/commands.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Browser handshake-before-LIVE is proven, but the browser harness does not include a real PostgreSQL Gateway runtime."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -7290,7 +7312,7 @@
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/service.py",
             "engine/studio/preview_runtime/prototype_html.py",
@@ -7308,12 +7330,14 @@
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "tests/unit/test_frontend_inspector.py"
+            "tests/unit/test_frontend_inspector.py",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "The preview emits stable pxg_key selection anchors and Core resolves the same key to InspectorDescriptor. Production database execution remains unavailable."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "COMMAND": {
           "applicable": false,
@@ -7382,19 +7406,21 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "engine/studio/inspector.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Playwright selects the instrumented iframe node and resolves its Inspector descriptor; production PostgreSQL/Gateway E2E is not available."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -7628,7 +7654,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/locks/service.py",
@@ -7638,16 +7664,18 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/locks/service.py",
@@ -7657,12 +7685,14 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -7763,7 +7793,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/locks/service.py",
@@ -7773,16 +7803,18 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/locks/service.py",
@@ -7792,12 +7824,14 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Real Core and React seams are proven separately; packaged editor-host -> Gateway -> PostgreSQL browser proof is not yet recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -9434,7 +9468,7 @@
         },
         "READ": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "engine/studio/candidates/service.py",
@@ -9447,12 +9481,14 @@
             "tests/unit/test_frontend_preview_runtime.py",
             "tests/contract/test_frontend_preview_gateway_reads.py",
             "interfaces/dde-studio/shared/frontendWorkbenchTransport.test.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "CandidateBoardSnapshot projects real candidate lifecycle/staleness/latest preview state and is served through the production host; database-backed reads were unavailable here."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "COMMAND": {
           "applicable": true,
@@ -9526,19 +9562,21 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "engine/studio/reads.py"
           ],
           "test_refs": [
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md"
+            "docs/evidence/dde-069/LIVE_WORKBENCH_LOOP.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Browser proof selects a real candidate record and enters its preview loop; production database-backed E2E remains unavailable."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -9638,7 +9676,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -9649,14 +9687,17 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "React requests the real preview document through DdeHostBridge; production Gateway/PostgreSQL browser E2E remains unavailable on this host."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -9667,10 +9708,13 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Browser proof uses TestHostBridge-backed real PreviewDocument semantics; production database-backed E2E remains open."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -9774,23 +9818,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
-          "implementation_refs": [
-            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
-            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
-            "engine/studio/source/scoring.py",
-            "engine/studio/source/service.py",
-            "engine/studio/reads.py"
-          ],
-          "test_refs": [
-            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts"
-          ],
-          "evidence_refs": [],
-          "note": "Candidate score is consumed from the board read model; production browser/PostgreSQL E2E is unavailable."
-        },
-        "E2E": {
-          "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -9800,10 +9828,32 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
-            "tests/unit/test_source_intelligence_postgres.py"
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Browser evidence is TestHostBridge-backed; PostgreSQL lifecycle spec is present but cannot run here."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
+        },
+        "E2E": {
+          "applicable": true,
+          "status": "VERIFIED",
+          "implementation_refs": [
+            "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
+            "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
+            "engine/studio/source/scoring.py",
+            "engine/studio/source/service.py",
+            "engine/studio/reads.py"
+          ],
+          "test_refs": [
+            "interfaces/dde-studio/ui/visual/source-intelligence.spec.ts",
+            "tests/unit/test_source_intelligence_postgres.py",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
+          ],
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -9906,7 +9956,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -9917,14 +9967,17 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Explanation consumes persisted score projection; production database-backed browser E2E remains unavailable."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -9934,10 +9987,13 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Candidate-dock browser test proves the explanation interaction through TestHostBridge; production E2E remains open."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -10040,7 +10096,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -10052,14 +10108,17 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Read projection derives change count from mutation history; production browser/PostgreSQL E2E remains unavailable."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/FrontendStudioWorkspace.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
@@ -10071,10 +10130,13 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/candidate-dock.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Browser proves real projected count semantics via TestHostBridge; production E2E remains open."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -10189,7 +10251,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/inspector.py",
@@ -10200,12 +10262,14 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Real PostgreSQL lock lifecycle and browser lock projection are proven separately; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not yet recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -11098,7 +11162,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/reads.py",
@@ -11109,12 +11173,14 @@
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Selection \u2192 descriptor \u2192 header is browser-proven and persisted services are PostgreSQL-proven, but not in one packaged VS Code-host browser run."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -11941,7 +12007,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/inspector.py",
@@ -11952,12 +12018,14 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Real PostgreSQL lifecycle and browser lifecycle are proven separately; packaged production E2E is not recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -12054,23 +12122,25 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "React binding is exercised through TestHostBridge; production VS Code host interaction is not one browser E2E run."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/reads.py",
@@ -12081,12 +12151,14 @@
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Production host browser E2E remains unrecorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -13086,23 +13158,25 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/frontend-studio/InspectorPanel.tsx",
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx"
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "React binding is exercised through TestHostBridge; production VS Code host interaction is not one browser E2E run."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/inspector.py",
             "engine/studio/reads.py",
@@ -13113,12 +13187,14 @@
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Production host browser E2E remains unrecorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -13380,7 +13456,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/audit/service.py",
             "engine/studio/reads.py",
@@ -13390,12 +13466,14 @@
           ],
           "test_refs": [
             "tests/unit/test_screen_audit_dogfood.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Screen Audit and browser projection are proven separately; packaged production E2E is not recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -13535,7 +13613,7 @@
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/preview_runtime/prototype_html.py",
             "engine/gateway/commands.py",
@@ -13545,12 +13623,14 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md"
+            "docs/evidence/dde-069/INSPECTOR_GOLDEN_CLOSURE.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Exact viewport preview is browser-proven and backend-proven separately; packaged VS Code-host \u2192 Gateway \u2192 PostgreSQL browser E2E is not recorded."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,
@@ -13651,7 +13731,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
@@ -13662,16 +13742,18 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "React uses current projection/Inspector reads; packaged editor-host -> real Gateway -> PostgreSQL browser E2E remains unrecorded on this host."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "interfaces/dde-studio/ui/src/app/DdeStudioApp.tsx",
             "interfaces/dde-studio/ui/src/shell/StatusBar.tsx",
@@ -13682,12 +13764,14 @@
           ],
           "test_refs": [
             "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
-            "tests/unit/test_frontend_studio_domain_postgres.py"
+            "tests/unit/test_frontend_studio_domain_postgres.py",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "React uses current projection/Inspector reads; packaged editor-host -> real Gateway -> PostgreSQL browser E2E remains unrecorded on this host."
+          "note": "Installed VS Code 1.95.3 VSIX -> production React webview -> real Gateway -> fresh PostgreSQL at migration head is exercised in the packaged-host candidate/Inspector proof. The asserted control/read/state is observed through that production path."
         },
         "VISUAL": {
           "applicable": true,

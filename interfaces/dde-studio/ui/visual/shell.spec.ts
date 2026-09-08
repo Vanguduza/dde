@@ -253,6 +253,22 @@ test.describe("responsive degradation", () => {
     await expect(page.getByTestId("dde-explorer")).toBeVisible();
   });
 
+  test("Universal Chat does not cover the responsive Inspector", async ({ page }) => {
+    await page.goto(FIXTURE);
+    await page.setViewportSize({ width: 1100, height: 900 });
+    const inspector = await box(page, "dde-inspector");
+    const chatLayer = await box(page, "dde-chat-layer");
+    expect(chatLayer.x + chatLayer.width).toBeLessThanOrEqual(inspector.x);
+  });
+
+  test("Universal Chat also clears the Inspector at packaged-host width", async ({ page }) => {
+    await page.goto(FIXTURE);
+    await page.setViewportSize({ width: 720, height: 684 });
+    const inspector = await box(page, "dde-inspector");
+    const chatLayer = await box(page, "dde-chat-layer");
+    expect(chatLayer.x + chatLayer.width).toBeLessThanOrEqual(inspector.x);
+  });
+
   test("the shell survives a narrow companion width", async ({ page }) => {
     await page.goto(FIXTURE);
     await page.setViewportSize({ width: 860, height: 800 });

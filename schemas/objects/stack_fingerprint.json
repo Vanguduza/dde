@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/stack_fingerprint.json",
+  "title": "StackFingerprint",
+  "description": "Deterministic target-project stack facts derived from Project Truth and observed repository/runtime evidence; never model-guessed.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {"table": "stack_fingerprints", "order": 351, "pk": ["fingerprint_id"], "tenant_scoped": true, "project_scoped": true, "lock_version": false, "uniques": [["project_id", "fingerprint_hash"]], "foreign_keys": [{"name": "stack_fingerprints_tenant_fkey", "columns": ["tenant_id"], "ref_table": "tenants", "ref_columns": ["tenant_id"]}, {"name": "stack_fingerprints_project_fkey", "columns": ["project_id"], "ref_table": "projects", "ref_columns": ["project_id"]}]},
+  "required": ["fingerprint_id", "tenant_id", "project_id", "project_truth_hash", "facts", "evidence_refs", "fingerprint_hash", "created_at", "updated_at"],
+  "properties": {
+    "fingerprint_id": {"type": "string", "format": "uuid"}, "tenant_id": {"type": "string", "format": "uuid"}, "project_id": {"type": "string", "format": "uuid"}, "project_truth_hash": {"type": "string"}, "facts": {"type": "object", "additionalProperties": true}, "evidence_refs": {"type": "array", "items": {"type": "string"}}, "fingerprint_hash": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}
+  }
+}

@@ -961,3 +961,51 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## VEKLResource
+
+- table: `vekl_resources`
+- primary key: resource_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## StackFingerprint
+
+- table: `stack_fingerprints`
+- primary key: fingerprint_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## TaskSignature
+
+- table: `task_signatures`
+- primary key: signature_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLActivationManifest
+
+- table: `vekl_activation_manifests`
+- primary key: manifest_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLManifestInvalidation
+
+- table: `vekl_manifest_invalidations`
+- primary key: invalidation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLResourceOutcome
+
+- table: `vekl_resource_outcomes`
+- primary key: outcome_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

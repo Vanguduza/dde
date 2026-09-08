@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_resource_outcome.json",
+  "title": "VEKLResourceOutcome",
+  "description": "Verifier-backed VEKL resource effectiveness record, distinct from ExperienceRecord and ExecutionExperienceRecord.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {"table": "vekl_resource_outcomes", "order": 355, "pk": ["outcome_id"], "tenant_scoped": true, "project_scoped": true, "lock_version": false, "uniques": [["manifest_id", "outcome_id"]], "foreign_keys": [{"name": "vekl_outcomes_tenant_fkey", "columns": ["tenant_id"], "ref_table": "tenants", "ref_columns": ["tenant_id"]}, {"name": "vekl_outcomes_project_fkey", "columns": ["project_id"], "ref_table": "projects", "ref_columns": ["project_id"]}, {"name": "vekl_outcomes_manifest_fkey", "columns": ["manifest_id"], "ref_table": "vekl_activation_manifests", "ref_columns": ["manifest_id"]}]},
+  "required": ["outcome_id", "tenant_id", "project_id", "manifest_id", "resource_revisions", "verifier_refs", "verified_outcome", "regressions", "iterations", "rework", "cost", "latency_ms", "failure_signatures", "evidence_refs", "recorded_by", "created_at", "updated_at"],
+  "properties": {"outcome_id": {"type": "string", "format": "uuid"}, "tenant_id": {"type": "string", "format": "uuid"}, "project_id": {"type": "string", "format": "uuid"}, "manifest_id": {"type": "string", "format": "uuid"}, "resource_revisions": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "verifier_refs": {"type": "array", "items": {"type": "string"}}, "verified_outcome": {"type": "string", "enum": ["PASS", "FAIL", "PARTIAL"]}, "regressions": {"type": "array", "items": {"type": "string"}}, "iterations": {"type": "integer", "minimum": 0}, "rework": {"type": "object", "additionalProperties": true}, "cost": {"type": "object", "additionalProperties": true}, "latency_ms": {"type": "integer", "minimum": 0}, "failure_signatures": {"type": "array", "items": {"type": "string"}}, "evidence_refs": {"type": "array", "items": {"type": "string"}}, "recorded_by": {"type": "string", "enum": ["DDE_VERIFIER", "DDE_OPERATOR"]}, "created_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}}
+}

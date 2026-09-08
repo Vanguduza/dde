@@ -1,7 +1,7 @@
 # DDE-069 Packaged VS Code Host E2E
 
 Date: 2026-09-08
-State: packaged-host baseline **PROVEN**; `TB-02` project switching and the first eight-row packaged read-projection batch are row-specific **PROVEN**; other actions remain evidence-gated.
+State: packaged-host baseline **PROVEN**; project switching, read projections, Universal Chat, and the READY-candidate/preview/Inspector batch are row-specific **PROVEN**; unexercised actions remain evidence-gated.
 
 ## Scope
 
@@ -81,6 +81,31 @@ The installed VSIX now proves `CH-01`, `CH-03` and `CH-04` through a provider-in
 
 The pass marker now includes `CH-01`, `CH-03`, `CH-04`. Their remaining E2E layers are VERIFIED; the derived ledger is **23 VERIFIED / 67 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**.
 
+## READY candidate, code-backed preview and Inspector packaged closure — 2026-09-08
+
+The packaged fixture now creates an isolated workspace through `WorkspaceService`, writes a project-local prototype into that DDE-owned worktree, creates `Packaged Direction A` through `CandidateService`, and advances only through the legal lifecycle to `READY`. The PXG screen/hero carry real source refs and canonical layout tokens. No candidate row, preview document, lock, score, or Inspector descriptor is injected directly into the browser.
+
+The installed VSIX run now proves, against fresh PostgreSQL at migration head:
+
+- the real candidate card is `READY`, has `0 changes`, and honestly projects `UNSCORED` with no fabricated score dimensions;
+- the candidate thumbnail moves from `NOT_RENDERED` to a real rendered preview document;
+- candidate preview start crosses the production Gateway and reaches browser-attested `LIVE`;
+- stable `screens/checkout#hero` PXG identity reaches React selection and the real Inspector descriptor;
+- breadcrumb, selected-node header, source mapping, Layout token values, Source/code, project-native provenance, and the honest `Not evaluated` accessibility state render from production reads;
+- Style and Section locks are created through real Gateway commands, appear as effective selection chips, and drive `Current (Locked)`;
+- the Responsive `390` action creates a replacement code-backed preview session and that new session re-attests `LIVE`; and
+- project switching still succeeds after the candidate/preview/lock activity.
+
+Two production-only defects were found and repaired by this deeper host proof. First, VS Code webview CSP is inherited by `srcdoc`; with a nonce-bearing parent policy, CSP3 ignores `unsafe-inline`, so DDE's generated preview runtime did not execute and the persisted preview remained `LOADING`. The webview now exposes its per-instance nonce only to the trusted DDE React shell, which stamps that nonce only onto the generated `dde-preview-runtime` script. Target-application inline scripts remain blocked. Second, the preview ready signal is now a session/content-hash handshake (`host_ping` -> `ready`) rather than relying on a one-shot DOM-ready race.
+
+The headless VS Code CDP target does not route Playwright's physical click into this doubly nested `srcdoc` on this host. The harness detects that limitation and dispatches the same production `click` event only when the physical event did not enter the child. Host-neutral Playwright independently proves physical click delivery; the installed-VSIX leg proves the generated runtime -> `postMessage` -> React selection/Inspector path. This limitation is recorded rather than hidden.
+
+Fixture teardown is independently idempotent: the outer harness invokes `fixture_server.py --cleanup-only` while the scratch database is live, and cleanup now fails if the candidate workspace directory remains. Passing runs emit `PACKAGED_HOST_FIXTURE_CLEANUP <workspace-id>`. This avoids relying on Uvicorn SIGTERM unwinding.
+
+The row-specific packaged-host proof closes: `CT-01`, `CV-01`, `CV-02`, `CV-04`, `CV-06`, `CV-07`, `CA-01`, `CA-02`, `CA-03`, `CA-04`, `CA-05`, `CA-06`, `IN-01`, `IN-06`, `IN-07`, `IN-13`, `IN-15`, `IN-16`, and `ST-01`. Together with the previously verified rows, the derived ledger becomes **42 VERIFIED / 48 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**.
+
+`CA-07` is deliberately not promoted: its contract is `frontend.design.try_live` from a persisted DesignArtifact into an isolated candidate workspace, while this batch starts preview for an already persisted candidate. Inspector write rows such as `IN-02`, `IN-03`, `IN-08`, `IN-09`, `IN-10`, and `IN-11` also remain BOUND until the installed host performs their exact governed mutations.
+
 ## Non-overclaim boundary
 
-This baseline proves installed VSIX -> VS Code -> React webview -> real Gateway -> PostgreSQL, and `TB-02` now has its own action/state proof. It does **not** by itself verify other row-specific commands such as Try Live, lock create/release, chat send, promotion or preview attestation. Those controls remain BOUND until the same packaged-host path exercises their own action and resulting durable state.
+This baseline proves installed VSIX -> VS Code -> React webview -> real Gateway -> PostgreSQL. Project switching, deterministic Chat, preview attestation, lock creation, responsive preview, candidate/read projections and the reviewed Inspector surfaces now have row-specific production evidence. It does **not** mass-verify unexercised commands such as `frontend.design.try_live`, candidate comparison/promotion, Inspector property writes, comments, resize, preview scenarios, or assist-policy mutations; those rows remain BOUND until their exact action and resulting durable state are exercised in the packaged host.

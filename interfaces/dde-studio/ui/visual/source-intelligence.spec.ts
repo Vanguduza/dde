@@ -102,6 +102,42 @@ test.describe("DDE-069 M8 Source Intelligence", () => {
       donors: 0.3,
     });
   });
+
+  test("canonical chat footprint leaves target blend Apply clickable", async ({ page }) => {
+    await page.setViewportSize({ width: 1672, height: 941 });
+    const apply = page.getByTestId("source-blend-apply");
+    await page.getByTestId("source-blend-project-native").fill("70");
+    await page.getByTestId("source-blend-donors").fill("30");
+    await expect(apply).toBeEnabled();
+
+    const geometry = await apply.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      return {
+        apply: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom },
+        chat: (() => {
+          const chat = document.querySelector<HTMLElement>("[data-testid='dde-chat']");
+          const box = chat?.getBoundingClientRect();
+          return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom } : null;
+        })(),
+        topHitTestId: document.elementFromPoint(centerX, centerY)?.closest<HTMLElement>("[data-testid]")?.dataset.testid,
+      };
+    });
+    expect(geometry.chat).not.toBeNull();
+    const separated =
+      geometry.apply.right <= geometry.chat!.left ||
+      geometry.apply.left >= geometry.chat!.right ||
+      geometry.apply.bottom <= geometry.chat!.top ||
+      geometry.apply.top >= geometry.chat!.bottom;
+    expect(separated).toBe(true);
+    expect(geometry.topHitTestId).toBe("source-blend-apply");
+
+    await apply.click();
+    await expect(page.getByTestId("source-blend-saved")).toContainText("Saved");
+    await page.getByTestId("chat-input").fill("chat remains interactive");
+    await expect(page.getByTestId("chat-input")).toHaveValue("chat remains interactive");
+  });
   test("accepted provenance drives Source attribution and Inspector provenance", async ({ page }) => {
     await page.goto(`${FIXTURE}?provenance=1`);
     await expect(page.getByTestId("dde-shell")).toBeVisible();

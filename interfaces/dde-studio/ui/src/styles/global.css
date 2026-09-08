@@ -130,10 +130,15 @@ body {
 .dde-chat-layer {
   position: fixed;
   z-index: 40;
-  right: max(var(--dde-gutter), 12px);
+  right: calc(var(--dde-inspector-width) + max(var(--dde-gutter), 12px));
   bottom: calc(var(--dde-statusbar-height) + var(--dde-candidate-strip-height) + max(var(--dde-gutter), 12px));
-  left: calc(var(--dde-rail-width) + max(var(--dde-gutter), 12px));
+  left: calc(var(--dde-rail-width) + var(--dde-explorer-width) + max(var(--dde-gutter), 12px));
   pointer-events: none;
+}
+
+
+.dde-shell:has(.dde-inspector[data-collapsed="true"]) .dde-chat-layer {
+  right: max(var(--dde-gutter), 12px);
 }
 
 .dde-chat-layer > .dde-chat {
@@ -148,7 +153,7 @@ body {
 
 @media (max-width: 899px) {
   .dde-chat-layer {
-    right: 6px;
+    right: calc(var(--dde-inspector-width) + 6px);
     left: calc(var(--dde-rail-width) + 6px);
   }
 }

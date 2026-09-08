@@ -87,6 +87,22 @@ class AssembledContext:
 
 
 @dataclass(frozen=True)
+class ContextExtension:
+    """Governed context supplied by another DDE authority.
+
+    Extensions reserve their token footprint inside the same worker context budget
+    and are hash-bound into ContextPackage; they do not become a second context
+    package or truth store.  Production VEKL uses this seam for its immutable
+    activation capsule.
+    """
+
+    name: str
+    content_hash: str
+    token_estimate: int
+    provenance_refs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class ContextBudgetExceeded:
     """Chapter 5.7: returned, never raised, when the un-evictable evidence
     alone exceeds `context_budget` — "a decomposition failure, not a

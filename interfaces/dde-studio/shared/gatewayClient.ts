@@ -365,6 +365,14 @@ export class GatewayApiClient {
     return this.get(`/missions/${missionId}/frontend/sources`, sessionId, principalId);
   }
 
+  async readVeklProjection(
+    sessionId: string,
+    principalId: string,
+    missionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.get(`/missions/${missionId}/vekl`, sessionId, principalId);
+  }
+
   async readFrontendSourceArtifact(
     sessionId: string,
     principalId: string,

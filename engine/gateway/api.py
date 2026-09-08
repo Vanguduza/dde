@@ -51,6 +51,10 @@ _HTTP_STATUS = {
     # An external design/source artifact failed provenance, licence or
     # structural validation and may not be adopted.
     "DESIGN_SOURCE_REJECTED": 403,
+    "VEKL_SCOPE_VIOLATION": 403,
+    "VEKL_SOURCE_NOT_ADMITTED": 403,
+    "VEKL_RESOURCE_INELIGIBLE": 409,
+    "VEKL_MANIFEST_INVALID": 409,
     "VERSION_CONFLICT": 409,
     "RESOURCE_LOCKED": 409,
     "WRITE_SCOPE_CONFLICT": 409,
@@ -329,6 +333,18 @@ async def read_frontend_sources(
     principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
 ) -> dict[str, object]:
     return await _services(request).commands.read_frontend_sources(
+        session_id=session_id, principal_id=principal_id, mission_id=mission_id
+    )
+
+
+@router.get("/missions/{mission_id}/vekl")
+async def read_vekl_projection(
+    mission_id: UUID,
+    request: Request,
+    session_id: Annotated[UUID, Header(alias="X-Session-Id")],
+    principal_id: Annotated[UUID, Header(alias="X-Principal-Id")],
+) -> dict[str, object]:
+    return await _services(request).commands.read_vekl_projection(
         session_id=session_id, principal_id=principal_id, mission_id=mission_id
     )
 

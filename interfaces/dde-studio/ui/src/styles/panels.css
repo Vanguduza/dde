@@ -771,7 +771,7 @@
   left: 50%;
   bottom: calc(var(--dde-candidate-strip-height) + var(--dde-gutter));
   z-index: 12;
-  width: min(700px, calc(100% - (var(--dde-gutter) * 2)));
+  width: min(536px, calc(100% - (var(--dde-gutter) * 2)));
   transform: translateX(-50%);
   border: 1px solid var(--dde-border-strong);
   border-radius: var(--dde-radius-xl);

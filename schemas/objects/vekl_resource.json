@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_resource.json",
+  "title": "VEKLResource",
+  "description": "Blueprint 26A qualified engineering resource or independently qualified executable component. Source trust never grants reuse or execution authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_resources",
+    "order": 350,
+    "pk": [
+      "resource_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [
+      [
+        "project_id",
+        "resource_id",
+        "revision"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "vekl_resources_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_resources_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_resources_parent_fkey",
+        "columns": [
+          "parent_resource_id"
+        ],
+        "ref_table": "vekl_resources",
+        "ref_columns": [
+          "resource_id"
+        ]
+      },
+      {
+        "name": "vekl_resources_source_fkey",
+        "columns": [
+          "source_id"
+        ],
+        "ref_table": "design_sources",
+        "ref_columns": [
+          "source_id"
+        ]
+      },
+      {
+        "name": "vekl_resources_artifact_fkey",
+        "columns": [
+          "source_artifact_id"
+        ],
+        "ref_table": "design_source_artifacts",
+        "ref_columns": [
+          "artifact_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "resource_id",
+    "tenant_id",
+    "project_id",
+    "resource_kind",
+    "title",
+    "publisher",
+    "revision",
+    "content_hash",
+    "source_trust",
+    "reuse_class",
+    "lifecycle_state",
+    "activation_modes",
+    "exact_versions",
+    "license_ids",
+    "provenance",
+    "required_capabilities",
+    "filesystem_scopes",
+    "network_scopes",
+    "secret_scopes",
+    "sandbox_requirements",
+    "side_effect_class",
+    "required_verifiers",
+    "stack_constraints",
+    "truth_constraints",
+    "freshness",
+    "budget",
+    "injection_findings",
+    "content_excerpt",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "resource_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "parent_resource_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_artifact_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resource_kind": {
+      "type": "string",
+      "enum": [
+        "SPEC",
+        "OFFICIAL_DOC",
+        "SKILL",
+        "PLUGIN",
+        "TOOL",
+        "CLI",
+        "MCP_SERVER",
+        "LSP_SERVER",
+        "REPOSITORY",
+        "PACKAGE",
+        "PACKAGE_METADATA",
+        "RULE_PACK",
+        "HOOK",
+        "LOOP",
+        "TEST_ORACLE",
+        "SECURITY_FEED",
+        "ISSUE",
+        "DISCUSSION",
+        "FORUM_POST",
+        "COMMUNITY_SIGNAL",
+        "TEMPLATE",
+        "REFERENCE_ARCHITECTURE",
+        "DEPLOYMENT_RECIPE",
+        "OBSERVABILITY_INTEGRATION",
+        "DDE_LEARNED_RECIPE"
+      ]
+    },
+    "component_kind": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "publisher": {
+      "type": "string"
+    },
+    "source_uri": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revision": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "source_trust": {
+      "type": "string",
+      "enum": [
+        "S1_NORMATIVE",
+        "S2_FIRST_PARTY",
+        "S3_VERIFIED_REGISTRY",
+        "S4_MAINTAINED_OSS",
+        "S5_MAINTAINER_COMMUNITY",
+        "S6_COMMUNITY_CORROBORATED",
+        "S7_DISCOVERY_ONLY",
+        "S8_UNTRUSTED"
+      ]
+    },
+    "reuse_class": {
+      "type": "string",
+      "enum": [
+        "OPEN_REUSE",
+        "CONDITIONAL_REUSE",
+        "SOURCE_REFERENCE_ONLY",
+        "RESTRICTED",
+        "UNKNOWN",
+        "REJECTED"
+      ]
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "DISCOVERED",
+        "METADATA_VERIFIED",
+        "REFERENCE_QUALIFIED",
+        "EXECUTION_QUARANTINED",
+        "EXECUTION_EVALUATED",
+        "CANARY",
+        "PRODUCTION_QUALIFIED",
+        "DEPRECATED",
+        "REVOKED"
+      ]
+    },
+    "activation_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "READ_ONLY_CONTEXT",
+          "PROCEDURAL_GUIDANCE",
+          "DISCOVERY_ONLY",
+          "REFERENCE_ONLY",
+          "DONOR_REUSE",
+          "TOOL_EXECUTION",
+          "PLUGIN_COMPONENT",
+          "MCP_RUNTIME",
+          "LSP_RUNTIME",
+          "HOOK_ENFORCEMENT",
+          "LOOP_EXECUTION",
+          "TEST_ORACLE",
+          "SECURITY_GATE",
+          "DEPLOYMENT_ACTION"
+        ]
+      }
+    },
+    "exact_versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "license_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "filesystem_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "network_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "secret_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sandbox_requirements": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "side_effect_class": {
+      "type": "string",
+      "enum": [
+        "PURE_READ",
+        "WORKSPACE_LOCAL",
+        "EXTERNAL_IDEMPOTENT",
+        "EXTERNAL_NON_IDEMPOTENT",
+        "IRREVERSIBLE"
+      ]
+    },
+    "required_verifiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stack_constraints": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "truth_constraints": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "injection_findings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "content_excerpt": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

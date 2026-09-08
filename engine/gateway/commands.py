@@ -22,6 +22,7 @@ from dataclasses import asdict, dataclass
 from importlib.metadata import PackageNotFoundError, version
 from uuid import UUID
 
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -36,6 +37,7 @@ from engine.chat.models import FrontendChatModelCatalog
 from engine.chat.plans import FrontendChatPlanService
 from engine.chat.service import FrontendChatService
 from engine.chat.workspace_review import FrontendChatWorkspaceReviewService
+from engine.context.model import ContextBudgetExceeded
 from engine.contracts.client_session import ClientSession
 from engine.contracts.command import Command
 from engine.contracts.mission import Mission
@@ -78,6 +80,13 @@ from engine.studio.reads import FrontendReadService
 from engine.studio.source.service import SourceIntelligenceService
 from engine.studio.tables import design_sessions
 from engine.truth.db import open_unit_of_work
+from engine.vekl.models import (
+    ActivationPlanSpec,
+    ResourceOutcomeSpec,
+    TaskSignatureSpec,
+    VEKLResourceSpec,
+)
+from engine.vekl.service import VEKLService
 
 
 @dataclass(frozen=True)
@@ -144,6 +153,30 @@ def _param_list(parameters: dict[str, object], name: str) -> list[str]:
             details={"parameter": name},
         )
     return value
+
+
+def _param_dict(parameters: dict[str, object], name: str) -> dict[str, object]:
+    value = parameters.get(name)
+    if not isinstance(value, dict) or not all(isinstance(key, str) for key in value):
+        raise DdeError(
+            "FORBIDDEN",
+            f"Missing or invalid parameter '{name}'",
+            details={"parameter": name},
+        )
+    return value
+
+
+def _validated[ModelT: BaseModel](
+    model: type[ModelT], payload: dict[str, object]
+) -> ModelT:
+    try:
+        return model.model_validate(payload)
+    except ValidationError as exc:
+        raise DdeError(
+            "VALIDATION_FAILED",
+            "command parameters do not match the governed boundary contract",
+            details={"errors": exc.errors(include_url=False)},
+        ) from exc
 
 
 def _param_int(parameters: dict[str, object], name: str) -> int:
@@ -284,6 +317,8 @@ class CommandDispatcher:
             or command_type.startswith("dde.fabric.")
         ):
             return await self._frontend(command, tenant_id, project_id, command_type)
+        if command_type.startswith("vekl."):
+            return await self._vekl(command, tenant_id, project_id, command_type)
         raise DdeError(
             "FORBIDDEN",
             "Unsupported command_type",
@@ -526,6 +561,117 @@ class CommandDispatcher:
 
     def _studio(self) -> FrontendStudioService:
         return FrontendStudioService(self._engine)
+
+    async def _vekl(
+        self,
+        command: Command,
+        tenant_id: UUID,
+        project_id: UUID,
+        command_type: str,
+    ) -> CommandAcceptance:
+        service = VEKLService(self._engine)
+        params = command.parameters
+        if command_type == "vekl.resource.register":
+            resource = await service.register_resource(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                spec=_validated(VEKLResourceSpec, _param_dict(params, "resource")),
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload: dict[str, object] = resource.model_dump(mode="json")
+        elif command_type == "vekl.resource.transition":
+            resource = await service.transition_resource(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                resource_id=_required_uuid_param(params, "resource_id"),
+                to_state=_param_str(params, "to_state"),
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = resource.model_dump(mode="json")
+        elif command_type == "vekl.activation.prepare":
+            task = await self.load_task(_required_uuid_param(params, "task_id"))
+            if task.project_id != project_id or task.mission_id != command.target_id:
+                raise DdeError(
+                    "TENANT_SCOPE_VIOLATION",
+                    "VEKL task is outside the addressed mission/project",
+                )
+            activation = _validated(
+                ActivationPlanSpec, _param_dict(params, "activation")
+            )
+            fingerprint = await service.build_stack_fingerprint_from_workspace(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                workspace_id=_required_uuid_param(params, "workspace_id"),
+                request_mode=activation.request_mode,
+            )
+            signature = await service.build_task_signature(
+                task=task,
+                fingerprint=fingerprint,
+                spec=_validated(
+                    TaskSignatureSpec, _param_dict(params, "task_signature")
+                ),
+            )
+            manifest = await service.plan_activation(
+                task=task,
+                fingerprint=fingerprint,
+                signature=signature,
+                spec=activation,
+            )
+            payload = {
+                "fingerprint": fingerprint.model_dump(mode="json"),
+                "task_signature": signature.model_dump(mode="json"),
+                "manifest": manifest.model_dump(mode="json"),
+            }
+        elif command_type == "vekl.context.compile":
+            task = await self.load_task(_required_uuid_param(params, "task_id"))
+            if task.project_id != project_id or task.mission_id != command.target_id:
+                raise DdeError(
+                    "TENANT_SCOPE_VIOLATION",
+                    "VEKL task is outside the addressed mission/project",
+                )
+            manifest = await service.get_manifest(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                manifest_id=_required_uuid_param(params, "manifest_id"),
+            )
+            worker_context = await service.compile_worker_context(
+                task=task,
+                manifest=manifest,
+                context_budget_tokens=_param_int(params, "context_budget_tokens"),
+            )
+            context_package = worker_context.context_package
+            if isinstance(context_package, ContextBudgetExceeded):
+                raise DdeError(
+                    "BUDGET_EXCEEDED",
+                    "combined DDE + VEKL worker context exceeds the context budget",
+                    details=asdict(context_package),
+                )
+            payload = {
+                "capsule": asdict(worker_context.capsule),
+                "context_package": context_package.model_dump(mode="json"),
+                "budget_exhausted": False,
+            }
+        elif command_type == "vekl.outcome.record":
+            outcome = await service.record_outcome(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                manifest_id=_required_uuid_param(params, "manifest_id"),
+                spec=_validated(ResourceOutcomeSpec, _param_dict(params, "outcome")),
+            )
+            payload = outcome.model_dump(mode="json")
+        else:
+            raise DdeError(
+                "FORBIDDEN",
+                "Unsupported VEKL command_type",
+                details={"command_type": command_type},
+            )
+        return CommandAcceptance(
+            command_id=command.command_id,
+            status="accepted",
+            target_type=command.target_type,
+            target_id=command.target_id,
+            payload=payload,
+        )
 
     async def _dde_chat(
         self,
@@ -1610,6 +1756,16 @@ class GatewayCommandService:
             "artifacts": [item.model_dump(mode="json") for item in artifacts],
             "templates": [item.model_dump(mode="json") for item in templates],
         }
+
+    async def read_vekl_projection(
+        self, *, session_id: UUID, principal_id: UUID, mission_id: UUID
+    ) -> dict[str, object]:
+        session, mission = await self._frontend_mission_context(
+            session_id=session_id, principal_id=principal_id, mission_id=mission_id
+        )
+        return await VEKLService(self._engine).projection(
+            tenant_id=session.tenant_id, project_id=mission.project_id
+        )
 
     async def read_frontend_source_artifact(
         self,

@@ -157,6 +157,11 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "frontend.source.templates.recommend": "mission.control",
     "frontend.source.candidate.score": "mission.control",
     "frontend.source.target_blend.set": "mission.control",
+    "vekl.resource.register": "mission.control",
+    "vekl.resource.transition": "mission.control",
+    "vekl.activation.prepare": "mission.control",
+    "vekl.context.compile": "mission.control",
+    "vekl.outcome.record": "mission.control",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -250,6 +255,11 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "frontend.source.templates.recommend": "mission",
     "frontend.source.candidate.score": "mission",
     "frontend.source.target_blend.set": "mission",
+    "vekl.resource.register": "mission",
+    "vekl.resource.transition": "mission",
+    "vekl.activation.prepare": "mission",
+    "vekl.context.compile": "mission",
+    "vekl.outcome.record": "mission",
 }
 
 #: AI Conversation Fabric commands are explicit and mission-scoped. The dispatcher

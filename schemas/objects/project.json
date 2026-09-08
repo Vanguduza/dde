@@ -12,6 +12,12 @@
     "tenant_scoped": true,
     "project_scoped": false,
     "lock_version": false,
+    "checks": [
+      {
+        "name": "projects_kind_valid",
+        "expression": "kind IS NULL OR kind IN ('TARGET_APPLICATION', 'DDE_CONTROL_PLANE')"
+      }
+    ],
     "uniques": [["tenant_id", "slug"]],
     "foreign_keys": [
       {
@@ -27,6 +33,12 @@
     "project_id": { "type": "string", "format": "uuid" },
     "tenant_id": { "type": "string", "format": "uuid" },
     "slug": { "type": "string", "minLength": 1 },
+    "kind": {
+      "anyOf": [
+        { "type": "string", "enum": ["TARGET_APPLICATION", "DDE_CONTROL_PLANE"] },
+        { "type": "null" }
+      ]
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

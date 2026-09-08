@@ -19,6 +19,7 @@ from engine.contracts.artifact import Artifact
 from engine.contracts.asserted_edge import AssertedEdge
 from engine.contracts.attention_item import AttentionItem
 from engine.contracts.audit_event import AuditEvent
+from engine.contracts.bounded_loop_definition import BoundedLoopDefinition
 from engine.contracts.capability_descriptor import CapabilityDescriptor
 from engine.contracts.capability_lease import CapabilityLease
 from engine.contracts.captured_provider_credential import CapturedProviderCredential
@@ -87,6 +88,8 @@ from engine.contracts.frontend_template import FrontendTemplate
 from engine.contracts.frontend_verification_request import FrontendVerificationRequest
 from engine.contracts.graph_amendment import GraphAmendment
 from engine.contracts.healthz import Healthz
+from engine.contracts.hook_ir import HookIR
+from engine.contracts.instruction_ir import InstructionIR
 from engine.contracts.integration_proposal import IntegrationProposal
 from engine.contracts.invariant_evaluation import InvariantEvaluation
 from engine.contracts.learned_routing_policy import LearnedRoutingPolicy
@@ -120,16 +123,22 @@ from engine.contracts.screen_audit_resolution import ScreenAuditResolution
 from engine.contracts.screen_audit_run import ScreenAuditRun
 from engine.contracts.screen_audit_screen_record import ScreenAuditScreenRecord
 from engine.contracts.seed_dataset import SeedDataset
+from engine.contracts.stack_fingerprint import StackFingerprint
 from engine.contracts.standing_approval import StandingApproval
 from engine.contracts.task import Task
 from engine.contracts.task_attempt import TaskAttempt
 from engine.contracts.task_graph import TaskGraph
 from engine.contracts.task_graph_edge import TaskGraphEdge
+from engine.contracts.task_signature import TaskSignature
 from engine.contracts.tenant import Tenant
 from engine.contracts.tenant_overhead_budget_settings import (
     TenantOverheadBudgetSettings,
 )
 from engine.contracts.validation_report import ValidationReport
+from engine.contracts.vekl_activation_manifest import VEKLActivationManifest
+from engine.contracts.vekl_manifest_invalidation import VEKLManifestInvalidation
+from engine.contracts.vekl_resource import VEKLResource
+from engine.contracts.vekl_resource_outcome import VEKLResourceOutcome
 from engine.contracts.verification_run import VerificationRun
 from engine.contracts.worker_event import WorkerEvent
 from engine.contracts.worker_run import WorkerRun
@@ -156,6 +165,7 @@ __all__ = [
     "AssertedEdge",
     "AttentionItem",
     "AuditEvent",
+    "BoundedLoopDefinition",
     "CapabilityDescriptor",
     "CapabilityLease",
     "CapturedProviderCredential",
@@ -220,6 +230,8 @@ __all__ = [
     "FrontendVerificationRequest",
     "GraphAmendment",
     "Healthz",
+    "HookIR",
+    "InstructionIR",
     "IntegrationProposal",
     "InvariantEvaluation",
     "LearnedRoutingPolicy",
@@ -253,14 +265,20 @@ __all__ = [
     "ScreenAuditRun",
     "ScreenAuditScreenRecord",
     "SeedDataset",
+    "StackFingerprint",
     "StandingApproval",
     "Task",
     "TaskAttempt",
     "TaskGraph",
     "TaskGraphEdge",
+    "TaskSignature",
     "Tenant",
     "TenantOverheadBudgetSettings",
     "ValidationReport",
+    "VEKLActivationManifest",
+    "VEKLManifestInvalidation",
+    "VEKLResource",
+    "VEKLResourceOutcome",
     "VerificationRun",
     "WorkerEvent",
     "WorkerRun",

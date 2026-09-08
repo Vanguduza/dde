@@ -440,6 +440,14 @@ export class StudioGatewayService {
     );
   }
 
+  async readVeklProjection(
+    missionId: string,
+  ): Promise<{ ok: boolean; value?: Record<string, unknown>; reason?: string }> {
+    return this.readFrontendResource((session) =>
+      this.client!.readVeklProjection(session, this.principalId, missionId),
+    );
+  }
+
   async readFrontendSourceArtifact(
     missionId: string,
     artifactId: string,

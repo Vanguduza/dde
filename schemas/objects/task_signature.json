@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/task_signature.json",
+  "title": "TaskSignature",
+  "description": "Deterministic VEKL extension of an existing Task identity and its execution constraints.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {"table": "task_signatures", "order": 352, "pk": ["signature_id"], "tenant_scoped": true, "project_scoped": true, "lock_version": false, "uniques": [["task_id", "signature_hash"]], "foreign_keys": [{"name": "task_signatures_tenant_fkey", "columns": ["tenant_id"], "ref_table": "tenants", "ref_columns": ["tenant_id"]}, {"name": "task_signatures_project_fkey", "columns": ["project_id"], "ref_table": "projects", "ref_columns": ["project_id"]}, {"name": "task_signatures_task_fkey", "columns": ["task_id"], "ref_table": "tasks", "ref_columns": ["task_id"]}, {"name": "task_signatures_fingerprint_fkey", "columns": ["fingerprint_id"], "ref_table": "stack_fingerprints", "ref_columns": ["fingerprint_id"]}]},
+  "required": ["signature_id", "tenant_id", "project_id", "task_id", "fingerprint_id", "lifecycle_stage", "task_class", "constraints", "risk_category", "required_capabilities", "required_verifiers", "freshness_needs", "budget", "signature_hash", "created_at", "updated_at"],
+  "properties": {
+    "signature_id": {"type": "string", "format": "uuid"}, "tenant_id": {"type": "string", "format": "uuid"}, "project_id": {"type": "string", "format": "uuid"}, "task_id": {"type": "string", "format": "uuid"}, "fingerprint_id": {"type": "string", "format": "uuid"}, "lifecycle_stage": {"type": "string"}, "task_class": {"type": "string"}, "constraints": {"type": "object", "additionalProperties": true}, "risk_category": {"type": "string"}, "error_signatures": {"type": "array", "items": {"type": "string"}}, "required_capabilities": {"type": "array", "items": {"type": "string"}}, "allowed_filesystem_scopes": {"type": "array", "items": {"type": "string"}}, "allowed_network_scopes": {"type": "array", "items": {"type": "string"}}, "allowed_secret_scopes": {"type": "array", "items": {"type": "string"}}, "required_verifiers": {"type": "array", "items": {"type": "string"}}, "freshness_needs": {"type": "object", "additionalProperties": true}, "budget": {"type": "object", "additionalProperties": true}, "signature_hash": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}
+  }
+}

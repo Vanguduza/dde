@@ -92,6 +92,7 @@ from engine.context.model import (
     AUTHORITY_RANK_EDR,
     AUTHORITY_RANK_REQUIREMENT,
     ContextBudgetExceeded,
+    ContextExtension,
     ContextItem,
 )
 from engine.context.repo import current_commit_sha, repo_root
@@ -200,6 +201,7 @@ class ContextService:
         context_budget_tokens: int | None = None,
         previously_context_attributed_failure: bool = False,
         respect_activation: bool = True,
+        extensions: tuple[ContextExtension, ...] = (),
         uow: PostgresUnitOfWork | None = None,
     ) -> ContextPackage | ContextBudgetExceeded:
         """Compile and persist a new `ContextPackage` version for `task`.
@@ -234,6 +236,20 @@ class ContextService:
             if context_budget_tokens is not None
             else self._context_budget_tokens
         )
+        if any(extension.token_estimate < 0 for extension in extensions):
+            raise DdeError(
+                "BUDGET_EXCEEDED",
+                "context extensions cannot declare a negative token footprint",
+            )
+        extension_tokens = sum(extension.token_estimate for extension in extensions)
+        if extension_tokens > budget:
+            return ContextBudgetExceeded(
+                task_id=task.task_id,
+                budget_tokens=budget,
+                required_tokens=extension_tokens,
+                unevictable_tokens=extension_tokens,
+            )
+        assembly_budget = budget - extension_tokens
 
         async def _op(
             active: PostgresUnitOfWork,
@@ -322,10 +338,17 @@ class ContextService:
             fused = fuse(retriever_results)
 
             assembled = assemble(
-                task, fused, budget_tokens=budget, policy_arm=assembly_arm
+                task, fused, budget_tokens=assembly_budget, policy_arm=assembly_arm
             )
             if isinstance(assembled, ContextBudgetExceeded):
-                return assembled
+                return ContextBudgetExceeded(
+                    task_id=task.task_id,
+                    budget_tokens=budget,
+                    required_tokens=assembled.required_tokens + extension_tokens,
+                    unevictable_tokens=(
+                        assembled.unevictable_tokens + extension_tokens
+                    ),
+                )
 
             coverage = compute_coverage(
                 task, discovery, authority_result, fused, assembled
@@ -360,6 +383,16 @@ class ContextService:
                         )
 
             coverage_json = coverage.to_json()
+            if extensions:
+                coverage_json["context_extensions"] = [
+                    {
+                        "name": extension.name,
+                        "content_hash": extension.content_hash,
+                        "token_estimate": extension.token_estimate,
+                        "provenance_refs": list(extension.provenance_refs),
+                    }
+                    for extension in extensions
+                ]
             if critic_outcome is not None and critic_outcome.action == "raised_finding":
                 cast(list[str], coverage_json["known_unresolved_questions"]).append(
                     "Context Critic triggered ("
@@ -416,12 +449,14 @@ class ContextService:
                 index_lag_commits=index_lag_commits,
                 coverage=coverage_json,
                 included_items=assembled.included,
+                extensions=extensions,
             )
             version = await self._repository.next_version(
                 active.connection, task.task_id
             )
             now = self._clock.now()
             retrievers_used = list(RETRIEVERS_USED)
+            retrievers_used.extend(extension.name for extension in extensions)
             if documentation_items:
                 retrievers_used.append("documentation")
             if index_state is not None:
@@ -435,7 +470,7 @@ class ContextService:
                 task_id=task.task_id,
                 version=version,
                 assembly_hash=digest,
-                assembly_tokens=assembled.total_tokens,
+                assembly_tokens=assembled.total_tokens + extension_tokens,
                 index_version=index_version,
                 index_lag_commits=index_lag_commits,
                 coverage=coverage_json,

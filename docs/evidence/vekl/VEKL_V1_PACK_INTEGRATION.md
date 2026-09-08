@@ -28,3 +28,11 @@ Review decisions:
 - deferred the v1 JSON schemas to schema-first implementation in their owning locked missions rather than falsely creating unused runtime tables now.
 
 The standalone source architecture was intentionally not added as a second canonical narrative. Future implementation must read the consolidated Rev 3 truth locations above.
+
+## Implementation-status continuation — 2026-09-08
+
+The design-only implementation status recorded above is historical. The common runtime
+foundation has since been implemented and is evidenced in
+`VEKL_RUNTIME_FOUNDATION_2026-09-08.md`. The pack hash, architectural consolidation and
+locked mission mapping above remain unchanged; the later implementation does not create a
+VEKL-P mission series or authorize new egress.

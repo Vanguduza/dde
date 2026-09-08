@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from engine.context.model import FusedItem
+from engine.context.model import ContextExtension, FusedItem
 from engine.core.hashing import canonical_json, sha256_hex
 
 
@@ -25,6 +25,7 @@ def assembly_hash(
     index_lag_commits: int,
     coverage: dict[str, object],
     included_items: tuple[FusedItem, ...],
+    extensions: tuple[ContextExtension, ...] = (),
 ) -> str:
     item_entries = sorted(
         (
@@ -48,5 +49,17 @@ def assembly_hash(
         "index_lag_commits": index_lag_commits,
         "coverage": coverage,
         "items": item_entries,
+        "extensions": sorted(
+            (
+                {
+                    "name": extension.name,
+                    "content_hash": extension.content_hash,
+                    "token_estimate": extension.token_estimate,
+                    "provenance_refs": sorted(extension.provenance_refs),
+                }
+                for extension in extensions
+            ),
+            key=lambda entry: str(entry["name"]),
+        ),
     }
     return sha256_hex(canonical_json(payload))
