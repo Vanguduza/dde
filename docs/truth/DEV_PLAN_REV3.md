@@ -2562,6 +2562,8 @@ VEKL resource-effectiveness persistence uses the distinct `VEKLResourceOutcome` 
 
 The reviewed source-catalog/source-policy seeds describe candidate families (normative/first-party docs and skills, package/MCP registries, security feeds, maintainer/community diagnostics and discovery aggregators). They do not authorize network access. Exact host/path/method/auth/quota/retention/side-effect/revocation scopes remain EDR-controlled and capability-enforced.
 
+OpenAI/ChatGPT/Codex is no longer only a named future family: the repository carries a pinned metadata-only catalogue of 10 high-value `openai/plugins` bundles / 98 direct Skill paths at commit `1e285826e604f66f7208f7ac4dba0fe8341d1f57`, plus audited presence metadata for Skill, agent, script, MCP, app and command surfaces in those bundles. DDE may install those catalogue rows as `DISCOVERY_ONLY` VEKL candidates through `vekl.openai.install_catalog_candidates`; this does **not** install a plugin, ingest a Skill body, authorize an app/MCP/agent/script/tool/command, or grant egress. DDE-080/082/083 still own exact source admission, licence/component decomposition, executable qualification and adversarial certification. Unlisted personal/community Skills (including the `AppCreator` name seen in external social content) follow the ordinary third-party discovery/qualification path and are not promoted to first-party by association with ChatGPT.
+
 ---
 
 # 21. Cross-mission infrastructure changes

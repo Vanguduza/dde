@@ -163,10 +163,12 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from engine.capabilities.lease_service import CapabilityLeaseService
+from engine.context.repository import ContextRepository
 from engine.contracts.command_idempotency import CommandIdempotency
 from engine.contracts.execution_environment import ExecutionEnvironment
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.task import Task
+from engine.contracts.vekl_activation_manifest import VEKLActivationManifest
 from engine.contracts.worker_event import WorkerEvent
 from engine.contracts.worker_run import WorkerRun
 from engine.contracts.workspace import Workspace
@@ -200,6 +202,7 @@ from engine.recovery.scope import (
 )
 from engine.recovery.service import EFFECT_CONFLICT, ExternalEffectService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
+from engine.vekl.service import VEKLService
 from engine.workers.adapter import (
     ActionBindableWorkerAdapter,
     WorkerAction,
@@ -368,6 +371,8 @@ class WorkerManagerService:
         approvals: ApprovalService | None = None,
         overhead: ControlPlaneOverheadService | None = None,
         donor_taints: DonorTaintService | None = None,
+        contexts: ContextRepository | None = None,
+        vekl: VEKLService | None = None,
     ) -> None:
         self._engine = engine
         self._registry = registry
@@ -413,6 +418,46 @@ class WorkerManagerService:
         )
         self._donor_taints = donor_taints or DonorTaintService(
             engine, approvals=self._approvals, clock=self._clock
+        )
+        self._contexts = contexts or ContextRepository()
+        self._vekl = vekl or VEKLService(engine)
+
+    async def _vekl_manifest_for_execution(
+        self,
+        active: PostgresUnitOfWork,
+        *,
+        task: Task,
+        execution_plan: ExecutionPlan,
+    ) -> VEKLActivationManifest | None:
+        """Resolve the exact VEKL activation already bound to worker context."""
+
+        package = await self._contexts.get_context_package(
+            active.connection, execution_plan.context_package_id
+        )
+        if package is None:
+            raise DdeError(
+                "POLICY_DENIED",
+                "ExecutionPlan context package no longer exists",
+                details={"context_package_id": str(execution_plan.context_package_id)},
+            )
+        if (
+            package.task_id != task.task_id
+            or package.project_id != task.project_id
+            or package.tenant_id != task.tenant_id
+        ):
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION",
+                "ExecutionPlan ContextPackage does not belong to this task",
+            )
+        binding = self._vekl.manifest_binding_from_context_package(package)
+        if binding is None:
+            return None
+        manifest_id, manifest_hash = binding
+        return await self._vekl.require_valid_manifest_for_task(
+            task=task,
+            manifest_id=manifest_id,
+            expected_manifest_hash=manifest_hash,
+            uow=active,
         )
 
     async def _run(
@@ -764,6 +809,10 @@ class WorkerManagerService:
             if not is_new:
                 return self._replay_or_raise(record)
 
+            vekl_manifest = await self._vekl_manifest_for_execution(
+                active, task=task, execution_plan=execution_plan
+            )
+
             try:
                 check_attempt_budget(
                     resolved_budget,
@@ -911,6 +960,14 @@ class WorkerManagerService:
                 updated_at=now,
             )
             await self._run_repository.insert_run(active.connection, run)
+            if vekl_manifest is not None:
+                await self._vekl.bind_validated_manifest_to_worker_run(
+                    task=task,
+                    manifest=vekl_manifest,
+                    task_attempt_id=attempt.attempt_id,
+                    worker_run_id=run.run_id,
+                    uow=active,
+                )
             await self._append_worker_event(
                 active,
                 run,
@@ -1036,6 +1093,10 @@ class WorkerManagerService:
             )
             if not is_new:
                 return self._replay_or_raise(record)
+
+            vekl_manifest = await self._vekl_manifest_for_execution(
+                active, task=task, execution_plan=execution_plan
+            )
 
             try:
                 check_attempt_budget(
@@ -1219,6 +1280,14 @@ class WorkerManagerService:
                 updated_at=now,
             )
             await self._run_repository.insert_run(active.connection, run)
+            if vekl_manifest is not None:
+                await self._vekl.bind_validated_manifest_to_worker_run(
+                    task=task,
+                    manifest=vekl_manifest,
+                    task_attempt_id=attempt.attempt_id,
+                    worker_run_id=run.run_id,
+                    uow=active,
+                )
             await self._append_worker_event(
                 active,
                 run,

@@ -752,15 +752,24 @@ Do not rebuild these now-real primitives without evidence of regression:
   three-Skill ceiling and candidate-only installation through
   `vekl.playbook.install_candidates`. Claude delivery artifacts disable autonomous Skill
   invocation, grant no tools and cannot replace DDE hard scope/effect/completion gates;
+- OpenAI/ChatGPT/Codex resource discovery is concretely pinned at `openai/plugins` commit
+  `1e285826e604f66f7208f7ac4dba0fe8341d1f57`: 10 high-value engineering plugin bundles /
+  98 direct Skill paths plus audited Skill/agent/script/MCP/app/command surface-presence
+  metadata can be installed only as `DISCOVERY_ONLY` candidates through
+  `vekl.openai.install_catalog_candidates`. Do not treat this as plugin/Skill installation
+  or executable qualification; app/MCP/agent/script/tool/hook/command/Skill bodies still
+  require exact Source Intelligence admission and component-level VEKL qualification. Do
+  not infer
+  that personal/community Skills such as `AppCreator` are OpenAI first-party;
 - real mission-scoped Gateway commands/read projection for Stack Map, Knowledge,
   Tools/Plugins/MCP, Rules/Hooks, Loops, Community Evidence, Security and Learning.
 
-Current verification (2026-09-08): 40 focused VEKL/playbook/contract tests pass; pure
-unit is 717 passed / 5 skipped / 559 integration deselected; contract is 223/223;
+Current verification (2026-09-08): 54 focused VEKL/playbook/contract tests pass; pure
+unit is 731 passed / 5 skipped / 562 integration deselected; contract is 223/223;
 extension/shared is 77/77; Frontend Studio Playwright is 79/79; desktop/UI TypeScript and
 React/Vite production build are green. Ruff, contract/design-token/binding drift checks,
-the design-lint ratchet and strict MyPy over 580 source files are green. This specific
-shell has no PostgreSQL/Redis/Docker, so the three VEKL PostgreSQL integration tests,
+the design-lint ratchet and strict MyPy over 581 source files are green. This specific
+shell has no PostgreSQL/Redis/Docker, so the six VEKL PostgreSQL integration tests,
 database-backed recovery checks and a live reversible `0038` migration remain
 **environment-unavailable**, not passed. Do not upgrade VEKL to complete from the
 pure suite alone. See `docs/evidence/vekl/VEKL_RUNTIME_FOUNDATION_2026-09-08.md`.

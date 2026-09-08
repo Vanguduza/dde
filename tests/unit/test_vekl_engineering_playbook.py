@@ -12,6 +12,12 @@ from adapters.claude.vekl import (
     compile_claude_instruction_ir,
     compile_claude_skill,
 )
+from engine.contracts.acceptance_oracle import (
+    AcceptanceOracle,
+    EvidenceBinding,
+    ObservableOutcome,
+)
+from engine.contracts.context_package import ContextPackage
 from engine.contracts.hook_ir import HookIR
 from engine.contracts.instruction_ir import InstructionIR
 from engine.contracts.task import Task
@@ -27,12 +33,16 @@ from engine.vekl.engineering_playbook import (
     SKILLS,
     apply_engineering_playbook,
     build_orchestrator_policy,
+    derive_satisfied_completion_gates,
     evaluate_completion_gates,
     materialize_hook_ir,
+    orchestrator_policy_from_constraints,
     resolve_required_skill_resources,
     skill_resource_specs,
+    validate_playbook_resource_candidate,
 )
 from engine.vekl.models import TaskSignatureSpec
+from engine.vekl.service import VEKLService
 
 NOW = datetime.now(UTC)
 
@@ -75,6 +85,40 @@ def signature_spec(archetype: str | None) -> TaskSignatureSpec:
         constraints={"caller_constraint": "preserve"},
         required_verifiers=["pytest"],
         budget={"tokens": 2000},
+    )
+
+
+def oracle_for(
+    current_task: Task,
+    *,
+    bindings: tuple[EvidenceBinding, ...],
+) -> AcceptanceOracle:
+    return AcceptanceOracle(
+        oracle_id=uuid4(),
+        tenant_id=current_task.tenant_id,
+        project_id=current_task.project_id,
+        mission_id=current_task.mission_id,
+        task_id=current_task.task_id,
+        oracle_version="oracle-v1",
+        scope="task",
+        requirement_refs=list(current_task.requirement_refs),
+        feature_refs=list(current_task.feature_refs),
+        observable_outcomes=[
+            ObservableOutcome(
+                outcome_id=uuid4(),
+                statement=f"proof {index}",
+                evidence_binding=binding,
+            )
+            for index, binding in enumerate(bindings)
+        ],
+        domain_invariants=[],
+        negative_cases=[],
+        minimum_confidence=1.0,
+        human_assertions=[],
+        approved_by="DDE",
+        approved_at=NOW,
+        created_at=NOW,
+        updated_at=NOW,
     )
 
 
@@ -154,6 +198,23 @@ def test_pattern_pack_has_no_egress_or_implicit_execution_authority() -> None:
         assert spec.provenance["upstream_snapshot"] == "2026-09-08"
 
 
+def test_exact_local_playbook_resource_is_deterministically_qualifiable() -> None:
+    resource = qualified_skill_resource("feature-delivery")
+    assert validate_playbook_resource_candidate(resource) == "feature-delivery"
+
+
+def test_playbook_qualification_rejects_any_authority_bearing_drift() -> None:
+    resource = qualified_skill_resource("feature-delivery")
+    tampered = resource.model_copy(update={"network_scopes": ["https://example.com"]})
+    with pytest.raises(DdeError) as caught:
+        validate_playbook_resource_candidate(tampered)
+    assert caught.value.error_code == "VEKL_PLAYBOOK_RESOURCE_INVALID"
+    details = caught.value.details or {}
+    mismatches = details.get("mismatches")
+    assert isinstance(mismatches, list)
+    assert "network_scopes" in mismatches
+
+
 def test_engineering_skill_hash_is_stable_and_skill_specific() -> None:
     first = SKILLS["feature-delivery"]
     same = SKILLS["feature-delivery"]
@@ -221,6 +282,21 @@ def test_high_risk_or_unattended_work_gets_fresh_adversarial_review() -> None:
         assert "adversarial-review" in policy.skill_ids
 
 
+def test_task_signature_records_explicit_attended_vs_unattended_mode() -> None:
+    attended_spec, attended = apply_engineering_playbook(
+        task(), signature_spec("feature-implementation")
+    )
+    unattended_spec, unattended = apply_engineering_playbook(
+        task(), signature_spec("feature-implementation"), unattended=True
+    )
+    assert attended is not None
+    assert unattended is not None
+    assert attended_spec.constraints["engineering_execution_mode"] == "ATTENDED"
+    assert unattended_spec.constraints["engineering_execution_mode"] == "UNATTENDED"
+    assert unattended.fresh_reviewer_required is True
+    assert "adversarial-review" in unattended.skill_ids
+
+
 def test_migration_and_bulk_work_are_strictly_governed() -> None:
     migration = build_orchestrator_policy(task(task_class="integration"), "migration")
     bulk = build_orchestrator_policy(task(), "bulk-migration")
@@ -282,7 +358,10 @@ def test_required_playbook_skills_fail_closed_when_not_installed() -> None:
             requested_modes=["PROCEDURAL_GUIDANCE"],
         )
     assert caught.value.error_code == "VEKL_RESOURCE_INELIGIBLE"
-    assert "feature-specification" in caught.value.details["skills"]
+    details = caught.value.details or {}
+    skills = details.get("skills")
+    assert isinstance(skills, dict)
+    assert "feature-specification" in skills
 
 
 def test_required_playbook_skills_require_procedural_guidance_mode() -> None:
@@ -446,3 +525,184 @@ def test_completion_gate_checker_requires_verifier_evidence() -> None:
     assert complete.complete is True
     assert complete.missing_gate_ids == ()
     assert complete.evidence_refs == ("verification:123",)
+
+
+def test_persisted_engineering_policy_roundtrips_strictly() -> None:
+    current_task = task(risk_class="high")
+    updated, policy = apply_engineering_playbook(
+        current_task, signature_spec("feature-implementation"), unattended=True
+    )
+    assert policy is not None
+    restored = orchestrator_policy_from_constraints(current_task, updated.constraints)
+    assert restored == policy
+
+    stored = updated.constraints["engineering_playbook"]
+    assert isinstance(stored, dict)
+    raw = dict(stored)
+    raw["may_access_secrets"] = True
+    tampered = {**updated.constraints, "engineering_playbook": raw}
+    with pytest.raises(DdeError) as caught:
+        orchestrator_policy_from_constraints(current_task, tampered)
+    assert caught.value.error_code == "VEKL_MANIFEST_INVALID"
+
+
+def test_caller_cannot_forge_reserved_playbook_constraints_without_archetype() -> None:
+    forged = signature_spec(None).model_copy(
+        update={"constraints": {"engineering_playbook": {"canon_wins": False}}}
+    )
+    with pytest.raises(DdeError) as caught:
+        apply_engineering_playbook(task(), forged)
+    assert caught.value.error_code == "VEKL_MANIFEST_INVALID"
+
+
+def test_feature_completion_gates_are_derived_from_real_oracle_evidence() -> None:
+    current_task = task()
+    policy = build_orchestrator_policy(current_task, "feature-implementation")
+    oracle = oracle_for(
+        current_task,
+        bindings=(EvidenceBinding(kind="test", ref="test:checkout"),),
+    )
+    satisfied = derive_satisfied_completion_gates(
+        policy,
+        task=current_task,
+        oracle=oracle,
+        verification_status="PASSED",
+        evidence_refs=("evidence:1",),
+        guardrail_clean=True,
+        prototype_clean=True,
+    )
+    decision = evaluate_completion_gates(
+        policy, satisfied_gate_ids=satisfied, evidence_refs=("evidence:1",)
+    )
+    assert decision.complete is True
+    assert decision.missing_gate_ids == ()
+
+
+def test_fresh_review_gate_requires_explicit_fresh_context_judge_evidence() -> None:
+    current_task = task(risk_class="high")
+    policy = build_orchestrator_policy(current_task, "feature-implementation")
+    plain = oracle_for(
+        current_task, bindings=(EvidenceBinding(kind="test", ref="test:checkout"),)
+    )
+    satisfied = derive_satisfied_completion_gates(
+        policy,
+        task=current_task,
+        oracle=plain,
+        verification_status="PASSED",
+        evidence_refs=("evidence:1",),
+        guardrail_clean=True,
+        prototype_clean=True,
+    )
+    decision = evaluate_completion_gates(
+        policy, satisfied_gate_ids=satisfied, evidence_refs=("evidence:1",)
+    )
+    assert "gate.fresh-review" in decision.missing_gate_ids
+
+    reviewed = oracle_for(
+        current_task,
+        bindings=(
+            EvidenceBinding(kind="test", ref="test:checkout"),
+            EvidenceBinding(
+                kind="judge",
+                ref="review:fresh-context",
+                independence="fresh_context",
+            ),
+        ),
+    )
+    satisfied = derive_satisfied_completion_gates(
+        policy,
+        task=current_task,
+        oracle=reviewed,
+        verification_status="PASSED",
+        evidence_refs=("evidence:1", "evidence:2"),
+        guardrail_clean=True,
+        prototype_clean=True,
+    )
+    decision = evaluate_completion_gates(
+        policy,
+        satisfied_gate_ids=satisfied,
+        evidence_refs=("evidence:1", "evidence:2"),
+    )
+    assert decision.complete is True
+
+
+def test_specialized_bug_gate_requires_regression_or_reproducer_binding() -> None:
+    current_task = task(task_class="repair")
+    policy = build_orchestrator_policy(current_task, "compile-runtime-debug")
+    ordinary = oracle_for(
+        current_task, bindings=(EvidenceBinding(kind="test", ref="test:generic"),)
+    )
+    satisfied = derive_satisfied_completion_gates(
+        policy,
+        task=current_task,
+        oracle=ordinary,
+        verification_status="PASSED",
+        evidence_refs=("evidence:1",),
+        guardrail_clean=True,
+        prototype_clean=True,
+    )
+    decision = evaluate_completion_gates(
+        policy, satisfied_gate_ids=satisfied, evidence_refs=("evidence:1",)
+    )
+    assert "gate.root-cause-reproduction" in decision.missing_gate_ids
+
+    reproducer = oracle_for(
+        current_task,
+        bindings=(EvidenceBinding(kind="test", ref="regression:original-defect"),),
+    )
+    satisfied = derive_satisfied_completion_gates(
+        policy,
+        task=current_task,
+        oracle=reproducer,
+        verification_status="PASSED",
+        evidence_refs=("evidence:2",),
+        guardrail_clean=True,
+        prototype_clean=True,
+    )
+    decision = evaluate_completion_gates(
+        policy, satisfied_gate_ids=satisfied, evidence_refs=("evidence:2",)
+    )
+    assert decision.complete is True
+
+
+def test_context_package_manifest_binding_is_exact_and_fail_closed() -> None:
+    bound_manifest = manifest()
+    ref = VEKLService.manifest_provenance_ref(bound_manifest)
+    package = ContextPackage(
+        package_id=uuid4(),
+        tenant_id=bound_manifest.tenant_id,
+        project_id=bound_manifest.project_id,
+        mission_id=bound_manifest.mission_id or uuid4(),
+        task_id=bound_manifest.task_id,
+        version=1,
+        assembly_hash="context-hash",
+        assembly_tokens=10,
+        index_version="1",
+        index_lag_commits=0,
+        coverage={
+            "context_extensions": [
+                {"name": "vekl", "provenance_refs": [ref], "content_hash": "capsule"}
+            ]
+        },
+        status="READY",
+        retrievers_used=["vekl"],
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    assert VEKLService.manifest_binding_from_context_package(package) == (
+        bound_manifest.manifest_id,
+        bound_manifest.manifest_hash,
+    )
+
+    malformed = package.model_copy(
+        update={
+            "coverage": {
+                "context_extensions": [
+                    {"name": "vekl", "provenance_refs": ["vekl:resource@1#abc"]}
+                ]
+            }
+        }
+    )
+    with pytest.raises(DdeError) as caught:
+        VEKLService.manifest_binding_from_context_package(malformed)
+    assert caught.value.error_code == "VEKL_MANIFEST_INVALID"

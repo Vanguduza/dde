@@ -35,15 +35,25 @@ from engine.vekl.compiler import VEKLContextCapsule, VEKLKnowledgeCompiler
 from engine.vekl.engineering_playbook import (
     PACK_ID,
     PACK_REVISION,
+    OrchestratorExecutionPolicy,
     apply_engineering_playbook,
+    orchestrator_policy_from_constraints,
     resolve_required_skill_resources,
     skill_resource_specs,
+    validate_playbook_resource_candidate,
 )
 from engine.vekl.models import (
     ActivationPlanSpec,
     ResourceOutcomeSpec,
     TaskSignatureSpec,
     VEKLResourceSpec,
+)
+from engine.vekl.openai_catalog import (
+    CATALOG_ID as OPENAI_CATALOG_ID,
+)
+from engine.vekl.openai_catalog import (
+    OPENAI_PLUGINS_COMMIT,
+    openai_plugin_catalog_specs,
 )
 from engine.vekl.policy import (
     EligibilityContext,
@@ -54,6 +64,7 @@ from engine.vekl.policy import (
 from engine.vekl.repository import VEKLRepository
 from engine.vekl.stack import StackObservation, observe_workspace_stack
 from engine.vekl.tables import projects
+from engine.verification.repository import VerificationRunRepository
 from engine.workspaces.repository import WorkspaceRepository
 
 LIFECYCLE_TRANSITIONS: dict[str, frozenset[str]] = {
@@ -75,6 +86,7 @@ TOOL_KINDS = frozenset(
 COMMUNITY_TRUST = frozenset(
     {"S5_MAINTAINER_COMMUNITY", "S6_COMMUNITY_CORROBORATED", "S7_DISCOVERY_ONLY"}
 )
+VEKL_MANIFEST_REF_PREFIX = "vekl-manifest:"
 
 
 @dataclass(frozen=True)
@@ -100,10 +112,12 @@ class VEKLService:
         *,
         repository: VEKLRepository | None = None,
         compiler: VEKLKnowledgeCompiler | None = None,
+        verification_runs: VerificationRunRepository | None = None,
     ) -> None:
         self._engine = engine
         self._repository = repository or VEKLRepository()
         self._compiler = compiler or VEKLKnowledgeCompiler()
+        self._verification_runs = verification_runs or VerificationRunRepository()
 
     async def _truth_snapshot(
         self, uow: PostgresUnitOfWork, *, tenant_id: UUID, project_id: UUID
@@ -425,6 +439,147 @@ class VEKLService:
             "reused": [item.model_dump(mode="json") for item in reused],
         }
 
+    async def install_openai_plugin_catalog_candidates(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        request_mode: str,
+    ) -> dict[str, object]:
+        """Register pinned OpenAI ChatGPT/Codex plugin metadata as discovery candidates.
+
+        The records are DDE-authored metadata only: no upstream Skill body, plugin,
+        app, MCP server or tool is fetched, installed, connected or qualified here.
+        Later use must pass the ordinary Source Intelligence and component-level VEKL
+        qualification path.
+        """
+
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            truth = await self._truth_snapshot(
+                uow, tenant_id=tenant_id, project_id=project_id
+            )
+            enforce_target_scope(
+                project_kind=truth.project_kind, request_mode=request_mode
+            )
+            existing = await self._repository.list_resources(
+                uow.connection, project_id=project_id
+            )
+        by_content = {
+            (item.content_hash, item.revision): item
+            for item in existing
+            if item.provenance.get("source") == OPENAI_CATALOG_ID
+        }
+        created: list[VEKLResource] = []
+        reused: list[VEKLResource] = []
+        for spec in openai_plugin_catalog_specs():
+            current = by_content.get((spec.content_hash, spec.revision))
+            if current is not None:
+                reused.append(current)
+                continue
+            created.append(
+                await self.register_resource(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    spec=spec,
+                    request_mode=request_mode,
+                )
+            )
+        return {
+            "catalog_id": OPENAI_CATALOG_ID,
+            "upstream_commit": OPENAI_PLUGINS_COMMIT,
+            "qualification_state": "DISCOVERY_CANDIDATE_ONLY",
+            "created": [item.model_dump(mode="json") for item in created],
+            "reused": [item.model_dump(mode="json") for item in reused],
+        }
+
+    async def qualify_engineering_playbook(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        request_mode: str,
+    ) -> dict[str, object]:
+        """Reference-qualify only exact, local DDE playbook Skill resources.
+
+        No external source, executable component or provider configuration is trusted
+        by this shortcut. DDE reconstructs each expected Skill from the pinned pack,
+        verifies the persisted candidate identity, then advances only the ordinary
+        guidance lifecycle ``DISCOVERED -> METADATA_VERIFIED ->
+        REFERENCE_QUALIFIED``. Execution qualification is deliberately not granted.
+        """
+
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            truth = await self._truth_snapshot(
+                uow, tenant_id=tenant_id, project_id=project_id
+            )
+            enforce_target_scope(
+                project_kind=truth.project_kind, request_mode=request_mode
+            )
+            resources = await self._repository.list_resources(
+                uow.connection, project_id=project_id
+            )
+        pack_resources = [
+            item for item in resources if item.provenance.get("source") == PACK_ID
+        ]
+        expected_skill_ids = {
+            str(spec.provenance["skill_id"]) for spec in skill_resource_specs()
+        }
+        observed_skill_ids: set[str] = set()
+        for resource in pack_resources:
+            observed_skill_ids.add(validate_playbook_resource_candidate(resource))
+        missing = sorted(expected_skill_ids - observed_skill_ids)
+        if missing:
+            raise DdeError(
+                "VEKL_PLAYBOOK_INCOMPLETE",
+                "engineering playbook must be installed completely before "
+                "qualification",
+                details={"missing_skill_ids": missing, "revision": PACK_REVISION},
+            )
+
+        qualified: list[VEKLResource] = []
+        unchanged: list[VEKLResource] = []
+        for resource in sorted(pack_resources, key=lambda item: str(item.resource_id)):
+            current = resource
+            if current.lifecycle_state == "DISCOVERED":
+                current = await self.transition_resource(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    resource_id=current.resource_id,
+                    to_state="METADATA_VERIFIED",
+                    request_mode=request_mode,
+                )
+            if current.lifecycle_state == "METADATA_VERIFIED":
+                current = await self.transition_resource(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    resource_id=current.resource_id,
+                    to_state="REFERENCE_QUALIFIED",
+                    request_mode=request_mode,
+                )
+                qualified.append(current)
+            elif current.lifecycle_state == "REFERENCE_QUALIFIED":
+                unchanged.append(current)
+            else:
+                raise DdeError(
+                    "VEKL_PLAYBOOK_RESOURCE_INVALID",
+                    "engineering playbook Skill is outside reference-only lifecycle",
+                    details={
+                        "resource_id": str(current.resource_id),
+                        "lifecycle_state": current.lifecycle_state,
+                    },
+                )
+        return {
+            "pack_id": PACK_ID,
+            "revision": PACK_REVISION,
+            "qualification_state": "REFERENCE_QUALIFIED",
+            "qualified": [item.model_dump(mode="json") for item in qualified],
+            "unchanged": [item.model_dump(mode="json") for item in unchanged],
+        }
+
     async def transition_resource(
         self,
         *,
@@ -595,28 +750,48 @@ class VEKLService:
             raise DdeError(
                 "TENANT_SCOPE_VIOLATION", "fingerprint and task scope differ"
             )
-        spec, _engineering_policy = apply_engineering_playbook(task, spec)
-        versions = fingerprint.facts.get("versions", {})
-        constraints = dict(spec.constraints)
-        constraints["versions"] = versions if isinstance(versions, dict) else {}
-        constraints["stack"] = dict(fingerprint.facts)
-        constraints["requirement_refs"] = sorted(task.requirement_refs)
-        constraints["feature_refs"] = sorted(task.feature_refs)
-        payload = {
-            "task_id": str(task.task_id),
-            "fingerprint_hash": fingerprint.fingerprint_hash,
-            "lifecycle_stage": spec.lifecycle_stage,
-            "task_class": task.task_class,
-            "constraints": constraints,
-            "risk_category": task.risk_class,
-            **spec.model_dump(
-                exclude={"lifecycle_stage", "engineering_archetype", "constraints"}
-            ),
-        }
-        digest = sha256_hex(canonical_json(payload))
         async with open_unit_of_work(
             self._engine, tenant_id=task.tenant_id, project_id=task.project_id
         ) as uow:
+            correction_failures = 0
+            if spec.engineering_archetype is not None:
+                prior_runs = await self._verification_runs.list_for_task(
+                    uow.connection, task.task_id
+                )
+                correction_failures = sum(
+                    1
+                    for run in prior_runs
+                    if run.status in {"FAILED", "PARTIAL", "ERRORED"}
+                )
+            spec, _engineering_policy = apply_engineering_playbook(
+                task,
+                spec,
+                correction_failures=correction_failures,
+                unattended=spec.unattended,
+            )
+            versions = fingerprint.facts.get("versions", {})
+            constraints = dict(spec.constraints)
+            constraints["versions"] = versions if isinstance(versions, dict) else {}
+            constraints["stack"] = dict(fingerprint.facts)
+            constraints["requirement_refs"] = sorted(task.requirement_refs)
+            constraints["feature_refs"] = sorted(task.feature_refs)
+            payload = {
+                "task_id": str(task.task_id),
+                "fingerprint_hash": fingerprint.fingerprint_hash,
+                "lifecycle_stage": spec.lifecycle_stage,
+                "task_class": task.task_class,
+                "constraints": constraints,
+                "risk_category": task.risk_class,
+                **spec.model_dump(
+                    exclude={
+                        "lifecycle_stage",
+                        "engineering_archetype",
+                        "unattended",
+                        "constraints",
+                    }
+                ),
+            }
+            digest = sha256_hex(canonical_json(payload))
             existing = await self._repository.signature_by_hash(
                 uow.connection, task_id=task.task_id, signature_hash=digest
             )
@@ -712,6 +887,12 @@ class VEKLService:
                 task_id=task.task_id,
                 task_attempt_id=spec.task_attempt_id,
             )
+            if prior is None and spec.replaces_manifest_id is not None:
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID",
+                    "replacement manifest was supplied but no prior activation exists",
+                    details={"replaces_manifest_id": str(spec.replaces_manifest_id)},
+                )
             if prior is not None:
                 invalidations = await self._repository.invalidations_for_manifest(
                     uow.connection, manifest_id=prior.manifest_id
@@ -719,7 +900,8 @@ class VEKLService:
                 code = None
                 detail: dict[str, object] = {}
                 if invalidations:
-                    code = "VEKL_MANIFEST_INVALID"
+                    code = invalidations[-1].reason_code
+                    detail = dict(invalidations[-1].detail)
                 elif prior.task_signature_id != signature.signature_id:
                     code, detail = (
                         "VEKL_TASK_SIGNATURE_CHANGED",
@@ -782,6 +964,12 @@ class VEKLService:
                             )
                             break
                 if code is None:
+                    if spec.replaces_manifest_id is not None:
+                        raise DdeError(
+                            "VEKL_MANIFEST_INVALID",
+                            "replacement was requested for a still-valid activation",
+                            details={"manifest_id": str(prior.manifest_id)},
+                        )
                     return prior
                 await self._invalidate(
                     uow,
@@ -791,13 +979,18 @@ class VEKLService:
                     policy_hash=policy_hash,
                     truth_hash=truth.truth_hash,
                 )
-                await uow.commit()
-                raise DdeError(
-                    "VEKL_MANIFEST_INVALID",
-                    "existing activation manifest was invalidated; silent reselection "
-                    "is forbidden",
-                    details={"reason": code, **detail},
-                )
+                if spec.replaces_manifest_id != prior.manifest_id:
+                    await uow.commit()
+                    raise DdeError(
+                        "VEKL_MANIFEST_INVALID",
+                        "existing activation manifest was invalidated; explicit exact "
+                        "replacement acknowledgement is required",
+                        details={
+                            "reason": code,
+                            "required_replaces_manifest_id": str(prior.manifest_id),
+                            **detail,
+                        },
+                    )
 
             resources = await self._repository.list_resources(
                 uow.connection, project_id=task.project_id
@@ -1164,6 +1357,268 @@ class VEKLService:
             engineering_policy=engineering_policy,
         )
 
+    @staticmethod
+    def manifest_provenance_ref(manifest: VEKLActivationManifest) -> str:
+        """Stable ContextPackage provenance pointer for one exact activation."""
+
+        return (
+            f"{VEKL_MANIFEST_REF_PREFIX}{manifest.manifest_id}:{manifest.manifest_hash}"
+        )
+
+    @staticmethod
+    def manifest_binding_from_context_package(
+        package: ContextPackage,
+    ) -> tuple[UUID, str] | None:
+        """Recover the exact VEKL activation bound into a ContextPackage.
+
+        A VEKL extension without exactly one parseable manifest provenance pointer is
+        malformed and fails closed. Non-VEKL ContextPackages remain unaffected.
+        """
+
+        raw_extensions = package.coverage.get("context_extensions", [])
+        if not isinstance(raw_extensions, list):
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "ContextPackage context_extensions must be a list",
+            )
+        vekl_extensions = [
+            item
+            for item in raw_extensions
+            if isinstance(item, dict) and item.get("name") == "vekl"
+        ]
+        if not vekl_extensions:
+            return None
+        if len(vekl_extensions) != 1:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "ContextPackage carries ambiguous VEKL extensions",
+            )
+        refs = vekl_extensions[0].get("provenance_refs", [])
+        if not isinstance(refs, list):
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "VEKL context provenance_refs must be a list",
+            )
+        bindings = [
+            item
+            for item in refs
+            if isinstance(item, str) and item.startswith(VEKL_MANIFEST_REF_PREFIX)
+        ]
+        if len(bindings) != 1:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "VEKL ContextPackage must bind exactly one activation manifest",
+            )
+        raw = bindings[0][len(VEKL_MANIFEST_REF_PREFIX) :]
+        try:
+            manifest_id_text, manifest_hash = raw.split(":", 1)
+            manifest_id = UUID(manifest_id_text)
+        except (ValueError, TypeError) as exc:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "VEKL ContextPackage manifest provenance is malformed",
+            ) from exc
+        if not manifest_hash:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "VEKL ContextPackage manifest hash is missing",
+            )
+        return manifest_id, manifest_hash
+
+    async def require_valid_manifest_for_task(
+        self,
+        *,
+        task: Task,
+        manifest_id: UUID,
+        expected_manifest_hash: str | None = None,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> VEKLActivationManifest:
+        """Resolve and revalidate one exact activation without reselection."""
+
+        async def _op(active: PostgresUnitOfWork) -> VEKLActivationManifest:
+            manifest = await self._repository.get_manifest(
+                active.connection,
+                project_id=task.project_id,
+                manifest_id=manifest_id,
+            )
+            if manifest is None:
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID", "activation manifest is missing"
+                )
+            if (
+                manifest.tenant_id != task.tenant_id
+                or manifest.project_id != task.project_id
+                or manifest.task_id != task.task_id
+                or manifest.mission_id != task.mission_id
+            ):
+                raise DdeError(
+                    "TENANT_SCOPE_VIOLATION",
+                    "VEKL activation manifest does not belong to this task",
+                )
+            if (
+                expected_manifest_hash is not None
+                and manifest.manifest_hash != expected_manifest_hash
+            ):
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID",
+                    "ContextPackage VEKL manifest hash no longer matches "
+                    "persisted state",
+                )
+            await self._validated_context_inputs(
+                active,
+                tenant_id=task.tenant_id,
+                project_id=task.project_id,
+                manifest=manifest,
+            )
+            return manifest
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=task.tenant_id, project_id=task.project_id
+        ) as owned:
+            return await _op(owned)
+
+    async def bind_validated_manifest_to_worker_run(
+        self,
+        *,
+        task: Task,
+        manifest: VEKLActivationManifest,
+        task_attempt_id: UUID,
+        worker_run_id: UUID,
+        uow: PostgresUnitOfWork,
+    ) -> VEKLActivationManifest:
+        """Bind an already-selected activation to execution without reselection.
+
+        The source manifest remains immutable. A new content-addressed manifest differs
+        only by TaskAttempt/WorkerRun identity and is inserted in the same transaction
+        as the run row, before worker capabilities or side effects are granted.
+        """
+
+        validated = await self.require_valid_manifest_for_task(
+            task=task,
+            manifest_id=manifest.manifest_id,
+            expected_manifest_hash=manifest.manifest_hash,
+            uow=uow,
+        )
+        if validated.task_attempt_id not in {None, task_attempt_id}:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "activation manifest is already bound to another TaskAttempt",
+            )
+        if validated.worker_run_id not in {None, worker_run_id}:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "activation manifest is already bound to another WorkerRun",
+            )
+        if (
+            validated.task_attempt_id == task_attempt_id
+            and validated.worker_run_id == worker_run_id
+        ):
+            return validated
+        payload = validated.model_dump(
+            mode="json",
+            exclude={"manifest_id", "manifest_hash", "created_at", "updated_at"},
+        )
+        payload["task_attempt_id"] = str(task_attempt_id)
+        payload["worker_run_id"] = str(worker_run_id)
+        digest = sha256_hex(canonical_json(payload))
+        existing = await self._repository.manifest_by_hash(
+            uow.connection, project_id=task.project_id, manifest_hash=digest
+        )
+        if existing is not None:
+            return existing
+        now = datetime.now(UTC)
+        bound = VEKLActivationManifest.model_validate(
+            {
+                **payload,
+                "manifest_id": uuid7(),
+                "manifest_hash": digest,
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
+        await self._repository.insert_manifest(uow.connection, bound)
+        return bound
+
+    async def manifest_for_worker_run(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        worker_run_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> VEKLActivationManifest | None:
+        async def _op(active: PostgresUnitOfWork) -> VEKLActivationManifest | None:
+            manifests = await self._repository.manifests_for_worker_run(
+                active.connection,
+                project_id=project_id,
+                worker_run_id=worker_run_id,
+            )
+            if len(manifests) > 1:
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID",
+                    "WorkerRun is ambiguously bound to multiple VEKL manifests",
+                    details={"worker_run_id": str(worker_run_id)},
+                )
+            return manifests[0] if manifests else None
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as owned:
+            return await _op(owned)
+
+    async def engineering_policy_for_worker_run(
+        self,
+        *,
+        task: Task,
+        worker_run_id: UUID,
+        uow: PostgresUnitOfWork | None = None,
+    ) -> OrchestratorExecutionPolicy | None:
+        """Return the validated engineering policy actually bound to a run."""
+
+        async def _op(
+            active: PostgresUnitOfWork,
+        ) -> OrchestratorExecutionPolicy | None:
+            manifest = await self.manifest_for_worker_run(
+                tenant_id=task.tenant_id,
+                project_id=task.project_id,
+                worker_run_id=worker_run_id,
+                uow=active,
+            )
+            if manifest is None:
+                return None
+            manifest = await self.require_valid_manifest_for_task(
+                task=task,
+                manifest_id=manifest.manifest_id,
+                expected_manifest_hash=manifest.manifest_hash,
+                uow=active,
+            )
+            if manifest.worker_run_id != worker_run_id:
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID",
+                    "activation manifest is not bound to this WorkerRun",
+                )
+            signature = await self._repository.get_signature(
+                active.connection,
+                project_id=task.project_id,
+                signature_id=manifest.task_signature_id,
+            )
+            if signature is None:
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID", "bound TaskSignature is missing"
+                )
+            return orchestrator_policy_from_constraints(task, signature.constraints)
+
+        if uow is not None:
+            return await _op(uow)
+        async with open_unit_of_work(
+            self._engine, tenant_id=task.tenant_id, project_id=task.project_id
+        ) as owned:
+            return await _op(owned)
+
     async def get_manifest(
         self, *, tenant_id: UUID, project_id: UUID, manifest_id: UUID
     ) -> VEKLActivationManifest:
@@ -1221,7 +1676,10 @@ class VEKLService:
             name="vekl",
             content_hash=capsule.capsule_hash,
             token_estimate=capsule.estimated_tokens,
-            provenance_refs=capsule.provenance_refs,
+            provenance_refs=(
+                self.manifest_provenance_ref(manifest),
+                *capsule.provenance_refs,
+            ),
         )
         context_package = await ContextService(self._engine).compile(
             task=task,

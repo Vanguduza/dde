@@ -128,9 +128,9 @@ as an integration test for the service-capable gate.
 Executed on this host:
 
 - focused VEKL/playbook/contract: **40 passed**;
-- pure unit: **717 passed, 5 skipped, 559 integration deselected**;
+- pure unit: **731 passed, 5 skipped, 562 integration deselected**;
 - contract: **223 passed**;
-- strict MyPy: **580 source files, no issues**;
+- strict MyPy: **581 source files, no issues**;
 - Ruff check + format check: PASS;
 - generated contracts, design tokens and binding-matrix drift: PASS;
 - design-lint ratchet: PASS at the committed DD206 budget of 70 (no increase);
@@ -141,7 +141,7 @@ Executed on this host:
 
 The recovery suite was invoked explicitly. Three non-service checks passed; 33 checks
 terminate at settings/bootstrap because `DDE_DATABASE_URL` and `DDE_REDIS_URL` are absent.
-No PostgreSQL, Redis or Docker runtime exists on this shell, so the three VEKL PostgreSQL
+No PostgreSQL, Redis or Docker runtime exists on this shell, so the six VEKL PostgreSQL
 integration tests, database-backed recovery proof and live reversible migration remain
 **environment-unavailable**, not PASS. This is recorded rather than bypassed or converted
 into a mock success.

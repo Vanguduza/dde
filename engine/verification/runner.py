@@ -135,6 +135,11 @@ from engine.recovery.checkpoint_service import (
 from engine.recovery.matrix import decide
 from engine.telemetry.service import RoutingTelemetryService
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
+from engine.vekl.engineering_playbook import (
+    derive_satisfied_completion_gates,
+    evaluate_completion_gates,
+)
+from engine.vekl.service import VEKLService
 from engine.verification.checks import (
     DEFAULT_CHECK_TIMEOUT_SECONDS,
     CheckSpec,
@@ -329,6 +334,7 @@ class VerificationRunnerService:
         database: DatabaseCapability | None = None,
         visual_critic: VisualCriticCapability | None = None,
         donor_taints: DonorTaintService | None = None,
+        vekl: VEKLService | None = None,
     ) -> None:
         self._engine = engine
         self._workspaces = workspaces
@@ -375,6 +381,7 @@ class VerificationRunnerService:
         # other capability so this module never imports a model runtime.
         self._visual_critic = visual_critic
         self._donor_taints = donor_taints or DonorTaintService(engine)
+        self._vekl = vekl or VEKLService(engine)
 
     async def _run_uow(
         self,
@@ -577,6 +584,29 @@ class VerificationRunnerService:
                 prototype_check=prototype_check,
                 check_durations_ms=[item.duration_ms for item in check_results],
             )
+            playbook_missing_gates: tuple[str, ...] = ()
+            if status == "PASSED":
+                engineering_policy = await self._vekl.engineering_policy_for_worker_run(
+                    task=task, worker_run_id=worker_run.run_id, uow=active
+                )
+                if engineering_policy is not None:
+                    satisfied_gates = derive_satisfied_completion_gates(
+                        engineering_policy,
+                        task=task,
+                        oracle=oracle,
+                        verification_status=status,
+                        evidence_refs=tuple(str(item) for item in evidence_refs),
+                        guardrail_clean=not guardrail.violations,
+                        prototype_clean=not prototype_check.violations,
+                    )
+                    gate_decision = evaluate_completion_gates(
+                        engineering_policy,
+                        satisfied_gate_ids=satisfied_gates,
+                        evidence_refs=tuple(str(item) for item in evidence_refs),
+                    )
+                    if not gate_decision.complete:
+                        status = "PARTIAL"
+                        playbook_missing_gates = gate_decision.missing_gate_ids
             ended_at = self._clock.now()
             next_status = transition(run.status, status, VERIFICATION_RUN_TRANSITIONS)
             fields: dict[str, object] = {
@@ -613,7 +643,11 @@ class VerificationRunnerService:
                 aggregate_id=finished.verification_run_id,
                 mission_id=task.mission_id,
                 task_id=task.task_id,
-                payload={"status": next_status, "confidence": confidence},
+                payload={
+                    "status": next_status,
+                    "confidence": confidence,
+                    "playbook_missing_gate_ids": list(playbook_missing_gates),
+                },
                 uow=active,
             )
             if next_status == "PASSED":
@@ -657,7 +691,9 @@ class VerificationRunnerService:
                     uow=active,
                 )
             elif next_status == "PARTIAL" and (
-                guardrail.violations or prototype_check.violations
+                guardrail.violations
+                or prototype_check.violations
+                or playbook_missing_gates
             ):
                 # A clean check-set over a harness-gaming diff is demoted
                 # to PARTIAL and classified SCOPE_VIOLATION on the surface
@@ -684,6 +720,11 @@ class VerificationRunnerService:
                     if guardrail.violations
                     else "VERIFICATION_FAILURE"
                 )
+                demotion_source = (
+                    "engineering_playbook_gate"
+                    if playbook_missing_gates
+                    else source_for(guardrail.violations)
+                )
                 await self._demotions.record(
                     tenant_id=tenant_id,
                     project_id=project_id,
@@ -691,7 +732,7 @@ class VerificationRunnerService:
                     task_id=task.task_id,
                     worker_run_id=worker_run.run_id,
                     verification_run_id=finished.verification_run_id,
-                    source=source_for(guardrail.violations),
+                    source=demotion_source,
                     failure_class=failure_class,
                     confidence=float(finished.confidence),
                     uow=active,
@@ -718,11 +759,8 @@ class VerificationRunnerService:
                         "allow_new_worker_run": False,
                         "failure_class": failure_class,
                         "occurrence_count": 0,
-                        "source": (
-                            "guardrail_test_scope_violation"
-                            if guardrail.violations
-                            else "prototype_manifest_violation"
-                        ),
+                        "source": demotion_source,
+                        "playbook_missing_gate_ids": list(playbook_missing_gates),
                     },
                     uow=active,
                 )

@@ -572,8 +572,20 @@ class CommandDispatcher:
         service = VEKLService(self._engine)
         params = command.parameters
         payload: dict[str, object]
-        if command_type == "vekl.playbook.install_candidates":
+        if command_type == "vekl.openai.install_catalog_candidates":
+            payload = await service.install_openai_plugin_catalog_candidates(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request_mode=_param_str(params, "request_mode"),
+            )
+        elif command_type == "vekl.playbook.install_candidates":
             payload = await service.install_engineering_playbook_candidates(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request_mode=_param_str(params, "request_mode"),
+            )
+        elif command_type == "vekl.playbook.qualify":
+            payload = await service.qualify_engineering_playbook(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 request_mode=_param_str(params, "request_mode"),

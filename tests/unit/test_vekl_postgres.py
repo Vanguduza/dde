@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -10,21 +11,38 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.capabilities.lease_service import CapabilityLeaseService
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.workspace import Workspace
 from engine.core.errors import DdeError
 from engine.core.hashing import sha256_hex
+from engine.execution.service import ExecutionPlanService
 from engine.truth.db import open_unit_of_work
+from engine.vekl.engineering_playbook import PACK_REVISION, SKILLS
 from engine.vekl.models import (
     ActivationPlanSpec,
     ResourceOutcomeSpec,
     TaskSignatureSpec,
     VEKLResourceSpec,
 )
+from engine.vekl.openai_catalog import (
+    OPENAI_ENGINEERING_PLUGIN_SEEDS,
+    OPENAI_PLUGINS_COMMIT,
+)
 from engine.vekl.service import VEKLService
+from engine.verification.checks import CheckSpec
+from engine.verification.oracle import AcceptanceOracleService
+from engine.verification.runner import VerificationRunnerService
+from engine.workers.adapter import WorkerAction
+from engine.workers.registry import WorkerProfileRegistry
+from engine.workers.scripted_adapter import ScriptedWorkerAdapter
+from engine.workers.service import WorkerManagerService
 from engine.workspaces.repository import WorkspaceRepository
+from engine.workspaces.service import WorkspaceService
+from tests.support.capability_fixtures import ensure_capabilities_seeded
 from tests.support.context_fixtures import ContextFixture, build_context_fixture
 from tests.support.db import new_engine
+from tests.support.execution_fixtures import build_execution_fixture
 
 MODE = "APPLICATION_MANUFACTURING_VEKL"
 pytestmark = pytest.mark.integration
@@ -104,6 +122,123 @@ def docs_spec(**changes: object) -> VEKLResourceSpec:
     }
     values.update(changes)
     return VEKLResourceSpec.model_validate(values)
+
+
+@pytest.mark.asyncio
+async def test_openai_plugin_catalog_installs_as_discovery_candidates_only() -> None:
+    engine = new_engine()
+    try:
+        fixture = await build_context_fixture(
+            engine, mission_slug=f"vekl-openai-catalog-{uuid4().hex}"
+        )
+        await classify_project(engine, fixture, "TARGET_APPLICATION")
+        service = VEKLService(engine)
+        first = await service.install_openai_plugin_catalog_candidates(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+        assert first["upstream_commit"] == OPENAI_PLUGINS_COMMIT
+        assert first["qualification_state"] == "DISCOVERY_CANDIDATE_ONLY"
+        assert len(first["created"]) == len(OPENAI_ENGINEERING_PLUGIN_SEEDS)
+        assert first["reused"] == []
+        for row in first["created"]:
+            assert row["lifecycle_state"] == "DISCOVERED"
+            assert row["resource_kind"] == "PACKAGE_METADATA"
+            assert row["activation_modes"] == ["DISCOVERY_ONLY"]
+            assert row["network_scopes"] == []
+            assert row["secret_scopes"] == []
+
+        second = await service.install_openai_plugin_catalog_candidates(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+        assert second["created"] == []
+        assert len(second["reused"]) == len(OPENAI_ENGINEERING_PLUGIN_SEEDS)
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_dde_engineering_playbook_qualifies_locally_and_activates_exact_skills(
+    tmp_path: Path,
+) -> None:
+    engine = new_engine()
+    try:
+        fixture = await build_context_fixture(
+            engine, mission_slug=f"vekl-playbook-{uuid4().hex}"
+        )
+        await classify_project(engine, fixture, "TARGET_APPLICATION")
+        service = VEKLService(engine)
+        installed = await service.install_engineering_playbook_candidates(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+        assert installed["revision"] == PACK_REVISION
+        assert len(installed["created"]) == len(SKILLS)
+
+        qualified = await service.qualify_engineering_playbook(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+        assert qualified["qualification_state"] == "REFERENCE_QUALIFIED"
+        assert len(qualified["qualified"]) == len(SKILLS)
+        second = await service.qualify_engineering_playbook(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+        assert len(second["unchanged"]) == len(SKILLS)
+
+        workspace = await seed_stack_workspace(engine, fixture, tmp_path)
+        fingerprint = await service.build_stack_fingerprint_from_workspace(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            workspace_id=workspace.workspace_id,
+            request_mode=MODE,
+        )
+        signature = await service.build_task_signature(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            spec=TaskSignatureSpec(
+                lifecycle_stage="implementation",
+                engineering_archetype="feature-implementation",
+                required_verifiers=["pytest"],
+                budget={"tokens": 5000},
+            ),
+        )
+        manifest = await service.plan_activation(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            signature=signature,
+            spec=ActivationPlanSpec(
+                request_mode=MODE,
+                policy={"version": "playbook-1"},
+                requested_modes=["PROCEDURAL_GUIDANCE"],
+                available_verifiers=["pytest"],
+                sandbox_available=True,
+            ),
+        )
+        selected_skill_ids = {
+            item.get("resource_id") for item in manifest.selected_resources
+        }
+        assert len(selected_skill_ids) >= 2
+        capsule = await service.compile_context(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            manifest=manifest,
+            token_budget=5000,
+        )
+        assert capsule.engineering_policy["archetype_id"] == "feature-implementation"
+        assert set(capsule.engineering_policy["skill_ids"]) == {
+            "feature-specification",
+            "feature-delivery",
+        }
+    finally:
+        await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -317,6 +452,17 @@ async def test_changed_task_signature_invalidates_manifest_without_reselection(
         assert caught.value.error_code == "VEKL_MANIFEST_INVALID"
         details = caught.value.details or {}
         assert details["reason"] == "VEKL_TASK_SIGNATURE_CHANGED"
+        assert details["required_replaces_manifest_id"] == str(first.manifest_id)
+
+        replacement = await service.plan_activation(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            signature=changed_signature,
+            spec=plan.model_copy(update={"replaces_manifest_id": first.manifest_id}),
+        )
+        assert replacement.manifest_id != first.manifest_id
+        assert replacement.task_signature_id == changed_signature.signature_id
+        assert replacement.selected_resources == first.selected_resources
         projection = await service.projection(
             tenant_id=fixture.tenant.tenant_id,
             project_id=fixture.tenant.project_id,
@@ -371,4 +517,180 @@ async def test_scope_source_and_cross_project_fail_closed() -> None:
         )
         assert projection["resources"] == []
     finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_worker_and_verifier_consume_exact_context_bound_playbook_manifest(
+    tmp_path: Path,
+) -> None:
+    engine = new_engine()
+    workspace = None
+    try:
+        fixture = await build_execution_fixture(
+            engine,
+            tmp_path,
+            mission_slug=f"vekl-worker-{uuid4().hex}",
+            task_class="verification",
+        )
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            await uow.connection.execute(
+                text(
+                    "UPDATE projects SET kind='TARGET_APPLICATION' WHERE project_id=:id"
+                ),
+                {"id": fixture.tenant.project_id},
+            )
+            await uow.commit()
+
+        service = VEKLService(engine)
+        await service.install_engineering_playbook_candidates(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+        await service.qualify_engineering_playbook(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            request_mode=MODE,
+        )
+
+        (tmp_path / "package.json").write_text(
+            '{"packageManager":"pnpm@10.0.0","dependencies":{"react":"19.2.8"}}'
+        )
+        (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n")
+        stack_workspace = Workspace(
+            workspace_id=uuid4(),
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            mission_id=fixture.mission.mission_id,
+            task_id=fixture.task.task_id,
+            execution_environment_id=None,
+            base_revision="stack-base",
+            current_revision="stack-head",
+            workspace_path=str(tmp_path),
+            policy={},
+            status="READY",
+            lock_version=1,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+        async with open_unit_of_work(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as uow:
+            await WorkspaceRepository().insert_workspace(
+                uow.connection, stack_workspace
+            )
+            await uow.commit()
+
+        fingerprint = await service.build_stack_fingerprint_from_workspace(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            workspace_id=stack_workspace.workspace_id,
+            request_mode=MODE,
+        )
+        signature = await service.build_task_signature(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            spec=TaskSignatureSpec(
+                lifecycle_stage="verification",
+                engineering_archetype="testing",
+                budget={"tokens": 8_000},
+            ),
+        )
+        manifest = await service.plan_activation(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            signature=signature,
+            spec=ActivationPlanSpec(
+                request_mode=MODE,
+                policy={"version": "playbook-worker-1"},
+                requested_modes=["PROCEDURAL_GUIDANCE"],
+                sandbox_available=True,
+            ),
+        )
+        worker_context = await service.compile_worker_context(
+            task=fixture.task,
+            manifest=manifest,
+            context_budget_tokens=12_000,
+        )
+        assert isinstance(worker_context.context_package, ContextPackage)
+        binding = service.manifest_binding_from_context_package(
+            worker_context.context_package
+        )
+        assert binding == (manifest.manifest_id, manifest.manifest_hash)
+
+        await ensure_capabilities_seeded(
+            engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        )
+        workspaces = WorkspaceService(engine, root=tmp_path)
+        plan_service = ExecutionPlanService(engine, workspaces=workspaces)
+        plan = await plan_service.plan(
+            task=fixture.task,
+            route_decision=fixture.route_decision,
+            context_package_id=worker_context.context_package.package_id,
+        )
+        workspace = await plan_service.provision_workspace(
+            plan=plan, task=fixture.task, base_revision="HEAD"
+        )
+        leases = CapabilityLeaseService(engine)
+        registry = WorkerProfileRegistry()
+        await registry.register_profile(ScriptedWorkerAdapter(workspaces, leases))
+        manager = WorkerManagerService(
+            engine, registry, leases=leases, contexts=None, vekl=service
+        )
+        run = await manager.invoke_run(
+            task=fixture.task,
+            execution_plan=plan,
+            workspace=workspace,
+            input_context_hash=worker_context.context_package.assembly_hash,
+            action=WorkerAction(
+                command=(sys.executable, "-c", "print('vekl-bound-run')")
+            ),
+            idempotency_key=f"vekl-bound-worker-{uuid4().hex}",
+        )
+        assert run.status == "COMPLETED"
+        bound = await service.manifest_for_worker_run(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            worker_run_id=run.run_id,
+        )
+        assert bound is not None
+        assert bound.task_attempt_id == run.task_attempt_id
+        assert bound.worker_run_id == run.run_id
+        assert bound.task_signature_id == manifest.task_signature_id
+        assert bound.selected_resources == manifest.selected_resources
+
+        oracle = await AcceptanceOracleService(engine).define(
+            task=fixture.task,
+            outcomes=[
+                CheckSpec(
+                    outcome_id=uuid4(),
+                    statement="playbook worker verification passes",
+                    kind="test",
+                    ref="test:vekl-worker",
+                    command=[sys.executable, "-c", "print('verified')"],
+                )
+            ],
+        )
+        verification = await VerificationRunnerService(
+            engine, workspaces, vekl=service
+        ).run(
+            task=fixture.task,
+            worker_run=run,
+            workspace=workspace,
+            oracle=oracle,
+            idempotency_key=f"vekl-bound-verification-{uuid4().hex}",
+        )
+        assert verification.status == "PASSED"
+    finally:
+        if workspace is not None:
+            await WorkspaceService(engine, root=tmp_path).cleanup(workspace=workspace)
         await engine.dispose()

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
+from engine.contracts.acceptance_oracle import AcceptanceOracle
 from engine.contracts.hook_ir import HookIR
 from engine.contracts.task import Task
 from engine.contracts.vekl_resource import VEKLResource
@@ -1209,6 +1210,231 @@ def build_orchestrator_policy(
     )
 
 
+def orchestrator_policy_from_constraints(
+    task: Task, constraints: dict[str, object]
+) -> OrchestratorExecutionPolicy | None:
+    """Strictly reconstruct a persisted DDE engineering policy.
+
+    The TaskSignature is authoritative for the selected playbook revision, but JSON
+    constraints are still validated before execution/verification consumes them.
+    Unknown resources, gates, hooks, enum values or weakened guard-capsule fields fail
+    closed instead of being interpreted permissively.
+    """
+
+    raw = constraints.get("engineering_playbook")
+    if raw is None:
+        return None
+    pack = constraints.get("engineering_playbook_pack")
+    if not isinstance(raw, dict) or not isinstance(pack, dict):
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "engineering playbook policy/pack binding must be objects",
+        )
+    if pack.get("pack_id") != PACK_ID or pack.get("revision") != PACK_REVISION:
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "engineering playbook pack binding is not the current qualified revision",
+            details={
+                "pack_id": pack.get("pack_id"),
+                "revision": pack.get("revision"),
+                "expected_revision": PACK_REVISION,
+            },
+        )
+    archetype_id = raw.get("archetype_id")
+    if not isinstance(archetype_id, str):
+        raise DdeError("VEKL_MANIFEST_INVALID", "engineering archetype is missing")
+    validate_archetype_for_task(task, archetype_id)
+    if constraints.get("engineering_archetype") != archetype_id:
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "TaskSignature engineering archetype and policy disagree",
+        )
+
+    def _bool(name: str, expected: bool | None = None) -> bool:
+        value = raw.get(name)
+        if not isinstance(value, bool):
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                f"engineering policy {name} must be boolean",
+            )
+        if expected is not None and value is not expected:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                f"engineering policy guard {name} was weakened",
+            )
+        return value
+
+    def _strings(name: str, allowed: set[str]) -> tuple[str, ...]:
+        value = raw.get(name)
+        if not isinstance(value, list) or not all(
+            isinstance(item, str) for item in value
+        ):
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                f"engineering policy {name} must be a string list",
+            )
+        items = tuple(dict.fromkeys(value))
+        unknown = sorted(set(items) - allowed)
+        if unknown:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                f"engineering policy {name} contains unknown identifiers",
+                details={"unknown": unknown},
+            )
+        return items
+
+    context_policy = raw.get("investigation_context")
+    parallelism_policy = raw.get("parallelism_policy")
+    if context_policy not in {"MAIN", "ISOLATED_RESEARCH", "FRESH_IMPLEMENTATION"}:
+        raise DdeError("VEKL_MANIFEST_INVALID", "invalid investigation context policy")
+    if parallelism_policy not in {
+        "SERIAL",
+        "INDEPENDENT_READS",
+        "DISJOINT_WORKTREES_ONLY",
+    }:
+        raise DdeError("VEKL_MANIFEST_INVALID", "invalid parallelism policy")
+    correction_limit = raw.get("max_correction_failures_before_restart")
+    if not isinstance(correction_limit, int) or isinstance(correction_limit, bool):
+        raise DdeError("VEKL_MANIFEST_INVALID", "invalid correction failure limit")
+    if correction_limit != 2:
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "engineering correction restart limit differs from qualified policy",
+        )
+    max_skill_count = raw.get("max_skill_count")
+    if max_skill_count != MAX_ENGINEERING_PLAYBOOK_SKILLS:
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "engineering Skill activation ceiling differs from qualified policy",
+        )
+    if raw.get("authority") != "NON_AUTHORITATIVE_ENGINEERING_GUIDANCE":
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID", "engineering guidance authority drifted"
+        )
+    skill_ids = _strings("skill_ids", set(SKILLS))
+    if len(skill_ids) > MAX_ENGINEERING_PLAYBOOK_SKILLS:
+        raise DdeError("VEKL_SKILL_BUDGET_EXCEEDED", "too many engineering Skills")
+    gate_ids = _strings("completion_gate_ids", set(GATES))
+    hook_ids = _strings("hook_ids", set(HOOK_POLICIES))
+    fresh_reviewer = _bool("fresh_reviewer_required")
+    if fresh_reviewer and "adversarial-review" not in skill_ids:
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "fresh-review policy is missing the adversarial-review Skill",
+        )
+    if fresh_reviewer and "gate.fresh-review" not in gate_ids:
+        raise DdeError(
+            "VEKL_MANIFEST_INVALID",
+            "fresh-review policy is missing its completion gate",
+        )
+    return OrchestratorExecutionPolicy(
+        archetype_id=archetype_id,
+        plan_required=_bool("plan_required"),
+        fresh_start_required=_bool("fresh_start_required"),
+        fresh_reviewer_required=fresh_reviewer,
+        investigation_context=context_policy,
+        parallelism_policy=parallelism_policy,
+        max_correction_failures_before_restart=correction_limit,
+        completion_gate_ids=gate_ids,
+        skill_ids=skill_ids,
+        hook_ids=hook_ids,
+        require_evidence=_bool("require_evidence", True),
+        prohibit_scope_thinning=_bool("prohibit_scope_thinning", True),
+        prohibit_verifier_tampering=_bool("prohibit_verifier_tampering", True),
+        authority="NON_AUTHORITATIVE_ENGINEERING_GUIDANCE",
+        canon_wins=_bool("canon_wins", True),
+        may_change_architecture=_bool("may_change_architecture", False),
+        may_advance_gate=_bool("may_advance_gate", False),
+        may_access_secrets=_bool("may_access_secrets", False),
+        max_skill_count=MAX_ENGINEERING_PLAYBOOK_SKILLS,
+    )
+
+
+def derive_satisfied_completion_gates(
+    policy: OrchestratorExecutionPolicy,
+    *,
+    task: Task,
+    oracle: AcceptanceOracle,
+    verification_status: str,
+    evidence_refs: tuple[str, ...],
+    guardrail_clean: bool,
+    prototype_clean: bool,
+) -> tuple[str, ...]:
+    """Map real AcceptanceOracle evidence onto playbook completion obligations.
+
+    This function never upgrades a non-PASSED oracle result. Specialized gates use
+    existing typed evidence bindings and explicit reference conventions rather than
+    worker prose. Missing specialized proof therefore remains missing/fail-closed.
+    """
+
+    if verification_status != "PASSED":
+        return ()
+    bindings = [
+        item.evidence_binding
+        for item in (*oracle.observable_outcomes, *oracle.negative_cases)
+    ]
+    kinds = {item.kind for item in bindings}
+    refs = {item.ref.lower() for item in bindings}
+
+    def has_ref(*prefixes: str) -> bool:
+        return any(any(ref.startswith(prefix) for prefix in prefixes) for ref in refs)
+
+    satisfied: list[str] = []
+    if evidence_refs:
+        satisfied.append("gate.evidence-required")
+    if guardrail_clean and prototype_clean:
+        satisfied.append("gate.scope-integrity")
+    if (
+        oracle.task_id == task.task_id
+        and set(task.requirement_refs).issubset(set(oracle.requirement_refs))
+        and set(task.feature_refs).issubset(set(oracle.feature_refs))
+    ):
+        satisfied.append("gate.requirement-coverage")
+    if kinds.intersection({"test", "invariant"}):
+        satisfied.append("gate.regression")
+    if kinds.intersection({"test", "invariant"}) and has_ref(
+        "regression:", "reproducer:"
+    ):
+        satisfied.append("gate.root-cause-reproduction")
+    if kinds.intersection({"test", "invariant"}) and has_ref(
+        "baseline:", "equivalence:"
+    ):
+        satisfied.append("gate.behavior-equivalence")
+    if kinds.intersection({"visual_diff", "silhouette", "visual_critique"}) and any(
+        item.kind in {"test", "api_probe", "invariant"}
+        and item.ref.lower().startswith("accessibility:")
+        for item in bindings
+    ):
+        satisfied.append("gate.visual-live")
+    if (
+        "db_assertion" in kinds
+        and has_ref("migration:forward")
+        and has_ref("migration:rollback", "migration:recovery")
+    ):
+        satisfied.append("gate.migration-reversible")
+    if "security_scan" in kinds:
+        satisfied.append("gate.security")
+    if any(
+        item.kind in {"test", "api_probe"} and item.ref.lower().startswith("benchmark:")
+        for item in bindings
+    ):
+        satisfied.append("gate.performance-target")
+    if any(
+        item.kind in {"judge", "human"}
+        and (item.independence or "").lower()
+        in {"fresh_context", "independent_fresh_context"}
+        for item in bindings
+    ):
+        satisfied.append("gate.fresh-review")
+    if has_ref("release:certification") and has_ref("release:rollback"):
+        satisfied.append("gate.release-certification")
+    return tuple(
+        gate_id
+        for gate_id in dict.fromkeys(satisfied)
+        if gate_id in policy.completion_gate_ids
+    )
+
+
 def evaluate_completion_gates(
     policy: OrchestratorExecutionPolicy,
     *,
@@ -1336,7 +1562,20 @@ def apply_engineering_playbook(
     adding a parallel planning store.
     """
 
+    reserved = {
+        "engineering_archetype",
+        "engineering_execution_mode",
+        "engineering_playbook",
+        "engineering_playbook_pack",
+    }
     if spec.engineering_archetype is None:
+        forbidden = sorted(reserved.intersection(spec.constraints))
+        if forbidden:
+            raise DdeError(
+                "VEKL_MANIFEST_INVALID",
+                "caller cannot inject reserved engineering-playbook constraints",
+                details={"reserved_keys": forbidden},
+            )
         return spec, None
     policy = build_orchestrator_policy(
         task,
@@ -1346,6 +1585,9 @@ def apply_engineering_playbook(
     )
     constraints = dict(spec.constraints)
     constraints["engineering_archetype"] = policy.archetype_id
+    constraints["engineering_execution_mode"] = (
+        "UNATTENDED" if unattended else "ATTENDED"
+    )
     constraints["engineering_playbook"] = policy.as_dict()
     constraints["engineering_playbook_pack"] = {
         "pack_id": PACK_ID,
@@ -1369,6 +1611,57 @@ def skill_resource_specs(
             details={"skill_ids": unknown},
         )
     return [SKILLS[skill_id].to_resource_spec() for skill_id in selected]
+
+
+def validate_playbook_resource_candidate(resource: VEKLResource) -> str:
+    """Prove a persisted local Skill is the exact DDE-authored pack artifact.
+
+    This is intentionally stricter than ordinary first-party metadata trust. The
+    engineering playbook can be reference-qualified without an external fetch only
+    because DDE can deterministically reconstruct the expected resource from source
+    code and compare every authority-bearing field. Any drift, executable scope,
+    provider URI, injection finding, or stale revision fails closed.
+
+    Returns the canonical ``skill_id`` when the candidate is exact.
+    """
+
+    source = resource.provenance.get("source")
+    skill_id = resource.provenance.get("skill_id")
+    if source != PACK_ID or not isinstance(skill_id, str) or skill_id not in SKILLS:
+        raise DdeError(
+            "VEKL_PLAYBOOK_RESOURCE_INVALID",
+            "resource is not an exact DDE engineering-playbook Skill",
+            details={"resource_id": str(resource.resource_id)},
+        )
+    expected = SKILLS[skill_id].to_resource_spec()
+    expected_fields = expected.model_dump(mode="json")
+    actual_fields = {
+        key: value
+        for key, value in resource.model_dump(mode="json").items()
+        if key in expected_fields
+    }
+    mismatches = sorted(
+        key
+        for key, expected_value in expected_fields.items()
+        if actual_fields.get(key) != expected_value
+    )
+    if resource.injection_findings:
+        mismatches.append("injection_findings")
+    if resource.lifecycle_state in {"DEPRECATED", "REVOKED"}:
+        mismatches.append("lifecycle_state")
+    if mismatches:
+        raise DdeError(
+            "VEKL_PLAYBOOK_RESOURCE_INVALID",
+            "DDE engineering-playbook Skill candidate differs from the pinned pack",
+            details={
+                "resource_id": str(resource.resource_id),
+                "skill_id": skill_id,
+                "revision": resource.revision,
+                "expected_revision": PACK_REVISION,
+                "mismatches": sorted(set(mismatches)),
+            },
+        )
+    return skill_id
 
 
 def materialize_hook_ir(

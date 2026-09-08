@@ -101,6 +101,7 @@ def test_gateway_exposes_authorized_vekl_read_projection() -> None:
     assert "/v1/missions/{mission_id}/vekl" in paths
     for command_type in (
         "vekl.playbook.install_candidates",
+        "vekl.playbook.qualify",
         "vekl.resource.register",
         "vekl.resource.transition",
         "vekl.activation.prepare",

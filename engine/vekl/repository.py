@@ -185,6 +185,26 @@ class VEKLRepository:
         row = result.mappings().first()
         return None if row is None else VEKLActivationManifest.model_validate(dict(row))
 
+    async def manifests_for_worker_run(
+        self,
+        connection: AsyncConnection,
+        *,
+        project_id: UUID,
+        worker_run_id: UUID,
+    ) -> list[VEKLActivationManifest]:
+        result = await connection.execute(
+            select(vekl_activation_manifests)
+            .where(
+                vekl_activation_manifests.c.project_id == project_id,
+                vekl_activation_manifests.c.worker_run_id == worker_run_id,
+            )
+            .order_by(vekl_activation_manifests.c.created_at)
+        )
+        return [
+            VEKLActivationManifest.model_validate(dict(row))
+            for row in result.mappings()
+        ]
+
     async def list_manifests(
         self, connection: AsyncConnection, *, project_id: UUID
     ) -> list[VEKLActivationManifest]:

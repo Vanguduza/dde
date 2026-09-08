@@ -46,6 +46,7 @@ class TaskSignatureSpec(BaseModel):
 
     lifecycle_stage: str
     engineering_archetype: str | None = None
+    unattended: bool = False
     constraints: dict[str, object] = Field(default_factory=dict)
     error_signatures: list[str] = Field(default_factory=list)
     required_capabilities: list[str] = Field(default_factory=list)
@@ -70,6 +71,7 @@ class ActivationPlanSpec(BaseModel):
     offline: bool = False
     task_attempt_id: UUID | None = None
     worker_run_id: UUID | None = None
+    replaces_manifest_id: UUID | None = None
 
 
 class ResourceOutcomeSpec(BaseModel):
