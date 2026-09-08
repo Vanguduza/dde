@@ -79,9 +79,10 @@ Five focused unit tests prove the catalogue is pinned, deterministic, metadata-o
 zero-authority; that the high-value engineering families, representative Skill IDs and
 audited component-surface counts are present; and that `AppCreator` is not silently
 relabeled first-party. The
-PostgreSQL integration test proves installation creates only `DISCOVERED` metadata rows
-and is idempotent on a second installation. That database test remains environment-
-gated on a host without `DDE_DATABASE_URL`.
+The PostgreSQL integration contract proves installation creates only `DISCOVERED` metadata
+rows and is idempotent on a second installation. It is now service-backed evidence rather
+than only committed test code: GitHub Actions run `34234702640` passed this case as part
+of the complete **6/6** VEKL PostgreSQL test set.
 
 This catalogue is deliberately a first tranche, not a claim that every plugin currently
 visible in the ChatGPT Plugin Directory is already ingested. The public repository is
@@ -97,12 +98,12 @@ engine source files; generated contract/design-token/binding drift checks pass; 
 committed design-lint baseline remains at 70 with no increase; extension/shared tests are
 77/77; desktop and UI TypeScript checks pass; and the React/Vite production build passes.
 
-The host still exposes no `DDE_DATABASE_URL` or `DDE_REDIS_URL`, PostgreSQL/Redis/Docker
-runtime, so the six VEKL PostgreSQL integration tests and the database-backed recovery /
-reversible migration gates remain environment-unavailable rather than PASS. A direct
-recovery invocation again produced 3 non-service PASS results and 33 immediate settings
-failures caused by the absent service URLs; no product defect is being reclassified as
-green.
+The local shell still exposes no PostgreSQL/Redis/Docker runtime, but that no longer blocks
+this catalogue's persistence evidence. Service-capable CI run `34234702640` passed all
+**6/6** VEKL PostgreSQL tests, the full database-backed unit/contract/recovery gate
+(**1550 passed / 7 skipped**), **5/5** integration tests, and a live reversible Alembic
+`head -> base -> head` cycle including migration `0038`. No catalogue candidate gained
+additional execution, network, secret or tool authority as a result of this certification.
 
 ## CI portability closure
 

@@ -127,7 +127,7 @@ as an integration test for the service-capable gate.
 
 Executed on this host:
 
-- focused VEKL/playbook/contract: **40 passed**;
+- focused VEKL/playbook/contract: **54 passed**;
 - pure unit: **731 passed, 5 skipped, 562 integration deselected**;
 - contract: **223 passed**;
 - strict MyPy: **581 source files, no issues**;
@@ -139,12 +139,16 @@ Executed on this host:
 - UI TypeScript check + React/Vite production build: PASS;
 - Frontend Studio Playwright: **79/79 passed**.
 
-The recovery suite was invoked explicitly. Three non-service checks passed; 33 checks
-terminate at settings/bootstrap because `DDE_DATABASE_URL` and `DDE_REDIS_URL` are absent.
-No PostgreSQL, Redis or Docker runtime exists on this shell, so the six VEKL PostgreSQL
-integration tests, database-backed recovery proof and live reversible migration remain
-**environment-unavailable**, not PASS. This is recorded rather than bypassed or converted
-into a mock success.
+The local shell remains service-free, but the service-capable GitHub Actions gate has now
+closed the database evidence that was previously unavailable here. CI run `34234702640`
+provisioned PostgreSQL and Redis, executed a live Alembic `head -> base -> head` cycle
+(including `0038 -> 0037` and the final `0037 -> 0038`), then completed **1550 passed /
+7 skipped** across unit+contract+recovery, including **6/6** Production VEKL PostgreSQL
+tests, followed by **5/5** integration tests and a clean generated-drift gate. The Windows
+job in the same run passed **731 / 5 skipped / 562 deselected**, Ruff/format and strict
+MyPy across 581 source files. This closes the basic PostgreSQL persistence/recovery and
+reversible-0038 evidence gates; it does not imply that every DDE-082 executable adapter or
+DDE-083 release-environment certification is complete.
 
 ## Remaining mission ownership
 

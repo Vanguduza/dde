@@ -768,11 +768,14 @@ Current verification (2026-09-08): 54 focused VEKL/playbook/contract tests pass;
 unit is 731 passed / 5 skipped / 562 integration deselected; contract is 223/223;
 extension/shared is 77/77; Frontend Studio Playwright is 79/79; desktop/UI TypeScript and
 React/Vite production build are green. Ruff, contract/design-token/binding drift checks,
-the design-lint ratchet and strict MyPy over 581 source files are green. This specific
-shell has no PostgreSQL/Redis/Docker, so the six VEKL PostgreSQL integration tests,
-database-backed recovery checks and a live reversible `0038` migration remain
-**environment-unavailable**, not passed. Do not upgrade VEKL to complete from the
-pure suite alone. See `docs/evidence/vekl/VEKL_RUNTIME_FOUNDATION_2026-09-08.md`.
+the design-lint ratchet and strict MyPy over 581 source files are green. Service-capable CI
+run `34234702640` additionally closes the former database gap: **6/6** VEKL PostgreSQL
+tests, **1550 passed / 7 skipped** across database-backed unit+contract+recovery, **5/5**
+integration, generated drift clean, and a live Alembic `head -> base -> head` cycle that
+exercises migration `0038` rollback and re-upgrade. The current shell remains service-free;
+do not confuse that host fact with an open persistence gate, and do not upgrade all of
+Production VEKL/DDE-082 to complete because broader mission scope remains. See
+`docs/evidence/vekl/VEKL_RUNTIME_FOUNDATION_2026-09-08.md`.
 
 Mission ownership remains:
 

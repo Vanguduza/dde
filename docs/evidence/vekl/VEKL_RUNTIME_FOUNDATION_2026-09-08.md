@@ -76,17 +76,26 @@ remains the reviewed architecture input and its original hash/evidence is preser
   `alembic upgrade head --sql` remains unavailable because historical migration `0002`
   executes a live `SELECT` even in offline mode; that historical behavior was not changed.
 
-## Environment-only gates still open here
+## Service-capable persistence and migration closure
 
-This shell exposes no PostgreSQL server/client runtime, Redis server, Docker or `just`.
-Therefore these checks are **UNAVAILABLE on this host**, not PASS and not product FAIL:
+The original local shell observation remains true: that host has no PostgreSQL/Redis
+service runtime. It is no longer an open Production VEKL database gate, because GitHub
+Actions run `34234702640` executed the branch against PostgreSQL + Redis and passed:
 
-1. `tests/unit/test_vekl_postgres.py` (2 integration tests): persistent manifest failover,
-   revocation/historical audit, source/scope/cross-project fail-closed behavior;
-2. a live PostgreSQL reversible migration cycle exercising `0038` upgrade/downgrade;
-3. any deployment-specific Redis/worker/harness execution involving VEKL resources.
+1. all **6/6** `tests/unit/test_vekl_postgres.py` cases, including catalogue installation,
+   exact Skill activation, manifest failover/invalidation, worker binding and verifier
+   consumption;
+2. the database-backed unit/contract/recovery run at **1550 passed / 7 skipped**;
+3. the separate integration suite at **5/5 passed**;
+4. a live Alembic `upgrade head -> downgrade base -> upgrade head` rehearsal, explicitly
+   exercising `0038 -> 0037` on rollback and `0037 -> 0038` on both upgrade passes;
+5. generated-contract/design-token drift checks after the service-backed run.
 
-CI or a service-capable DDE host must run those before a completion/certification claim.
+Windows remained green in the same run with **731 passed / 5 skipped / 562 deselected**,
+Ruff/format clean and strict MyPy clean across 581 source files. The remaining Production
+VEKL partial status is therefore mission scope, not absence of basic PostgreSQL/migration
+evidence: DDE-081 operator UX, the complete DDE-082 qualified executable adapter/authoring
+fleet, learning promotion and DDE-083 integrated adversarial/release certification remain.
 
 ## Mission-state honesty
 
