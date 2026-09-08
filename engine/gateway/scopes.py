@@ -298,6 +298,7 @@ LEGACY_FABRIC_COMMAND_TYPES: Final[frozenset[str]] = frozenset(
         "frontend.fabric.team.transition_member",
         "frontend.fabric.team.transition",
         "frontend.fabric.research.create",
+        "frontend.fabric.research.haif_auxiliary",
         "frontend.fabric.research.add_source",
         "frontend.fabric.research.update",
         "frontend.fabric.research.complete",

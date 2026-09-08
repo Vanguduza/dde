@@ -2832,6 +2832,37 @@ Source-catalog/source-policy seeds and research URLs remain discovery/design inp
 
 ---
 
+
+# 26B. Hermes xKiro Auxiliary Intelligence Fabric
+
+AD-049 admits xKiro through Hermes as a bounded auxiliary evidence plane for **target-application work only**. It does not change the strategic-manager, worker-routing, Project Truth, capability, mutation, approval, verification or completion authorities defined elsewhere in Rev 3.
+
+## 26B.1 Runtime and account isolation
+
+One versioned HAIF implementation may be deployed on the shared Oracle host, but DDE and DIAL are separate tenants. DDE owns a distinct xKiro account/credential, control root, provider-usage/quota/rate ledgers, queue, evidence, model-performance state and localhost bearer token. The DDE daemon is loopback-only on its project port and is denied filesystem access to DIAL control state. DDE Core sees only the localhost auxiliary API and never the provider credential.
+
+## 26B.2 Authority and budget law
+
+HAIF authority is `NON_AUTHORITATIVE_AUXILIARY`; completed packets are `NON_AUTHORITATIVE_AUXILIARY_EVIDENCE`. `FREE_ONLY` is hard policy. Paid routes, provider-wallet fallback, generic tools/shell, repository writes, manager-seat work, deployment actions and direct premium-model invocation are forbidden. Provider catalogue metadata never proves route eligibility.
+
+## 26B.3 Elite model qualification
+
+Only the small versioned elite free-model candidate set may enter qualification. Each DDE account route must pass a real transport canary and then task-archetype numerical fixtures before promotion to `CHAMPION`/`CHALLENGER`. Gates include schema validity, evidence fidelity, unsupported-claim/correction/provider-error/timeout ceilings and a latency envelope. S1 uses one champion, S2 one independent challenger, and S3 at most three independently classified elite routes. Agreement is not truth.
+
+## 26B.4 Data, provenance and restart safety
+
+DDE HAIF v1 accepts `PUBLIC` evidence only. Deterministic classification occurs before serialization and final egress DLP after prompt assembly. Raw restricted/secret/private-project/customer material is ineligible. Tasks persist idempotency/input hashes, attempt identity, leases, retry count, request hash, provider request id and response-persisted state. Uncertain external outcomes are reconciled or parked rather than blindly replayed. Cache reuse is content-addressed and policy/version bound. Provider responses carry model lineage, source refs, input hash, usage, latency, contradictions and unknowns.
+
+## 26B.5 DDE integration
+
+`engine.fabric.haif.HaifAuxiliaryClient` is loopback-only and token-authenticated. `HaifResearchBridge` may attach completed DDE-scoped evidence to the existing AI research authority as `HAIF_AUXILIARY`; it rejects wrong-project, wrong-authority and direct-premium evidence. HAIF may support Source Intelligence, VEKL extract/synthesis, architecture comparison, CI evidence clustering and bounded context preprocessing, but cannot convert its output directly into a command, plan approval, mutation, route change or completion claim.
+
+## 26B.6 Delivery and release proof
+
+No new HAIF mission series is introduced. DDE-075 owns Hermes auxiliary research/experience consumption; DDE-080 owns VEKL/context integration; DDE-083 owns live account, isolation, quota/rate, credential-revocation, fail-closed billing/data and cross-project adversarial certification. Provider-side spending ceilings remain independently configured per xKiro account in addition to client `FREE_ONLY` enforcement.
+
+---
+
 # 27. Route explainability
 
 Every persisted route decision is renderable without model-generated explanation.

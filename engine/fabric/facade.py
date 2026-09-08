@@ -18,6 +18,7 @@ from engine.fabric.bindings import ConversationFabricBindingService
 from engine.fabric.claims import ClaimService
 from engine.fabric.context import ContextSnapshotService
 from engine.fabric.experience import ExperienceService
+from engine.fabric.haif import HaifAuxiliaryClient, HaifResearchBridge, HaifTaskRequest
 from engine.fabric.hooks import HookService
 from engine.fabric.interop import AgentInteropService
 from engine.fabric.memory import MemoryService
@@ -137,7 +138,12 @@ def _dump(value: object) -> object:
 
 
 class AiConversationFabricFacade:
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(
+        self,
+        engine: AsyncEngine,
+        *,
+        haif_client: HaifAuxiliaryClient | None = None,
+    ) -> None:
         self.policies = ConversationPolicyService(engine)
         self.bindings = ConversationFabricBindingService(engine)
         self.interop = AgentInteropService(engine)
@@ -148,6 +154,9 @@ class AiConversationFabricFacade:
         self.skills = SkillService(engine)
         self.teams = AgentTeamService(engine)
         self.research = ResearchService(engine)
+        self.haif = HaifResearchBridge(
+            haif_client or HaifAuxiliaryClient(), self.research
+        )
         self.automations = AutomationService(engine)
         self.hooks = HookService(engine)
         self.claims = ClaimService(engine)
@@ -461,6 +470,30 @@ class AiConversationFabricFacade:
                 scope=_dict(p, "scope"),
                 mission_id=mission_id,
                 created_from_turn_id=_uuid(p, "created_from_turn_id", optional=True),
+            )
+        elif command_type == "frontend.fabric.research.haif_auxiliary":
+            request = HaifTaskRequest(
+                task_archetype=str(_str(p, "task_archetype")),
+                purpose=str(_str(p, "purpose")),
+                evidence=_dict(p, "evidence"),
+                evidence_refs=_strs(p, "evidence_refs"),
+                data_class=str(p.get("data_class", "PUBLIC")),
+                risk=str(p.get("risk", "LOW")),
+                diversity=str(p.get("diversity", "S1")),
+                max_input_tokens=_int(p, "max_input_tokens", 120000),
+                max_output_tokens=_int(p, "max_output_tokens", 8000),
+                deadline_class=str(p.get("deadline_class", "DEFERRABLE")),
+                max_attempts=_int(p, "max_attempts", 2),
+                cacheable=_bool(p, "cacheable", True),
+                priority=str(p.get("priority", "NORMAL")),
+            )
+            item = await self.haif.submit_and_attach(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                research_id=_uuid(p, "research_id"),
+                lock_version=_int(p, "lock_version"),
+                request=request,
+                drive_once=_bool(p, "drive_once"),
             )
         elif command_type == "frontend.fabric.research.add_source":
             item = await self.research.add_source(
