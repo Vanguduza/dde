@@ -1,8 +1,8 @@
 """DDE bridge to the localhost Hermes xKiro Auxiliary Intelligence Fabric.
 
-HAIF is deliberately outside DDE's manager/routing authority.  DDE submits only
+HAIF is deliberately outside DDE's manager/routing authority. DDE submits only
 non-authoritative target-application evidence tasks to the local tenant daemon,
-then may attach completed evidence to an AiResearchArtifact.  No API key enters
+then may attach completed evidence to an AiResearchArtifact. No API key enters
 DDE Core and no HAIF result becomes a command, plan approval, truth mutation or
 manager selection by this module.
 """
@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import json
 import stat
+from datetime import datetime
 from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlparse
@@ -113,7 +114,7 @@ class ResearchSourceSink(Protocol):
         authority: str,
         lock_version: int,
         title: str | None = None,
-        published_at: object | None = None,
+        published_at: datetime | None = None,
         content_hash: str | None = None,
         notes: str | None = None,
     ) -> AiResearchArtifact: ...
@@ -176,20 +177,20 @@ class HaifAuxiliaryClient:
                 response = await client.request(method, path, json=body)
         except httpx.HTTPError as exc:
             raise DdeError(
-                "CAPABILITY_UNAVAILABLE",
+                "PROVIDER_UNAVAILABLE",
                 "DDE HAIF localhost transport failed",
                 retryable=True,
             ) from exc
         if response.status_code >= 400:
             raise DdeError(
-                "CAPABILITY_UNAVAILABLE",
+                "PROVIDER_ERROR",
                 "DDE HAIF tenant rejected the request",
                 retryable=response.status_code >= 500,
                 details={"status_code": response.status_code},
             )
         payload = response.json()
         if not isinstance(payload, dict):
-            raise DdeError("INVARIANT_VIOLATION", "DDE HAIF response must be an object")
+            raise DdeError("PROVIDER_ERROR", "DDE HAIF response must be an object")
         return cast(dict[str, object], payload)
 
     async def status(self) -> dict[str, object]:
@@ -222,7 +223,7 @@ class HaifAuxiliaryClient:
                 return projection
             if asyncio.get_running_loop().time() >= deadline:
                 raise DdeError(
-                    "CAPABILITY_UNAVAILABLE",
+                    "PROVIDER_TIMEOUT",
                     "DDE HAIF task did not finish before the caller deadline",
                     retryable=True,
                     details={"task_id": task_id},
@@ -253,7 +254,7 @@ class HaifResearchBridge:
         projection = await self.client.wait(submission.task_id)
         if projection.state != "COMPLETED" or projection.evidence is None:
             raise DdeError(
-                "CAPABILITY_UNAVAILABLE",
+                "PROVIDER_UNAVAILABLE",
                 "DDE HAIF task did not produce attachable evidence",
                 details={
                     "task_id": projection.task_id,
@@ -263,12 +264,12 @@ class HaifResearchBridge:
             )
         evidence = projection.evidence
         if evidence.get("authority") != "NON_AUTHORITATIVE_AUXILIARY_EVIDENCE":
-            raise DdeError("INVARIANT_VIOLATION", "DDE HAIF evidence authority is invalid")
+            raise DdeError("EVIDENCE_CONFLICT", "DDE HAIF evidence authority is invalid")
         if evidence.get("project") != "dde":
             raise DdeError("TENANT_SCOPE_VIOLATION", "DDE HAIF evidence project is invalid")
         if evidence.get("direct_premium_invocation") is not False:
             raise DdeError(
-                "INVARIANT_VIOLATION",
+                "EVIDENCE_CONFLICT",
                 "DDE HAIF evidence crossed the premium-runtime boundary",
             )
         canonical = json.dumps(evidence, sort_keys=True, separators=(",", ":"), default=str)
