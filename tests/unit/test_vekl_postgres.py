@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -97,6 +99,32 @@ async def seed_stack_workspace(
     return workspace
 
 
+def init_git_repo(root: Path) -> str:
+    git = shutil.which("git")
+    assert git is not None
+    commands = (
+        ("init", "-q", "-b", "main"),
+        ("config", "user.email", "dde@example.com"),
+        ("config", "user.name", "DDE Test"),
+        ("add", "."),
+        ("commit", "-q", "-m", "fixture base"),
+        ("rev-parse", "HEAD"),
+    )
+    output = ""
+    for args in commands:
+        completed = subprocess.run(  # noqa: S603 -- fixed test-only git argv
+            [git, *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert completed.returncode == 0, completed.stderr
+        output = completed.stdout.strip()
+    assert output
+    return output
+
+
 def docs_spec(**changes: object) -> VEKLResourceSpec:
     excerpt = "Pinned React 19 exact-version build guidance."
     values: dict[str, object] = {
@@ -166,8 +194,11 @@ async def test_dde_engineering_playbook_qualifies_locally_and_activates_exact_sk
 ) -> None:
     engine = new_engine()
     try:
-        fixture = await build_context_fixture(
-            engine, mission_slug=f"vekl-playbook-{uuid4().hex}"
+        fixture = await build_execution_fixture(
+            engine,
+            tmp_path,
+            mission_slug=f"vekl-playbook-{uuid4().hex}",
+            task_class="implementation",
         )
         await classify_project(engine, fixture, "TARGET_APPLICATION")
         service = VEKLService(engine)
@@ -562,6 +593,7 @@ async def test_worker_and_verifier_consume_exact_context_bound_playbook_manifest
             '{"packageManager":"pnpm@10.0.0","dependencies":{"react":"19.2.8"}}'
         )
         (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '9.0'\n")
+        base_revision = init_git_repo(tmp_path)
         stack_workspace = Workspace(
             workspace_id=uuid4(),
             tenant_id=fixture.tenant.tenant_id,
@@ -569,8 +601,8 @@ async def test_worker_and_verifier_consume_exact_context_bound_playbook_manifest
             mission_id=fixture.mission.mission_id,
             task_id=fixture.task.task_id,
             execution_environment_id=None,
-            base_revision="stack-base",
-            current_revision="stack-head",
+            base_revision=base_revision,
+            current_revision=base_revision,
             workspace_path=str(tmp_path),
             policy={},
             status="READY",
