@@ -2582,6 +2582,242 @@ Adopt the high-value concepts—clarity, real execution graph, node-level observ
 
 ---
 
+# 26A. Production VEKL — Versioned Engineering Knowledge & Capability Fabric
+
+Production DDE SHALL include a governed Versioned Engineering Knowledge Layer (VEKL) for **manufacturing target applications**. VEKL is not a global skill install and is not an alternate control plane. Its unit of value is a qualified engineering resource that can be selectively activated for the current target application, exact stack/version, task class, lifecycle stage, risk profile and verifier obligations.
+
+The governing law is:
+
+> **Target Project Truth decides what DDE must build. DDE governance decides what may run. VEKL supplies the smallest qualified, version-matched engineering knowledge and capabilities needed to build it. Verification decides whether the result is acceptable. Hermes may remember what worked, but memory never becomes product truth.**
+
+### 26A.1 Scope lock
+
+VEKL applies when DDE manufactures web, mobile, desktop, backend/API, data, AI, embedded/edge and multi-target products. The production VEKL resolver MUST fail closed for DDE control-plane self-development:
+
+```text
+project.kind == DDE_CONTROL_PLANE
++ request.mode == APPLICATION_MANUFACTURING_VEKL
+→ VEKL_SCOPE_VIOLATION
+```
+
+This does not prevent DDE from using its ordinary Source Intelligence, documentation, tests or developer tooling while developing itself. It prevents the production application-manufacturing VEKL policy/resource resolver from becoming recursive authority over DDE Core.
+
+### 26A.2 Authority and plane reuse
+
+VEKL reuses, and never duplicates, existing DDE authorities:
+
+- Target Project Truth owns requirements, architecture decisions, journeys, acceptance, design authority, security/privacy and feature DNA.
+- Mission/Task/TaskAttempt/WorkerRun/ChangePacket/Workspace authorities own execution state.
+- Capability leases, secret brokerage, network policy and ExternalEffect/reconciliation own permission and side effects.
+- Source Intelligence and Donor Lab own federated discovery, provenance and existing reuse classification.
+- Context compilation/budgets own worker context delivery.
+- Verification/Evidence own completion.
+- Hermes owns persistent research/retrieval and candidate discovery only; authoritative raw runtime facts remain in DDE.
+
+The VEKL intelligence plane adds resource qualification, exact-version resolution, stack/task matching, executable-component decomposition, conflict/freshness analysis, activation planning and resource-outcome analytics. It MUST NOT create a second mission ledger, truth store, permission system, cost ledger, routing authority or memory authority.
+
+### 26A.3 Normalized engineering resource model
+
+A `VEKLResource` may represent:
+
+```text
+SPEC | OFFICIAL_DOC | SKILL | PLUGIN | TOOL | CLI | MCP_SERVER | LSP_SERVER
+REPOSITORY | PACKAGE | PACKAGE_METADATA | RULE_PACK | HOOK | LOOP | TEST_ORACLE
+SECURITY_FEED | ISSUE | DISCUSSION | FORUM_POST | COMMUNITY_SIGNAL | TEMPLATE
+REFERENCE_ARCHITECTURE | DEPLOYMENT_RECIPE | OBSERVABILITY_INTEGRATION | DDE_LEARNED_RECIPE
+```
+
+Activation is mode-specific:
+
+```text
+READ_ONLY_CONTEXT | PROCEDURAL_GUIDANCE | DISCOVERY_ONLY | REFERENCE_ONLY | DONOR_REUSE
+TOOL_EXECUTION | PLUGIN_COMPONENT | MCP_RUNTIME | LSP_RUNTIME | HOOK_ENFORCEMENT
+LOOP_EXECUTION | TEST_ORACLE | SECURITY_GATE | DEPLOYMENT_ACTION
+```
+
+Trust for one mode never implies trust for another.
+
+### 26A.4 Source trust is distinct from reuse/adoption
+
+VEKL adds source-trust classification without replacing DDE's existing reuse classes:
+
+```text
+S1_NORMATIVE
+S2_FIRST_PARTY
+S3_VERIFIED_REGISTRY
+S4_MAINTAINED_OSS
+S5_MAINTAINER_COMMUNITY
+S6_COMMUNITY_CORROBORATED
+S7_DISCOVERY_ONLY
+S8_UNTRUSTED
+```
+
+Existing reuse/adoption classes remain binding:
+
+```text
+OPEN_REUSE | CONDITIONAL_REUSE | SOURCE_REFERENCE_ONLY | RESTRICTED | UNKNOWN | REJECTED
+```
+
+An official document can be high-trust and still reference-only. A registry entry can be authentic metadata without granting execution. Popularity never grants authority.
+
+### 26A.5 Plugin/bundle decomposition
+
+Plugins, skill packs and agent bundles MUST be decomposed into independently qualified components. Skill Markdown, helper scripts, hooks, MCP servers, LSP servers, binaries/monitors and settings are separate security objects. Each executable component binds its own revision/hash, license, capability set, filesystem/network/secret scopes, side-effect class, sandbox, evaluation state and revocation state.
+
+`PLUGIN_APPROVED` MUST NOT mean "all bundled components may execute".
+
+### 26A.6 Deterministic StackFingerprint and TaskSignature
+
+Every target project has a deterministic `StackFingerprint` derived from Project Truth plus observed repository/runtime facts: languages/versions, frameworks/versions, platform targets, databases, cloud/deployment targets, package managers, lockfiles, test frameworks, runtime constraints, risk tags and Project Truth hash. Mechanically available version facts are never delegated to model guesswork.
+
+Every executable task has a `TaskSignature` that binds lifecycle stage, Feature/Requirement refs, task class, exact version/platform constraints, risk category, error signatures, required capabilities, freshness needs, verifier obligations and budget. Typical classes include scaffold, feature implementation, UI build, visual/accessibility work, compile/runtime debug, dependency/security remediation, migration, performance, observability, testing, release and incident triage.
+
+These structures extend `TaskExecutionDescriptor`; they do not create a second task identity.
+
+### 26A.7 Eligibility first, ranking second
+
+VEKL rejects a resource before ranking when source/host is not admitted, project scope is wrong, version is incompatible, activation mode conflicts with reuse class, provenance/license is insufficient, executable content is not qualified, required sandbox/secret/network scope is unavailable, permissions exceed task need, the resource is revoked, it conflicts with Project Truth, its required verifier is unavailable, or the reserved budget cannot support it.
+
+Eligible resources rank by exact-version match, source trust, task specificity, platform match, deterministic usefulness, verified historical effectiveness, maintainer freshness, security posture, latency and cost/context footprint.
+
+Progressive activation order is:
+
+```text
+Target Project Truth
+→ exact-version normative/first-party docs
+→ first-party procedural skill
+→ qualified deterministic tool/oracle
+→ maintainer issue/discussion
+→ community diagnostic evidence when ambiguity remains
+→ discovery-only aggregators
+```
+
+Lower layers fill gaps; they never override higher layers.
+
+### 26A.8 Activation manifest and KnowledgeCompiler
+
+Every material WorkerRun/TaskAttempt using VEKL binds an immutable `VEKLActivationManifest` to project/task identity, Project Truth hash, StackFingerprint hash, policy hash, selected resource IDs/revisions/content hashes, activation modes, selection reasons, tools, hooks, loops, community evidence and freshness state.
+
+Worker/provider failover MUST rehydrate the same still-valid manifest rather than silently changing engineering knowledge mid-task. Any changed mandatory resource/policy that invalidates the manifest is a normal evidence/context invalidation event.
+
+`VEKLKnowledgeCompiler` emits the smallest sufficient capsule:
+
+1. task-relevant Project Truth constraints;
+2. exact stack/version facts;
+3. selected normative/official excerpts;
+4. qualified procedural guidance;
+5. conflicts/caveats and freshness;
+6. tool/capability contracts;
+7. verification obligations;
+8. provenance pointers.
+
+Raw qualified resources stay content-addressed and provenance-bearing; semantic indexes are rebuildable caches, never truth.
+
+### 26A.9 Sources and egress change control
+
+Initial source families may include Agent Skills specifications/first-party skills, official framework/platform documentation, package registries, MCP registry metadata, GitHub repositories/issues/discussions, security feeds and bounded community diagnostics. Discovery aggregators remain `S7_DISCOVERY_ONLY` and every result is re-resolved to the actual publisher/repository/revision/license before use.
+
+The initial candidate inventory includes the Agent Skills specification; Google, Android, OpenAI, Cloudflare, Expo, Flutter, Sentry and Vercel first-party skill/resource families; official framework/platform/language/database/cloud docs; qualified documentation brokers such as Context7 only with upstream provenance preserved; stack-appropriate registries such as npm/PyPI/Maven/NuGet/crates.io/pub.dev; official MCP registry metadata; OSV/GitHub/vendor advisories; maintainer-backed GitHub issues/discussions; Stack Exchange/vendor forums for corroborated diagnostics; and skills directories/Reddit-like communities as discovery-only signals. Exact publisher source and revision are resolved at qualification time.
+
+**No source seed is an egress allowlist.** EDR-0015 remains the current bounded donor-search decision. Any additional host/path/method/auth scope required by production VEKL MUST receive ordinary DDE change control defining capability, quota owner, privacy/retention, prompt-injection screening, side-effect class, journal/replay/reconciliation and revocation before network access is admitted.
+
+### 26A.10 Rules, hooks and bounded loops
+
+Project/harness instruction files are compiled delivery artifacts. A canonical Instruction IR is derived from Target Project Truth + DDE policy + qualified stack guidance and may compile to `AGENTS.md`, `CLAUDE.md`, Cursor/Copilot rules or other supported worker formats. Those generated files never become independent truth.
+
+Hooks are executable policy. A harness-neutral Hook IR declares class/event/matcher, command or DDE capability, file/network/secret scopes, timeout, failure policy and emitted evidence. Prefer deterministic commands, then deterministic DDE capabilities, and prompt/agent hooks only where judgment is genuinely required.
+
+VEKL loops are bounded convergence programs, not "keep trying" prompts. Each loop binds entry condition, objective, max cycles, ordered steps, allowed capabilities/resources, budget, verifier/success oracle, checkpoints, failure/escalation and rollback policy. Core libraries include compile repair, focused-test repair, security remediation, dependency upgrade, migration, performance, accessibility and visual polish. Verifier output terminates the loop.
+
+### 26A.11 Supply chain, security and injection law
+
+Knowledge about a tool, permission to install it and permission to execute it are three separate decisions. Dependency/tool qualification records exact source/release/hash, license, provenance/attestation, install scripts/binaries, dependency tree, advisories, network/filesystem/secret needs, cleanup and output format. Existing lockfiles are never silently moved to `latest`.
+
+External text is untrusted data. README/skill/forum/issue text attempting to change DDE policy, reveal secrets, broaden scope or override Project Truth is prompt injection and cannot alter capability or truth state. Community evidence is diagnostic; exact-version normative/first-party contracts win conflicts.
+
+MCP/plugin registry presence never grants connect permission. Tool lists, write scope, network, auth, secrets, filesystem access, retention and side effects are independently qualified and minimized to the current TaskSignature.
+
+### 26A.12 Resource outcomes, Hermes and learning
+
+DDE records verifier-backed resource effectiveness separately from both routing-learning `ExperienceRecord` and execution `ExecutionExperienceRecord`. The VEKL authority is `VEKLResourceOutcome` (final persisted name may be refined schema-first), binding the activation manifest/resource revisions to verified outcome, regressions, iterations/rework, cost/latency, failure signatures and evidence refs.
+
+Hermes may persist/retrieve privacy-safe resource research, release/version watches, recurring error signatures, proven recovery patterns and resource-outcome summaries. Hermes may propose DDE wrapper skills, resource-ranking or workflow candidates, but may not write Project Truth, source policy, capability scope, verification state or release gates.
+
+Any learned ranking/recipe follows the ordinary DDE path:
+
+```text
+candidate → offline eval/holdout → shadow → canary → governed promotion
+```
+
+Worker self-report, popularity and one-project success are never sufficient promotion evidence.
+
+### 26A.13 Qualification, freshness, offline mode and revocation
+
+Resource qualification lifecycle:
+
+```text
+DISCOVERED → METADATA_VERIFIED → REFERENCE_QUALIFIED
+→ EXECUTION_QUARANTINED → EXECUTION_EVALUATED → CANARY
+→ PRODUCTION_QUALIFIED → DEPRECATED | REVOKED
+```
+
+Reference qualification may precede executable qualification. Upstream `main`/`latest` never auto-promotes. Freshness is explicit; mandatory stale security/version evidence may block release. Offline operation may use exact pinned, previously qualified resources only when policy allows it.
+
+Emergency revocation may target resource ID, publisher, commit/hash, package version, host, plugin component, MCP server, hook or learned wrapper. New activation stops immediately while historical manifests/evidence remain immutable.
+
+### 26A.14 Cross-project privacy and observability
+
+Public qualified resources and privacy-safe aggregate effectiveness may be shared globally. Target Project Truth, private repository context, customer data, proprietary workarounds, project failures and secrets remain tenant/project scoped. Project A private VEKL context MUST NOT appear in Project B.
+
+VEKL records external query/retrieval cost, model context compilation, tool/runtime minutes, MCP execution, security scanning and storage. Useful metrics are verifier pass rate, regressions, iterations-to-green, cost-to-green, false activation, staleness/version conflicts, rollback and escalation—not resource popularity.
+
+Canonical events include discovery/qualification/rejection/revocation, activation planned/activated, tool/hook/loop execution, community-evidence use, version drift, security alerts, resource outcomes and learning candidates.
+
+### 26A.15 Production Studio projection
+
+The Production DDE Studio may project VEKL as a task/project-scoped workbench:
+
+```text
+Stack Map
+Knowledge
+Tools / Plugins / MCP
+Rules / Hooks
+Loops
+Community Evidence
+Security
+Learning
+```
+
+Every visible active resource must be backed by production state showing publisher/source, revision/hash, trust/reuse class, activation mode, why selected, freshness, permissions/sandbox and evidence. No fabricated active-resource badges are permitted.
+
+### 26A.16 Minimum acceptance and anti-patterns
+
+Production qualification must prove at least: self-scope refusal; Project Truth precedence; wrong-major docs rejection; revoked-resource refusal; skill-text/script split; component-level plugin qualification; excessive MCP scope refusal; non-admitted-host block-before-fetch; journal-before-side-effect ordering; prompt-injection resistance; dependency provenance/hash; typosquat handling; hook scope; bounded-loop exhaustion; evidence-based completion; failover manifest continuity; offline exact-pin policy; stale-security blocking; Hermes non-authority; eval/shadow/canary learning; cross-project isolation; typed budget exhaustion; and immutable historical audit after revocation.
+
+Forbidden patterns include global install-all skills, blind `latest`, open-web worker browsing, bundle-wide plugin trust, forum popularity as truth, Hermes memory as current API authority, registry-entry-as-trust, tool-green-as-feature-complete, wrappers overriding Project Truth, unqualified hooks, blind retries of uncertain side effects, self-promoting learned heuristics and dumping the entire resource library into every worker context.
+
+### 26A.17 Delivery mapping — no new parallel mission series
+
+The proposal-local VEKL-P0…P10 labels are **not** DDE missions and MUST NOT renumber DDE-070…DDE-083. Delivery is absorbed into existing locked missions:
+
+- DDE-075: Hermes VEKL research/resource-outcome/failure/recovery intelligence; candidate-only learning.
+- DDE-076: persistent qualified engineering-resource/component/version/certification registry alongside fleet/version authority.
+- DDE-077: deterministic StackFingerprint + TaskSignature binding to TaskExecutionDescriptor/ChangePacket/workspace identity.
+- DDE-080: VEKL source-policy compiler, hard eligibility/ranking, `VEKLActivationManifest`, `VEKLKnowledgeCompiler`, progressive disclosure, conflict/freshness/context integration and accepted egress prerequisite for any new source family.
+- DDE-081: inspectable Production Studio projections for active resources, provenance, security and learning state.
+- DDE-082: Instruction IR, Hook IR, qualified tool/plugin/MCP/LSP execution, bounded loops, reusable DDE wrapper/workflow candidates and operator authoring surfaces.
+- DDE-083: adversarial/supply-chain/revocation/offline/cross-project/stale-security/learning-poisoning certification and release-gate integration.
+
+Existing Source Intelligence/Donor Lab, capability, context, verification, routing and evidence primitives are reused rather than reopened as duplicate VEKL authorities.
+
+### 26A.18 Contract adoption law
+
+The reviewed VEKL v1 pack supplied candidate JSON schemas for resource, activation manifest, Hook IR and bounded loop plus source-catalog/policy seeds. They are architectural design inputs only at this stage. They MUST enter the normal DDE schema-first process in their owning missions, with naming reconciled against existing authorities, migration/RLS tests and implementation evidence before any runtime capability is claimed.
+
+The source-catalog seed is not canonical egress authority. Candidate capability names such as `capability.vekl.*` are likewise illustrative until admitted through ordinary capability risk/side-effect contracts.
+
+---
+
 # 27. Route explainability
 
 Every persisted route decision is renderable without model-generated explanation.
@@ -2957,7 +3193,7 @@ External source links/research explain feasibility and inspiration but do not ou
 
 DDE Rev 3's consolidated target is:
 
-> **DDE owns truth, state, policy, admissibility, lineage and evidence. Project identity is established before configuration. Strategic model control is represented truthfully as desired, configured/requested and serving state: Fable is the preferred strategic model, Opus is the initial fallback when selected, but DDE claims live role occupancy only to the level the exact harness/runtime can actually control and attest. Configured is never silently upgraded to serving. When Fable is genuinely active, Opus remains a normal subordinate worker candidate; when Opus genuinely occupies the strategic seat it leaves conflicting subordinate eligibility, and when Fable is restored Opus returns to the ordinary worker pool. All bounded work is routed across certified worker configurations according to capabilities and verified historical performance. Hermes remembers, retrieves and discovers patterns but never becomes routing or truth authority. Every code mutation belongs to a ChangePacket, every rejection has a disposition, every controlled commit proves staged scope, and prior evidence is inherited until a changed dependency specifically invalidates it. Context, provider quota, serving-model evidence and executable-tool versions are governed runtime resources. Frontend Studio exposes Claude `/design` through a DDE-owned DesignGateway and closes a bidirectional loop between design artifacts and real isolated live application candidates; provider artboards are never mislabeled as implementation. The same real runtime is projected as an execution graph, node inspector, run comparison, workflow library and policy-compiled Workflow Composer. Deterministic and independent verification decide completion.**
+> **DDE owns truth, state, policy, admissibility, lineage and evidence. Project identity is established before configuration. Strategic model control is represented truthfully as desired, configured/requested and serving state: Fable is the preferred strategic model, Opus is the initial fallback when selected, but DDE claims live role occupancy only to the level the exact harness/runtime can actually control and attest. Configured is never silently upgraded to serving. When Fable is genuinely active, Opus remains a normal subordinate worker candidate; when Opus genuinely occupies the strategic seat it leaves conflicting subordinate eligibility, and when Fable is restored Opus returns to the ordinary worker pool. All bounded work is routed across certified worker configurations according to capabilities and verified historical performance. Hermes remembers, retrieves and discovers patterns but never becomes routing or truth authority. Every code mutation belongs to a ChangePacket, every rejection has a disposition, every controlled commit proves staged scope, and prior evidence is inherited until a changed dependency specifically invalidates it. Context, provider quota, serving-model evidence and executable-tool versions are governed runtime resources. Frontend Studio exposes Claude `/design` through a DDE-owned DesignGateway and closes a bidirectional loop between design artifacts and real isolated live application candidates; provider artboards are never mislabeled as implementation. The same real runtime is projected as an execution graph, node inspector, run comparison, workflow library and policy-compiled Workflow Composer. When DDE manufactures target applications, Production VEKL activates the smallest qualified exact-version engineering resource set under Project Truth, capability, egress, provenance and verification law; it is explicitly not a DDE self-development authority. Deterministic and independent verification decide completion.**
 
 That is the single canonical human-readable architecture for DDE Rev 3.
 
@@ -2975,6 +3211,7 @@ The following objects are first-class or required target contracts. Names may ma
 | Change governance | `DeclaredWriteSet`, `RejectionDisposition`, `StagingManifest`, `CommitManifest`, `WriteOwnershipGraph` |
 | Fleet | `HarnessInstallation`, `HarnessRuntimeCapabilities`, `ModelControlCapabilities`, `WorkerConfiguration`, `WorkerProfileCertification`, `ProviderCapacitySnapshot` |
 | Context | `ContextPackage`, `ContextBudget`, `ContinuationPackage` |
+| Engineering resources / VEKL | `StackFingerprint`, `TaskSignature`, `VEKLResource`, `VEKLActivationManifest`, `VEKLResourceOutcome`, `InstructionIR`, `HookIR`, `BoundedLoopDefinition` |
 | Evidence | `VerificationRun`, `Evidence`, `EvidenceValidityGraph`, `RegressionInvalidationGraph`, `DeltaAuditPlan` |
 | Learning | `ExperienceRecord`, `ExperienceContext`, `RoutingInsightCandidate`, `EscalationPolicy` |
 | Design | `DesignGateDecision`, `DesignSession`, `DesignEditContext`, `DesignArtifact`, `DesignSystemRegistry`, `LiveEditWorkspace`, `ProductDesignAuthority` |

@@ -65,8 +65,12 @@ async def _database_ready(
         if current == heads:
             return True, "head"
         return True, "behind"
-    except Exception:
-        log.warning("readyz.database_unreachable")
+    except Exception as exc:
+        log.warning(
+            "readyz.database_unreachable",
+            error_type=type(exc).__name__,
+            error=str(exc)[:300],
+        )
         return False, "unknown"
     finally:
         await engine.dispose()

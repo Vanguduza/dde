@@ -41,7 +41,7 @@ This tranche repairs blockers without deleting, weakening, bypassing or silently
 
 ## Non-silent residuals
 
-The desktop dependency install reports 15 npm audit findings (1 moderate, 13 high, 1 critical). They pre-exist the byte-copy repair and remain explicit security/hardening work; they are not waived by this recovery.
+The prior desktop dependency residual is closed separately by `docs/evidence/dde-069/DESKTOP_DEPENDENCY_SECURITY.md`; the current desktop audit is 0 vulnerabilities.
 
 The repository design lint currently reports the known DD206 baseline violations. They remain visible evidence and are not converted into a false pass.
 
@@ -54,5 +54,7 @@ The repository design lint currently reports the known DD206 baseline violations
 | Screen Audit / QA authority | Creating a second QA truth store only to satisfy Explorer chrome | EX-20/EX-21 derive current issue counts from Screen Audit; EX-22 stays honestly unknown when accessibility is not evaluated |
 | Sync/build provenance | Showing a plausible saved time or build string without backend evidence | TB-03 uses durable revision time; ST-06 now receives the installed DDE package version through the real Gateway snapshot |
 | Screen Audit dogfood | Freezing tests to a remembered ledger count | Dogfood compares reconciliation counts directly with the matrix's derived statuses, preserving the no-invented-pass invariant as controls advance |
+| Source Intelligence template object-store authority | Runtime table mappings had three fields absent from canonical schema, so a fresh database could pass migration markers yet fail production reads | Added the fields to authoritative `frontend_template.json`, regenerated contract/Stage-1 SQL, and added idempotent migration `0037` for already-affected databases | M8 object bytes/provenance capability is preserved; no runtime field was deleted or bypassed |
+| Packaged editor-host authority | Host-neutral tests could not prove that an installed DDE extension actually initialized Gateway state before rendering | `openFrontendWorkbench()` refreshes the normal configured session before showing the existing workbench; packaged E2E installs the real VSIX and uses the normal command palette | Production host/Gateway boundaries are retained; no test-only data path or direct database UI read was introduced |
 
-Latest complete gate after these additions: 1489 passed / 6 skipped, 220/220 contract rerun, 77/77 extension tests, desktop/UI TypeScript and Vite build green, and 61/61 Playwright visual tests. Current ledger: 6 VERIFIED / 61 BOUND / 7 TYPED_UNAVAILABLE / 25 UNBOUND.
+Latest pre-host full gate: 1491 passed / 6 skipped, 220/220 contract rerun, 77/77 extension tests, desktop/UI TypeScript and Vite build green. The packaged-host baseline and TB-02 switch proof are now additionally green; current ledger: 12 VERIFIED / 78 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND. The final post-host visual/full-gate rerun is recorded separately in the host evidence after completion.

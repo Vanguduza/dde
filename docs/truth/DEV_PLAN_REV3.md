@@ -2516,6 +2516,54 @@ Release candidate requires:
 
 ---
 
+# 20A. Production VEKL integration — cross-mission delivery, no renumbering
+
+AD-048 and Blueprint §26A adopt Production VEKL for **target-application manufacturing only**. The VEKL-P0…P10 labels from the reviewed design pack are proposal-local decomposition labels, not new DDE mission numbers. DDE-070…DDE-083 remain locked.
+
+VEKL must extend existing DDE authorities rather than create a parallel resource/control plane. Current DDE-066/069 Source Intelligence and Donor Lab are the discovery/provenance foundation; future missions deepen qualification, activation, execution and certification.
+
+| VEKL work package | Canonical DDE owner | Required integration |
+| --- | --- | --- |
+| P0 scope law + egress change control | DDE-080 prerequisite / accepted EDR | target-app-only resolver; Project Truth precedence; new source hosts fail before network until admitted |
+| P1 schemas + registries | DDE-076/077/080 | qualified resource/component registry; StackFingerprint/TaskSignature; ActivationManifest; no naming collision with existing ExperienceRecord authorities |
+| P2 source adapters | DDE-080 | extend federated Source Intelligence only for admitted sources; capability/budget/provenance/injection screening mandatory |
+| P3 qualification + quarantine | DDE-076 + DDE-083 | source trust + existing reuse class; executable component decomposition; hash/scan/sandbox/canary/revocation |
+| P4 StackFingerprint + TaskSignature | DDE-077 | deterministic observed stack facts and task classification bind TaskExecutionDescriptor/ChangePacket |
+| P5 activation planner + KnowledgeCompiler | DDE-080 | hard eligibility before ranking; exact-version progressive disclosure; immutable VEKLActivationManifest |
+| P6 tools/plugins/MCP/LSP/rules/hooks | DDE-082 | qualified executable components, Instruction IR, Hook IR, permission minimization and existing capability/external-effect law |
+| P7 bounded loops | DDE-082 | verifier-terminated compile/test/security/dependency/migration/performance/accessibility/visual loops with budgets/checkpoints |
+| P8 Hermes VEKL intelligence | DDE-075 + DDE-079 | resource outcomes/recovery/version research; candidate-only ranking/wrapper/playbook learning; normal promotion gates |
+| P9 Production Studio UX | DDE-081 + DDE-082 | Stack Map, Knowledge, Tools, Hooks, Loops, Community Evidence, Security, Learning from real projections only |
+| P10 production certification | DDE-083 | malicious resources, prompt injection, typosquat, excessive MCP scope, revocation, offline pins, stale feeds, cross-project and learning poisoning |
+
+## 20A.1 Mission-specific acceptance additions
+
+**DDE-075:** Hermes must retrieve provenance-linked VEKL resource outcomes and recurring version/failure/recovery evidence while preserving the authoritative/advisory boundary. It may propose `DDE_LEARNED_RECIPE`/wrapper/playbook candidates only.
+
+**DDE-076:** persistent registry state must represent exact qualified engineering-resource and executable-component identity, revision/hash, source trust, reuse class, activation modes, certification/freshness/revocation and required scopes. Changed executable identity becomes stale until re-certified.
+
+**DDE-077:** `TaskExecutionDescriptor` must bind or reference deterministic `StackFingerprint` and `TaskSignature`; mutable packets bind the exact still-valid activation manifest used by the worker. Project Truth hash mismatch invalidates activation before mutation.
+
+**DDE-080:** implement VEKL policy/eligibility/ranking and `VEKLKnowledgeCompiler` as extensions of truth/context compilation. Exact-version facts outrank model recall; first-party/normative conflicts fail closed; context remains smallest-sufficient and provenance-carrying. No new VEKL source adapter may bypass accepted egress change control.
+
+**DDE-081:** operator projections must make active engineering resources inspectable: exact revisions/hashes, why selected, freshness, source/reuse class, sandbox/permissions, resource outcomes, security and revocation. No manually curated duplicate active-resource list.
+
+**DDE-082:** workflow/playbook work must also compile canonical instruction/rule delivery, Hook IR and bounded loops through the same validated workflow/capability runtime. MCP/plugin/LSP/tool components are independently qualified; bundle approval never grants blanket execution.
+
+**DDE-083:** add the complete VEKL adversarial suite to release certification. Required cases include DDE self-scope refusal, wrong-major docs, revoked resource, usable skill text with blocked script, malicious/prompt-injected README/forum, compromised/typosquat package, excessive MCP permissions, unadmitted host, stale mandatory security feed, offline pinned mode, failover activation-manifest continuity, cross-project leakage attempt and learning poisoning.
+
+## 20A.2 Schema-first boundary
+
+The reviewed VEKL v1 JSON schemas (`resource`, `activation-manifest`, `hook-ir`, `loop`) are specification inputs only. Owning missions must translate them into the repository's normal generated schema/contracts with tenant/project scope, RLS/migration/recovery tests and final names reconciled against existing DDE objects before implementation status advances.
+
+In particular, VEKL resource-effectiveness persistence must use a distinct `VEKLResourceOutcome`-class name and MUST NOT repurpose routing-learning `ExperienceRecord` or execution `ExecutionExperienceRecord`.
+
+## 20A.3 Source catalogue boundary
+
+The reviewed source-catalog/source-policy seeds describe candidate families (normative/first-party docs and skills, package/MCP registries, security feeds, maintainer/community diagnostics and discovery aggregators). They do not authorize network access. Exact host/path/method/auth/quota/retention/side-effect/revocation scopes remain EDR-controlled and capability-enforced.
+
+---
+
 # 21. Cross-mission infrastructure changes
 
 ## 21.1 Gateway reads
@@ -3059,6 +3107,7 @@ This plan is grounded in:
 - Claude `/design` + high-value Opal integration addendum;
 - live Dial Main orchestrator-control finding: subagent routing was enforceable, parent-session model occupancy was not; current repo-level Claude Code configuration proves requested/configured next-session state, not serving-model identity;
 - existing DDE-065/066/067 implementation evidence and chapter-gate sequence.
+- reviewed `DDE Production VEKL System Pack v1` (2026-09-08; pack SHA-256 `02d53c972b08b59888f95ffbf8ccc787e25cee576198c095ef3505129681cd6e`), consolidated through Blueprint §26A / AD-048 / this plan §20A rather than retained as a parallel canonical narrative.
 
 The standalone amendment/addendum documents remain historical evidence after adoption. Their forward requirements are mapped into the relevant gates/missions above.
 
@@ -3111,6 +3160,7 @@ The next implementation session must first verify current repository HEAD/state,
 | Empirical routing | — | DDE-079 |
 | Execution graph/node inspector actions | read-only seed DDE-069 | DDE-081 |
 | Design intelligence/playbooks/composer | live loop seed DDE-069 | DDE-082 |
+| Production VEKL target-app engineering resource fabric | Source Intelligence/Donor seed DDE-066/069 | DDE-075/076/077/080/081/082/083 |
 | Managed executable updates | policy foundation earlier | DDE-083 release proof |
 
 ---
@@ -3906,6 +3956,7 @@ The development program maintains these risks explicitly. A mission that materia
 | R-15 migration/data loss | Rev 3 schema evolution corrupts authority/evidence | migration/backup/restore rehearsal | each schema mission / DDE-083 |
 | R-16 cross-platform drift | hosts show different semantics/authority | shared commands/projections + parity tests | DDE-069 onward |
 | R-17 traceability orphaning | requirements/features/code/evidence disconnect | stable IDs + compiler/orphan gates | DDE-080/083 |
+| R-20 VEKL knowledge/resource poisoning | stale/wrong-version/malicious engineering resource influences target-app work or expands executable scope | exact-version eligibility + source/reuse classification + component qualification + injection screening + ActivationManifest + verifier gates + revocation | DDE-075/076/077/080/082/083 |
 | R-18 false release confidence | final gate misses integrated failure modes | release certification + golden/chaos suite | DDE-083 |
 | R-19 orchestrator identity overclaim | configured/requested model is presented as the model serving a running parent session | OrchestratorModelState + ModelServingEvidence + OCL certification + disclosure/block policy | REV-3A / DDE-071 / DDE-073 / DDE-078 |
 

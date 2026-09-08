@@ -685,7 +685,7 @@ function inspector(): InspectorDescriptor {
 function commandPayload(command: DdeCommand): Record<string, unknown> {
   if (command.commandType === "frontend.project.switch") {
     if (command.targetId !== alternateProjectId) throw new Error("unknown project");
-    return { project_id: alternateProjectId, mission_id: alternateMissionId };
+    return { projectId: alternateProjectId, missionId: alternateMissionId };
   }
   if (command.commandType === "frontend.design.provider_status") { return { providers: [designProviderStatus] }; }
   if (command.commandType === "frontend.design.try_live") {

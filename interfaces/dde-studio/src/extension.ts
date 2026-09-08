@@ -166,8 +166,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("dde.studio.openChat", async () => {
       await vscode.commands.executeCommand("dde.studio.chat.focus");
     }),
-    vscode.commands.registerCommand("dde.studio.openFrontendStudio", () => {
-      frontendWorkbench.show();
+    vscode.commands.registerCommand("dde.studio.openFrontendStudio", async () => {
+      await openFrontendWorkbench();
     }),
     vscode.commands.registerCommand("dde.studio.setFrontendMission", async () => {
       const configured = resolveFrontendMissionId() ?? "";
@@ -187,7 +187,7 @@ export function activate(context: vscode.ExtensionContext): void {
           vscode.ConfigurationTarget.Workspace,
         );
       gatewayService?.trackMission(missionId.trim());
-      frontendWorkbench.show();
+      await openFrontendWorkbench();
     }),
     vscode.commands.registerCommand("dde.studio.setLocalTarget", async () => {
       await vscode.workspace
@@ -249,6 +249,11 @@ export function activate(context: vscode.ExtensionContext): void {
       };
       return false;
     }
+  }
+
+  async function openFrontendWorkbench(): Promise<void> {
+    await refreshAll();
+    frontendWorkbench.show();
   }
 
   async function refreshAll(): Promise<void> {
@@ -395,7 +400,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         break;
       case "openFrontendStudio":
-        frontendWorkbench.show();
+        await openFrontendWorkbench();
         break;
       case "openHermes":
         openPanel("hermes");

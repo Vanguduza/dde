@@ -620,6 +620,28 @@ candidate.
 
 ---
 
+## AD-048 — Production VEKL is target-application-only qualified engineering resource fabric
+
+**Status:** REV3-CONFORMANCE / ARCHITECTURAL LOCK (2026-09-08).
+
+DDE adopts the Production VEKL architecture consolidated in `BLUEPRINT_REV3.md` §26A. VEKL is used when DDE manufactures target applications and is broader than an Agent Skills catalogue: it qualifies and selectively activates exact-version specs/docs, skills, repositories/packages, deterministic tools, plugin/MCP/LSP components, rules/hooks, bounded loops, security intelligence and diagnostic community evidence.
+
+VEKL does not become a second control plane. Target Project Truth remains product authority; DDE missions/tasks, capabilities, egress, secrets, external-effect reconciliation, Source Intelligence/Donor Lab, context, verification/evidence, routing and budgets remain the governing primitives. The application-manufacturing VEKL resolver fails closed for `DDE_CONTROL_PLANE` scope.
+
+Resource source-trust is separate from DDE's existing reuse/adoption classification. Plugins/bundles are decomposed and executable components qualify independently. A registry entry, first-party bundle or community popularity never grants execution permission.
+
+Every material VEKL-assisted run binds a versioned `VEKLActivationManifest` so provider/harness failover cannot silently change engineering knowledge mid-task. Deterministic `StackFingerprint` and `TaskSignature` extend the existing task-execution model; `VEKLKnowledgeCompiler` extends the existing Context Compiler. Resource effectiveness is recorded under a distinct `VEKLResourceOutcome`-class authority and MUST NOT reuse either routing-learning `ExperienceRecord` or execution `ExecutionExperienceRecord`.
+
+Hermes may research, retrieve, correlate outcomes and propose resource/workflow/wrapper candidates, but remains non-authoritative. Learned candidates follow ordinary eval/holdout/shadow/canary/promotion law. Community content is diagnostic evidence and cannot override exact-version normative/first-party sources or Project Truth.
+
+The VEKL v1 pack's JSON schemas, source catalogue and source-policy files are reviewed design inputs, not claims of implemented contracts or egress admission. Any new host/path/method scope beyond accepted DDE egress decisions requires normal EDR/change control before an adapter may fetch it.
+
+VEKL-P0…P10 are not a new mission series. Delivery is absorbed into locked DDE-075/076/077/080/081/082/083 scope as specified by `DEV_PLAN_REV3.md`; DDE-070…DDE-083 are not renumbered.
+
+**Consequence:** future agents must not implement VEKL as a standalone plugin marketplace, duplicate resource truth store, unrestricted browsing layer or DDE self-modification authority. They must extend existing Source Intelligence, capability, task, context, evidence and workflow primitives through schema-first mission work and preserve the target-application-only scope guard.
+
+---
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.

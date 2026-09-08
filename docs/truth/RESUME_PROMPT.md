@@ -710,6 +710,41 @@ Use deterministic analysis before model calls whenever possible.
 
 ---
 
+# 20A. Production VEKL forward architecture lock
+
+AD-048 / Blueprint §26A are now canonical future-production architecture. Do not create a standalone VEKL subsystem or a new VEKL mission-number series.
+
+VEKL applies when DDE manufactures **target applications**. Its application-manufacturing resolver must refuse DDE control-plane self-development. Target Project Truth and DDE governance always outrank external resources.
+
+Reuse current DDE primitives:
+
+- Source Intelligence / Donor Lab for discovery, provenance and reuse classification;
+- capability leases, egress, secrets and ExternalEffect reconciliation for executable/network authority;
+- TaskExecutionDescriptor/ChangePacket/workspace for task/mutation identity;
+- Context Compiler for smallest-sufficient activation context;
+- Verification/Evidence for completion;
+- Hermes only for research/retrieval/resource-outcome candidates.
+
+The reviewed v1 resource/activation-manifest/hook/loop schemas are design inputs, not implemented runtime contracts. New source families are not admitted by the pack's seed catalogue; they require accepted DDE egress change control.
+
+Delivery is mapped into locked missions, not appended after DDE-083:
+
+```text
+DDE-075  Hermes VEKL research/resource outcomes/candidate learning
+DDE-076  qualified resource/component/version/certification registry
+DDE-077  StackFingerprint + TaskSignature bound to execution/change ownership
+DDE-080  VEKL eligibility/ranking + ActivationManifest + KnowledgeCompiler + egress prerequisite
+DDE-081  inspectable Production Studio VEKL projections
+DDE-082  Instruction IR + Hook IR + qualified tool/plugin/MCP/LSP + bounded loops
+DDE-083  adversarial/supply-chain/revocation/offline/cross-project certification
+```
+
+Do not reuse or repurpose routing-learning `ExperienceRecord` or execution `ExecutionExperienceRecord` for VEKL effectiveness. Use a distinct `VEKLResourceOutcome`-class schema when the owning mission implements it.
+
+Any agent reaching DDE-075+ must read Blueprint §26A and AD-048 before designing source/resource/tool/skill/plugin/loop behavior.
+
+---
+
 # 21. Test / evidence requirements
 
 For each vertical slice use applicable:

@@ -29,5 +29,8 @@ class FrontendTemplate(BaseModel):
     hard_failures: list[str]
     status: Literal["RECOMMENDED", "FAVORITED", "LOCKED", "REJECTED", "UNAVAILABLE"]
     content_hash: str | None = None
+    content_object_ref: str | None = None
+    content_object_backend: str | None = None
+    content_size_bytes: int | None = None
     created_at: datetime
     updated_at: datetime

@@ -370,13 +370,15 @@
     "dist:win": "npm run compile && npm --prefix desktop run dist:win",
     "desktop:start": "npm run compile && npm --prefix desktop start",
     "desktop:install": "npm --prefix desktop install",
-    "build:frontend-ui": "npm --prefix ui run build"
+    "build:frontend-ui": "npm --prefix ui run build",
+    "test:host-e2e": "npm run build:frontend-ui && npm run compile && xvfb-run -a node out/e2e/runPackagedHostE2E.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@types/node": "^20.11.30",
     "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^3.1.0",
     "typescript": "^5.4.5"
   },
   "repository": {

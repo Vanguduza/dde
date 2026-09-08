@@ -1402,7 +1402,7 @@ export function DdeStudioApp({
         parameters: { mission_id: project.missionId },
         idempotencyKey: `frontend.project.switch:${actionId()}`,
       });
-      const missionId = payloadString(acceptance, "mission_id");
+      const missionId = payloadString(acceptance, "missionId");
       if (!missionId) throw new Error("Project switch returned no mission identity.");
       await bridge.switchFrontendMission(missionId);
     } catch (error) {

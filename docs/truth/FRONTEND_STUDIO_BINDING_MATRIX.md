@@ -12,8 +12,8 @@
 |---|---:|
 | `UNBOUND` | 0 |
 | `TYPED_UNAVAILABLE` | 9 |
-| `BOUND` | 79 |
-| `VERIFIED` | 11 |
+| `BOUND` | 78 |
+| `VERIFIED` | 12 |
 | **total** | **99** |
 
 Final status is derived. It is never authored independently of the eight layers.
@@ -26,7 +26,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
 | TB-01 | Product title / module identity | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `BOUND` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| TB-02 | Project selector | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
+| TB-02 | Project selector | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | TB-03 | Saved timestamp | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | TB-04 | Sync status chip | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | TB-05 | Design mode tab | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
@@ -42,7 +42,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#81-global-top-bar`
 
 Notes:
 
-- **TB-02** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.
+- **TB-02** — Packaged production-host project switching is proven end-to-end, including authoritative screen readback in both projects and return navigation.
 - **TB-03** — Sync provenance is projected from the durable Frontend Studio snapshot; packaged editor-host browser E2E remains outstanding.
 - **TB-04** — StudioSyncSnapshot distinguishes durable revision from command acceptance. The M7 mutation engine is implemented, but pending-mutation state is not yet projected into FrontendReadService, so the chip must not overclaim SYNCED.
 - **TB-11** — Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.

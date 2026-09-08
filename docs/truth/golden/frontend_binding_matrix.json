@@ -200,7 +200,7 @@
         "PROJECT_UNAVAILABLE",
         "SCOPE_DENIED"
       ],
-      "note": "Reconciled at commits 09c4249 and 23f773f; packaged production-host E2E remains a separate gate.",
+      "note": "Packaged production-host project switching is proven end-to-end, including authoritative screen readback in both projects and return navigation.",
       "layers": {
         "DOMAIN": {
           "applicable": false,
@@ -276,7 +276,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/frontend.py",
             "engine/gateway/commands.py",
@@ -285,14 +285,17 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX -> VS Code -> React -> real Gateway/PostgreSQL proves governed project switch to a second authorized mission/screen and return to the original project."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/frontend.py",
             "engine/gateway/commands.py",
@@ -301,14 +304,17 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX -> VS Code -> React -> real Gateway/PostgreSQL proves governed project switch to a second authorized mission/screen and return to the original project."
         },
         "VISUAL": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/frontend.py",
             "engine/gateway/commands.py",
@@ -317,10 +323,13 @@
           "test_refs": [
             "tests/unit/test_frontend_studio_e2e_postgres.py",
             "tests/contract/test_frontend_studio_gateway.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Implementation and host-neutral browser binding are proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX -> VS Code -> React -> real Gateway/PostgreSQL proves governed project switch to a second authorized mission/screen and return to the original project."
         }
       }
     },

@@ -2,7 +2,9 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "outDir": "out",
     "rootDir": ".",
     "sourceMap": true,
@@ -14,6 +16,15 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "out", "desktop", "visual"]
+  "include": [
+    "src/**/*",
+    "shared/**/*",
+    "e2e/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "out",
+    "desktop",
+    "visual"
+  ]
 }
