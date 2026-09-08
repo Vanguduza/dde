@@ -644,6 +644,23 @@ VEKL-P0…P10 are not a new mission series. Delivery is absorbed into locked DDE
 
 ---
 
+
+## AD-049 — Hermes xKiro HAIF is a localhost-only non-authoritative auxiliary evidence plane
+
+**Status:** USER-LOCKED PRODUCT/ARCHITECTURE DECISION (2026-09-08).
+
+DDE may consume the shared Hermes xKiro Auxiliary Intelligence Fabric (HAIF) only as a **non-authoritative target-application evidence service**. HAIF is not a DDE strategic-manager seat, worker fallback, routing authority, Project Truth source, repository writer, approval authority, deployment authority or completion oracle. DDE's normal provider/harness/routing/capability law remains unchanged.
+
+DDE has its own xKiro account, credential, usage/spend boundary, HAIF control root, queue, evidence, model-performance ledger and localhost control token. Those must not be inherited from DIAL even when both tenants run one versioned HAIF implementation on the same Oracle host. DDE Core never receives the xKiro API key; it authenticates only to the DDE HAIF tenant on loopback. The DDE tenant service is denied access to `/var/lib/dial-control`, while the DIAL tenant is reciprocally denied access to DDE HAIF state.
+
+HAIF v1 is hard `FREE_ONLY`. The provider catalogue is discovery only; execution requires an account-specific live canary and task-archetype benchmark promotion from a small elite free-model candidate set. `PUBLIC` is the only DDE request class in v1. Raw restricted/secret/private-project/customer material may not be sent. Provider responses remain provenance-carrying auxiliary evidence and may be attached to an `AiResearchArtifact` only with `NON_AUTHORITATIVE_AUXILIARY_EVIDENCE` authority. Conflicting HAIF outputs may request existing premium adjudication through a typed candidate, but HAIF itself has no premium-manager credentials.
+
+The xKiro network call is owned by the separately isolated Hermes HAIF service, not by DDE Core. Therefore this decision does not silently widen DDE Core's external-host egress allowlist from AD-048. Any future direct DDE→xKiro transport, non-public data class, tool execution, paid route, repository mutation or expanded authority requires ordinary DDE change control before implementation.
+
+**Consequence:** xKiro can reduce premium-model context/analysis burden for bounded target-application research and VEKL preprocessing without becoming a second control plane or weakening DDE's authority/evidence model.
+
+---
+
 ## 1. Known open/partial decisions from the DDE-067 gate
 
 The DDE-067 chapter gate records that EDR-0002, EDR-0003, EDR-0005, EDR-0027 and EDR-0033 remain open/unchanged at that point. Do not infer their resolution from Rev 3 planning language. Read the relevant EDR/Project Truth record before implementing affected behavior.

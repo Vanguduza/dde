@@ -988,3 +988,11 @@ At the end of every meaningful implementation tranche:
 7. if architecture changed, update Blueprint/Decisions through the proper EDR/change-control path.
 
 Never erase an earlier limitation simply because later intent says it should be fixed.
+
+## 2026-09-08 — AD-049 Hermes xKiro HAIF auxiliary bridge
+
+DDE now has an implemented localhost-only HAIF client/bridge in `engine/fabric/haif.py` plus unit coverage in `tests/unit/test_haif_auxiliary.py`. `HaifTaskRequest` is target-application scoped and PUBLIC-only; the daemon pins project=`dde`, so callers cannot select DIAL. The client rejects non-loopback endpoints and loose token permissions. `HaifResearchBridge` accepts only completed `NON_AUTHORITATIVE_AUXILIARY_EVIDENCE` for project `dde`, rejects direct-premium evidence, hashes the packet, and attaches it to the existing AI research artifact authority without granting command/truth/routing/completion authority.
+
+The shared Oracle HAIF implementation remains outside DDE Core and holds the xKiro credential. DDE has a distinct account/control root/token from DIAL. Live 2026-09-08 qualification proved the DDE xKiro account authenticated `/v1/usage` and completed a real `minimax/minimax-m3:free` canary. This is transport evidence only; catalogue/free labels do not promote a model. Normal HAIF execution still requires elite task-archetype benchmark promotion.
+
+Current implementation deliberately does not widen DDE Core to direct xKiro network egress, paid routes, tools, non-public data, repository mutation or manager authority. Those remain forbidden by AD-049 and require future change control if ever proposed.

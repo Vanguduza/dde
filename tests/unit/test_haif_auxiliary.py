@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
@@ -15,6 +16,7 @@ from engine.fabric.haif import (
     HaifResearchBridge,
     HaifTaskRequest,
 )
+from engine.gateway.scopes import FABRIC_COMMAND_TYPES
 
 
 def _token(tmp_path: Path) -> Path:
@@ -22,6 +24,11 @@ def _token(tmp_path: Path) -> Path:
     path.write_text("local-haif-token-value-123456\n", encoding="utf-8")
     path.chmod(0o600)
     return path
+
+
+def test_haif_auxiliary_command_is_explicitly_gateway_scoped() -> None:
+    assert "frontend.fabric.research.haif_auxiliary" in FABRIC_COMMAND_TYPES
+    assert "dde.fabric.research.haif_auxiliary" in FABRIC_COMMAND_TYPES
 
 
 def test_client_refuses_non_loopback_endpoint(tmp_path: Path) -> None:
@@ -32,6 +39,7 @@ def test_client_refuses_non_loopback_endpoint(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no POSIX 0600 mode semantics")
 def test_client_refuses_loose_token_permissions(tmp_path: Path) -> None:
     token = _token(tmp_path)
     token.chmod(0o644)
@@ -41,7 +49,9 @@ def test_client_refuses_loose_token_permissions(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_submit_is_dde_scoped_public_and_non_authoritative(tmp_path: Path) -> None:
+async def test_submit_is_dde_scoped_public_and_non_authoritative(
+    tmp_path: Path,
+) -> None:
     seen: dict[str, object] = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
@@ -78,7 +88,9 @@ async def test_submit_is_dde_scoped_public_and_non_authoritative(tmp_path: Path)
 
 
 @pytest.mark.asyncio
-async def test_task_projection_never_requires_raw_provider_credentials(tmp_path: Path) -> None:
+async def test_task_projection_never_requires_raw_provider_credentials(
+    tmp_path: Path,
+) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path.startswith("/v1/tasks/")
         return httpx.Response(
@@ -118,7 +130,9 @@ class _Sink:
 
 
 @pytest.mark.asyncio
-async def test_bridge_attaches_only_non_authoritative_dde_evidence(tmp_path: Path) -> None:
+async def test_bridge_attaches_only_non_authoritative_dde_evidence(
+    tmp_path: Path,
+) -> None:
     task_id = "11111111-1111-1111-1111-111111111111"
 
     async def handler(request: httpx.Request) -> httpx.Response:

@@ -1888,6 +1888,11 @@ requirement
 
 Hermes may correlate successful design/workflow runs and propose reusable playbook candidates. It never promotes them.
 
+## 12.9A xKiro HAIF auxiliary evidence
+
+Hermes may offload bounded target-application evidence analysis to the DDE xKiro HAIF tenant under AD-049. DDE Core talks only to the loopback/token-authenticated tenant API; the xKiro credential remains outside DDE. HAIF v1 is `FREE_ONLY`, `PUBLIC`-only and non-authoritative. Only account-canary-proven elite routes that pass task-archetype benchmark gates may execute normal work. Completed packets may feed existing research/context/VEKL flows as provenance-carrying auxiliary evidence; they never mutate routing, Project Truth, repository state, approvals or completion.
+
+
 ## 12.10 Acceptance
 
 A real Hermes task must:
@@ -2538,19 +2543,19 @@ VEKL must extend existing DDE authorities rather than create a parallel resource
 
 ## 20A.1 Mission-specific acceptance additions
 
-**DDE-075:** Hermes must retrieve provenance-linked VEKL resource outcomes and recurring version/failure/recovery evidence while preserving the authoritative/advisory boundary. It may propose `DDE_LEARNED_RECIPE`/wrapper/playbook candidates only.
+**DDE-075:** Hermes must retrieve provenance-linked VEKL resource outcomes and recurring version/failure/recovery evidence while preserving the authoritative/advisory boundary. It may propose `DDE_LEARNED_RECIPE`/wrapper/playbook candidates only. AD-049 HAIF may preprocess admitted public target-application evidence through the DDE-scoped localhost tenant, but its packets remain `NON_AUTHORITATIVE_AUXILIARY_EVIDENCE` and cannot become routing or truth authority.
 
 **DDE-076:** persistent registry state must represent exact qualified engineering-resource and executable-component identity, revision/hash, source trust, reuse class, activation modes, certification/freshness/revocation and required scopes. Changed executable identity becomes stale until re-certified.
 
 **DDE-077:** `TaskExecutionDescriptor` must bind or reference deterministic `StackFingerprint` and `TaskSignature`; mutable packets bind the exact still-valid activation manifest used by the worker. Project Truth hash mismatch invalidates activation before mutation.
 
-**DDE-080:** implement VEKL policy/eligibility/ranking and `VEKLKnowledgeCompiler` as extensions of truth/context compilation. Exact-version facts outrank model recall; first-party/normative conflicts fail closed; context remains smallest-sufficient and provenance-carrying. No new VEKL source adapter may bypass accepted egress change control.
+**DDE-080:** implement VEKL policy/eligibility/ranking and `VEKLKnowledgeCompiler` as extensions of truth/context compilation. Exact-version facts outrank model recall; first-party/normative conflicts fail closed; context remains smallest-sufficient and provenance-carrying. No new VEKL source adapter may bypass accepted egress change control. HAIF may be selected only as a bounded preprocessing step over already admitted PUBLIC evidence; it is not a VEKL source adapter and cannot expand source/network scope.
 
 **DDE-081:** operator projections must make active engineering resources inspectable: exact revisions/hashes, why selected, freshness, source/reuse class, sandbox/permissions, resource outcomes, security and revocation. No manually curated duplicate active-resource list.
 
 **DDE-082:** workflow/playbook work must also compile canonical instruction/rule delivery, Hook IR and bounded loops through the same validated workflow/capability runtime. MCP/plugin/LSP/tool components are independently qualified; bundle approval never grants blanket execution. The DDE engineering playbook is an existing partial substrate for this mission: explicit engineering archetypes bind deterministic planning/context/review/parallelism/completion policy into `TaskSignature`; DDE-authored Skills are exact-revision VEKL resources; activation fails closed when required Skills are missing or unqualified; the initial per-archetype Skill ceiling is three; Claude materialization disables autonomous Skill invocation and never grants tools; hard completion/scope/effect gates remain DDE-native.
 
-**DDE-083:** add the complete VEKL adversarial suite to release certification. Required cases include DDE self-scope refusal, wrong-major docs, revoked resource, usable skill text with blocked script, malicious/prompt-injected README/forum, compromised/typosquat package, excessive MCP permissions, unadmitted host, stale mandatory security feed, offline pinned mode, failover activation-manifest continuity, cross-project leakage attempt and learning poisoning.
+**DDE-083:** add the complete VEKL adversarial suite to release certification. Required cases include DDE self-scope refusal, wrong-major docs, revoked resource, usable skill text with blocked script, malicious/prompt-injected README/forum, compromised/typosquat package, excessive MCP permissions, unadmitted host, stale mandatory security feed, offline pinned mode, failover activation-manifest continuity, cross-project leakage attempt and learning poisoning. HAIF release proof additionally covers wrong-project token/state access, xKiro-key isolation, provider free-route mislabelling, paid-capacity refusal, RPM/TPM/concurrency limits, uncertain-outcome replay safety, provider credential revocation, and proof that HAIF cannot invoke premium managers or mutate a repository.
 
 ## 20A.2 Schema-first boundary
 

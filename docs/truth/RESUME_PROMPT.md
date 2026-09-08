@@ -982,3 +982,7 @@ Latest continuation state after reconstructing `0a39299`:
 The installed VSIX now runs against fresh PostgreSQL at migration head with a DDE-owned READY candidate workspace. Production-host evidence closes browser-attested LIVE preview, candidate board/thumbnail/score empty-state reads, stable PXG selection, breadcrumb, lock lifecycle/chips, Source/provenance/accessibility reads and a 390px responsive restart. VS Code webview CSP/preview-handshake defects found by this gate were repaired without relaxing target-app script policy; fixture cleanup is explicit and fails if its candidate directory survives.
 
 Current ledger: **42 VERIFIED / 48 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**. Evidence: `docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md`. Keep `CA-07` BOUND until `frontend.design.try_live` itself runs through the installed host. Keep Inspector write rows BOUND until their exact mutations run through that path. AD-039 exact artifact pinning and live R2 certification remain separate external gates.
+
+## HAIF / xKiro boundary
+
+Preserve AD-049. xKiro is a DDE-scoped, FREE_ONLY, PUBLIC-only, non-authoritative Hermes auxiliary evidence service reached through localhost; it is not a manager/worker fallback, source of truth, repository writer, completion authority or direct DDE Core egress. DDE and DIAL credentials/state remain physically separate.

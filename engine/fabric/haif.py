@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
 import stat
 from datetime import datetime
 from pathlib import Path
@@ -127,24 +128,34 @@ class HaifAuxiliaryClient:
         self,
         *,
         base_url: str = "http://127.0.0.1:9142",
-        token_file: Path = Path.home() / ".dde-control/secrets/haif-control.token",
+        token_file: Path | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         parsed = urlparse(base_url)
-        if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        if parsed.scheme != "http" or parsed.hostname not in {
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        }:
             raise DdeError(
                 "POLICY_DENIED",
                 "DDE HAIF endpoint must be loopback-only",
                 details={"hostname": parsed.hostname or ""},
             )
         self.base_url = base_url.rstrip("/")
-        self.token_file = token_file
+        self.token_file = token_file or (
+            Path.home() / ".dde-control/secrets/haif-control.token"
+        )
         self.transport = transport
 
     def _token(self) -> str:
         try:
             mode = stat.S_IMODE(self.token_file.stat().st_mode)
-            if mode & 0o077:
+            # Windows does not expose POSIX owner/group/other mode semantics.
+            # The HAIF daemon is deployed on Oracle/POSIX, where 0600 is mandatory;
+            # Windows clients therefore validate existence/regular-file status here
+            # while the platform's user ACL remains the credential boundary.
+            if os.name != "nt" and mode & 0o077:
                 raise DdeError(
                     "POLICY_DENIED",
                     "DDE HAIF control token permissions must be 0600",
@@ -156,7 +167,9 @@ class HaifAuxiliaryClient:
                 "DDE HAIF control token is not installed",
             ) from exc
         if len(token) < 16:
-            raise DdeError("CAPABILITY_UNAVAILABLE", "DDE HAIF control token is invalid")
+            raise DdeError(
+                "CAPABILITY_UNAVAILABLE", "DDE HAIF control token is invalid"
+            )
         return token
 
     async def _request(
@@ -264,15 +277,21 @@ class HaifResearchBridge:
             )
         evidence = projection.evidence
         if evidence.get("authority") != "NON_AUTHORITATIVE_AUXILIARY_EVIDENCE":
-            raise DdeError("EVIDENCE_CONFLICT", "DDE HAIF evidence authority is invalid")
+            raise DdeError(
+                "EVIDENCE_CONFLICT", "DDE HAIF evidence authority is invalid"
+            )
         if evidence.get("project") != "dde":
-            raise DdeError("TENANT_SCOPE_VIOLATION", "DDE HAIF evidence project is invalid")
+            raise DdeError(
+                "TENANT_SCOPE_VIOLATION", "DDE HAIF evidence project is invalid"
+            )
         if evidence.get("direct_premium_invocation") is not False:
             raise DdeError(
                 "EVIDENCE_CONFLICT",
                 "DDE HAIF evidence crossed the premium-runtime boundary",
             )
-        canonical = json.dumps(evidence, sort_keys=True, separators=(",", ":"), default=str)
+        canonical = json.dumps(
+            evidence, sort_keys=True, separators=(",", ":"), default=str
+        )
         content_hash = hashlib.sha256(canonical.encode()).hexdigest()
         artifact = await self.sink.add_source(
             tenant_id=tenant_id,
@@ -284,6 +303,9 @@ class HaifResearchBridge:
             lock_version=lock_version,
             title=f"HAIF {projection.task_archetype} evidence",
             content_hash=content_hash,
-            notes="Auxiliary evidence only; no command, approval, truth, routing or completion authority.",
+            notes=(
+                "Auxiliary evidence only; no command, approval, truth, routing "
+                "or completion authority."
+            ),
         )
         return artifact, projection
