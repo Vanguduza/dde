@@ -12,11 +12,23 @@ from adapters.claude.adapter import (
     ClaudePromptBinding,
     claude_invocation_scope_hash,
 )
+from adapters.claude.vekl import (
+    CLAUDE_EVENT_MAP,
+    ClaudeSkillArtifact,
+    compile_claude_hook_settings,
+    compile_claude_instruction_ir,
+    compile_claude_skill,
+)
 
 __all__ = [
     "APPROVAL_TYPE_EXTERNAL_MODEL_INVOCATION",
     "CAPABILITY_CLAUDE_CODE_INVOKE",
     "ClaudeCodeWorkerAdapter",
     "ClaudePromptBinding",
+    "CLAUDE_EVENT_MAP",
+    "ClaudeSkillArtifact",
+    "compile_claude_hook_settings",
+    "compile_claude_instruction_ir",
+    "compile_claude_skill",
     "claude_invocation_scope_hash",
 ]

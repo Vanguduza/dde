@@ -96,3 +96,10 @@ harness-specific qualified executable adapter fleet and authoring surfaces in DD
 Hermes/eval-shadow-canary learning promotion, and DDE-083 release-environment adversarial,
 supply-chain, poisoning, cross-project and migration certification. No new external source
 egress is implied by VEKL source/catalog seeds.
+
+## Follow-on engineering playbook evidence
+
+The 2026-09-08 follow-on engineering-playbook tranche is evidenced separately in
+`docs/evidence/vekl/VEKL_ENGINEERING_PLAYBOOK_2026-09-08.md`. It extends this common
+foundation with DDE Skills/task archetypes/gates/hooks, exact Skill activation and Claude
+delivery materialization without changing the target-app-only or no-new-egress boundary.

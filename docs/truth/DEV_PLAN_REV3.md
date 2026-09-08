@@ -2548,15 +2548,15 @@ VEKL must extend existing DDE authorities rather than create a parallel resource
 
 **DDE-081:** operator projections must make active engineering resources inspectable: exact revisions/hashes, why selected, freshness, source/reuse class, sandbox/permissions, resource outcomes, security and revocation. No manually curated duplicate active-resource list.
 
-**DDE-082:** workflow/playbook work must also compile canonical instruction/rule delivery, Hook IR and bounded loops through the same validated workflow/capability runtime. MCP/plugin/LSP/tool components are independently qualified; bundle approval never grants blanket execution.
+**DDE-082:** workflow/playbook work must also compile canonical instruction/rule delivery, Hook IR and bounded loops through the same validated workflow/capability runtime. MCP/plugin/LSP/tool components are independently qualified; bundle approval never grants blanket execution. The DDE engineering playbook is an existing partial substrate for this mission: explicit engineering archetypes bind deterministic planning/context/review/parallelism/completion policy into `TaskSignature`; DDE-authored Skills are exact-revision VEKL resources; activation fails closed when required Skills are missing or unqualified; the initial per-archetype Skill ceiling is three; Claude materialization disables autonomous Skill invocation and never grants tools; hard completion/scope/effect gates remain DDE-native.
 
 **DDE-083:** add the complete VEKL adversarial suite to release certification. Required cases include DDE self-scope refusal, wrong-major docs, revoked resource, usable skill text with blocked script, malicious/prompt-injected README/forum, compromised/typosquat package, excessive MCP permissions, unadmitted host, stale mandatory security feed, offline pinned mode, failover activation-manifest continuity, cross-project leakage attempt and learning poisoning.
 
 ## 20A.2 Schema-first boundary
 
-The reviewed VEKL v1 JSON schemas (`resource`, `activation-manifest`, `hook-ir`, `loop`) are specification inputs only. Owning missions must translate them into the repository's normal generated schema/contracts with tenant/project scope, RLS/migration/recovery tests and final names reconciled against existing DDE objects before implementation status advances.
+The reviewed VEKL v1 schemas were specification inputs; their common resource/stack/task-signature/activation/outcome contracts are now reconciled into the repository's generated schema/runtime foundation with tenant/project scope and migration/RLS coverage. Later owning missions must extend these accepted contracts through the same schema-first process instead of recreating pack-local names or parallel registries. Live reversible migration/RLS proof remains an environment-gated certification requirement where `IMPLEMENTATION_STATE.md` says it is unavailable.
 
-In particular, VEKL resource-effectiveness persistence must use a distinct `VEKLResourceOutcome`-class name and MUST NOT repurpose routing-learning `ExperienceRecord` or execution `ExecutionExperienceRecord`.
+VEKL resource-effectiveness persistence uses the distinct `VEKLResourceOutcome` authority and MUST NOT repurpose routing-learning `ExperienceRecord` or execution `ExecutionExperienceRecord`. Engineering-playbook policy is intentionally embedded in the existing `TaskSignature.constraints`/activation context rather than introducing another task or orchestration ledger.
 
 ## 20A.3 Source catalogue boundary
 
@@ -3914,7 +3914,12 @@ Must additionally prove:
 - playbooks carry capability requirements rather than hard-coded model identity unless justified;
 - design/workflow artifacts have version/lineage/certification;
 - provider outage and design/live divergence have explicit recovery;
-- promoted design/code pair is exact and immutable for verification reference.
+- promoted design/code pair is exact and immutable for verification reference;
+- engineering archetype selection is explicit/validated against canonical `Task.task_class` and does not create a second task taxonomy;
+- selected DDE Skills resolve to exact qualified VEKL revisions through the existing activation manifest, with minimal activation and no provider auto-selection authority;
+- high-risk/unattended or archetype-required work gets attributable fresh-context review evidence, and repeated failed corrections trigger a fresh-start policy rather than unlimited polluted-context retries;
+- completion-gate policy consumes existing AcceptanceOracle/VerificationRun/Evidence attestations and cannot be satisfied by worker self-report;
+- provider-specific Skill/hook/instruction materialization cannot widen DDE capability, secret, filesystem/network or completion authority.
 
 ## DDE-083 hardening acceptance
 

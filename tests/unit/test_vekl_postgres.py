@@ -241,6 +241,95 @@ async def test_persistent_manifest_failover_revocation_and_historical_audit(
 
 
 @pytest.mark.asyncio
+async def test_changed_task_signature_invalidates_manifest_without_reselection(
+    tmp_path: Path,
+) -> None:
+    engine = new_engine()
+    try:
+        fixture = await build_context_fixture(
+            engine, mission_slug=f"vekl-signature-{uuid4().hex}"
+        )
+        await classify_project(engine, fixture, "TARGET_APPLICATION")
+        service = VEKLService(engine)
+        resource = await service.register_resource(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            spec=docs_spec(),
+            request_mode=MODE,
+        )
+        for state in ("METADATA_VERIFIED", "REFERENCE_QUALIFIED"):
+            resource = await service.transition_resource(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                resource_id=resource.resource_id,
+                to_state=state,
+                request_mode=MODE,
+            )
+        workspace = await seed_stack_workspace(engine, fixture, tmp_path)
+        fingerprint = await service.build_stack_fingerprint_from_workspace(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+            workspace_id=workspace.workspace_id,
+            request_mode=MODE,
+        )
+        first_signature = await service.build_task_signature(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            spec=TaskSignatureSpec(
+                lifecycle_stage="implementation",
+                constraints={"policy_variant": "one"},
+                required_verifiers=["pytest"],
+                budget={"tokens": 500},
+            ),
+        )
+        plan = ActivationPlanSpec(
+            request_mode=MODE,
+            policy={"version": "1"},
+            requested_modes=["READ_ONLY_CONTEXT"],
+            mandatory_resource_ids=[resource.resource_id],
+            available_verifiers=["pytest"],
+            sandbox_available=True,
+        )
+        first = await service.plan_activation(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            signature=first_signature,
+            spec=plan,
+        )
+        changed_signature = await service.build_task_signature(
+            task=fixture.task,
+            fingerprint=fingerprint,
+            spec=TaskSignatureSpec(
+                lifecycle_stage="implementation",
+                constraints={"policy_variant": "two"},
+                required_verifiers=["pytest"],
+                budget={"tokens": 500},
+            ),
+        )
+        assert changed_signature.signature_id != first_signature.signature_id
+        with pytest.raises(DdeError) as caught:
+            await service.plan_activation(
+                task=fixture.task,
+                fingerprint=fingerprint,
+                signature=changed_signature,
+                spec=plan,
+            )
+        assert caught.value.error_code == "VEKL_MANIFEST_INVALID"
+        details = caught.value.details or {}
+        assert details["reason"] == "VEKL_TASK_SIGNATURE_CHANGED"
+        projection = await service.projection(
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        )
+        invalidations = projection["invalidations"]
+        assert isinstance(invalidations, list)
+        assert invalidations[0]["manifest_id"] == str(first.manifest_id)
+        assert invalidations[0]["reason_code"] == "VEKL_TASK_SIGNATURE_CHANGED"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_scope_source_and_cross_project_fail_closed() -> None:
     engine = new_engine()
     try:

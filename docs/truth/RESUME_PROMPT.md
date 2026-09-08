@@ -746,15 +746,23 @@ Do not rebuild these now-real primitives without evidence of regression:
   irreversible outcomes are not retried. Bounded loops require measurable budget
   reservation, declared checkpoints and rollback enforcement before they can run;
 - verifier/evidence-backed VEKL resource outcomes; Hermes is candidate/research-only;
+- the DDE engineering playbook: 16 DDE-authored Skills, 14 explicit task archetypes,
+  12 evidence-gate requirements and 7 hook policies. `engineering_archetype` binds into
+  `TaskSignature`; exact Skills are mandatory ActivationManifest resources, with a
+  three-Skill ceiling and candidate-only installation through
+  `vekl.playbook.install_candidates`. Claude delivery artifacts disable autonomous Skill
+  invocation, grant no tools and cannot replace DDE hard scope/effect/completion gates;
 - real mission-scoped Gateway commands/read projection for Stack Map, Knowledge,
   Tools/Plugins/MCP, Rules/Hooks, Loops, Community Evidence, Security and Learning.
 
-Current verification (2026-09-08): 21 focused VEKL/contract tests pass; pure unit is
-698 passed / 5 skipped / 558 integration deselected; contract is 223/223; extension is
-77/77; Frontend Studio Playwright is 79/79. Ruff, generated-contract/design/binding
-checks and strict MyPy are green. This specific shell has no PostgreSQL/Redis/Docker, so
-the two new VEKL PostgreSQL persistence/RLS tests and a live reversible `0038` migration
-remain **environment-unavailable**, not passed. Do not upgrade VEKL to complete from the
+Current verification (2026-09-08): 40 focused VEKL/playbook/contract tests pass; pure
+unit is 717 passed / 5 skipped / 559 integration deselected; contract is 223/223;
+extension/shared is 77/77; Frontend Studio Playwright is 79/79; desktop/UI TypeScript and
+React/Vite production build are green. Ruff, contract/design-token/binding drift checks,
+the design-lint ratchet and strict MyPy over 580 source files are green. This specific
+shell has no PostgreSQL/Redis/Docker, so the three VEKL PostgreSQL integration tests,
+database-backed recovery checks and a live reversible `0038` migration remain
+**environment-unavailable**, not passed. Do not upgrade VEKL to complete from the
 pure suite alone. See `docs/evidence/vekl/VEKL_RUNTIME_FOUNDATION_2026-09-08.md`.
 
 Mission ownership remains:

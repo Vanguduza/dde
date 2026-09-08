@@ -31,6 +31,7 @@ class VEKLContextCapsule:
     truth_constraints: dict[str, object]
     stack_fingerprint_hash: str
     stack_facts: dict[str, object]
+    engineering_policy: dict[str, object]
     items: tuple[KnowledgeItem, ...]
     conflicts: tuple[str, ...]
     selection_reasons: tuple[str, ...]
@@ -52,9 +53,11 @@ class VEKLKnowledgeCompiler:
         token_budget: int,
         stack_facts: dict[str, object] | None = None,
         task_verifiers: tuple[str, ...] = (),
+        engineering_policy: dict[str, object] | None = None,
     ) -> VEKLContextCapsule:
         by_id = {str(resource.resource_id): resource for resource in resources}
         stack = dict(stack_facts or {})
+        task_policy = dict(engineering_policy or {})
         selected: list[KnowledgeItem] = []
         provenance: list[str] = []
         verifiers: list[str] = list(task_verifiers)
@@ -64,7 +67,17 @@ class VEKLKnowledgeCompiler:
         # Project Truth and deterministic stack facts are protected VEKL authority.
         # Their cost is paid before optional resource excerpts are admitted.
         used = max(
-            1, len(canonical_json({"truth": truth_constraints, "stack": stack})) // 4
+            1,
+            len(
+                canonical_json(
+                    {
+                        "truth": truth_constraints,
+                        "stack": stack,
+                        "engineering_policy": task_policy,
+                    }
+                )
+            )
+            // 4,
         )
         if used > token_budget:
             raise BudgetExhaustedError(
@@ -152,6 +165,7 @@ class VEKLKnowledgeCompiler:
             "manifest_id": str(manifest.manifest_id),
             "truth": truth_constraints,
             "stack": stack,
+            "engineering_policy": task_policy,
             "items": [item.__dict__ for item in selected],
             "selection_reasons": reasons,
             "freshness": manifest.freshness_state,
@@ -167,6 +181,7 @@ class VEKLKnowledgeCompiler:
             truth_constraints=dict(truth_constraints),
             stack_fingerprint_hash=manifest.stack_fingerprint_hash,
             stack_facts=stack,
+            engineering_policy=task_policy,
             items=tuple(selected),
             conflicts=tuple(sorted(set(conflicts))),
             selection_reasons=tuple(reasons),

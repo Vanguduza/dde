@@ -571,14 +571,21 @@ class CommandDispatcher:
     ) -> CommandAcceptance:
         service = VEKLService(self._engine)
         params = command.parameters
-        if command_type == "vekl.resource.register":
+        payload: dict[str, object]
+        if command_type == "vekl.playbook.install_candidates":
+            payload = await service.install_engineering_playbook_candidates(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request_mode=_param_str(params, "request_mode"),
+            )
+        elif command_type == "vekl.resource.register":
             resource = await service.register_resource(
                 tenant_id=tenant_id,
                 project_id=project_id,
                 spec=_validated(VEKLResourceSpec, _param_dict(params, "resource")),
                 request_mode=_param_str(params, "request_mode"),
             )
-            payload: dict[str, object] = resource.model_dump(mode="json")
+            payload = resource.model_dump(mode="json")
         elif command_type == "vekl.resource.transition":
             resource = await service.transition_resource(
                 tenant_id=tenant_id,

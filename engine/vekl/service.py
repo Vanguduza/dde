@@ -32,6 +32,13 @@ from engine.studio.source.tables import (
 from engine.truth.db import PostgresUnitOfWork, open_unit_of_work
 from engine.truth.tables import edrs, product_constitution_versions, requirements
 from engine.vekl.compiler import VEKLContextCapsule, VEKLKnowledgeCompiler
+from engine.vekl.engineering_playbook import (
+    PACK_ID,
+    PACK_REVISION,
+    apply_engineering_playbook,
+    resolve_required_skill_resources,
+    skill_resource_specs,
+)
 from engine.vekl.models import (
     ActivationPlanSpec,
     ResourceOutcomeSpec,
@@ -363,6 +370,61 @@ class VEKLService:
             await uow.commit()
             return resource
 
+    async def install_engineering_playbook_candidates(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        request_mode: str,
+    ) -> dict[str, object]:
+        """Register the DDE-owned engineering playbook Skills as candidates.
+
+        Installation is deliberately candidate-only. It never promotes a Skill past
+        ``DISCOVERED`` and therefore cannot make procedural guidance active without the
+        ordinary VEKL qualification and ActivationManifest path. Repeated calls reuse
+        exact pack revision/content hashes already present in the target project.
+        """
+
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            truth = await self._truth_snapshot(
+                uow, tenant_id=tenant_id, project_id=project_id
+            )
+            enforce_target_scope(
+                project_kind=truth.project_kind, request_mode=request_mode
+            )
+            existing = await self._repository.list_resources(
+                uow.connection, project_id=project_id
+            )
+        by_content = {
+            (item.content_hash, item.revision): item
+            for item in existing
+            if item.provenance.get("source") == PACK_ID
+        }
+        created: list[VEKLResource] = []
+        reused: list[VEKLResource] = []
+        for spec in skill_resource_specs():
+            current = by_content.get((spec.content_hash, spec.revision))
+            if current is not None:
+                reused.append(current)
+                continue
+            created.append(
+                await self.register_resource(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    spec=spec,
+                    request_mode=request_mode,
+                )
+            )
+        return {
+            "pack_id": PACK_ID,
+            "revision": PACK_REVISION,
+            "qualification_state": "CANDIDATE_ONLY",
+            "created": [item.model_dump(mode="json") for item in created],
+            "reused": [item.model_dump(mode="json") for item in reused],
+        }
+
     async def transition_resource(
         self,
         *,
@@ -533,6 +595,7 @@ class VEKLService:
             raise DdeError(
                 "TENANT_SCOPE_VIOLATION", "fingerprint and task scope differ"
             )
+        spec, _engineering_policy = apply_engineering_playbook(task, spec)
         versions = fingerprint.facts.get("versions", {})
         constraints = dict(spec.constraints)
         constraints["versions"] = versions if isinstance(versions, dict) else {}
@@ -546,7 +609,9 @@ class VEKLService:
             "task_class": task.task_class,
             "constraints": constraints,
             "risk_category": task.risk_class,
-            **spec.model_dump(exclude={"lifecycle_stage", "constraints"}),
+            **spec.model_dump(
+                exclude={"lifecycle_stage", "engineering_archetype", "constraints"}
+            ),
         }
         digest = sha256_hex(canonical_json(payload))
         async with open_unit_of_work(
@@ -655,6 +720,14 @@ class VEKLService:
                 detail: dict[str, object] = {}
                 if invalidations:
                     code = "VEKL_MANIFEST_INVALID"
+                elif prior.task_signature_id != signature.signature_id:
+                    code, detail = (
+                        "VEKL_TASK_SIGNATURE_CHANGED",
+                        {
+                            "expected": str(prior.task_signature_id),
+                            "observed": str(signature.signature_id),
+                        },
+                    )
                 elif prior.policy_hash != policy_hash:
                     code, detail = (
                         "VEKL_POLICY_CHANGED",
@@ -752,6 +825,13 @@ class VEKLService:
                 now=datetime.now(UTC),
             )
             mandatory = set(spec.mandatory_resource_ids)
+            mandatory.update(
+                resolve_required_skill_resources(
+                    signature_constraints=signature.constraints,
+                    resources=resources,
+                    requested_modes=spec.requested_modes,
+                )
+            )
             decisions = []
             rejected: dict[str, list[str]] = {}
             for resource in resources:
@@ -1068,6 +1148,12 @@ class VEKLService:
                 manifest=manifest,
             )
             relevant_truth = self._task_relevant_truth(truth, signature)
+            engineering_policy = signature.constraints.get("engineering_playbook", {})
+            if not isinstance(engineering_policy, dict):
+                raise DdeError(
+                    "VEKL_MANIFEST_INVALID",
+                    "TaskSignature engineering playbook policy must be an object",
+                )
         return self._compiler.compile(
             manifest=manifest,
             resources=resources,
@@ -1075,6 +1161,7 @@ class VEKLService:
             token_budget=token_budget,
             stack_facts=fingerprint.facts,
             task_verifiers=tuple(signature.required_verifiers),
+            engineering_policy=engineering_policy,
         )
 
     async def get_manifest(

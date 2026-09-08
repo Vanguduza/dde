@@ -45,6 +45,7 @@ class TaskSignatureSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     lifecycle_stage: str
+    engineering_archetype: str | None = None
     constraints: dict[str, object] = Field(default_factory=dict)
     error_signatures: list[str] = Field(default_factory=list)
     required_capabilities: list[str] = Field(default_factory=list)

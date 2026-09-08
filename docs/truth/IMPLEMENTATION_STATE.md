@@ -71,7 +71,7 @@ The latest committed DDE-069 baseline is `e4347df` — **DDE-069 close unbound f
 | DDE-067 Frontend Studio Surface | `COMPLETE_EVIDENCED` | Landed in commit `c30d296...`; chapter gate says production call sites are wired for its scope and explicitly hands the next sequential mission to DDE-068. |
 | DDE-068 Visual Verification & Critique Loop | `COMPLETE_EVIDENCED` | All ten required elements implemented and evidenced, including a **live end-to-end run on real pixels** (`docs/evidence/dde-068/`): a poor candidate was rejected (believable_density=1), a good candidate was blocked on accessibility=3, its own repair instructions were applied, and cycle 1 passed and became promotion-eligible. `EDR-0017` accepted as Option C: a new narrow `capability.visual_critique`; the broad `capability.claude_code_invoke` is unchanged and `STANDING_FORBIDDEN_TYPES` was neither bypassed nor weakened. GUI-spec item D2 closed (`prototype_pixel_signoff` admitted, standing-forbidden). 1277 tests pass (unit, contract, recovery, integration), full suite green. |
 | DDE-069 DDE Code / Frontend Studio V2 + Live Design Foundation | `IN_PROGRESS` | Canonical domain: `docs/truth/FRONTEND_STUDIO_REV3.md` (AD-036). Real PostgreSQL 16.15/Redis 7.0.15 integration, M7 candidate/mutation/lock runtime, host-neutral React workbench, code-backed preview, DDE-068 candidate re-verification, Screen Audit, Universal DDE Chat/AI Conversation Fabric, functional Candidate Dock and six-tab semantic Inspector are landed. `CT-06` Claude `/design` transport/control is live-certified against the official Claude Design MCP; deterministic DesignArtifact token proposals materialize atomically through the ordinary mutation engine with stale-PXG and promotion-lineage checks. The installed-VSIX VS Code → React webview → Gateway → PostgreSQL path now proves project switching, deterministic Chat, READY candidate projection, browser-attested LIVE preview, stable PXG selection, lock creation/chips, responsive restart, and reviewed Inspector/source/accessibility reads. Production-only preview CSP/handshake defects found by that gate are repaired without weakening target-app CSP. `CA-07` Direction cards and selected-artifact Try Live remain UI/VISUAL verified but its exact `frontend.design.try_live` command still needs the packaged-host action before WIRED/E2E promotion. Source Intelligence has real PostgreSQL lifecycle proof plus live read/fetch/hash certification for shadcn/ui, ReUI, Magic UI and Aceternity UI through a generic public-registry adapter; 21st is optional/NOT_CONFIGURED rather than a DDE-069 blocker. Current 99-control ledger derives **42 VERIFIED / 48 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**. AD-039 remains repository-blocked even though the exact 1672×941 artifact was externally recovered and hash-identified; live R2 certification still requires complete correctly classified scoped credentials. |
-| Production VEKL for target-application manufacturing | `IMPLEMENTED_PARTIAL` | Blueprint §26A / AD-048 remain canonical and DDE-075/076/077/080/081/082/083 remain the locked owning missions, but the cross-mission runtime foundation is now implemented rather than design-only: schema-generated `VEKLResource`/`StackFingerprint`/`TaskSignature`/`VEKLActivationManifest`/invalidation/`VEKLResourceOutcome` plus Instruction/Hook/Loop contracts; incremental migration `0038` + tenant/project RLS; target-app-only fail-closed resolver; Source Intelligence admission bridge with no new egress; mechanically Workspace-derived stack fingerprints; hard eligibility-before-ranking; immutable failover manifests; VEKL context hash/budget integration into the existing `ContextPackage`; narrow `capability.vekl.*` seeds; lease/ExternalEffect-bound executable-component and hook runtime; bounded verifier/checkpoint/budget/rollback loops; Gateway commands and real read projection; Hermes candidate-only boundary. Current host proof: 21 focused VEKL/contract tests, 698 pure unit tests, 223 contract tests, full MyPy over 579 source files, extension 77/77 and Frontend Studio Playwright 79/79 are green; migration `0038` independently compiles to PostgreSQL upgrade/downgrade DDL. The two PostgreSQL VEKL persistence/RLS tests and reversible `0038` live migration remain environment-unavailable on this bare shell (no PostgreSQL/Redis/Docker), so this is not `COMPLETE_EVIDENCED`; no new external source host, DDE-081 full VEKL workbench, DDE-082 harness-specific executable adapter fleet, or DDE-083 production certification is claimed complete. |
+| Production VEKL for target-application manufacturing | `IMPLEMENTED_PARTIAL` | Blueprint §26A / AD-048 remain canonical and DDE-075/076/077/080/081/082/083 remain the locked owning missions. The common runtime foundation plus the DDE engineering-playbook tranche are implemented: schema-generated resource/stack/signature/activation/outcome contracts, migration `0038` + RLS, target-app-only scope, Source Intelligence admission with no new egress, Workspace-derived stack facts, hard eligibility, immutable failover with task-signature-drift invalidation, ContextPackage integration, capability/effect-bound executable and hook runtime, bounded loops, Gateway projection/commands, 16 DDE Skills, 14 explicit task archetypes, 12 evidence gates, 7 hook policies, three-Skill activation ceiling, and Claude delivery materializers that grant no tools or completion authority. Current host proof: 40 focused VEKL/playbook/contract tests, 717 pure unit tests (5 skipped; 559 integration deselected), 223 contract tests, full MyPy over 580 source files, extension/shared tests 77/77, desktop/UI TypeScript checks, React/Vite production build, and Frontend Studio Playwright 79/79 are green; contract/design-token/binding drift checks and the committed design-lint ratchet are green. The three PostgreSQL VEKL integration tests, database-backed recovery suite, reversible `0038` live migration and Redis-backed runtime proof remain environment-unavailable on this bare shell (no PostgreSQL/Redis/Docker), so this is not `COMPLETE_EVIDENCED`; no new external source host, full DDE-081 VEKL workbench, complete DDE-082 executable adapter/authoring fleet, or DDE-083 production certification is claimed complete. |
 | Same-host DDE/Dial isolation | `IMPLEMENTED_PARTIAL` | On the current authorized host, DDE uses a dedicated Bubblewrap-backed terminal/home/Claude profile and DDE-only console entrypoint. The DDE repo is mounted; `/srv/dial/repo` and shared `~/.hermes` are not. DDE provider login/MCP configuration is therefore separate from global/Dial state. This is host-specific implementation evidence for AD-045, not a claim that every future installer/runtime already enforces equivalent isolation. |
 | Fable 5 strategic orchestration profile | `BLOCKED_EXTERNAL` | Rev 3 role is defined, but no actual Fable 5 adapter/runtime integration was found in the observed repository state. Implement only when a supported interface is available and testable. |
 | Hermes persistent research/coordination role | `IMPLEMENTED_PARTIAL` | AI Conversation Fabric now discovers the installed Hermes runtime, requires evidence-backed endpoint certification, and has a fail-closed ACP client. DDE-managed Hermes ACP context isolation is proven with `--ignore-rules`; shared approved DDE memory is object-backed (R2 when configured) and replaces duplicate provider-private memory injection. Full downstream Hermes experience/fleet acceptance gates remain in DDE-075/076. |
@@ -94,7 +94,8 @@ missions without creating a parallel mission series or control plane.
 
 - schema-first, generated and tenant/project-scoped VEKL resource, stack, task-signature,
   activation-manifest/invalidation and resource-outcome authorities with migration `0038`
-  and RLS;
+  and RLS; activation continuity now also invalidates rather than reusing a prior manifest
+  when the bound `TaskSignature` changes;
 - explicit `projects.kind` classification and typed `VEKL_SCOPE_VIOLATION` for
   application-manufacturing VEKL against the DDE control plane;
 - Source Intelligence admission/provenance reuse. External `source_uri` records must bind
@@ -118,16 +119,30 @@ missions without creating a parallel mission series or control plane.
   have a writer, and declared rollback runs on exhaustion;
 - verifier/evidence-backed `VEKLResourceOutcome`, candidate-only Hermes integration and a
   mission-scoped Gateway/Studio read projection for Stack Map, Knowledge, Tools/Plugins/
-  MCP, Rules/Hooks, Loops, Community Evidence, Security and Learning.
+  MCP, Rules/Hooks, Loops, Community Evidence, Security and Learning;
+- DDE-owned engineering playbook distilled from the internal VEKL/DIAL knowledge-layer
+  material and current first-party Anthropic engineering guidance: 16 content-addressed
+  DDE Skills, 14 explicit task archetypes, 12 evidence gates and 7 hook policies;
+  archetype policy is bound into the existing `TaskSignature`, exact Skills are resolved
+  through the ordinary ActivationManifest, minimal activation is capped at three Skills,
+  and `vekl.playbook.install_candidates` registers candidate-only resources without egress;
+- Claude adapter materialization for generated `SKILL.md`/`CLAUDE.md`/command hooks.
+  Generated Skills disable model auto-invocation and grant no tools; provider hook settings
+  are defense in depth and never replace DDE's hard capability/effect/completion controls.
 
-**Verification in the current bare host:** 21 focused VEKL/contract tests pass; the pure
-unit suite passes 698 with 5 skipped and 558 database-backed tests deselected; all 223
-contract tests pass; extension tests pass 77/77; the full Frontend Studio Playwright suite
-passes 79/79, including the canonical 1672×941 Chat/Source Apply hit-test. Ruff, generated
-contract/design/binding checks and strict MyPy over VEKL/context/Gateway are green.
+**Verification in the current bare host:** 40 focused VEKL/playbook/contract tests pass;
+the pure unit suite passes 717 with 5 skipped and 559 database-backed tests deselected; all
+223 contract tests pass; extension/shared tests pass 77/77; strict MyPy passes over 580
+source files; desktop/UI TypeScript checks and the React/Vite production build pass; the
+full Frontend Studio Playwright suite passes 79/79, including the canonical 1672×941
+Chat/Source Apply hit-test. Ruff, generated-contract/design-token/binding drift checks and
+the committed design-lint ratchet are green. The recovery suite was also invoked: its three
+non-service checks pass and 33 database-backed checks fail immediately because this host
+has no configured `DDE_DATABASE_URL`/`DDE_REDIS_URL`; those are environment-unavailable,
+not accepted PASS evidence.
 
-**Still evidence-gated:** this shell has no PostgreSQL, Redis, Docker or `just`, so the two
-new VEKL PostgreSQL tests and a live `0038 -> 0037 -> 0038`/base migration cycle were not
+**Still evidence-gated:** this shell has no PostgreSQL, Redis, Docker or `just`, so the three
+VEKL PostgreSQL integration tests and a live `0038 -> 0037 -> 0038`/base migration cycle were not
 executed here. They remain integration tests for a service-capable host/CI. The common
 runtime foundation does not by itself mark DDE-075/076/077/080/081/082/083 complete;
 harness-specific executable adapters, the complete Production Studio VEKL authoring/

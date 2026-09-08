@@ -634,7 +634,9 @@ Every material VEKL-assisted run binds a versioned `VEKLActivationManifest` so p
 
 Hermes may research, retrieve, correlate outcomes and propose resource/workflow/wrapper candidates, but remains non-authoritative. Learned candidates follow ordinary eval/holdout/shadow/canary/promotion law. Community content is diagnostic evidence and cannot override exact-version normative/first-party sources or Project Truth.
 
-The VEKL v1 pack's JSON schemas, source catalogue and source-policy files are reviewed design inputs, not claims of implemented contracts or egress admission. Any new host/path/method scope beyond accepted DDE egress decisions requires normal EDR/change control before an adapter may fetch it.
+The VEKL v1 pack's source catalogue/source-policy material remains design input rather than egress admission. Its common schema/runtime concepts have now been reconciled into the repository's accepted VEKL contracts and implemented-partial runtime foundation; future work extends those existing authorities. Any new host/path/method scope beyond accepted DDE egress decisions still requires normal EDR/change control before an adapter may fetch it.
+
+DDE also adopts a provider-neutral engineering playbook as DDE-authored VEKL Skills plus task archetypes, verification-gate requirements and hook policies. Current Anthropic/Claude Code workflow guidance and the internal DIAL/VEKL knowledge-layer material are research/provenance inputs, not authority. Exact playbook Skills remain candidate/qualified VEKL resources selected through `TaskSignature` + `VEKLActivationManifest`; generated provider files are adapter artifacts and cannot grant tools, secrets, architecture changes or completion. Provider hooks supplement but never replace DDE's hard scope/capability/external-effect/verification enforcement.
 
 VEKL-P0…P10 are not a new mission series. Delivery is absorbed into locked DDE-075/076/077/080/081/082/083 scope as specified by `DEV_PLAN_REV3.md`; DDE-070…DDE-083 are not renumbered.
 

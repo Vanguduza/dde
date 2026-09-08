@@ -2729,6 +2729,18 @@ Hooks are executable policy. A harness-neutral Hook IR declares class/event/matc
 
 VEKL loops are bounded convergence programs, not "keep trying" prompts. Each loop binds entry condition, objective, max cycles, ordered steps, allowed capabilities/resources, budget, verifier/success oracle, checkpoints, failure/escalation and rollback policy. Core libraries include compile repair, focused-test repair, security remediation, dependency upgrade, migration, performance, accessibility and visual polish. Verifier output terminates the loop.
 
+### 26A.10A DDE engineering playbook, Skills and task archetypes
+
+DDE SHALL maintain a provider-neutral engineering playbook as DDE-authored VEKL resources rather than copying a provider prompt library into global instructions. The initial playbook is distilled from the internal Production VEKL/DIAL engineering-knowledge material plus current first-party Anthropic guidance on verification, plan/explore/implement separation, context management, Skills, hooks, isolated subagents, worktrees/fan-out and fresh-context review. Those research sources are provenance and design evidence only; they do not become Project Truth or new network-egress authority.
+
+A task MAY bind an explicit `engineering_archetype` through the existing `TaskSignature`. The archetype compiles deterministic execution policy for planning requirement, investigation-context policy, permitted parallelism, fresh-start after repeated failed corrections, independent fresh-context review, completion gates, selected Skill IDs and hook-policy IDs. The policy MUST preserve the following guard capsule: Project Truth wins; engineering guidance cannot change architecture, advance a verification/release gate, access secrets by implication, thin scope or tamper with verifiers. A single archetype activates the smallest useful DDE Skill set; the initial policy ceiling is three Skills, including any required adversarial reviewer.
+
+DDE-owned Skills are content-addressed `VEKLResource(resource_kind=SKILL)` candidates. `vekl.playbook.install_candidates` may register the exact playbook revision for a target application, but installation remains `DISCOVERED`/candidate-only. Qualification and activation continue through the ordinary VEKL lifecycle and `VEKLActivationManifest`. If the exact required Skill revision is absent, ineligible or `PROCEDURAL_GUIDANCE` is not an allowed activation mode, activation fails closed. No model or harness may silently substitute another Skill or revision.
+
+Playbook verification gates are policy requirements over the existing `AcceptanceOracle`/`VerificationRun`/`Evidence` authorities; they are not a second grader. Core gate classes cover scope integrity, attributable evidence, regression, requirement coverage, defect reproduction, behavior equivalence, live visual/accessibility proof, reversible migration, security, measured performance, independent fresh review and release certification. A worker assertion cannot satisfy a gate.
+
+Provider materializers live under `adapters/**`. Claude Code materialization MAY emit generated `SKILL.md`, `CLAUDE.md` and semantics-preserving command-hook settings, but generated files remain delivery artifacts. DDE-selected Claude Skills disable autonomous model invocation and do not grant `allowed-tools`; DDE capabilities/leases remain authoritative. Provider hooks are defense in depth only: hard scope, secret, external-effect and completion blocking remains enforced by DDE even if a provider hook is unavailable, times out or has weaker failure semantics.
+
 ### 26A.11 Supply chain, security and injection law
 
 Knowledge about a tool, permission to install it and permission to execute it are three separate decisions. Dependency/tool qualification records exact source/release/hash, license, provenance/attestation, install scripts/binaries, dependency tree, advisories, network/filesystem/secret needs, cleanup and output format. Existing lockfiles are never silently moved to `latest`.
@@ -2812,9 +2824,9 @@ Existing Source Intelligence/Donor Lab, capability, context, verification, routi
 
 ### 26A.18 Contract adoption law
 
-The reviewed VEKL v1 pack supplied candidate JSON schemas for resource, activation manifest, Hook IR and bounded loop plus source-catalog/policy seeds. They are architectural design inputs only at this stage. They MUST enter the normal DDE schema-first process in their owning missions, with naming reconciled against existing authorities, migration/RLS tests and implementation evidence before any runtime capability is claimed.
+The reviewed VEKL v1 pack began as candidate JSON/schema/source-policy input. The common runtime contracts have since entered the normal DDE schema-first path as the implemented-partial `VEKLResource`, `StackFingerprint`, `TaskSignature`, `VEKLActivationManifest`/invalidation, `VEKLResourceOutcome`, Instruction IR, Hook IR and bounded-loop authorities with migration/RLS and runtime integration evidence recorded in `IMPLEMENTATION_STATE.md`. Future owning missions extend those accepted names/authorities rather than reintroducing pack-local duplicates.
 
-The source-catalog seed is not canonical egress authority. Candidate capability names such as `capability.vekl.*` are likewise illustrative until admitted through ordinary capability risk/side-effect contracts.
+Source-catalog/source-policy seeds and research URLs remain discovery/design inputs, not canonical egress authority. Narrow `capability.vekl.*` entries are real only where they exist in the capability registry with ordinary risk/side-effect metadata; no candidate source name or playbook provenance URL grants network access.
 
 ---
 
