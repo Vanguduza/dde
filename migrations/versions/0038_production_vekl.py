@@ -15,6 +15,15 @@ down_revision = "0037"
 branch_labels = None
 depends_on = None
 
+_VEKL_TABLES = (
+    "vekl_resources",
+    "stack_fingerprints",
+    "task_signatures",
+    "vekl_activation_manifests",
+    "vekl_manifest_invalidations",
+    "vekl_resource_outcomes",
+)
+
 
 def _scope(table: str) -> None:
     op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
@@ -29,12 +38,61 @@ def _scope(table: str) -> None:
 
 
 def upgrade() -> None:
-    op.add_column("projects", sa.Column("kind", sa.Text(), nullable=True))
-    op.create_check_constraint(
-        "projects_kind_valid",
-        "projects",
-        "kind IS NULL OR kind IN ('TARGET_APPLICATION', 'DDE_CONTROL_PLANE')",
-    )
+    conn = op.get_bind()
+    existing_tables = {
+        table
+        for table in _VEKL_TABLES
+        if conn.execute(
+            sa.text("SELECT to_regclass(:name)"), {"name": f"public.{table}"}
+        ).scalar()
+        is not None
+    }
+    if existing_tables:
+        if existing_tables != set(_VEKL_TABLES):
+            missing = sorted(set(_VEKL_TABLES) - existing_tables)
+            raise RuntimeError(
+                "partial Production VEKL schema detected before migration 0038; "
+                f"missing tables: {', '.join(missing)}"
+            )
+        project_kind = conn.execute(
+            sa.text(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_schema='public' AND table_name='projects' "
+                "AND column_name='kind'"
+            )
+        ).first()
+        if project_kind is None:
+            raise RuntimeError(
+                "generated Production VEKL tables exist but projects.kind is missing"
+            )
+        # The regenerated canonical Stage-1 bundle already contains the complete
+        # 0038 schema on fresh databases. Older incremental databases reach 0038
+        # without these tables and execute the DDL below.
+        return
+
+    project_kind = conn.execute(
+        sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_schema='public' AND table_name='projects' "
+            "AND column_name='kind'"
+        )
+    ).first()
+    if project_kind is None:
+        op.add_column("projects", sa.Column("kind", sa.Text(), nullable=True))
+
+    kind_constraint = conn.execute(
+        sa.text(
+            "SELECT 1 FROM pg_constraint "
+            "WHERE conname='projects_kind_valid' "
+            "AND conrelid='public.projects'::regclass"
+        )
+    ).first()
+    if kind_constraint is None:
+        op.create_check_constraint(
+            "projects_kind_valid",
+            "projects",
+            "kind IS NULL OR kind IN ('TARGET_APPLICATION', 'DDE_CONTROL_PLANE')",
+        )
     op.create_table(
         "vekl_resources",
         sa.Column("resource_id", sa.Uuid(), primary_key=True),
@@ -277,26 +335,15 @@ def upgrade() -> None:
             name="vekl_outcomes_manifest_fkey",
         ),
     )
-    for table in (
-        "vekl_resources",
-        "stack_fingerprints",
-        "task_signatures",
-        "vekl_activation_manifests",
-        "vekl_manifest_invalidations",
-        "vekl_resource_outcomes",
-    ):
+    for table in _VEKL_TABLES:
         _scope(table)
 
 
 def downgrade() -> None:
-    for table in (
-        "vekl_resource_outcomes",
-        "vekl_manifest_invalidations",
-        "vekl_activation_manifests",
-        "task_signatures",
-        "stack_fingerprints",
-        "vekl_resources",
-    ):
-        op.drop_table(table)
-    op.drop_constraint("projects_kind_valid", "projects", type_="check")
-    op.drop_column("projects", "kind")
+    conn = op.get_bind()
+    for table in reversed(_VEKL_TABLES):
+        conn.execute(sa.text(f"DROP TABLE IF EXISTS {table} CASCADE"))
+    conn.execute(
+        sa.text("ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_kind_valid")
+    )
+    conn.execute(sa.text("ALTER TABLE projects DROP COLUMN IF EXISTS kind"))
