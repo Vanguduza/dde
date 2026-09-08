@@ -1,0 +1,2 @@
+# Catalog hashes are computed over canonical repository bytes; keep them stable on Windows.
+schemas/design/library/** text eol=lf

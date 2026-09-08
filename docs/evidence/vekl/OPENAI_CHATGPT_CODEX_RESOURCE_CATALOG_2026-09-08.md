@@ -103,3 +103,17 @@ reversible migration gates remain environment-unavailable rather than PASS. A di
 recovery invocation again produced 3 non-service PASS results and 33 immediate settings
 failures caused by the absent service URLs; no product defect is being reclassified as
 green.
+
+## CI portability closure
+
+The first pushed continuation exposed two pre-existing Windows-only CI defects outside
+the OpenAI catalogue logic. Windows CPython does not ship the IANA timezone database,
+so `ZoneInfo("UTC")` failed despite passing on Linux. DDE now declares `tzdata>=2025.2`;
+the lock resolved `tzdata 2026.3`, published by the Python Software Foundation under
+Apache-2.0. The dependency is required for cross-platform IANA timezone semantics rather
+than replacing stdlib `zoneinfo`.
+
+The same Windows checkout converted the one DDE component-library TSX source to CRLF,
+invalidating its content-addressed catalogue hash. `.gitattributes` now pins
+`schemas/design/library/**` to LF so the exact repository-byte hash remains deterministic
+across Linux and Windows. Neither repair broadens VEKL authority or egress.

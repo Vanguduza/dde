@@ -20,6 +20,7 @@ dependencies = [
   "opentelemetry-sdk",
   "opentelemetry-instrumentation-fastapi",
   "redis",
+  "tzdata>=2025.2",
 ]
 
 [project.optional-dependencies]
