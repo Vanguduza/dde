@@ -129,6 +129,29 @@ async function workbenchPage(): Promise<Page> {
   throw new Error("VS Code workbench page did not appear");
 }
 
+function displaySlug(slug: string): string {
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+async function waitForText(
+  locator: Locator,
+  expected: string,
+  label: string,
+): Promise<void> {
+  const deadline = Date.now() + 20_000;
+  let observed = "";
+  while (Date.now() < deadline) {
+    observed = (await locator.textContent()) ?? "";
+    if (observed.includes(expected)) return;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  throw new Error(`${label} did not contain ${expected}; observed ${observed}`);
+}
+
 async function waitForInputValue(
   locator: Locator,
   expected: string,
@@ -238,7 +261,7 @@ async function main(): Promise<void> {
   vscodeProcess = spawn(
     executable,
     [
-      repoRoot,
+      fixtureRepo,
       "--no-sandbox",
       "--disable-gpu-sandbox",
       "--disable-updates",
@@ -289,6 +312,54 @@ async function main(): Promise<void> {
   await screen.waitFor({ state: "visible", timeout: 20_000 });
   await waitForInputValue(screen, fixture.screen_key, "screen selector");
 
+  // Packaged-host read projection batch: these assertions prove the installed
+  // extension/webview is consuming real Gateway/PostgreSQL state, not just
+  // rendering the host-neutral fixture successfully.
+  const projectDisplay = displaySlug(fixture.project_slug);
+  await waitForText(
+    frame.getByTestId("explorer-project-heading"),
+    projectDisplay,
+    "Explorer project heading",
+  );
+  await frame.getByTestId("explorer-project-menu").click();
+  const projectMenu = frame.getByTestId("explorer-project-menu-popover");
+  await projectMenu.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(projectMenu, fixture.project_id, "Explorer project menu project id");
+  await waitForText(projectMenu, "PXG revision 1", "Explorer project menu PXG revision");
+  await frame.getByTestId("explorer-project-menu").click();
+
+  await frame.getByTestId("explorer-search").click();
+  const explorerSearch = frame.getByTestId("explorer-search-input");
+  await explorerSearch.waitFor({ state: "visible", timeout: 20_000 });
+  await explorerSearch.fill("screens");
+  const screensGroup = frame.getByTestId("explorer-group-screens");
+  await screensGroup.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(screensGroup.locator(".dde-count"), "1", "Screens group count");
+  if ((await frame.getByTestId("explorer-group-journeys").count()) !== 0) {
+    throw new Error("Explorer search did not filter Journeys for the screens query");
+  }
+  if ((await frame.getByTestId("explorer-group-components").count()) !== 0) {
+    throw new Error("Explorer search did not filter Components for the screens query");
+  }
+  await explorerSearch.fill("");
+
+  for (const [kind, label] of [
+    ["style", "Style Locks"],
+    ["section", "Section Locks"],
+    ["component", "Component Locks"],
+    ["behaviour", "Behaviour Locks"],
+  ] as const) {
+    const lockRow = frame.getByTestId(`explorer-group-lock:${kind}`);
+    await lockRow.waitFor({ state: "visible", timeout: 20_000 });
+    await waitForText(lockRow, label, `${label} row`);
+    await waitForText(lockRow.locator(".dde-count"), "0", `${label} count`);
+  }
+
+  const buildVersion = frame.getByTestId("build-version");
+  await buildVersion.waitFor({ state: "visible", timeout: 20_000 });
+  await waitForText(buildVersion, "0.1.0", "installed DDE build version");
+  await waitForText(buildVersion, "PXG r1", "packaged-host PXG revision");
+
   await project.selectOption(fixture.second_project_id);
   const secondFrame = await projectFrame(page, fixture.second_project_id);
   const secondScreen = secondFrame.getByTestId("screen-select");
@@ -331,6 +402,16 @@ async function main(): Promise<void> {
       switchedProjectId: fixture.second_project_id,
       switchedScreenKey: fixture.second_screen_key,
       returnedProjectId: fixture.project_id,
+      verifiedControls: [
+        "EX-02",
+        "EX-03",
+        "EX-04",
+        "EX-16",
+        "EX-17",
+        "EX-18",
+        "EX-19",
+        "ST-06",
+      ],
       database: ready.database,
       migrations: ready.migrations,
     })}`,

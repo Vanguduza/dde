@@ -1,7 +1,7 @@
 # DDE-069 Packaged VS Code Host E2E
 
-Date: 2026-09-07
-State: packaged-host baseline **PROVEN**; `TB-02` project switching is additionally row-specific **PROVEN**; other actions remain evidence-gated.
+Date: 2026-09-08
+State: packaged-host baseline **PROVEN**; `TB-02` project switching and the first eight-row packaged read-projection batch are row-specific **PROVEN**; other actions remain evidence-gated.
 
 ## Scope
 
@@ -62,6 +62,18 @@ Migration proof completed on throwaway PostgreSQL databases:
 The expanded host run found a second production-only defect: the host deep-camelizes Gateway acceptances, so the returned `payload.mission_id` becomes `payload.missionId`. React was still reading `mission_id`; the Gateway accepted the switch but the UI discarded the returned mission identity. React now reads the canonical host-side `missionId`, and the host-neutral fixture uses the same camelized contract.
 
 The installed-VSIX run now proves original project/screen -> governed `frontend.project.switch` -> second project/mission + `screens/alternate` -> governed switch back -> original project + `screens/checkout`. This closes the packaged WIRED/E2E/visual obligation for `TB-02`.
+
+## Row-specific read-projection closure — 2026-09-08
+
+The installed-VSIX harness now also asserts authoritative data for eight controls without adding mock-only state:
+
+- `EX-02` project heading/menu: project slug/ID and PXG revision come through the production context/explorer projection;
+- `EX-03` Explorer search: the real packaged webview filters the projected tree;
+- `EX-04` Screens group/count: the freshly persisted one-screen PXG renders a count of `1`;
+- `EX-16`..`EX-19`: Style/Section/Component/Behaviour lock rows render the real `LockService.inventory()` zero counts on the fresh database; and
+- `ST-06`: installed package version `0.1.0` and real PXG revision `r1` render together in the production status bar.
+
+The passing marker includes `verifiedControls=["EX-02","EX-03","EX-04","EX-16","EX-17","EX-18","EX-19","ST-06"]`. Their WIRED and E2E layers are therefore VERIFIED. The derived ledger is now **20 VERIFIED / 70 BOUND / 9 TYPED_UNAVAILABLE / 0 UNBOUND**.
 
 ## Non-overclaim boundary
 

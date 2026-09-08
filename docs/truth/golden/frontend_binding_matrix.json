@@ -1954,31 +1954,37 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Host-neutral binding is proven; packaged production-host E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -2071,31 +2077,37 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "interfaces/dde-studio/ui/src/shell/ContextSidebar.tsx"
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Host-neutral binding is proven; packaged VS Code host to real Gateway/PostgreSQL browser E2E remains outstanding."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -2192,7 +2204,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/pxg/service.py",
             "engine/studio/reads.py",
@@ -2201,14 +2213,17 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/shell.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "React consumes or presents the state, but no production host read bridge proves the complete Core-to-UI path."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/pxg/service.py",
             "engine/studio/reads.py",
@@ -2217,10 +2232,13 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/shell.spec.ts"
+            "interfaces/dde-studio/ui/visual/shell.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
-          "evidence_refs": [],
-          "note": "Current browser evidence uses TestHostBridge or presentation-local state and does not prove a real React-to-Gateway production flow."
+          "evidence_refs": [
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
+          ],
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -3888,7 +3906,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -3901,16 +3919,18 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -3923,12 +3943,14 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -4053,7 +4075,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -4066,16 +4088,18 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -4088,12 +4112,14 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -4218,7 +4244,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -4231,16 +4257,18 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -4253,12 +4281,14 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -4383,7 +4413,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -4396,16 +4426,18 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/locks/service.py",
             "engine/studio/reads.py",
@@ -4418,12 +4450,14 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_domain_postgres.py",
-            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts"
+            "interfaces/dde-studio/ui/visual/inspector-golden.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Backend projection and React binding are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded on this host."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,
@@ -14271,7 +14305,7 @@
         },
         "WIRED": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "engine/gateway/commands.py",
@@ -14284,16 +14318,18 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Production Gateway and React seams are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "E2E": {
           "applicable": true,
-          "status": "BOUND",
+          "status": "VERIFIED",
           "implementation_refs": [
             "engine/studio/reads.py",
             "engine/gateway/commands.py",
@@ -14306,12 +14342,14 @@
           ],
           "test_refs": [
             "tests/unit/test_frontend_studio_e2e_postgres.py",
-            "interfaces/dde-studio/ui/visual/live-loop.spec.ts"
+            "interfaces/dde-studio/ui/visual/live-loop.spec.ts",
+            "interfaces/dde-studio/e2e/runPackagedHostE2E.ts"
           ],
           "evidence_refs": [
-            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md"
+            "docs/evidence/dde-069/GOLDEN_SHELL_RECONCILIATION.md",
+            "docs/evidence/dde-069/PACKAGED_VSCODE_HOST_E2E.md"
           ],
-          "note": "Production Gateway and React seams are proven separately; one packaged VS Code/Cursor webview -> real Gateway -> PostgreSQL browser run is not recorded."
+          "note": "Installed VSIX in VS Code 1.95.3 exercised this control/read through the production webview -> Gateway -> fresh PostgreSQL path."
         },
         "VISUAL": {
           "applicable": true,

@@ -12,8 +12,8 @@
 |---|---:|
 | `UNBOUND` | 0 |
 | `TYPED_UNAVAILABLE` | 9 |
-| `BOUND` | 78 |
-| `VERIFIED` | 12 |
+| `BOUND` | 70 |
+| `VERIFIED` | 20 |
 | **total** | **99** |
 
 Final status is derived. It is never authored independently of the eight layers.
@@ -57,9 +57,9 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | ID | Feature | DOMAIN | READ | COMMAND | STATE | UI | WIRED | E2E | VISUAL | FINAL |
 |---|---|---|---|---|---|---|---|---|---|---|
 | EX-01 | App rail module icons | `NOT_APPLICABLE` | `VERIFIED` | `TYPED_UNAVAILABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
-| EX-02 | Project heading + menu | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| EX-03 | Explorer search | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| EX-04 | Screens group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-02 | Project heading + menu | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| EX-03 | Explorer search | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| EX-04 | Screens group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | EX-05 | Journeys group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-06 | Components group + count | `VERIFIED` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-07 | Sources group | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `TYPED_UNAVAILABLE` |
@@ -71,10 +71,10 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#82-app-rail-and-project-explo
 | EX-13 | Templates group | `TYPED_UNAVAILABLE` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `TYPED_UNAVAILABLE` |
 | EX-14 | Template entries | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | EX-15 | Locks group + count | `VERIFIED` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
-| EX-16 | Style Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| EX-17 | Section Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| EX-18 | Component Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| EX-19 | Behaviour Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| EX-16 | Style Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| EX-17 | Section Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| EX-18 | Component Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
+| EX-19 | Behaviour Locks | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 | EX-20 | QA group | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | EX-21 | QA Issues count | `NOT_APPLICABLE` | `BOUND` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | EX-22 | Accessibility count | `TYPED_UNAVAILABLE` | `BOUND` | `NOT_APPLICABLE` | `TYPED_UNAVAILABLE` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `TYPED_UNAVAILABLE` |
@@ -274,7 +274,7 @@ Specification: `docs/truth/FRONTEND_STUDIO_REV3.md#810-status-bar`
 | ST-03 | Warning count | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `BOUND` | `BOUND` |
 | ST-04 | Auto Layout state | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
 | ST-05 | AI Suggest state | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
-| ST-06 | Build / version | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `BOUND` | `BOUND` | `VERIFIED` | `BOUND` |
+| ST-06 | Build / version | `NOT_APPLICABLE` | `VERIFIED` | `NOT_APPLICABLE` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` | `VERIFIED` |
 
 Notes:
 
