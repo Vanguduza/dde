@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "repository": "Vanguduza/dde",
+  "policy": {
+    "default_branch_is_not_authority": true,
+    "newest_commit_is_not_authority": true,
+    "every_pushed_commit_is_auto_logged": true,
+    "canonical_lineage_must_be_verified_before_release": true,
+    "silent_feature_thinning_forbidden": true,
+    "release_requires_provenance": true
+  },
+  "canonical_state": {
+    "status": "CANONICAL_DISCOVERY_REQUIRED",
+    "release_blocked": true,
+    "default_branch_at_bootstrap": "main",
+    "required_ancestors": [],
+    "notes": "No branch is declared canonical by installation of this protocol. Reconcile project truth, record required ancestors/locked authorities, then explicitly clear release_blocked."
+  },
+  "tracking": {
+    "ledger": "docs/project-state/CHANGE_LEDGER.jsonl",
+    "current_snapshot": "docs/project-state/CURRENT_STATE.json",
+    "protocol": "PROJECT_TRUTH_PROTOCOL.md",
+    "workflow": ".github/workflows/project-truth-autolog.yml"
+  }
+}
