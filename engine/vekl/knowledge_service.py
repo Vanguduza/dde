@@ -2539,7 +2539,7 @@ class VEKLKnowledgeService:
                         unit_map_id=unit.unit_map_id,
                         manifest_id=None,
                         resolution_trace_id=None,
-                        reason_code="PROJECT_TRUTH_CHANGED",
+                        reason_code="VEKL_PROJECT_TRUTH_CHANGED",
                         detail={
                             "challenge_id": str(challenge_id),
                             "truth_change": truth_change,

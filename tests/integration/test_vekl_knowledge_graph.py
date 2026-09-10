@@ -100,7 +100,11 @@ async def _qualified_resource(
             reuse_class="SOURCE_REFERENCE_ONLY",
             activation_modes=["READ_ONLY_CONTEXT"],
             license_ids=["MIT"],
-            provenance={"hash_verified": True, "purpose": "backend-guidance"},
+            provenance={
+                "source": "tests.integration.vekl_knowledge_graph",
+                "hash_verified": True,
+                "purpose": "backend-guidance",
+            },
             content_excerpt=excerpt,
         ),
     )
