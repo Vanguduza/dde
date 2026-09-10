@@ -1074,12 +1074,15 @@ class VEKLKnowledgeService:
                     stable_ref=f"unit:{unit.unit_lineage_id}:{unit.unit_revision_hash}",
                     authority_class="DERIVED_PROJECTION",
                     authority_service="engine.vekl.knowledge_service",
-                    content_hash=unit.unit_map_hash,
+                    # Graph identity is structural. Mutable Unit readiness/challenge
+                    # state belongs to the Unit projection and must not invalidate an
+                    # otherwise identical GraphRAG snapshot after resolution promotes
+                    # MAPPING -> READY.
+                    content_hash=unit.unit_revision_hash,
                     project_truth_hash=truth.truth_hash,
                     metadata={
                         "unit_lineage_id": unit.unit_lineage_id,
                         "unit_revision_hash": unit.unit_revision_hash,
-                        "readiness": unit.knowledge_readiness_state,
                     },
                     now=now,
                 )
