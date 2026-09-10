@@ -1263,7 +1263,10 @@ class VEKLKnowledgeService:
                 )
 
             edge(
-                unit_node, "derives_from", graph_node, f"unit-map:{unit.unit_map_hash}"
+                unit_node,
+                "derives_from",
+                graph_node,
+                f"unit-revision:{unit.unit_revision_hash}",
             )
             edge(
                 unit_node,
