@@ -1,9 +1,16 @@
 {
-  "branch": "work/vekl-graph-v2-20260910",
-  "observed_at_utc": "2026-09-10T16:00:13.549800+00:00",
-  "recorded_commit_count": 1,
-  "repository": "Vanguduza/dde",
+  "actor": "ubuntu",
+  "branch": "fix/project-truth-protected-main-20260910",
+  "changed_files": [
+    "PROJECT_CANONICAL_STATE.json",
+    "PROJECT_TRUTH_PROTOCOL.md",
+    "scripts/project_truth_local.py",
+    "tests/unit/test_project_truth_local_guard.py"
+  ],
+  "diff_sha256": "a7dda9db806ac3c810ae896d7df6449869eea8efd266486effc48e0bd61a9132",
+  "kind": "precommit-staged-diff",
+  "recorded_at_utc": "2026-09-10T17:20:23.768474+00:00",
   "schema_version": 1,
-  "source_commit": "939e2cdd184c7ea3b5724059dbacbd2580401192",
-  "source_tree": "2ff48daee78b56af5b5afcb79511d60d0cba3781"
+  "source_parent": "fe50567b179f5ec191093931598ecb21d5e4a0a4",
+  "state": "PENDING_COMMIT"
 }
