@@ -1,14 +1,9 @@
 {
-  "actor": "ubuntu",
   "branch": "work/vekl-graph-v2-20260910",
-  "changed_files": [
-    "engine/vekl/knowledge_service.py",
-    "tests/integration/test_vekl_knowledge_graph.py"
-  ],
-  "diff_sha256": "906ec28131d1c9bb8a6c2efd76d28691101345a962b67a918505c31799f823ba",
-  "kind": "precommit-staged-diff",
-  "recorded_at_utc": "2026-09-10T15:03:50.168704+00:00",
+  "observed_at_utc": "2026-09-10T15:04:02.827493+00:00",
+  "recorded_commit_count": 1,
+  "repository": "Vanguduza/dde",
   "schema_version": 1,
-  "source_parent": "e49c8bb99f9d0afee21fb1f60845064477924275",
-  "state": "PENDING_COMMIT"
+  "source_commit": "2e532dbfc52b2025da7646d99aee299b9eb0a6dc",
+  "source_tree": "0abe3f0c6f6e96f548e4a39256a778bd9fbf2574"
 }
