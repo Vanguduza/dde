@@ -1,9 +1,15 @@
 {
-  "branch": "main",
-  "observed_at_utc": "2026-09-09T01:57:43.429566+00:00",
-  "recorded_commit_count": 1,
-  "repository": "Vanguduza/dde",
+  "actor": "ubuntu",
+  "branch": "work/vekl-graph-v2-20260910",
+  "changed_files": [
+    "pyproject.toml",
+    "scripts/project_truth_local.py",
+    "uv.lock"
+  ],
+  "diff_sha256": "c7b602ce19a222cee5583657ccc7e42081fd7d6ec8c978e55892784380a89641",
+  "kind": "precommit-staged-diff",
+  "recorded_at_utc": "2026-09-10T09:42:13.663555+00:00",
   "schema_version": 1,
-  "source_commit": "c626b95df2e518852c1479a0ebed9e05f2eb1aa0",
-  "source_tree": "3bcb8d641cc5e44684336474f18c55829849dec5"
+  "source_parent": "840e570b930c686266ef99b6b9883750acd542de",
+  "state": "PENDING_COMMIT"
 }

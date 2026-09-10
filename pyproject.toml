@@ -49,6 +49,7 @@ dev = [
   "ruff",
   "mypy",
   "hypothesis",
+  "jsonschema",
   "schemathesis",
   "pytest-cov",
 ]
