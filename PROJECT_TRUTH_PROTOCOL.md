@@ -24,3 +24,13 @@ GitHub Actions is a **read-only Project Truth guard** on protected branches and 
 Local/authorized tooling records staged substantive diffs before commit. When a commit is necessarily created through an API path that cannot run the local pre-commit recorder, a later explicit reconciliation commit may backfill that exact commit SHA, changed-file set and diff digest; verification uses the durable ledger at the current head and does not silently accept missing evidence.
 
 A merge commit is exempt only when it is a pure lineage carrier whose tree is identical to one of its parents. A merge that introduces novel conflict-resolution content remains substantive and must be ledgered. Local edits that have never been committed do not yet exist in repository history.
+
+## Branch lifecycle and change history
+
+`main` is the only persistent integration branch. Side branches are temporary, non-authoritative work packets governed by `BRANCH_MANAGEMENT.md`; every same-repository side branch must target `main` through an open PR and is deleted after merge. An orphan side branch is a repository-governance failure and must be reconciled, merged if accepted, or deleted if rejected/superseded.
+
+Repository settings preserve ledgered commit identity by allowing merge commits and disabling squash/rebase merge. Protected `main` requires the Actions-owned Project Truth, Linux CI and Windows CI checks, is strict/up-to-date, disallows force pushes/deletion, and applies protection to administrators.
+
+`CHANGELOG.md` is the human-readable record of notable integrated behavior. Material runtime/product/schema/migration/security/performance/refactor work must update it in the same PR. It never outranks Project Truth and never records branch-only experiments as completed.
+
+`docs/project-state/BUG_FIX_LEDGER.jsonl` is the append-only fixed-bug authority. Every `fix:`/`hotfix:` change appends a structured record with symptom, root cause, resolution, scope, regression proof, evidence and fix identity. `BUG_FIX_LEDGER.md` is a generated human-readable projection and must never be edited independently.

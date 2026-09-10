@@ -1,16 +1,27 @@
 {
   "actor": "ubuntu",
-  "branch": "fix/project-truth-protected-main-20260910",
+  "branch": "feat/repository-governance-20260910",
   "changed_files": [
+    ".github/workflows/branch-governance.yml",
+    ".github/workflows/project-truth-autolog.yml",
+    "AGENTS.md",
+    "BRANCH_MANAGEMENT.md",
+    "CHANGELOG.md",
     "PROJECT_CANONICAL_STATE.json",
     "PROJECT_TRUTH_PROTOCOL.md",
-    "scripts/project_truth_local.py",
-    "tests/unit/test_project_truth_local_guard.py"
+    "README.md",
+    "docs/project-state/BUG_FIX_LEDGER.jsonl",
+    "docs/project-state/BUG_FIX_LEDGER.md",
+    "justfile",
+    "scripts/commit_if_green.ps1",
+    "scripts/commit_if_green.sh",
+    "scripts/repository_governance.py",
+    "tests/unit/test_repository_governance.py"
   ],
-  "diff_sha256": "a7dda9db806ac3c810ae896d7df6449869eea8efd266486effc48e0bd61a9132",
+  "diff_sha256": "934611a58da3f77f732c33173ee9a6de5c5bb0e594baae2c3adaf7b58898ee24",
   "kind": "precommit-staged-diff",
-  "recorded_at_utc": "2026-09-10T17:20:23.768474+00:00",
+  "recorded_at_utc": "2026-09-10T19:14:51.492569+00:00",
   "schema_version": 1,
-  "source_parent": "fe50567b179f5ec191093931598ecb21d5e4a0a4",
+  "source_parent": "cde5b9e991d5caf05c33d075216743faa9cccbde",
   "state": "PENDING_COMMIT"
 }

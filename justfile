@@ -36,7 +36,12 @@ lint:
 typecheck:
     uv run mypy
 
-check: lint typecheck test contract-test design-lints studio-check
+governance:
+    uv run python -m scripts.repository_governance verify-static
+    uv run python -m scripts.repository_governance render-bug-ledger --check
+    uv run python -m scripts.project_truth_local verify
+
+check: lint typecheck governance test contract-test design-lints studio-check
 
 chaos:
     uv run pytest tests/unit/test_chaos_suite.py tests/unit/test_chaos_inventory.py

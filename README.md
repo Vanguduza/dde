@@ -1,3 +1,9 @@
+## Repository governance
+
+DDE keeps `main` as its only persistent integration branch. Side work is temporary, non-authoritative, merged through protected pull requests, and deleted after merge. See [`BRANCH_MANAGEMENT.md`](BRANCH_MANAGEMENT.md) for the enforced lifecycle.
+
+Notable integrated changes are recorded in [`CHANGELOG.md`](CHANGELOG.md). Fixed defects are recorded in the append-only [`docs/project-state/BUG_FIX_LEDGER.jsonl`](docs/project-state/BUG_FIX_LEDGER.jsonl), with [`BUG_FIX_LEDGER.md`](docs/project-state/BUG_FIX_LEDGER.md) as its generated readable view. These histories never outrank Project Truth or accepted EDRs.
+
 # DDE — Development & Engineering Engine
 
 DDE is a model-agnostic software manufacturing control plane. It owns product truth, mission state, context policy, routing policy, capability governance, verification and evidence. External agent harnesses are workers. Editors, phones, browsers and chat channels are clients. This repository is the DDE Core control plane.

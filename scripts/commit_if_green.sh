@@ -14,13 +14,16 @@
 # done. See AGENTS.md, section "Mechanical commit helpers".
 #
 # Check list mirrors the justfile `check` recipe (lint typecheck test
-# contract-test) exactly, in the same order:
+# governance + contract-test) exactly, in the same order:
 #   1. uv run ruff check .
 #   2. uv run ruff format --check .
 #   3. uv run mypy
-#   4. uv run pytest tests/unit tests/contract tests/recovery --cov --cov-report=term-missing
-#   5. uv run python -m scripts.generate_contracts --check
-#   6. uv run pytest tests/contract
+#   4. uv run python -m scripts.repository_governance verify-static
+#   5. uv run python -m scripts.repository_governance render-bug-ledger --check
+#   6. uv run python scripts/project_truth_local.py verify
+#   7. uv run pytest tests/unit tests/contract tests/recovery --cov --cov-report=term-missing
+#   8. uv run python -m scripts.generate_contracts --check
+#   9. uv run pytest tests/contract
 #
 # On the first failing check, the script stops immediately with a non-zero exit
 # code and performs NO git operations at all (no add, no commit, no push).
@@ -106,11 +109,20 @@ run_check() {
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$branch" == "main" ]]; then
+  fail "Direct commits on main are forbidden. Create a temporary branch and merge through a protected PR."
+  exit 3
+fi
+
 # Mirrors justfile `check: lint typecheck test contract-test` exactly — do not
 # reorder or add/drop steps here without updating the justfile too.
 run_check "lint (ruff check)" uv run ruff check .
 run_check "lint (ruff format)" uv run ruff format --check .
 run_check "typecheck (mypy)" uv run mypy
+run_check "governance (static)" uv run python -m scripts.repository_governance verify-static
+run_check "governance (bug ledger projection)" uv run python -m scripts.repository_governance render-bug-ledger --check
+run_check "governance (Project Truth history)" uv run python scripts/project_truth_local.py verify
 run_check "test (pytest)" uv run pytest tests/unit tests/contract tests/recovery --cov --cov-report=term-missing
 run_check "contract-test (generate_contracts --check)" uv run python -m scripts.generate_contracts --check
 run_check "contract-test (pytest tests/contract)" uv run pytest tests/contract
@@ -139,9 +151,17 @@ if [[ "$nothing_staged" -eq 1 ]]; then
   exit 2
 fi
 
+step "repository governance staged policy"
+uv run python -m scripts.repository_governance verify-staged --message "$MESSAGE"
+ok "staged changelog/bug/branch policy"
+
+step "Project Truth staged-diff record"
+uv run python scripts/project_truth_local.py record
+ok "Project Truth ledger recorded"
+
 step "git commit"
 if [[ ${#PATHS[@]} -gt 0 ]]; then
-  git commit -m "$MESSAGE" -- "${PATHS[@]}"
+  git commit -m "$MESSAGE" -- "${PATHS[@]}" docs/project-state/CHANGE_LEDGER.jsonl docs/project-state/CURRENT_STATE.json
 else
   git commit -m "$MESSAGE"
 fi
@@ -156,7 +176,6 @@ if [[ "$PUSH" -ne 1 ]]; then
 fi
 
 step "git push"
-branch="$(git rev-parse --abbrev-ref HEAD)"
 if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
   git push
 else

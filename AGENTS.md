@@ -35,6 +35,15 @@ unless an accepted Project Truth record decides otherwise.
 4. `docs/truth/IMPLEMENTATION_STATE.md` describes what is actually implemented. Do not
    promote a feature's state without production call-site and verification evidence.
 
+## Branch, changelog and bug-history discipline
+- `main` is the only persistent integration branch. Read `BRANCH_MANAGEMENT.md` before creating or resuming side work.
+- Side branches are temporary non-authoritative PR work packets. Create them from current `origin/main`, open a PR to `main`, merge only through protection, and verify the branch is deleted after merge.
+- Never keep a model-specific, recovery, staging, "canonical", or competing integration branch after its accepted work has been reconciled. Orphan branches with no open PR are governance failures.
+- Do not squash or rebase ledgered commits. Repository merge commits preserve commit identity; synchronization with moving `main` must remain reviewable and Project-Truth-ledgered.
+- Material runtime/product/schema/migration/security/performance/refactor work updates root `CHANGELOG.md` in the same PR.
+- Every `fix:` / `hotfix:` change appends `docs/project-state/BUG_FIX_LEDGER.jsonl` and regenerates `BUG_FIX_LEDGER.md`; existing bug entries are immutable.
+- A branch never becomes Project Truth because it is newer, named canonical, or contains more code. Only protected integration into `main` after authority/evidence checks makes it part of the canonical integration lineage.
+
 ## Boundaries — enforced by tests, do not work around them
 - DDE is repository-isolated from DIAL. Never clone, fetch, inspect, compare, bind, mutate, push, merge, donor-import or otherwise operate on `Vanguduza/dial-new` or superseded `Vanguduza/dial` from DDE work. Cross-project transfer requires an owner-supplied exported artifact admitted through normal source controls.
 - `engine/core/**` imports DDE contracts only. It must never import a vendor SDK.
@@ -55,6 +64,9 @@ unless an accepted Project Truth record decides otherwise.
 - [ ] The golden mission fixture still passes.
 - [ ] A real production call site invokes the new behavior; schemas/stubs/tests alone are not completion.
 - [ ] `docs/truth/IMPLEMENTATION_STATE.md` is updated after a meaningful implementation tranche.
+- [ ] `CHANGELOG.md` records every material integrated behavior change.
+- [ ] Every bug fix has an append-only `DDE-BUG-NNNN` ledger entry with regression/evidence refs.
+- [ ] Side work is merged through protected `main` and its temporary branch is deleted.
 
 ## Style
 - Python 3.12, async throughout. No sync database calls in request paths.
@@ -109,8 +121,9 @@ tests/recovery`, `generate_contracts --check`, `pytest tests/contract`) and, onl
 if every check passes, stage changes, commit with a caller-supplied message, and
 push to the current branch's upstream (creating it with `-u origin HEAD` on first
 push) — one invocation instead of separate lint/typecheck/test/add/commit/push
-calls. They fail fast with no git operations at all on the first failing check,
-and refuse to create an empty commit if nothing is staged.
+calls. They fail fast with no git operations at all on the first failing check, refuse
+to create an empty commit, refuse direct commits on `main`, validate changelog/
+bug-ledger policy, and call the Project Truth staged-diff recorder before commit.
 
 These scripts automate **only** the mechanical "run checks, then commit+push"
 step. They are explicitly invoked, never a git hook, and they are **not** a
