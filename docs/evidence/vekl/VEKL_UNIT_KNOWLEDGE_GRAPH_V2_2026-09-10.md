@@ -2,9 +2,9 @@
 
 ## Status
 
-`IMPLEMENTED_PARTIAL / CI_CERTIFICATION_PENDING` — the revised Unit Knowledge Graph,
-deterministic GraphRAG and Target Project Truth Evolution architecture is implemented as
-an additive Blueprint §26A / AD-048 extension. Existing DDE authority boundaries and
+`IMPLEMENTED / CI_CERTIFIED` — the revised Unit Knowledge Graph, deterministic GraphRAG
+and Target Project Truth Evolution architecture is implemented and service/browser certified
+as an additive Blueprint §26A / AD-048 extension. Existing DDE authority boundaries and
 locked DDE-075/076/077/080/081/082/083 ownership are preserved.
 
 ## Architecture integrated
@@ -50,7 +50,7 @@ now supports declared indexes including active partial indexes.
 
 ## Verification completed locally
 
-- v2 architecture/runtime focused tests: **20/20 passed**;
+- v2 architecture/runtime focused tests: **22/22 passed**;
 - pure unit: **753 passed / 6 skipped / 563 integration deselected**;
 - contract: **223/223 passed**;
 - extension/shared client tests: **77/77 passed**;
@@ -68,21 +68,13 @@ now supports declared indexes including active partial indexes.
 - `git diff --check` and Project Truth guard verification: PASS;
 - design-lint ratchet: PASS with the unchanged historical **70 DD206** baseline findings.
 
-## Environment-deferred proof
+## CI certification
 
-This Oracle-admin shell has no PostgreSQL/Redis runtime. The new PostgreSQL integration
-module is itself Ruff/format/MyPy/bytecode clean and covers deterministic rebuild,
-resolution-to-manifest/context binding, critical challenge blocking, governed TruthService
-mutation and Unit invalidation, but execution requires the normal service-capable CI job.
+Core CI run `34497981504` on isolation-certification commit `e2bc027c556115a968a38895a32151b4a6c3b415` is **PASS**. It proves Linux lint/typecheck/contract/design gates, PostgreSQL migration/schema provisioning, accepted Project Truth provisioning, **1576 passed / 7 skipped** Linux tests, **755 passed / 6 skipped / 563 deselected** Windows pure-unit tests, **223/223** contract tests, **8/8** PostgreSQL integration tests, and generated-drift cleanliness. The migration gate executed `upgrade head -> downgrade base -> upgrade head` and explicitly traversed `0038 -> 0039` and `0039 -> 0038`. The eighth PostgreSQL integration executes through the dedicated `dde_rls_probe` role (`NOSUPERUSER NOBYPASSRLS`) and proves that a Unit Map visible in its owning project is invisible when the same tenant is bound to a different project.
 
-Playwright Chromium is downloaded, but the host lacks `libatk-1.0.so.0`, so the browser
-cannot start here. The Knowledge workbench regression remains enabled and must run in the
-normal CI browser environment; the host limitation is not recorded as product PASS or FAIL.
+DDE Studio CI run `34491084691` on `1c1b49a6c35998d75e6f1c44e3d278f88aecf9c0` is **PASS**. It proves design gates, cross-platform client compile/tests, the Knowledge workbench structural suite at **80/80 passed** on the canonical `1672x941` viewport, and the separate visual/golden/accessibility job. Subsequent commits through `e2bc027` changed backend VEKL determinism/persistence/isolation contracts only, not the certified Studio UI.
 
-Required promotion evidence is therefore: live `0038 -> 0039 -> 0038 -> 0039` migration,
-RLS/cross-project isolation, the new PostgreSQL integration module, and the Knowledge
-Playwright regression in CI. Broader DDE-082 executable-adapter/authoring and DDE-083
-adversarial/release work remain separately owned and are not silently claimed complete.
+The Oracle-admin shell still lacks local PostgreSQL/Redis and the Chromium `libatk-1.0.so.0` host library, but those host limitations are now superseded by the successful service-capable and browser-capable CI evidence above. Broader DDE-082 executable-adapter/authoring and DDE-083 adversarial/release work remain separately owned and are not silently claimed complete.
 ## Harness-boundary correction
 
 VEKL v2 is harness-neutral but is delivered only through the certified DDE Rev 3 worker-harness set. **DeepSeek Harness is first-class under DDE-074**, alongside Codex Native and Claude Code / Claude Agent SDK. Hermes remains the separately governed research/coordination fabric. Development Prime / Prime Agent is explicitly non-canonical for DDE and is not an implementation dependency.

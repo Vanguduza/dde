@@ -1,9 +1,14 @@
 {
+  "actor": "ubuntu",
   "branch": "work/vekl-graph-v2-20260910",
-  "observed_at_utc": "2026-09-10T15:47:55.818363+00:00",
-  "recorded_commit_count": 1,
-  "repository": "Vanguduza/dde",
+  "changed_files": [
+    "docs/evidence/vekl/VEKL_UNIT_KNOWLEDGE_GRAPH_V2_2026-09-10.md",
+    "docs/truth/IMPLEMENTATION_STATE.md"
+  ],
+  "diff_sha256": "25ef21a31b2479a153518915736e80b15c208911ab66773dc613f59bf567f182",
+  "kind": "precommit-staged-diff",
+  "recorded_at_utc": "2026-09-10T16:00:00.968194+00:00",
   "schema_version": 1,
-  "source_commit": "e2bc027c556115a968a38895a32151b4a6c3b415",
-  "source_tree": "4500933fd776c5d7b9022ee7e290aaab7bf48cc8"
+  "source_parent": "2c37009db179e90e87e718b8429c29dd32a7df76",
+  "state": "PENDING_COMMIT"
 }
