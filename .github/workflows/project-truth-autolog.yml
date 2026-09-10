@@ -1,10 +1,10 @@
-name: Project Truth Autolog
+name: Project Truth Guard
 on:
   push:
   pull_request:
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: project-truth-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
@@ -24,48 +24,10 @@ jobs:
           d=json.loads(p.read_text())
           if d.get('repository')!=os.environ['GITHUB_REPOSITORY']: sys.exit('BLOCKED: manifest repository mismatch')
           if not d.get('policy',{}).get('default_branch_is_not_authority'): sys.exit('BLOCKED: authority policy missing')
+          if d.get('policy',{}).get('protected_main_ci_is_read_only') is not True: sys.exit('BLOCKED: protected-main read-only CI policy missing')
           PY
-      - name: Automatically record pushed commits
-        if: github.event_name == 'push' && github.actor != 'github-actions[bot]' && github.ref_name == github.event.repository.default_branch
-        env:
-          BEFORE: ${{ github.event.before }}
-          AFTER: ${{ github.sha }}
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          python3 - <<'PY'
-          import datetime as dt,hashlib,json,os,pathlib,subprocess
-          b=os.environ.get('BEFORE',''); a=os.environ['AFTER']; branch=os.environ['BRANCH']; zero='0'*40
-          ledger=pathlib.Path('docs/project-state/CHANGE_LEDGER.jsonl'); cur=pathlib.Path('docs/project-state/CURRENT_STATE.json'); ledger.parent.mkdir(parents=True,exist_ok=True)
-          def out(*x): return subprocess.check_output(['git',*x],text=True).strip()
-          existed=ledger.exists(); lines=ledger.read_text(encoding='utf-8').splitlines() if existed else []; seen=set()
-          for line in lines:
-              try: seen.add(json.loads(line).get('commit_sha'))
-              except Exception: pass
-          usable=bool(b and b!=zero and subprocess.run(['git','cat-file','-e',b+'^{commit}'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0)
-          commits=out('rev-list','--reverse',f'{b}..{a}').splitlines() if usable else [a]
-          if not existed and usable: commits=[b]+commits
-          added=[]
-          for sha in commits:
-              if not sha or sha in seen: continue
-              files=[x for x in out('diff-tree','--root','--no-commit-id','--name-only','-r',sha).splitlines() if x]
-              if files and all(x.startswith('docs/project-state/') for x in files): continue
-              p=subprocess.run(['git','rev-parse',sha+'^1'],text=True,capture_output=True); parent=p.stdout.strip() if p.returncode==0 else None
-              patch=subprocess.check_output(['git','show','--binary','--format=','--no-ext-diff',sha])
-              e={'schema_version':1,'recorded_at_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'repository':os.environ['GITHUB_REPOSITORY'],'branch':branch,'commit_sha':sha,'parent_sha':parent,'tree_sha':out('show','-s','--format=%T',sha),'author_name':out('show','-s','--format=%an',sha),'author_email':out('show','-s','--format=%ae',sha),'authored_at':out('show','-s','--format=%aI',sha),'subject':out('show','-s','--format=%s',sha),'changed_files':files,'diff_sha256':hashlib.sha256(patch).hexdigest(),'github_actor':os.environ.get('GITHUB_ACTOR','unknown')}
-              lines.append(json.dumps(e,sort_keys=True,separators=(',',':'))); added.append(e); seen.add(sha)
-          if lines: ledger.write_text('\n'.join(lines)+'\n',encoding='utf-8')
-          cur.write_text(json.dumps({'schema_version':1,'repository':os.environ['GITHUB_REPOSITORY'],'branch':branch,'source_commit':a,'source_tree':out('show','-s','--format=%T',a),'observed_at_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'recorded_commit_count':len(added)},indent=2,sort_keys=True)+'\n',encoding='utf-8')
-          print(f'project-truth: recorded {len(added)} commit(s)')
-          PY
-          if [[ -z "$(git status --porcelain -- docs/project-state/)" ]]; then
-            echo "project-truth: ledger already current"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A docs/project-state/
-          git commit -m "chore(project-truth): autolog ${GITHUB_SHA::12} [skip ci]"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Verify durable Project Truth ledger
+        run: python3 scripts/project_truth_local.py verify
       - name: Block unresolved release tags
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: |
