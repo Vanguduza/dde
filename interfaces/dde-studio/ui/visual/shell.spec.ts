@@ -247,7 +247,9 @@ test.describe("honest state rendering", () => {
     const workspace = page.getByTestId("dde-knowledge-workspace");
     await expect(workspace).toBeVisible();
     await expect(workspace.getByText("Unit Knowledge Graph")).toBeVisible();
-    await expect(workspace.getByText("Implement checkout")).toBeVisible();
+    await expect(
+      workspace.getByTestId("knowledge-unit-grid").getByText("Implement checkout"),
+    ).toBeVisible();
     await expect(workspace.getByText("Pinned framework docs")).toBeVisible();
     await expect(workspace.getByText("READY")).toBeVisible();
     await expect(workspace).toContainText("1");

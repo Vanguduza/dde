@@ -9,7 +9,8 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from pydantic import BaseModel
+from sqlalchemy import JSON, Table, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from engine.contracts.vekl_conflict_observation import VEKLConflictObservation
@@ -49,11 +50,26 @@ def _unit_map_hash(record: VEKLUnitMap, **changes: object) -> str:
     return sha256_hex(canonical_json(payload))
 
 
+def _db_values(table: Table, record: BaseModel) -> dict[str, object]:
+    """Preserve typed SQL values while normalizing JSON/JSONB payloads."""
+    values = record.model_dump()
+    json_values = record.model_dump(mode="json")
+    for key, value in list(values.items()):
+        column = table.c.get(key)
+        if column is not None and isinstance(column.type, JSON):
+            values[key] = json_values[key]
+        else:
+            values[key] = value
+    return values
+
+
 class VEKLKnowledgeRepository:
     async def insert_unit_map(
         self, connection: AsyncConnection, record: VEKLUnitMap
     ) -> None:
-        await connection.execute(vekl_unit_maps.insert().values(**record.model_dump()))
+        await connection.execute(
+            vekl_unit_maps.insert().values(**_db_values(vekl_unit_maps, record))
+        )
 
     async def unit_map_by_revision(
         self, connection: AsyncConnection, *, project_id: UUID, unit_revision_hash: str
@@ -195,7 +211,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLKnowledgeNode
     ) -> None:
         await connection.execute(
-            vekl_knowledge_nodes.insert().values(**record.model_dump())
+            vekl_knowledge_nodes.insert().values(
+                **_db_values(vekl_knowledge_nodes, record)
+            )
         )
 
     async def node_by_identity(
@@ -239,7 +257,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLKnowledgeEdge
     ) -> None:
         await connection.execute(
-            vekl_knowledge_edges.insert().values(**record.model_dump())
+            vekl_knowledge_edges.insert().values(
+                **_db_values(vekl_knowledge_edges, record)
+            )
         )
 
     async def edge_by_identity(
@@ -283,7 +303,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLRetrievalRoute
     ) -> None:
         await connection.execute(
-            vekl_retrieval_routes.insert().values(**record.model_dump())
+            vekl_retrieval_routes.insert().values(
+                **_db_values(vekl_retrieval_routes, record)
+            )
         )
 
     async def route_by_hash(
@@ -324,7 +346,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLResearchFinding
     ) -> None:
         await connection.execute(
-            vekl_research_findings.insert().values(**record.model_dump())
+            vekl_research_findings.insert().values(
+                **_db_values(vekl_research_findings, record)
+            )
         )
 
     async def get_finding(
@@ -358,7 +382,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLConflictObservation
     ) -> None:
         await connection.execute(
-            vekl_conflict_observations.insert().values(**record.model_dump())
+            vekl_conflict_observations.insert().values(
+                **_db_values(vekl_conflict_observations, record)
+            )
         )
 
     async def list_conflict_observations(
@@ -387,7 +413,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLTruthChallenge
     ) -> None:
         await connection.execute(
-            vekl_truth_challenges.insert().values(**record.model_dump())
+            vekl_truth_challenges.insert().values(
+                **_db_values(vekl_truth_challenges, record)
+            )
         )
 
     async def get_challenge(
@@ -447,14 +475,18 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLTruthChallengeFinding
     ) -> None:
         await connection.execute(
-            vekl_truth_challenge_findings.insert().values(**record.model_dump())
+            vekl_truth_challenge_findings.insert().values(
+                **_db_values(vekl_truth_challenge_findings, record)
+            )
         )
 
     async def insert_graph_invalidation(
         self, connection: AsyncConnection, record: VEKLGraphInvalidation
     ) -> None:
         await connection.execute(
-            vekl_graph_invalidations.insert().values(**record.model_dump())
+            vekl_graph_invalidations.insert().values(
+                **_db_values(vekl_graph_invalidations, record)
+            )
         )
 
     async def list_invalidations(
@@ -480,7 +512,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLResolutionTrace
     ) -> None:
         await connection.execute(
-            vekl_resolution_traces.insert().values(**record.model_dump())
+            vekl_resolution_traces.insert().values(
+                **_db_values(vekl_resolution_traces, record)
+            )
         )
 
     async def get_resolution_trace(
@@ -537,7 +571,9 @@ class VEKLKnowledgeRepository:
         self, connection: AsyncConnection, record: VEKLExecutionKnowledgeBinding
     ) -> None:
         await connection.execute(
-            vekl_execution_knowledge_bindings.insert().values(**record.model_dump())
+            vekl_execution_knowledge_bindings.insert().values(
+                **_db_values(vekl_execution_knowledge_bindings, record)
+            )
         )
 
     async def execution_binding_for_stage(

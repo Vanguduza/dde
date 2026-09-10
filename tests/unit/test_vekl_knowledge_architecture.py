@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from engine.contracts.vekl_knowledge_edge import VEKLKnowledgeEdge
 from engine.contracts.vekl_knowledge_node import VEKLKnowledgeNode
 from engine.contracts.vekl_resolution_trace import VEKLResolutionTrace
+from engine.contracts.vekl_unit_map import VEKLUnitMap
 from engine.core.errors import DdeError
 from engine.gateway.scopes import COMMAND_SCOPES
 from engine.governance.types import STANDING_FORBIDDEN_TYPES
@@ -36,12 +37,73 @@ from engine.vekl.knowledge import (
     unit_revision_hash,
     validate_truth_patch,
 )
-from engine.vekl.knowledge_repository import VEKLKnowledgeRepository
+from engine.vekl.knowledge_repository import VEKLKnowledgeRepository, _db_values
 from engine.vekl.models import TruthChallengeSpec
+from engine.vekl.tables import vekl_unit_maps
 
 NOW = datetime.now(UTC)
 TENANT = uuid4()
 PROJECT = uuid4()
+
+
+def test_jsonb_repository_normalizes_uuid_references() -> None:
+    unit_id = uuid4()
+    task_id = uuid4()
+    graph_id = uuid4()
+    stack_id = uuid4()
+    workspace_id = uuid4()
+    record = VEKLUnitMap(
+        unit_map_id=unit_id,
+        tenant_id=TENANT,
+        project_id=PROJECT,
+        mission_id=uuid4(),
+        task_graph_id=graph_id,
+        task_graph_version=1,
+        task_ids=[task_id],
+        unit_lineage_id="lineage",
+        unit_revision_hash="revision",
+        unit_boundary_policy_version="v1",
+        unit_projection_compiler_version="v1",
+        project_truth_hash="truth",
+        applicable_truth_slice_hash="slice",
+        stack_fingerprint_id=stack_id,
+        stack_fingerprint_hash="stack",
+        contract_set_hash="contracts",
+        retrieval_route_policy_hash="route",
+        objective="Implement checkout",
+        scope={"task_id": task_id},
+        requirement_refs=["REQ-1"],
+        edr_refs=[],
+        constitution_refs=[],
+        upstream_task_refs=[task_id],
+        downstream_task_refs=[],
+        contracts_consumed=[],
+        contracts_produced=[],
+        code_targets=[],
+        workspace_refs=[workspace_id],
+        product_experience_refs=[],
+        security_refs=[],
+        eventuality_refs=[],
+        research_questions=[],
+        knowledge_route_ids=[],
+        required_verifiers=[],
+        knowledge_readiness_state="MAPPING",
+        challenge_state="NONE",
+        unit_map_hash="map",
+        created_at=NOW,
+        updated_at=NOW,
+        invalidation_reasons=[],
+    )
+
+    values = _db_values(vekl_unit_maps, record)
+
+    assert values["unit_map_id"] == unit_id
+    assert values["task_graph_id"] == graph_id
+    assert values["stack_fingerprint_id"] == stack_id
+    assert values["task_ids"] == [str(task_id)]
+    assert values["upstream_task_refs"] == [str(task_id)]
+    assert values["workspace_refs"] == [str(workspace_id)]
+    assert values["scope"] == {"task_id": str(task_id)}
 
 
 def test_unit_lineage_is_canonical_and_independent_of_task_order() -> None:
