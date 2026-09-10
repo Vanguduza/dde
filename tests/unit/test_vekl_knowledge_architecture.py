@@ -373,3 +373,9 @@ def test_change_impact_invalidates_only_matching_unit_contract_task_or_path() ->
     )
     assert not any(VEKLKnowledgeService._unit_matches_change(unit, unrelated).values())
     assert COMMAND_SCOPES["vekl.knowledge.invalidate_from_change"] == "mission.control"
+
+
+def test_activation_manifest_table_exposes_knowledge_context() -> None:
+    from engine.vekl.tables import vekl_activation_manifests
+
+    assert "knowledge_context" in vekl_activation_manifests.c

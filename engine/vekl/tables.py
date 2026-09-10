@@ -110,6 +110,7 @@ vekl_activation_manifests = Table(
     Column("project_truth_hash", Text, nullable=False),
     Column("stack_fingerprint_hash", Text, nullable=False),
     Column("policy_hash", Text, nullable=False),
+    Column("knowledge_context", JSONB, nullable=False),
     Column("selected_resources", JSONB, nullable=False),
     Column("tools", JSONB, nullable=False),
     Column("hooks", JSONB, nullable=False),

@@ -28,7 +28,7 @@ export default defineConfig({
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
   webServer: {
-    command: "npx vite --port 4319 --strictPort",
+    command: "node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4319 --strictPort",
     cwd: uiRoot,
     url: "http://127.0.0.1:4319/visual/fixture.html",
     reuseExistingServer: !process.env.CI,

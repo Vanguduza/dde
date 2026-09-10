@@ -1,9 +1,17 @@
 {
+  "actor": "ubuntu",
   "branch": "work/vekl-graph-v2-20260910",
-  "observed_at_utc": "2026-09-10T14:02:00.057606+00:00",
-  "recorded_commit_count": 1,
-  "repository": "Vanguduza/dde",
+  "changed_files": [
+    "engine/vekl/tables.py",
+    "interfaces/dde-studio/package.json",
+    "interfaces/dde-studio/scripts/run-compiled-tests.mjs",
+    "interfaces/dde-studio/ui/visual/playwright.config.ts",
+    "tests/unit/test_vekl_knowledge_architecture.py"
+  ],
+  "diff_sha256": "e665ee71bd347a53d782c6f884523faa54b8d61e5abdc9441f8dbdf2df087aba",
+  "kind": "precommit-staged-diff",
+  "recorded_at_utc": "2026-09-10T14:20:53.160939+00:00",
   "schema_version": 1,
-  "source_commit": "b2eede0a954040ca217eef7bc92cbafccb5b761b",
-  "source_tree": "17d2703715c73be37046e026b248a45ccc81bceb"
+  "source_parent": "a98d2f233b86429bc69f98e273314d9ed637c545",
+  "state": "PENDING_COMMIT"
 }
