@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from engine.context.model import ContextBudgetExceeded
 from engine.contracts.stack_fingerprint import StackFingerprint
@@ -28,11 +28,34 @@ from engine.vekl.knowledge_service import VEKLKnowledgeService
 from engine.vekl.models import ActivationPlanSpec, TaskSignatureSpec, VEKLResourceSpec
 from engine.vekl.service import VEKLService
 from engine.workspaces.repository import WorkspaceRepository
-from tests.support.db import new_engine
+from tests.support.db import ensure_rls_probe_role, new_engine, open_rls_probe
 from tests.support.execution_fixtures import ExecutionFixture, build_execution_fixture
 
 MODE = "APPLICATION_MANUFACTURING_VEKL"
 pytestmark = pytest.mark.integration
+
+
+async def _second_project(engine: AsyncEngine, *, tenant_id: UUID) -> UUID:
+    project_id = uuid4()
+    now = datetime.now(UTC)
+    async with open_unit_of_work(
+        engine, tenant_id=tenant_id, project_id=project_id
+    ) as uow:
+        await uow.connection.execute(
+            text(
+                "INSERT INTO projects "
+                "(project_id, tenant_id, slug, created_at, updated_at) "
+                "VALUES (:project_id, :tenant_id, :slug, :now, :now)"
+            ),
+            {
+                "project_id": project_id,
+                "tenant_id": tenant_id,
+                "slug": f"vekl-rls-{project_id.hex}",
+                "now": now,
+            },
+        )
+        await uow.commit()
+    return project_id
 
 
 async def _classify_target(engine: AsyncEngine, fixture: ExecutionFixture) -> None:
@@ -410,4 +433,48 @@ async def test_critical_truth_challenge_blocks_then_truth_change_invalidates_uni
             )
         assert stale.value.error_code == "VEKL_KNOWLEDGE_STALE"
     finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_unit_map_rls_hides_row_from_other_project_same_tenant(
+    tmp_path: Path,
+) -> None:
+    engine = new_engine()
+    probe_engine = None
+    try:
+        fixture = await build_execution_fixture(
+            engine, tmp_path, mission_slug=f"vekl-rls-{uuid4().hex}"
+        )
+        prepared = await _prepared(engine, fixture, tmp_path)
+        other_project_id = await _second_project(
+            engine, tenant_id=fixture.tenant.tenant_id
+        )
+        probe_url = await ensure_rls_probe_role(engine)
+        probe_engine = create_async_engine(probe_url)
+
+        async with open_rls_probe(
+            probe_engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
+        ) as connection:
+            owner_view = await connection.execute(
+                text("SELECT 1 FROM vekl_unit_maps WHERE unit_map_id = :unit_map_id"),
+                {"unit_map_id": prepared.unit.unit_map_id},
+            )
+            assert owner_view.first() is not None
+
+        async with open_rls_probe(
+            probe_engine,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=other_project_id,
+        ) as connection:
+            foreign_view = await connection.execute(
+                text("SELECT 1 FROM vekl_unit_maps WHERE unit_map_id = :unit_map_id"),
+                {"unit_map_id": prepared.unit.unit_map_id},
+            )
+            assert foreign_view.first() is None
+    finally:
+        if probe_engine is not None:
+            await probe_engine.dispose()
         await engine.dispose()
