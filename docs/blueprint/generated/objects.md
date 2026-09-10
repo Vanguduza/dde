@@ -1009,3 +1009,91 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## VEKLUnitMap
+
+- table: `vekl_unit_maps`
+- primary key: unit_map_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLKnowledgeNode
+
+- table: `vekl_knowledge_nodes`
+- primary key: knowledge_node_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLKnowledgeEdge
+
+- table: `vekl_knowledge_edges`
+- primary key: knowledge_edge_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLRetrievalRoute
+
+- table: `vekl_retrieval_routes`
+- primary key: route_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLResearchFinding
+
+- table: `vekl_research_findings`
+- primary key: finding_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLConflictObservation
+
+- table: `vekl_conflict_observations`
+- primary key: observation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLTruthChallenge
+
+- table: `vekl_truth_challenges`
+- primary key: challenge_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLTruthChallengeFinding
+
+- table: `vekl_truth_challenge_findings`
+- primary key: challenge_finding_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLGraphInvalidation
+
+- table: `vekl_graph_invalidations`
+- primary key: graph_invalidation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLResolutionTrace
+
+- table: `vekl_resolution_traces`
+- primary key: resolution_trace_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## VEKLExecutionKnowledgeBinding
+
+- table: `vekl_execution_knowledge_bindings`
+- primary key: execution_binding_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

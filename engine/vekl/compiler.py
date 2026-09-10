@@ -32,6 +32,7 @@ class VEKLContextCapsule:
     stack_fingerprint_hash: str
     stack_facts: dict[str, object]
     engineering_policy: dict[str, object]
+    unit_knowledge: dict[str, object]
     items: tuple[KnowledgeItem, ...]
     conflicts: tuple[str, ...]
     selection_reasons: tuple[str, ...]
@@ -54,10 +55,12 @@ class VEKLKnowledgeCompiler:
         stack_facts: dict[str, object] | None = None,
         task_verifiers: tuple[str, ...] = (),
         engineering_policy: dict[str, object] | None = None,
+        unit_knowledge: dict[str, object] | None = None,
     ) -> VEKLContextCapsule:
         by_id = {str(resource.resource_id): resource for resource in resources}
         stack = dict(stack_facts or {})
         task_policy = dict(engineering_policy or {})
+        unit_context = dict(unit_knowledge or {})
         selected: list[KnowledgeItem] = []
         provenance: list[str] = []
         verifiers: list[str] = list(task_verifiers)
@@ -74,6 +77,7 @@ class VEKLKnowledgeCompiler:
                         "truth": truth_constraints,
                         "stack": stack,
                         "engineering_policy": task_policy,
+                        "unit_knowledge": unit_context,
                     }
                 )
             )
@@ -166,6 +170,7 @@ class VEKLKnowledgeCompiler:
             "truth": truth_constraints,
             "stack": stack,
             "engineering_policy": task_policy,
+            "unit_knowledge": unit_context,
             "items": [item.__dict__ for item in selected],
             "selection_reasons": reasons,
             "freshness": manifest.freshness_state,
@@ -182,6 +187,7 @@ class VEKLKnowledgeCompiler:
             stack_fingerprint_hash=manifest.stack_fingerprint_hash,
             stack_facts=stack,
             engineering_policy=task_policy,
+            unit_knowledge=unit_context,
             items=tuple(selected),
             conflicts=tuple(sorted(set(conflicts))),
             selection_reasons=tuple(reasons),

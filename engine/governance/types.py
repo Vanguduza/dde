@@ -43,6 +43,11 @@ APPROVAL_TYPES: Final[frozenset[str]] = frozenset(
         # requested ceiling, so approving it cannot silently widen any
         # other task's budget.
         "budget_increase",
+        # Production VEKL truth-evolution protocol: a human may approve one
+        # exact target-application Project Truth delta whose scope hash binds
+        # the current truth hash, challenge, proposed patch and verification.
+        # The challenge system never writes truth directly.
+        "project_truth_change",
     }
 )
 
@@ -52,6 +57,10 @@ STANDING_FORBIDDEN_TYPES: Final[frozenset[str]] = frozenset(
         "irreversible_effect",
         "production_change",
         "budget_increase",
+        # Unknown future Product Constitution / Requirement / EDR changes may
+        # never be pre-authorised. Each exact truth delta requires a fresh
+        # human decision bound to the current Project Truth hash.
+        "project_truth_change",
         # EDR-0001 Path A, human's explicit instruction: "a human manually
         # approve every piece of work routed to Claude Code" -- no
         # `StandingApproval` may ever pre-authorise a batch of Claude Code

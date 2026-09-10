@@ -196,6 +196,29 @@ class VEKLService:
         )
         return ProjectTruthSnapshot(str(kind), truth_hash, constraints, tuple(refs))
 
+    async def current_truth_snapshot(
+        self,
+        *,
+        tenant_id: UUID,
+        project_id: UUID,
+        request_mode: str,
+    ) -> ProjectTruthSnapshot:
+        """Return the current target Project Truth projection used by VEKL.
+
+        This is read-only composition over the existing Truth authority; callers do
+        not gain a second truth writer or a model-supplied truth hash.
+        """
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            snapshot = await self._truth_snapshot(
+                uow, tenant_id=tenant_id, project_id=project_id
+            )
+            enforce_target_scope(
+                project_kind=snapshot.project_kind, request_mode=request_mode
+            )
+            return snapshot
+
     async def _validate_source_bridge(
         self,
         uow: PostgresUnitOfWork,
@@ -1025,9 +1048,29 @@ class VEKLService:
                     requested_modes=spec.requested_modes,
                 )
             )
+            resolved = set(spec.resolved_resource_ids)
+            if spec.resolution_trace_id is not None:
+                if not resolved:
+                    raise DdeError(
+                        "VEKL_RESOLUTION_MISMATCH",
+                        "knowledge-bound activation requires exact resolved resources",
+                    )
+                if not mandatory.issubset(resolved):
+                    raise DdeError(
+                        "VEKL_RESOLUTION_MISMATCH",
+                        "mandatory resources are outside the pinned knowledge "
+                        "resolution",
+                        details={
+                            "outside_resolution": sorted(
+                                str(item) for item in mandatory - resolved
+                            )
+                        },
+                    )
             decisions = []
             rejected: dict[str, list[str]] = {}
             for resource in resources:
+                if resolved and resource.resource_id not in resolved:
+                    continue
                 source_rejection = await self._source_rejection_reason(
                     uow,
                     tenant_id=task.tenant_id,
@@ -1146,6 +1189,7 @@ class VEKLService:
                 "project_truth_hash": truth.truth_hash,
                 "stack_fingerprint_hash": fingerprint.fingerprint_hash,
                 "policy_hash": policy_hash,
+                "knowledge_context": dict(spec.knowledge_context),
                 "selected_resources": selected,
                 "tools": tools,
                 "hooks": hooks,
@@ -1347,6 +1391,7 @@ class VEKLService:
                     "VEKL_MANIFEST_INVALID",
                     "TaskSignature engineering playbook policy must be an object",
                 )
+            unit_knowledge = dict(manifest.knowledge_context or {})
         return self._compiler.compile(
             manifest=manifest,
             resources=resources,
@@ -1355,6 +1400,7 @@ class VEKLService:
             stack_facts=fingerprint.facts,
             task_verifiers=tuple(signature.required_verifiers),
             engineering_policy=engineering_policy,
+            unit_knowledge=unit_knowledge,
         )
 
     @staticmethod

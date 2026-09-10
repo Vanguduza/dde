@@ -113,7 +113,8 @@ export interface DesignCommentView {
 }
 
 export interface PreviewScenarioView {
-  readonly scenario: "DEFAULT" | "LOADING" | "EMPTY" | "ERROR" | "OFFLINE" | "ROLE";
+  readonly scenario:
+    "DEFAULT" | "LOADING" | "EMPTY" | "ERROR" | "OFFLINE" | "ROLE";
   readonly role: string | null;
   readonly availability: Availability;
   readonly reason: string | null;
@@ -125,7 +126,6 @@ export interface EditorAssistState {
   readonly availability: Availability;
   readonly reason: string | null;
 }
-
 
 export interface ScreenNode {
   readonly pxgKey: string;
@@ -409,8 +409,16 @@ export interface FrontendChatConversation {
   readonly policyId: string | null;
   readonly activeWorkerSessionId: string | null;
   readonly contextDomain:
-    | "DDE" | "MISSION" | "TASK" | "FRONTEND_STUDIO" | "QUALITY"
-    | "RESEARCH" | "DECISIONS" | "FLEET" | "EVIDENCE" | null;
+    | "DDE"
+    | "MISSION"
+    | "TASK"
+    | "FRONTEND_STUDIO"
+    | "QUALITY"
+    | "RESEARCH"
+    | "DECISIONS"
+    | "FLEET"
+    | "EVIDENCE"
+    | null;
   readonly activeTaskId: string | null;
   readonly activeWorkerRunId: string | null;
   readonly activeVerificationRunId: string | null;
@@ -654,24 +662,60 @@ export interface FrontendHostContext {
 }
 
 export interface ScreenAuditSummary {
-  readonly availability: string; readonly currentness: string; readonly auditRunId: string | null;
-  readonly runStatus: string | null; readonly trigger: string | null; readonly summaryState: string;
-  readonly pxgRevision: number | null; readonly contractVersion: number | null; readonly sourceRevision: string | null;
-  readonly screenCount: number; readonly unresolvedFindings: number; readonly blockingFindings: number; readonly staleFindings: number;
-  readonly findingCountsByDimension: Readonly<Record<string, number>>; readonly assessmentCounts: Readonly<Record<string, number>>;
+  readonly availability: string;
+  readonly currentness: string;
+  readonly auditRunId: string | null;
+  readonly runStatus: string | null;
+  readonly trigger: string | null;
+  readonly summaryState: string;
+  readonly pxgRevision: number | null;
+  readonly contractVersion: number | null;
+  readonly sourceRevision: string | null;
+  readonly screenCount: number;
+  readonly unresolvedFindings: number;
+  readonly blockingFindings: number;
+  readonly staleFindings: number;
+  readonly findingCountsByDimension: Readonly<Record<string, number>>;
+  readonly assessmentCounts: Readonly<Record<string, number>>;
 }
 export interface ScreenAuditScreen {
-  readonly recordId: string; readonly auditRunId: string; readonly pxgKey: string; readonly screenKind: string; readonly platform: string;
-  readonly routeIdentity: string | null; readonly sourceRefs: readonly Readonly<Record<string, unknown>>[]; readonly journeyRefs: readonly string[];
-  readonly roleRefs: readonly string[]; readonly featureRequirementRefs: readonly string[]; readonly implementationState: string; readonly assessmentState: string;
-  readonly dimensionStates: Readonly<Record<string, string>>; readonly stale: boolean;
+  readonly recordId: string;
+  readonly auditRunId: string;
+  readonly pxgKey: string;
+  readonly screenKind: string;
+  readonly platform: string;
+  readonly routeIdentity: string | null;
+  readonly sourceRefs: readonly Readonly<Record<string, unknown>>[];
+  readonly journeyRefs: readonly string[];
+  readonly roleRefs: readonly string[];
+  readonly featureRequirementRefs: readonly string[];
+  readonly implementationState: string;
+  readonly assessmentState: string;
+  readonly dimensionStates: Readonly<Record<string, string>>;
+  readonly stale: boolean;
 }
 export interface ScreenAuditFinding {
-  readonly findingId: string; readonly pxgKey: string | null; readonly nodeKey: string | null; readonly findingType: string; readonly dimension: string;
-  readonly severity: string; readonly status: string; readonly assessmentState: string; readonly message: string; readonly evidenceRefs: readonly string[];
-  readonly requirementRefs: readonly string[]; readonly journeyRefs: readonly string[]; readonly roleRefs: readonly string[]; readonly ruleId: string; readonly stale: boolean;
+  readonly findingId: string;
+  readonly pxgKey: string | null;
+  readonly nodeKey: string | null;
+  readonly findingType: string;
+  readonly dimension: string;
+  readonly severity: string;
+  readonly status: string;
+  readonly assessmentState: string;
+  readonly message: string;
+  readonly evidenceRefs: readonly string[];
+  readonly requirementRefs: readonly string[];
+  readonly journeyRefs: readonly string[];
+  readonly roleRefs: readonly string[];
+  readonly ruleId: string;
+  readonly stale: boolean;
 }
-export interface ScreenAuditMatrix { readonly summary: ScreenAuditSummary; readonly screens: readonly ScreenAuditScreen[]; readonly findings: readonly ScreenAuditFinding[]; }
+export interface ScreenAuditMatrix {
+  readonly summary: ScreenAuditSummary;
+  readonly screens: readonly ScreenAuditScreen[];
+  readonly findings: readonly ScreenAuditFinding[];
+}
 
 export interface FrontendStudioSnapshot {
   readonly projectId: string;
@@ -702,7 +746,8 @@ export interface DesignDirectionArtifact {
   readonly artifactId: string;
   readonly sessionId: string;
   readonly directionLabel: string;
-  readonly status: "GENERATED" | "QUARANTINED" | "SELECTED" | "TRIED_LIVE" | "DISCARDED";
+  readonly status:
+    "GENERATED" | "QUARANTINED" | "SELECTED" | "TRIED_LIVE" | "DISCARDED";
   readonly providerId: string;
   readonly contentHash: string;
   readonly content: Readonly<Record<string, unknown>>;
@@ -717,21 +762,14 @@ export interface DesignProviderStatus {
   readonly providerId: string;
   readonly displayName: string;
   readonly state:
-    | "CERTIFIED"
-    | "NOT_CERTIFIED"
-    | "AUTH_REQUIRED"
-    | "UNAVAILABLE";
+    "CERTIFIED" | "NOT_CERTIFIED" | "AUTH_REQUIRED" | "UNAVAILABLE";
   readonly detail: string;
   readonly version: string | null;
   readonly usable: boolean;
 }
 
 export type StudioMode =
-  | "design"
-  | "coverage"
-  | "architecture"
-  | "qa"
-  | "source";
+  "design" | "coverage" | "architecture" | "qa" | "source";
 
 export const STUDIO_MODES: readonly StudioMode[] = [
   "design",
@@ -760,4 +798,98 @@ export function formatCoverage(summary: CoverageSummary): string {
 
 export function countTitle(count: CountValue): string | undefined {
   return count.value === null ? (count.reason ?? "unavailable") : undefined;
+}
+
+export interface VeklResourceView {
+  readonly resourceId: string;
+  readonly resourceKind: string;
+  readonly title: string;
+  readonly publisher: string;
+  readonly revision: string;
+  readonly contentHash: string;
+  readonly sourceTrust: string;
+  readonly lifecycleState: string;
+  readonly activationModes: readonly string[];
+}
+
+export interface VeklUnitMapView {
+  readonly unitMapId: string;
+  readonly unitLineageId: string;
+  readonly unitRevisionHash: string;
+  readonly taskIds: readonly string[];
+  readonly objective: string;
+  readonly knowledgeReadinessState: string;
+  readonly challengeState: string;
+  readonly invalidationReasons: readonly string[];
+  readonly scope?: Readonly<Record<string, unknown>>;
+  readonly contractsConsumed?: readonly string[];
+  readonly contractsProduced?: readonly string[];
+  readonly productExperienceRefs?: readonly string[];
+  readonly securityRefs?: readonly string[];
+  readonly researchQuestions?: readonly string[];
+  readonly requiredVerifiers?: readonly string[];
+}
+
+export interface VeklKnowledgeNodeView {
+  readonly knowledgeNodeId: string;
+  readonly nodeKind: string;
+  readonly stableRef: string;
+  readonly authorityClass: string;
+  readonly contentHash: string;
+  readonly objectType?: string;
+  readonly objectId?: string | null;
+  readonly authorityService?: string;
+  readonly metadata?: Readonly<Record<string, unknown>>;
+}
+
+export interface VeklKnowledgeEdgeView {
+  readonly knowledgeEdgeId: string;
+  readonly fromNodeId: string;
+  readonly relationship: string;
+  readonly toNodeId: string;
+  readonly provenanceHash: string;
+  readonly provenanceRef?: string;
+  readonly derivationClass?: string;
+}
+
+export interface VeklTruthChallengeView {
+  readonly challengeId: string;
+  readonly challengeClass: string;
+  readonly severity: string;
+  readonly status: string;
+  readonly currentTruthHash: string;
+  readonly evidence: Readonly<Record<string, unknown>>;
+  readonly conflict: Readonly<Record<string, unknown>>;
+  readonly confidence: Readonly<Record<string, unknown>>;
+  readonly impact: Readonly<Record<string, unknown>>;
+  readonly proposal: Readonly<Record<string, unknown>>;
+  readonly decisionAnalysis: Readonly<Record<string, unknown>>;
+  readonly approvalId: string | null;
+  readonly decision: string | null;
+  readonly decisionReason: string | null;
+  readonly reopenConditions: readonly string[];
+}
+
+export interface VeklKnowledgeGraphProjection {
+  readonly availability?: Availability;
+  readonly reason?: string | null;
+  readonly unitMaps: readonly VeklUnitMapView[];
+  readonly knowledgeNodes: readonly VeklKnowledgeNodeView[];
+  readonly knowledgeEdges: readonly VeklKnowledgeEdgeView[];
+  readonly retrievalRoutes: readonly Readonly<Record<string, unknown>>[];
+  readonly challenges: readonly VeklTruthChallengeView[];
+  readonly conflictObservations: readonly Readonly<Record<string, unknown>>[];
+  readonly researchFindings?: readonly Readonly<Record<string, unknown>>[];
+  readonly graphInvalidations?: readonly Readonly<Record<string, unknown>>[];
+  readonly resolutionTraces?: readonly Readonly<Record<string, unknown>>[];
+  readonly graphSnapshotHash?: string;
+}
+
+export interface VeklProjection {
+  readonly availability: Availability;
+  readonly sections: Readonly<Record<string, readonly VeklResourceView[]>>;
+  readonly resources: readonly VeklResourceView[];
+  readonly manifests: readonly Readonly<Record<string, unknown>>[];
+  readonly invalidations: readonly Readonly<Record<string, unknown>>[];
+  readonly knowledgeGraph: VeklKnowledgeGraphProjection;
 }

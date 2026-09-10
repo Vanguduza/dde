@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_conflict_observation.json",
+  "title": "VEKLConflictObservation",
+  "description": "Execution-rejected Project Truth conflict eligible for governed challenge evaluation; never worker implementation guidance.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_conflict_observations",
+    "order": 361,
+    "pk": [
+      "observation_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_conflict_observation_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_conflict_observation_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_conflict_observations_resource_fkey",
+        "columns": [
+          "resource_id"
+        ],
+        "ref_table": "vekl_resources",
+        "ref_columns": [
+          "resource_id"
+        ]
+      },
+      {
+        "name": "vekl_conflict_observations_finding_fkey",
+        "columns": [
+          "finding_id"
+        ],
+        "ref_table": "vekl_research_findings",
+        "ref_columns": [
+          "finding_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "finding_id",
+        "current_truth_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_conflict_observations_truth",
+        "columns": [
+          "project_id",
+          "current_truth_hash"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "observation_id",
+    "tenant_id",
+    "project_id",
+    "resource_id",
+    "finding_id",
+    "current_truth_hash",
+    "conflicting_truth_refs",
+    "conflict_keys",
+    "source_trust",
+    "freshness",
+    "provenance_valid",
+    "activation_rejected",
+    "challenge_evaluation_requested",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "observation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resource_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "finding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "current_truth_hash": {
+      "type": "string"
+    },
+    "conflicting_truth_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conflict_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_trust": {
+      "type": "string"
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "provenance_valid": {
+      "type": "boolean"
+    },
+    "activation_rejected": {
+      "type": "boolean"
+    },
+    "challenge_evaluation_requested": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

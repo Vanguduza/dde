@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_truth_challenge.json",
+  "title": "VEKLTruthChallenge",
+  "description": "Governed evidence package proposing an exact target Project Truth delta; cannot write truth directly.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_truth_challenges",
+    "order": 362,
+    "pk": [
+      "challenge_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_truth_challenge_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenge_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenges_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenges_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenges_approval_fkey",
+        "columns": [
+          "approval_id"
+        ],
+        "ref_table": "approvals",
+        "ref_columns": [
+          "approval_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "challenge_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_truth_challenges_status",
+        "columns": [
+          "project_id",
+          "status",
+          "severity"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "challenge_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "challenge_class",
+    "severity",
+    "status",
+    "current_truth_hash",
+    "evidence",
+    "conflict",
+    "confidence",
+    "impact",
+    "proposal",
+    "decision_analysis",
+    "required_role",
+    "reopen_conditions",
+    "challenge_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "challenge_class": {
+      "type": "string",
+      "enum": [
+        "SECURITY_CHALLENGE",
+        "COMPATIBILITY_CHALLENGE",
+        "ARCHITECTURE_CHALLENGE",
+        "PRODUCT_EXPERIENCE_CHALLENGE",
+        "REGULATORY_CHALLENGE",
+        "PERFORMANCE_CHALLENGE",
+        "OPERABILITY_CHALLENGE",
+        "COST_CHALLENGE",
+        "OPPORTUNITY_CHALLENGE"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "INFO",
+        "MATERIAL",
+        "HIGH",
+        "CRITICAL"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DISCOVERED",
+        "EVIDENCE_QUALIFIED",
+        "CONFLICT_CONFIRMED",
+        "CHALLENGE_CANDIDATE",
+        "REVIEW_REQUIRED",
+        "MORE_EVIDENCE_REQUIRED",
+        "ACCEPTED",
+        "DEFERRED",
+        "REJECTED",
+        "TRUTH_CHANGE_DRAFTED",
+        "TRUTH_CHANGED",
+        "STALE"
+      ]
+    },
+    "current_truth_hash": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "impact": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "decision_analysis": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "approval_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_role": {
+      "type": "string"
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decision_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decided_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reopen_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "challenge_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

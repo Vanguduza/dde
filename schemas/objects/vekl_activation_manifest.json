@@ -5,9 +5,245 @@
   "description": "Immutable exact-resource activation binding. Failover reuses this manifest while valid; invalidation is append-only in VEKLManifestInvalidation.",
   "type": "object",
   "additionalProperties": false,
-  "x-dde-storage": {"table": "vekl_activation_manifests", "order": 353, "pk": ["manifest_id"], "tenant_scoped": true, "project_scoped": true, "lock_version": false, "uniques": [["project_id", "manifest_hash"]], "foreign_keys": [{"name": "vekl_manifests_tenant_fkey", "columns": ["tenant_id"], "ref_table": "tenants", "ref_columns": ["tenant_id"]}, {"name": "vekl_manifests_project_fkey", "columns": ["project_id"], "ref_table": "projects", "ref_columns": ["project_id"]}, {"name": "vekl_manifests_mission_fkey", "columns": ["mission_id"], "ref_table": "missions", "ref_columns": ["mission_id"]}, {"name": "vekl_manifests_task_fkey", "columns": ["task_id"], "ref_table": "tasks", "ref_columns": ["task_id"]}, {"name": "vekl_manifests_attempt_fkey", "columns": ["task_attempt_id"], "ref_table": "task_attempts", "ref_columns": ["attempt_id"]}, {"name": "vekl_manifests_run_fkey", "columns": ["worker_run_id"], "ref_table": "worker_runs", "ref_columns": ["run_id"]}, {"name": "vekl_manifests_signature_fkey", "columns": ["task_signature_id"], "ref_table": "task_signatures", "ref_columns": ["signature_id"]}, {"name": "vekl_manifests_fingerprint_fkey", "columns": ["stack_fingerprint_id"], "ref_table": "stack_fingerprints", "ref_columns": ["fingerprint_id"]}]},
-  "required": ["manifest_id", "tenant_id", "project_id", "task_id", "task_signature_id", "stack_fingerprint_id", "project_truth_hash", "stack_fingerprint_hash", "policy_hash", "selected_resources", "tools", "hooks", "loops", "community_evidence", "freshness_state", "manifest_hash", "created_at", "updated_at"],
+  "x-dde-storage": {
+    "table": "vekl_activation_manifests",
+    "order": 353,
+    "pk": [
+      "manifest_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "uniques": [
+      [
+        "project_id",
+        "manifest_hash"
+      ]
+    ],
+    "foreign_keys": [
+      {
+        "name": "vekl_manifests_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_attempt_fkey",
+        "columns": [
+          "task_attempt_id"
+        ],
+        "ref_table": "task_attempts",
+        "ref_columns": [
+          "attempt_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_run_fkey",
+        "columns": [
+          "worker_run_id"
+        ],
+        "ref_table": "worker_runs",
+        "ref_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_signature_fkey",
+        "columns": [
+          "task_signature_id"
+        ],
+        "ref_table": "task_signatures",
+        "ref_columns": [
+          "signature_id"
+        ]
+      },
+      {
+        "name": "vekl_manifests_fingerprint_fkey",
+        "columns": [
+          "stack_fingerprint_id"
+        ],
+        "ref_table": "stack_fingerprints",
+        "ref_columns": [
+          "fingerprint_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "manifest_id",
+    "tenant_id",
+    "project_id",
+    "task_id",
+    "task_signature_id",
+    "stack_fingerprint_id",
+    "project_truth_hash",
+    "stack_fingerprint_hash",
+    "policy_hash",
+    "selected_resources",
+    "tools",
+    "hooks",
+    "loops",
+    "community_evidence",
+    "freshness_state",
+    "manifest_hash",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
-    "manifest_id": {"type": "string", "format": "uuid"}, "tenant_id": {"type": "string", "format": "uuid"}, "project_id": {"type": "string", "format": "uuid"}, "mission_id": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]}, "task_id": {"type": "string", "format": "uuid"}, "task_attempt_id": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]}, "worker_run_id": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]}, "task_signature_id": {"type": "string", "format": "uuid"}, "stack_fingerprint_id": {"type": "string", "format": "uuid"}, "project_truth_hash": {"type": "string"}, "stack_fingerprint_hash": {"type": "string"}, "policy_hash": {"type": "string"}, "selected_resources": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "tools": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "hooks": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "loops": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "community_evidence": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "freshness_state": {"type": "object", "additionalProperties": true}, "manifest_hash": {"type": "string"}, "created_at": {"type": "string", "format": "date-time"}, "updated_at": {"type": "string", "format": "date-time"}
+    "manifest_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_attempt_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_signature_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "stack_fingerprint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_truth_hash": {
+      "type": "string"
+    },
+    "stack_fingerprint_hash": {
+      "type": "string"
+    },
+    "policy_hash": {
+      "type": "string"
+    },
+    "knowledge_context": {
+      "type": "object",
+      "additionalProperties": true,
+      "default": {}
+    },
+    "selected_resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "hooks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "loops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "community_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "freshness_state": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "manifest_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
   }
 }

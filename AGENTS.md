@@ -36,6 +36,7 @@ unless an accepted Project Truth record decides otherwise.
    promote a feature's state without production call-site and verification evidence.
 
 ## Boundaries — enforced by tests, do not work around them
+- DDE is repository-isolated from DIAL. Never clone, fetch, inspect, compare, bind, mutate, push, merge, donor-import or otherwise operate on `Vanguduza/dial-new` or superseded `Vanguduza/dial` from DDE work. Cross-project transfer requires an owner-supplied exported artifact admitted through normal source controls.
 - `engine/core/**` imports DDE contracts only. It must never import a vendor SDK.
 - Vendor code lives in `adapters/**` behind the WorkerAdapter or Capability contract.
 - `cursor_sdk` / `cursor-sdk-bridge` may be imported only from `adapters/cursor/**`.

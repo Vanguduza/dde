@@ -239,6 +239,38 @@ test.describe("honest state rendering", () => {
       page.getByTestId("coverage-dimension-responsive"),
     ).toContainText("UNASSESSED");
   });
+
+  test("Knowledge module renders persisted VEKL projection without fake active state", async ({ page }) => {
+    const knowledgeRail = page.getByTestId("rail-knowledge");
+    await expect(knowledgeRail).toBeEnabled();
+    await knowledgeRail.click();
+    const workspace = page.getByTestId("dde-knowledge-workspace");
+    await expect(workspace).toBeVisible();
+    await expect(workspace.getByText("Unit Knowledge Graph")).toBeVisible();
+    await expect(workspace.getByText("Implement checkout")).toBeVisible();
+    await expect(workspace.getByText("Pinned framework docs")).toBeVisible();
+    await expect(workspace.getByText("READY")).toBeVisible();
+    await expect(workspace).toContainText("1");
+    await expect(page.getByTestId("knowledge-topology")).toBeVisible();
+    await expect(page.getByTestId("knowledge-topology")).toContainText(
+      "DEVELOPMENT_UNIT_PROJECTION",
+    );
+    await expect(page.getByTestId("knowledge-topology")).toContainText(
+      "rebuildable projection",
+    );
+    await expect(page.getByTestId("rail-knowledge")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.getByTestId("knowledge-topology")).toContainText("4 nodes · 3 edges");
+    await page.getByTestId("knowledge-unit-filter").selectOption("00000000-0000-0000-0000-000000000902");
+    await page.getByTestId("knowledge-overlay-filter").selectOption("CONTRACTS");
+    await expect(page.getByTestId("knowledge-topology")).toContainText("1 nodes · 0 edges");
+    await page.getByTestId("knowledge-overlay-filter").selectOption("ALL");
+    await page.getByTestId("knowledge-node-00000000-0000-0000-0000-000000000907").click();
+    await expect(page.getByTestId("knowledge-node-inspector")).toContainText("QUALIFIED_ENGINEERING_RESOURCE");
+    await expect(page.getByTestId("knowledge-resolution-evidence")).toContainText("1 candidate decisions");
+  });
 });
 
 test.describe("responsive degradation", () => {

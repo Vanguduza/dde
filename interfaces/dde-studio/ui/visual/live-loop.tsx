@@ -1327,11 +1327,39 @@ const bridge = new TestHostBridge({
         { projectId, projectSlug: "logiflow-marketplace", missionId, available: true, reason: null },
         { projectId: alternateProjectId, projectSlug: "design-system", missionId: alternateMissionId, available: true, reason: null },
       ],
-      modules: [{ id: "frontend", label: "Frontend Studio", glyph: "◧", available: true, reason: null }],
+      modules: [
+        { id: "frontend", label: "Frontend Studio", glyph: "◧", available: true, reason: null },
+        { id: "knowledge", label: "Knowledge", glyph: "◎", available: true, reason: null },
+      ],
       helpRef: "docs/truth/FRONTEND_STUDIO_REV3.md",
     },
     "frontend.studio.snapshot": () => snapshot(),
-    "frontend.comments": () => ({ comments: [...designComments] }),
+
+    "vekl.projection": {
+      availability: "AVAILABLE",
+      sections: {
+        stack_map: [], knowledge: [{ resourceId: "00000000-0000-0000-0000-000000000901", resourceKind: "OFFICIAL_DOC", title: "Pinned framework docs", publisher: "Framework", revision: "1.0.0", contentHash: "a".repeat(64), sourceTrust: "S2_FIRST_PARTY", lifecycleState: "REFERENCE_QUALIFIED", activationModes: ["READ_ONLY_CONTEXT"] }],
+        tools_plugins_mcp: [], rules_hooks: [], loops: [], community_evidence: [], security: [], learning: [],
+      },
+      resources: [{ resourceId: "00000000-0000-0000-0000-000000000901", resourceKind: "OFFICIAL_DOC", title: "Pinned framework docs", publisher: "Framework", revision: "1.0.0", contentHash: "a".repeat(64), sourceTrust: "S2_FIRST_PARTY", lifecycleState: "REFERENCE_QUALIFIED", activationModes: ["READ_ONLY_CONTEXT"] }],
+      manifests: [], invalidations: [],
+      knowledgeGraph: {
+        availability: "AVAILABLE", reason: null,
+        unitMaps: [{ unitMapId: "00000000-0000-0000-0000-000000000902", unitLineageId: "lineage-a", unitRevisionHash: "b".repeat(64), taskIds: ["00000000-0000-0000-0000-000000000903"], objective: "Implement checkout", knowledgeReadinessState: "READY", challengeState: "CLEAR", invalidationReasons: [] }],
+        knowledgeNodes: [
+          { knowledgeNodeId: "00000000-0000-0000-0000-000000000904", nodeKind: "DEVELOPMENT_UNIT_PROJECTION", stableRef: "unit:lineage-a", authorityClass: "DERIVED_PROJECTION", authorityService: "engine.vekl.knowledge_service", contentHash: "c".repeat(64), objectType: "vekl_unit_map", objectId: "00000000-0000-0000-0000-000000000902", metadata: { readiness: "READY" } },
+          { knowledgeNodeId: "00000000-0000-0000-0000-000000000905", nodeKind: "TASK", stableRef: "task:checkout", authorityClass: "EXECUTION_AUTHORITY_REF", authorityService: "engine.missions", contentHash: "e".repeat(64), objectType: "task", objectId: "00000000-0000-0000-0000-000000000903", metadata: { title: "Implement checkout" } },
+          { knowledgeNodeId: "00000000-0000-0000-0000-000000000906", nodeKind: "CONTRACT", stableRef: "contract:checkout.api", authorityClass: "DECLARED_CONTRACT_REF", authorityService: "engine.planning", contentHash: "f".repeat(64), objectType: "task_graph_contract_ref", objectId: null, metadata: { contractRef: "checkout.api" } },
+          { knowledgeNodeId: "00000000-0000-0000-0000-000000000907", nodeKind: "VEKL_RESOURCE", stableRef: "vekl-resource:00000000-0000-0000-0000-000000000901", authorityClass: "QUALIFIED_ENGINEERING_RESOURCE", authorityService: "engine.vekl", contentHash: "a".repeat(64), objectType: "vekl_resource", objectId: "00000000-0000-0000-0000-000000000901", metadata: { sourceTrust: "S2_FIRST_PARTY" } },
+        ],
+        knowledgeEdges: [
+          { knowledgeEdgeId: "00000000-0000-0000-0000-000000000908", fromNodeId: "00000000-0000-0000-0000-000000000904", relationship: "derives_from", toNodeId: "00000000-0000-0000-0000-000000000905", provenanceHash: "1".repeat(64), provenanceRef: "task:checkout", derivationClass: "DETERMINISTIC" },
+          { knowledgeEdgeId: "00000000-0000-0000-0000-000000000909", fromNodeId: "00000000-0000-0000-0000-000000000904", relationship: "consumes", toNodeId: "00000000-0000-0000-0000-000000000906", provenanceHash: "2".repeat(64), provenanceRef: "unit-contract", derivationClass: "DETERMINISTIC" },
+          { knowledgeEdgeId: "00000000-0000-0000-0000-000000000910", fromNodeId: "00000000-0000-0000-0000-000000000907", relationship: "supports", toNodeId: "00000000-0000-0000-0000-000000000904", provenanceHash: "3".repeat(64), provenanceRef: "route-policy", derivationClass: "DETERMINISTIC" },
+        ],
+        retrievalRoutes: [], challenges: [], conflictObservations: [], researchFindings: [{ findingId: "00000000-0000-0000-0000-000000000911", concern: "PAYMENTS", claim: "Use idempotent checkout callbacks" }], graphInvalidations: [], resolutionTraces: [{ resolutionTraceId: "00000000-0000-0000-0000-000000000912", traceHash: "4".repeat(64), unitRevisionHash: "b".repeat(64), candidateDecisions: [{ resourceId: "00000000-0000-0000-0000-000000000901", selected: true }] }], graphSnapshotHash: "d".repeat(64),
+      },
+    },    "frontend.comments": () => ({ comments: [...designComments] }),
     "frontend.preview.scenario": () => ({ ...previewScenario }),
     "frontend.editor.assists": () => ({ ...editorAssists }),
     "frontend.audit.matrix": () => auditMatrix(),

@@ -258,45 +258,61 @@ async def test_cross_scope_artifact_reference_rejected_by_fk(tmp_path: Path) -> 
         await engine.dispose()
 
 
-@pytest.mark.asyncio
-async def test_project_git_connection_cannot_reach_other_project_repo() -> None:
-    """(c) Project-scoped git connections: fetch/push against any URL other
-    than the bound repository is refused before a git command can run --
-    including another project's repo on the same host -- and a connection
-    cannot be re-bound to another project."""
-    engine = new_engine()
-    try:
-        owner = await seed_tenant(engine)
-        stranger = await seed_tenant(engine)
-        owner_repo = GitConnectionScope.bind(
-            tenant_id=owner.tenant_id,
-            project_id=owner.project_id,
-            remote_url="https://git.example.com/org/erp.git",
+def test_project_git_connection_cannot_reach_other_project_repo() -> None:
+    """(c) Project-scoped git connections fail closed without database state.
+
+    The scope object itself is pure authority logic; this guard therefore uses
+    generated tenant/project identities directly so repository isolation remains
+    testable even on hosts without PostgreSQL.
+    """
+    owner_tenant_id = uuid7()
+    owner_project_id = uuid7()
+    stranger_tenant_id = uuid7()
+    stranger_project_id = uuid7()
+    owner_repo = GitConnectionScope.bind(
+        tenant_id=owner_tenant_id,
+        project_id=owner_project_id,
+        remote_url="https://git.example.com/org/erp.git",
+    )
+    stranger_repo = GitConnectionScope.bind(
+        tenant_id=stranger_tenant_id,
+        project_id=stranger_project_id,
+        remote_url="https://git.example.com/org/other.git",
+    )
+
+    owner_repo.authorize_operation("fetch", owner_repo.remote_url)
+
+    with pytest.raises(ProjectRepoScopeError):
+        owner_repo.authorize_operation("fetch", stranger_repo.remote_url)
+    with pytest.raises(ProjectRepoScopeError):
+        owner_repo.authorize_operation(
+            "fetch",
+            "https://git.example.com/org/erp.wiki.git",
         )
-        stranger_repo = GitConnectionScope.bind(
-            tenant_id=stranger.tenant_id,
-            project_id=stranger.project_id,
-            remote_url="https://git.example.com/org/other.git",
+    with pytest.raises(ProjectRepoScopeError):
+        GitConnectionScope.bind(
+            tenant_id=owner_tenant_id,
+            project_id=stranger_project_id,
+            remote_url=owner_repo.remote_url,
         )
 
-        owner_repo.authorize_operation("fetch", owner_repo.remote_url)
 
-        with pytest.raises(ProjectRepoScopeError):
-            owner_repo.authorize_operation("fetch", stranger_repo.remote_url)
-        # Same host, path outside the bound repository: also refused.
-        with pytest.raises(ProjectRepoScopeError):
-            owner_repo.authorize_operation(
-                "fetch",
-                "https://git.example.com/org/erp.wiki.git",
-            )
-        with pytest.raises(ProjectRepoScopeError):
+def test_dde_repository_firewall_permanently_denies_dial_repositories() -> None:
+    tenant_id = uuid7()
+    project_id = uuid7()
+    forbidden = (
+        "https://github.com/Vanguduza/dial-new.git",
+        "https://github.com/Vanguduza/dial",
+        "ssh://git@github.com/Vanguduza/dial-new.git",
+        "git://github.com/Vanguduza/dial.git",
+    )
+    for remote_url in forbidden:
+        with pytest.raises(ProjectRepoScopeError, match="outside DDE authority"):
             GitConnectionScope.bind(
-                tenant_id=owner.tenant_id,
-                project_id=stranger.project_id,
-                remote_url=owner_repo.remote_url,
+                tenant_id=tenant_id,
+                project_id=project_id,
+                remote_url=remote_url,
             )
-    finally:
-        await engine.dispose()
 
 
 @pytest.mark.asyncio
