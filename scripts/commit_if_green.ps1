@@ -101,11 +101,20 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($repoRoot)) {
 }
 Set-Location $repoRoot.Trim()
 
+$branch = (& git rev-parse --abbrev-ref HEAD).Trim()
+if ($branch -eq "main") {
+    Write-FailLine "Direct commits on main are forbidden. Create a temporary branch and merge through a protected PR."
+    exit 3
+}
+
 # Mirrors justfile `check: lint typecheck test contract-test` exactly — do not
 # reorder or add/drop steps here without updating the justfile too.
 Invoke-Check -Name "lint (ruff check)" -Exe "uv" -CmdArgs @("run", "ruff", "check", ".")
 Invoke-Check -Name "lint (ruff format)" -Exe "uv" -CmdArgs @("run", "ruff", "format", "--check", ".")
 Invoke-Check -Name "typecheck (mypy)" -Exe "uv" -CmdArgs @("run", "mypy")
+Invoke-Check -Name "governance (static)" -Exe "uv" -CmdArgs @("run", "python", "-m", "scripts.repository_governance", "verify-static")
+Invoke-Check -Name "governance (bug ledger projection)" -Exe "uv" -CmdArgs @("run", "python", "-m", "scripts.repository_governance", "render-bug-ledger", "--check")
+Invoke-Check -Name "governance (Project Truth history)" -Exe "uv" -CmdArgs @("run", "python", "scripts/project_truth_local.py", "verify")
 Invoke-Check -Name "test (pytest)" -Exe "uv" -CmdArgs @("run", "pytest", "tests/unit", "tests/contract", "tests/recovery", "--cov", "--cov-report=term-missing")
 Invoke-Check -Name "contract-test (generate_contracts --check)" -Exe "uv" -CmdArgs @("run", "python", "-m", "scripts.generate_contracts", "--check")
 Invoke-Check -Name "contract-test (pytest tests/contract)" -Exe "uv" -CmdArgs @("run", "pytest", "tests/contract")
@@ -140,9 +149,20 @@ if ($nothingStaged) {
     exit 2
 }
 
+Write-Step "repository governance staged policy"
+& uv run python -m scripts.repository_governance verify-staged --message $Message
+if ($LASTEXITCODE -ne 0) { exit 1 }
+Write-Ok "staged changelog/bug/branch policy"
+
+Write-Step "Project Truth staged-diff record"
+& uv run python scripts/project_truth_local.py record
+if ($LASTEXITCODE -ne 0) { exit 1 }
+Write-Ok "Project Truth ledger recorded"
+
 Write-Step "git commit"
 if ($Paths -and $Paths.Count -gt 0) {
-    & git commit -m $Message -- @Paths
+    $commitPaths = @($Paths) + @("docs/project-state/CHANGE_LEDGER.jsonl", "docs/project-state/CURRENT_STATE.json")
+    & git commit -m $Message -- @commitPaths
 } else {
     & git commit -m $Message
 }
@@ -163,7 +183,6 @@ if (-not $Push) {
 }
 
 Write-Step "git push"
-$branch = (& git rev-parse --abbrev-ref HEAD).Trim()
 $previousEap = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 $null = & git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>$null

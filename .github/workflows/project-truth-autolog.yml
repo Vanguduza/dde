@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  pull-requests: read
 concurrency:
   group: project-truth-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
@@ -26,6 +27,8 @@ jobs:
           if not d.get('policy',{}).get('default_branch_is_not_authority'): sys.exit('BLOCKED: authority policy missing')
           if d.get('policy',{}).get('protected_main_ci_is_read_only') is not True: sys.exit('BLOCKED: protected-main read-only CI policy missing')
           PY
+      - name: Verify repository branch/change governance
+        run: python3 scripts/repository_governance.py verify-event
       - name: Verify durable Project Truth ledger
         run: python3 scripts/project_truth_local.py verify
       - name: Block unresolved release tags
