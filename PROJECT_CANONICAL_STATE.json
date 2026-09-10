@@ -4,17 +4,24 @@
   "policy": {
     "default_branch_is_not_authority": true,
     "newest_commit_is_not_authority": true,
-    "every_pushed_commit_is_auto_logged": true,
+    "every_pushed_commit_is_auto_logged": false,
     "canonical_lineage_must_be_verified_before_release": true,
     "silent_feature_thinning_forbidden": true,
-    "release_requires_provenance": true
+    "release_requires_provenance": true,
+    "substantive_commits_must_be_prelogged": true,
+    "protected_main_ci_is_read_only": true,
+    "pure_merge_carriers_are_lineage_only": true,
+    "api_commits_require_explicit_backfill": true
   },
   "canonical_state": {
-    "status": "CANONICAL_DISCOVERY_REQUIRED",
+    "status": "CANONICAL_INTEGRATION_LINEAGE_VERIFIED",
     "release_blocked": true,
     "default_branch_at_bootstrap": "main",
-    "required_ancestors": [],
-    "notes": "No branch is declared canonical by installation of this protocol. Reconcile project truth, record required ancestors/locked authorities, then explicitly clear release_blocked."
+    "required_ancestors": [
+      "52d0207618263009617092d7165c675315a65a77"
+    ],
+    "notes": "main is the sole verified integration lineage for DDE; authority remains the canonical Project Truth/EDR documents rather than branch recency. Release remains blocked until separately owned incomplete release gates are closed.",
+    "canonical_integration_branch": "main"
   },
   "tracking": {
     "ledger": "docs/project-state/CHANGE_LEDGER.jsonl",

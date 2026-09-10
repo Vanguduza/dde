@@ -135,11 +135,49 @@ def parse_rows(text: str) -> list[dict[str, object]]:
     return rows
 
 
-def rows_at(commit: str) -> list[dict[str, object]]:
-    result = git_text(
-        "show", f"{commit}:docs/project-state/CHANGE_LEDGER.jsonl", check=False
-    )
-    return parse_rows(result.stdout) if result.returncode == 0 else []
+def current_rows() -> list[dict[str, object]]:
+    return parse_rows(LEDGER.read_text()) if LEDGER.exists() else []
+
+
+def commit_parents(commit: str) -> list[str]:
+    fields = output("rev-list", "--parents", "-n", "1", commit).split()
+    return fields[1:]
+
+
+def commit_tree(commit: str) -> str:
+    return output("show", "-s", "--format=%T", commit)
+
+
+def is_project_state_only(files: list[str]) -> bool:
+    return bool(files) and all(path.startswith("docs/project-state/") for path in files)
+
+
+def is_pure_merge_carrier(commit: str) -> bool:
+    parents = commit_parents(commit)
+    if len(parents) < 2:
+        return False
+    tree = commit_tree(commit)
+    return any(commit_tree(parent_sha) == tree for parent_sha in parents)
+
+
+def recorded_in_current_ledger(
+    *,
+    rows: list[dict[str, object]],
+    commit: str,
+    source_parent: str | None,
+    digest: str,
+    files: list[str],
+) -> bool:
+    for row in rows:
+        if row.get("commit_sha") == commit and row.get("diff_sha256") == digest:
+            return True
+        if (
+            row.get("source_parent") == source_parent
+            and row.get("diff_sha256") == digest
+            and sorted(cast(list[str], row.get("changed_files", []))) == sorted(files)
+        ):
+            return True
+    return False
 
 
 def record() -> int:
@@ -205,6 +243,7 @@ def verify() -> int:
     if baseline is None:
         print("BLOCKED: Project Truth local guard baseline missing", file=sys.stderr)
         return 40
+    rows = current_rows()
     bad: list[str] = []
     commits = [
         line
@@ -213,17 +252,17 @@ def verify() -> int:
     ]
     for commit in commits:
         files = commit_files(commit)
-        if not files:
+        if not files or is_project_state_only(files) or is_pure_merge_carrier(commit):
             continue
         source_parent = parent(commit)
         digest = commit_digest(commit)
-        recorded = any(
-            row.get("source_parent") == source_parent
-            and row.get("diff_sha256") == digest
-            and sorted(cast(list[str], row.get("changed_files", []))) == sorted(files)
-            for row in rows_at(commit)
-        )
-        if not recorded:
+        if not recorded_in_current_ledger(
+            rows=rows,
+            commit=commit,
+            source_parent=source_parent,
+            digest=digest,
+            files=files,
+        ):
             bad.append(commit)
     if bad:
         print(
