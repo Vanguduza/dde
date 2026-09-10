@@ -11,6 +11,7 @@ import {
 } from "../frontend-studio/FrontendStudioWorkspace";
 import { DdeChatComposer } from "../chat/DdeChatComposer";
 import { InspectorPanel } from "../frontend-studio/InspectorPanel";
+import { KnowledgeWorkspace } from "../frontend-studio/KnowledgeWorkspace";
 import { AppRail, type RailModule } from "../shell/AppRail";
 import { ContextSidebar } from "../shell/ContextSidebar";
 import { DdeShell } from "../shell/DdeShell";
@@ -46,6 +47,7 @@ import type {
   FrontendSourceBlendPreference,
   StudioMode,
   AttentionItemView,
+  VeklProjection,
 } from "../state/projections";
 
 const MODULES: readonly RailModule[] = [
@@ -53,7 +55,7 @@ const MODULES: readonly RailModule[] = [
   { id: "projects", label: "Projects", glyph: "▤", available: false },
   { id: "models", label: "Models", glyph: "◈", available: false },
   { id: "orchestration", label: "Orchestration", glyph: "⌘", available: false },
-  { id: "knowledge", label: "Knowledge", glyph: "◎", available: false },
+  { id: "knowledge", label: "Knowledge", glyph: "◎", available: true },
 ];
 
 export interface DdeStudioAppProps {
@@ -67,70 +69,152 @@ export function DdeStudioApp({
   projectName = null,
   buildVersion = null,
 }: DdeStudioAppProps) {
-  const [hostContext, setHostContext] = useState<FrontendHostContext | null>(null);
+  const [hostContext, setHostContext] = useState<FrontendHostContext | null>(
+    null,
+  );
   const [snapshot, setSnapshot] = useState<FrontendStudioSnapshot | null>(null);
-  const [auditMatrix, setAuditMatrix] = useState<ScreenAuditMatrix | null>(null);
-  const [sourceCatalog, setSourceCatalog] = useState<SourceCatalogRead | null>(null);
+  const [auditMatrix, setAuditMatrix] = useState<ScreenAuditMatrix | null>(
+    null,
+  );
+  const [sourceCatalog, setSourceCatalog] = useState<SourceCatalogRead | null>(
+    null,
+  );
   const [sourceBusy, setSourceBusy] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
-  const [selectedProvenance, setSelectedProvenance] = useState<readonly FrontendProvenanceRecord[]>([]);
-  const [sourceTargetBlend, setSourceTargetBlend] = useState<FrontendSourceBlendPreference | null>(null);
+  const [selectedProvenance, setSelectedProvenance] = useState<
+    readonly FrontendProvenanceRecord[]
+  >([]);
+  const [sourceTargetBlend, setSourceTargetBlend] =
+    useState<FrontendSourceBlendPreference | null>(null);
   const [mode, setMode] = useState<StudioMode>("design");
+  const [activeModuleId, setActiveModuleId] = useState("frontend");
+  const [knowledgeProjection, setKnowledgeProjection] =
+    useState<VeklProjection | null>(null);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false);
+  const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
   const [group, setGroup] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [viewport, setViewport] = useState("1440");
   const [screenKey, setScreenKey] = useState<string | null>(null);
-  const [activeCandidateId, setActiveCandidateId] = useState<string | null>(null);
-  const [sourceWorkspaceId, setSourceWorkspaceId] = useState<string | null>(null);
+  const [activeCandidateId, setActiveCandidateId] = useState<string | null>(
+    null,
+  );
+  const [sourceWorkspaceId, setSourceWorkspaceId] = useState<string | null>(
+    null,
+  );
   const [preview, setPreview] = useState<PreviewDocument | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewBrowserReady, setPreviewBrowserReady] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selection, setSelection] = useState<PreviewSelection | null>(null);
-  const [descriptor, setDescriptor] = useState<InspectorDescriptor | null>(null);
+  const [descriptor, setDescriptor] = useState<InspectorDescriptor | null>(
+    null,
+  );
   const [inspectorLoading, setInspectorLoading] = useState(false);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
   const [applyingProperty, setApplyingProperty] = useState<string | null>(null);
   const [lockBusy, setLockBusy] = useState(false);
   const [inspectorEpoch, setInspectorEpoch] = useState(0);
   const [verificationBusy, setVerificationBusy] = useState(false);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [promotionBusyCandidateId, setPromotionBusyCandidateId] = useState<string | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(
+    null,
+  );
+  const [promotionBusyCandidateId, setPromotionBusyCandidateId] = useState<
+    string | null
+  >(null);
   const [promotionError, setPromotionError] = useState<string | null>(null);
-  const [designProvider, setDesignProvider] = useState<DesignProviderStatus | null>(null);
-  const [designProviderDetail, setDesignProviderDetail] = useState<string | null>(null);
+  const [designProvider, setDesignProvider] =
+    useState<DesignProviderStatus | null>(null);
+  const [designProviderDetail, setDesignProviderDetail] = useState<
+    string | null
+  >(null);
   const [designBusy, setDesignBusy] = useState(false);
-  const [designArtifacts, setDesignArtifacts] = useState<readonly DesignDirectionArtifact[]>([]);
-  const [designArtifactBusyId, setDesignArtifactBusyId] = useState<string | null>(null);
-  const [designArtifactError, setDesignArtifactError] = useState<string | null>(null);
+  const [designArtifacts, setDesignArtifacts] = useState<
+    readonly DesignDirectionArtifact[]
+  >([]);
+  const [designArtifactBusyId, setDesignArtifactBusyId] = useState<
+    string | null
+  >(null);
+  const [designArtifactError, setDesignArtifactError] = useState<string | null>(
+    null,
+  );
   const verificationStarted = useRef<Set<string>>(new Set());
   const [chatThread, setChatThread] = useState<FrontendChatThread | null>(null);
   const [chatLoading, setChatLoading] = useState(true);
   const [chatError, setChatError] = useState<string | null>(null);
   const [chatBusy, setChatBusy] = useState(false);
   const [chatIncludeSelection, setChatIncludeSelection] = useState(true);
-  const [chatConversations, setChatConversations] = useState<readonly FrontendChatConversation[]>([]);
-  const [chatAttachments, setChatAttachments] = useState<readonly FrontendChatAttachment[]>([]);
-  const [pendingAttachmentIds, setPendingAttachmentIds] = useState<readonly string[]>([]);
+  const [chatConversations, setChatConversations] = useState<
+    readonly FrontendChatConversation[]
+  >([]);
+  const [chatAttachments, setChatAttachments] = useState<
+    readonly FrontendChatAttachment[]
+  >([]);
+  const [pendingAttachmentIds, setPendingAttachmentIds] = useState<
+    readonly string[]
+  >([]);
   const [chatPlans, setChatPlans] = useState<readonly FrontendChatPlan[]>([]);
-  const [chatActivities, setChatActivities] = useState<readonly FrontendChatActivity[]>([]);
-  const [chatCheckpoints, setChatCheckpoints] = useState<readonly FrontendChatCheckpoint[]>([]);
-  const [chatChanges, setChatChanges] = useState<FrontendChatChanges | null>(null);
-  const [chatModels, setChatModels] = useState<readonly FrontendChatModelOption[]>([]);
-  const [chatContextBudget, setChatContextBudget] = useState<FrontendChatContextBudget | null>(null);
+  const [chatActivities, setChatActivities] = useState<
+    readonly FrontendChatActivity[]
+  >([]);
+  const [chatCheckpoints, setChatCheckpoints] = useState<
+    readonly FrontendChatCheckpoint[]
+  >([]);
+  const [chatChanges, setChatChanges] = useState<FrontendChatChanges | null>(
+    null,
+  );
+  const [chatModels, setChatModels] = useState<
+    readonly FrontendChatModelOption[]
+  >([]);
+  const [chatContextBudget, setChatContextBudget] =
+    useState<FrontendChatContextBudget | null>(null);
   const [canPickLocalFile, setCanPickLocalFile] = useState(false);
   const [canRevealFile, setCanRevealFile] = useState(false);
-  const [projectSwitchError, setProjectSwitchError] = useState<string | null>(null);
-  const [designComments, setDesignComments] = useState<readonly DesignCommentView[]>([]);
+  const [projectSwitchError, setProjectSwitchError] = useState<string | null>(
+    null,
+  );
+  const [designComments, setDesignComments] = useState<
+    readonly DesignCommentView[]
+  >([]);
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
-  const [previewScenario, setPreviewScenarioState] = useState<PreviewScenarioView>({
-    scenario: "DEFAULT", role: null, availability: "EMPTY", reason: "no simulated state selected",
-  });
+  const [previewScenario, setPreviewScenarioState] =
+    useState<PreviewScenarioView>({
+      scenario: "DEFAULT",
+      role: null,
+      availability: "EMPTY",
+      reason: "no simulated state selected",
+    });
   const [editorAssists, setEditorAssists] = useState<EditorAssistState>({
-    autoLayout: false, aiSuggest: false, availability: "EMPTY", reason: "defaults OFF",
+    autoLayout: false,
+    aiSuggest: false,
+    availability: "EMPTY",
+    reason: "defaults OFF",
   });
+
+  const sendFrontendCommand = useCallback(
+    async (
+      commandType: string,
+      parameters: Readonly<Record<string, unknown>>,
+      options?: { idempotencyKey?: string; commandId?: string },
+    ): Promise<CommandAcceptance> => {
+      if (!hostContext) {
+        throw new Error("Frontend Studio mission context is unavailable.");
+      }
+      const command: DdeCommand = {
+        commandId: options?.commandId,
+        commandType,
+        targetType: "mission",
+        targetId: hostContext.missionId,
+        parameters,
+        idempotencyKey:
+          options?.idempotencyKey ?? `${commandType}:${actionId()}`,
+      };
+      return bridge.sendCommand(command);
+    },
+    [bridge, hostContext],
+  );
 
   const refreshSnapshot = useCallback(async () => {
     const value = await bridge.requestRead<FrontendStudioSnapshot>({
@@ -149,36 +233,125 @@ export function DdeStudioApp({
     return value;
   }, [bridge]);
 
-  const refreshSourceTargetBlend = useCallback(async (scopeKey: string) => {
-    const value = await bridge.requestRead<{ preference: FrontendSourceBlendPreference | null }>({
-      resource: "frontend.sources.target_blend",
-      parameters: { scopeKey },
-    });
-    setSourceTargetBlend(value.preference ?? null);
-    return value.preference ?? null;
+  const refreshKnowledge = useCallback(async () => {
+    setKnowledgeLoading(true);
+    try {
+      const value = await bridge.requestRead<VeklProjection>({
+        resource: "vekl.projection",
+      });
+      setKnowledgeProjection(value);
+      setKnowledgeError(null);
+      return value;
+    } catch (error) {
+      setKnowledgeError(error instanceof Error ? error.message : String(error));
+      return null;
+    } finally {
+      setKnowledgeLoading(false);
+    }
   }, [bridge]);
 
-  const refreshDesignArtifacts = useCallback(async (designSessionId: string | null) => {
-    if (!designSessionId) {
-      setDesignArtifacts([]);
-      setDesignArtifactError(null);
-      return [];
+  useEffect(() => {
+    if (activeModuleId === "knowledge") {
+      void refreshKnowledge();
     }
-    try {
-      const value = await bridge.requestRead<{ artifacts: readonly DesignDirectionArtifact[] }>({
-        resource: "frontend.design.artifacts",
-        parameters: { designSessionId },
+  }, [activeModuleId, refreshKnowledge]);
+
+  const decideKnowledgeChallenge = useCallback(
+    async (
+      challengeId: string,
+      decision: "ACCEPT" | "DEFER" | "REJECT" | "REQUEST_MORE_EVIDENCE",
+      reason: string,
+    ) => {
+      setKnowledgeError(null);
+      setKnowledgeLoading(true);
+      try {
+        await sendFrontendCommand("vekl.truth.challenge.decide", {
+          challenge_id: challengeId,
+          decision,
+          reason,
+          request_mode: "APPLICATION_MANUFACTURING_VEKL",
+        });
+        await refreshKnowledge();
+      } catch (error) {
+        setKnowledgeError(
+          error instanceof Error ? error.message : String(error),
+        );
+        throw error;
+      } finally {
+        setKnowledgeLoading(false);
+      }
+    },
+    [refreshKnowledge, sendFrontendCommand],
+  );
+
+  const reopenKnowledgeChallenge = useCallback(
+    async (challengeId: string, triggerReason: string) => {
+      setKnowledgeError(null);
+      setKnowledgeLoading(true);
+      try {
+        await sendFrontendCommand("vekl.truth.challenge.reopen", {
+          reopen: {
+            challenge_id: challengeId,
+            additional_finding_ids: [],
+            trigger_reason: triggerReason,
+          },
+          request_mode: "APPLICATION_MANUFACTURING_VEKL",
+        });
+        await refreshKnowledge();
+      } catch (error) {
+        setKnowledgeError(
+          error instanceof Error ? error.message : String(error),
+        );
+        throw error;
+      } finally {
+        setKnowledgeLoading(false);
+      }
+    },
+    [refreshKnowledge, sendFrontendCommand],
+  );
+
+  const refreshSourceTargetBlend = useCallback(
+    async (scopeKey: string) => {
+      const value = await bridge.requestRead<{
+        preference: FrontendSourceBlendPreference | null;
+      }>({
+        resource: "frontend.sources.target_blend",
+        parameters: { scopeKey },
       });
-      const artifacts = value.artifacts ?? [];
-      setDesignArtifacts(artifacts);
-      setDesignArtifactError(null);
-      return artifacts;
-    } catch (error) {
-      setDesignArtifacts([]);
-      setDesignArtifactError(error instanceof Error ? error.message : String(error));
-      return [];
-    }
-  }, [bridge]);
+      setSourceTargetBlend(value.preference ?? null);
+      return value.preference ?? null;
+    },
+    [bridge],
+  );
+
+  const refreshDesignArtifacts = useCallback(
+    async (designSessionId: string | null) => {
+      if (!designSessionId) {
+        setDesignArtifacts([]);
+        setDesignArtifactError(null);
+        return [];
+      }
+      try {
+        const value = await bridge.requestRead<{
+          artifacts: readonly DesignDirectionArtifact[];
+        }>({
+          resource: "frontend.design.artifacts",
+          parameters: { designSessionId },
+        });
+        const artifacts = value.artifacts ?? [];
+        setDesignArtifacts(artifacts);
+        setDesignArtifactError(null);
+        return artifacts;
+      } catch (error) {
+        setDesignArtifacts([]);
+        setDesignArtifactError(
+          error instanceof Error ? error.message : String(error),
+        );
+        return [];
+      }
+    },
+    [bridge],
+  );
 
   const refreshChat = useCallback(async () => {
     const value = await bridge.requestRead<FrontendChatThread>({
@@ -190,17 +363,22 @@ export function DdeStudioApp({
   }, [bridge]);
 
   useEffect(() => {
-    void refreshDesignArtifacts(chatThread?.conversation?.designSessionId ?? null);
+    void refreshDesignArtifacts(
+      chatThread?.conversation?.designSessionId ?? null,
+    );
   }, [chatThread?.conversation?.designSessionId, refreshDesignArtifacts]);
 
   const refreshChatResources = useCallback(
     async (conversationId?: string | null) => {
-      const target = conversationId ?? chatThread?.conversation?.conversationId ?? null;
+      const target =
+        conversationId ?? chatThread?.conversation?.conversationId ?? null;
       const conversationRead = await bridge.requestRead<{
         conversations: readonly FrontendChatConversation[];
       }>({ resource: "frontend.chat.conversations" });
       setChatConversations(conversationRead.conversations ?? []);
-      const modelRead = await bridge.requestRead<{ models: readonly FrontendChatModelOption[] }>({
+      const modelRead = await bridge.requestRead<{
+        models: readonly FrontendChatModelOption[];
+      }>({
         resource: "frontend.chat.models",
       });
       setChatModels(modelRead.models ?? []);
@@ -213,28 +391,37 @@ export function DdeStudioApp({
         setChatContextBudget(null);
         return;
       }
-      const [attachments, plans, activities, checkpoints, context] = await Promise.all([
-        bridge.requestRead<{ attachments: readonly FrontendChatAttachment[] }>({
-          resource: "frontend.chat.attachments", parameters: { conversationId: target },
-        }),
-        bridge.requestRead<{ plans: readonly FrontendChatPlan[] }>({
-          resource: "frontend.chat.plans", parameters: { conversationId: target },
-        }),
-        bridge.requestRead<{ activities: readonly FrontendChatActivity[] }>({
-          resource: "frontend.chat.activities", parameters: { conversationId: target },
-        }),
-        bridge.requestRead<{ checkpoints: readonly FrontendChatCheckpoint[] }>({
-          resource: "frontend.chat.checkpoints", parameters: { conversationId: target },
-        }),
-        bridge.requestRead<FrontendChatContextBudget>({
-          resource: "frontend.chat.context",
-          parameters: {
-            conversationId: target,
-            refs: chatThread?.conversation?.pinnedContextRefs ?? [],
-            budgetTokens: 24_000,
-          },
-        }),
-      ]);
+      const [attachments, plans, activities, checkpoints, context] =
+        await Promise.all([
+          bridge.requestRead<{
+            attachments: readonly FrontendChatAttachment[];
+          }>({
+            resource: "frontend.chat.attachments",
+            parameters: { conversationId: target },
+          }),
+          bridge.requestRead<{ plans: readonly FrontendChatPlan[] }>({
+            resource: "frontend.chat.plans",
+            parameters: { conversationId: target },
+          }),
+          bridge.requestRead<{ activities: readonly FrontendChatActivity[] }>({
+            resource: "frontend.chat.activities",
+            parameters: { conversationId: target },
+          }),
+          bridge.requestRead<{
+            checkpoints: readonly FrontendChatCheckpoint[];
+          }>({
+            resource: "frontend.chat.checkpoints",
+            parameters: { conversationId: target },
+          }),
+          bridge.requestRead<FrontendChatContextBudget>({
+            resource: "frontend.chat.context",
+            parameters: {
+              conversationId: target,
+              refs: chatThread?.conversation?.pinnedContextRefs ?? [],
+              budgetTokens: 24_000,
+            },
+          }),
+        ]);
       setChatAttachments(attachments.attachments ?? []);
       setChatPlans(plans.plans ?? []);
       setChatActivities(activities.activities ?? []);
@@ -242,39 +429,59 @@ export function DdeStudioApp({
       setChatContextBudget(context);
       try {
         const changes = await bridge.requestRead<FrontendChatChanges>({
-          resource: "frontend.chat.changes", parameters: { conversationId: target },
+          resource: "frontend.chat.changes",
+          parameters: { conversationId: target },
         });
         setChatChanges(changes);
       } catch {
         setChatChanges(null);
       }
     },
-    [bridge, chatThread?.conversation?.conversationId, chatThread?.conversation?.pinnedContextRefs],
+    [
+      bridge,
+      chatThread?.conversation?.conversationId,
+      chatThread?.conversation?.pinnedContextRefs,
+    ],
   );
 
   useEffect(() => {
     let cancelled = false;
-    bridge.getCapabilities().then((value) => {
-      if (!cancelled) {
-        setCanPickLocalFile(value.canPickLocalFile);
-        setCanRevealFile(value.canRevealFile);
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        setCanPickLocalFile(false);
-        setCanRevealFile(false);
-      }
-    });
-    return () => { cancelled = true; };
+    bridge
+      .getCapabilities()
+      .then((value) => {
+        if (!cancelled) {
+          setCanPickLocalFile(value.canPickLocalFile);
+          setCanRevealFile(value.canRevealFile);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCanPickLocalFile(false);
+          setCanRevealFile(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [bridge]);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      bridge.requestRead<FrontendHostContext>({ resource: "frontend.host.context" }),
-      bridge.requestRead<FrontendStudioSnapshot>({ resource: "frontend.studio.snapshot" }),
-      bridge.requestRead<ScreenAuditMatrix>({ resource: "frontend.audit.matrix" }).catch(() => null),
-      bridge.requestRead<SourceCatalogRead>({ resource: "frontend.sources.inventory" }).catch(() => null),
+      bridge.requestRead<FrontendHostContext>({
+        resource: "frontend.host.context",
+      }),
+      bridge.requestRead<FrontendStudioSnapshot>({
+        resource: "frontend.studio.snapshot",
+      }),
+      bridge
+        .requestRead<ScreenAuditMatrix>({ resource: "frontend.audit.matrix" })
+        .catch(() => null),
+      bridge
+        .requestRead<SourceCatalogRead>({
+          resource: "frontend.sources.inventory",
+        })
+        .catch(() => null),
     ])
       .then(([context, value, audit, sources]) => {
         if (cancelled) return;
@@ -326,7 +533,8 @@ export function DdeStudioApp({
         : (snapshot.screens[0]?.pxgKey ?? null),
     );
     setActiveCandidateId((current) =>
-      current && snapshot.candidates.cards.some((card) => card.candidateId === current)
+      current &&
+      snapshot.candidates.cards.some((card) => card.candidateId === current)
         ? current
         : (snapshot.candidates.cards[0]?.candidateId ?? null),
     );
@@ -408,7 +616,11 @@ export function DdeStudioApp({
     if (activeCandidate?.previewSessionId) {
       void loadPreviewDocument(activeCandidate.previewSessionId);
     }
-  }, [activeCandidate?.candidateId, activeCandidate?.previewSessionId, loadPreviewDocument]);
+  }, [
+    activeCandidate?.candidateId,
+    activeCandidate?.previewSessionId,
+    loadPreviewDocument,
+  ]);
 
   useEffect(() => {
     setChatIncludeSelection(true);
@@ -434,7 +646,9 @@ export function DdeStudioApp({
       .catch((error: unknown) => {
         if (!cancelled) {
           setDescriptor(null);
-          setInspectorError(error instanceof Error ? error.message : String(error));
+          setInspectorError(
+            error instanceof Error ? error.message : String(error),
+          );
         }
       })
       .finally(() => {
@@ -443,7 +657,13 @@ export function DdeStudioApp({
     return () => {
       cancelled = true;
     };
-  }, [activeCandidateId, bridge, inspectorEpoch, preview?.previewSessionId, selectedKey]);
+  }, [
+    activeCandidateId,
+    bridge,
+    inspectorEpoch,
+    preview?.previewSessionId,
+    selectedKey,
+  ]);
 
   useEffect(() => {
     if (!selectedKey) {
@@ -451,15 +671,20 @@ export function DdeStudioApp({
       return;
     }
     let cancelled = false;
-    bridge.requestRead<{ provenance: readonly FrontendProvenanceRecord[] }>({
-      resource: "frontend.sources.provenance",
-      parameters: { subjectKind: "PXG_NODE", subjectRef: selectedKey },
-    }).then((value) => {
-      if (!cancelled) setSelectedProvenance(value.provenance ?? []);
-    }).catch(() => {
-      if (!cancelled) setSelectedProvenance([]);
-    });
-    return () => { cancelled = true; };
+    bridge
+      .requestRead<{ provenance: readonly FrontendProvenanceRecord[] }>({
+        resource: "frontend.sources.provenance",
+        parameters: { subjectKind: "PXG_NODE", subjectRef: selectedKey },
+      })
+      .then((value) => {
+        if (!cancelled) setSelectedProvenance(value.provenance ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedProvenance([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [bridge, selectedKey, snapshot?.pxgRevision]);
 
   useEffect(() => {
@@ -470,30 +695,10 @@ export function DdeStudioApp({
       .then((value) => {
         if (!cancelled && value === null) setSourceTargetBlend(null);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [refreshSourceTargetBlend, screenKey, selectedKey]);
-
-  const sendFrontendCommand = useCallback(
-    async (
-      commandType: string,
-      parameters: Readonly<Record<string, unknown>>,
-      options?: { idempotencyKey?: string; commandId?: string },
-    ): Promise<CommandAcceptance> => {
-      if (!hostContext) {
-        throw new Error("Frontend Studio mission context is unavailable.");
-      }
-      const command: DdeCommand = {
-        commandId: options?.commandId,
-        commandType,
-        targetType: "mission",
-        targetId: hostContext.missionId,
-        parameters,
-        idempotencyKey: options?.idempotencyKey ?? `${commandType}:${actionId()}`,
-      };
-      return bridge.sendCommand(command);
-    },
-    [bridge, hostContext],
-  );
 
   // The `/design` control's own state. Read from the Gateway rather than
   // assumed: a control that enabled itself because the code that draws it
@@ -508,7 +713,8 @@ export function DdeStudioApp({
         const rows = Array.isArray(providers)
           ? (providers as readonly DesignProviderStatus[])
           : [];
-        const claude = rows.find((item) => item.providerId === "claude-design") ?? null;
+        const claude =
+          rows.find((item) => item.providerId === "claude-design") ?? null;
         setDesignProvider(claude);
         setDesignProviderDetail(
           claude === null && rows.length > 0
@@ -519,7 +725,9 @@ export function DdeStudioApp({
       .catch((error: unknown) => {
         if (cancelled) return;
         setDesignProvider(null);
-        setDesignProviderDetail(error instanceof Error ? error.message : String(error));
+        setDesignProviderDetail(
+          error instanceof Error ? error.message : String(error),
+        );
       });
     return () => {
       cancelled = true;
@@ -537,7 +745,8 @@ export function DdeStudioApp({
     };
     parameters.active_candidate_id = activeCandidateId;
     parameters.screen_key = screenKey;
-    parameters.active_workspace_id = activeCandidate?.workspaceId ?? sourceWorkspaceId;
+    parameters.active_workspace_id =
+      activeCandidate?.workspaceId ?? sourceWorkspaceId;
     sendFrontendCommand("frontend.chat.set_context", parameters).catch(
       (error: unknown) => {
         setChatError(error instanceof Error ? error.message : String(error));
@@ -586,7 +795,9 @@ export function DdeStudioApp({
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setVerificationError(error instanceof Error ? error.message : String(error));
+          setVerificationError(
+            error instanceof Error ? error.message : String(error),
+          );
         }
       })
       .finally(() => {
@@ -610,18 +821,21 @@ export function DdeStudioApp({
     }
   }, [refreshSnapshot, refreshSources, sendFrontendCommand]);
 
-  const searchSources = useCallback(async (query: string) => {
-    setSourceBusy(true);
-    setSourceError(null);
-    try {
-      await sendFrontendCommand("frontend.source.search", { query });
-      await Promise.all([refreshSnapshot(), refreshSources()]);
-    } catch (error) {
-      setSourceError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSourceBusy(false);
-    }
-  }, [refreshSnapshot, refreshSources, sendFrontendCommand]);
+  const searchSources = useCallback(
+    async (query: string) => {
+      setSourceBusy(true);
+      setSourceError(null);
+      try {
+        await sendFrontendCommand("frontend.source.search", { query });
+        await Promise.all([refreshSnapshot(), refreshSources()]);
+      } catch (error) {
+        setSourceError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setSourceBusy(false);
+      }
+    },
+    [refreshSnapshot, refreshSources, sendFrontendCommand],
+  );
 
   const recommendTemplates = useCallback(async () => {
     setSourceBusy(true);
@@ -636,225 +850,302 @@ export function DdeStudioApp({
     }
   }, [refreshSnapshot, refreshSources, sendFrontendCommand]);
 
-  const setTargetBlend = useCallback(async (weights: Readonly<Record<string, number>>) => {
-    const scopeKey = selectedKey ?? screenKey ?? "*";
-    setSourceBusy(true);
-    setSourceError(null);
-    try {
-      await sendFrontendCommand("frontend.source.target_blend.set", {
-        scope_key: scopeKey,
-        weights,
-      });
-      await refreshSourceTargetBlend(scopeKey);
-    } catch (error) {
-      setSourceError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSourceBusy(false);
-    }
-  }, [refreshSourceTargetBlend, screenKey, selectedKey, sendFrontendCommand]);
+  const setTargetBlend = useCallback(
+    async (weights: Readonly<Record<string, number>>) => {
+      const scopeKey = selectedKey ?? screenKey ?? "*";
+      setSourceBusy(true);
+      setSourceError(null);
+      try {
+        await sendFrontendCommand("frontend.source.target_blend.set", {
+          scope_key: scopeKey,
+          weights,
+        });
+        await refreshSourceTargetBlend(scopeKey);
+      } catch (error) {
+        setSourceError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setSourceBusy(false);
+      }
+    },
+    [refreshSourceTargetBlend, screenKey, selectedKey, sendFrontendCommand],
+  );
 
-  const sourceArtifactAction = useCallback(async (
-    action: "inspect" | "fetch" | "sandbox" | "validate_sandbox" | "admit",
-    artifactId: string,
-  ) => {
-    setSourceBusy(true);
-    setSourceError(null);
-    try {
-      const parameters: Record<string, unknown> = { artifact_id: artifactId };
-      if (action === "sandbox") {
-        const scopeKey = selectedKey ?? screenKey;
-        if (!scopeKey) {
-          throw new Error("Select a PXG screen or element before sandbox-adapting a source.");
+  const sourceArtifactAction = useCallback(
+    async (
+      action: "inspect" | "fetch" | "sandbox" | "validate_sandbox" | "admit",
+      artifactId: string,
+    ) => {
+      setSourceBusy(true);
+      setSourceError(null);
+      try {
+        const parameters: Record<string, unknown> = { artifact_id: artifactId };
+        if (action === "sandbox") {
+          const scopeKey = selectedKey ?? screenKey;
+          if (!scopeKey) {
+            throw new Error(
+              "Select a PXG screen or element before sandbox-adapting a source.",
+            );
+          }
+          parameters.scope_keys = [scopeKey];
         }
-        parameters.scope_keys = [scopeKey];
+        await sendFrontendCommand(`frontend.source.${action}`, parameters);
+        await Promise.all([refreshSnapshot(), refreshSources()]);
+      } catch (error) {
+        setSourceError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setSourceBusy(false);
       }
-      await sendFrontendCommand(`frontend.source.${action}`, parameters);
-      await Promise.all([refreshSnapshot(), refreshSources()]);
-    } catch (error) {
-      setSourceError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSourceBusy(false);
-    }
-  }, [refreshSnapshot, refreshSources, screenKey, selectedKey, sendFrontendCommand]);
+    },
+    [
+      refreshSnapshot,
+      refreshSources,
+      screenKey,
+      selectedKey,
+      sendFrontendCommand,
+    ],
+  );
 
-  const startPreview = useCallback(async (viewportOverride?: string) => {
-    if (!activeCandidateId || !screenKey) {
-      setPreviewError("Select both a real candidate and a PXG screen before previewing.");
-      return;
-    }
-    const needsSourceWorkspace = !activeCandidate?.workspaceId;
-    if (needsSourceWorkspace && !sourceWorkspaceId) {
-      const inventory = snapshot?.sourceWorkspaces;
-      setPreviewError(
-        inventory?.reason ??
-          "Select a READY source workspace before materializing this candidate.",
-      );
-      return;
-    }
-    setPreviewBusy(true);
-    setPreviewError(null);
-    setSelection(null);
-    setPreviewBrowserReady(false);
-    try {
-      const parameters: Record<string, unknown> = {
-        candidate_id: activeCandidateId,
-        screen_key: screenKey,
-        viewport: viewportOverride ?? viewport,
-      };
-      if (needsSourceWorkspace && sourceWorkspaceId) {
-        parameters.source_workspace_id = sourceWorkspaceId;
-      }
-      const acceptance = await sendFrontendCommand(
-        "frontend.preview.start",
-        parameters,
-      );
-      const sessionId = payloadString(acceptance, "previewSessionId");
-      const state = payloadString(acceptance, "state") ?? "UNAVAILABLE";
-      const detail = payloadString(acceptance, "stateDetail");
-      if (!sessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
-        setPreview(null);
-        setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
-        await refreshSnapshot();
+  const startPreview = useCallback(
+    async (viewportOverride?: string) => {
+      if (!activeCandidateId || !screenKey) {
+        setPreviewError(
+          "Select both a real candidate and a PXG screen before previewing.",
+        );
         return;
       }
-      await refreshSnapshot();
-      await loadPreviewDocument(sessionId);
-    } catch (error) {
-      setPreview(null);
-      setPreviewError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setPreviewBusy(false);
-    }
-  }, [
-    activeCandidate,
-    activeCandidateId,
-    loadPreviewDocument,
-    refreshSnapshot,
-    screenKey,
-    sendFrontendCommand,
-    snapshot,
-    sourceWorkspaceId,
-    viewport,
-  ]);
-
-  const tryCandidateLive = useCallback(async (candidateId: string) => {
-    const candidate = snapshot?.candidates.cards.find((item) => item.candidateId === candidateId);
-    if (!candidate || !screenKey) {
-      setPreviewError("Select a real candidate and screen before trying it live.");
-      return;
-    }
-    setMode("design");
-    setActiveCandidateId(candidateId);
-    setPromotionError(null);
-    if (candidate.previewSessionId) {
-      await loadPreviewDocument(candidate.previewSessionId);
-      return;
-    }
-    if (!candidate.workspaceId) {
-      setPreviewError("This candidate needs a READY source workspace. Select it in the Canvas before starting the code-backed preview.");
-      return;
-    }
-    setPreviewBusy(true);
-    setPreviewError(null);
-    try {
-      const acceptance = await sendFrontendCommand("frontend.preview.start", {
-        candidate_id: candidateId,
-        screen_key: screenKey,
-        viewport,
-      });
-      const sessionId = payloadString(acceptance, "previewSessionId");
-      const state = payloadString(acceptance, "state") ?? "UNAVAILABLE";
-      const detail = payloadString(acceptance, "stateDetail");
-      if (!sessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
-        setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
-        await refreshSnapshot();
-        return;
-      }
-      await refreshSnapshot();
-      await loadPreviewDocument(sessionId);
-    } catch (error) {
-      setPreviewError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setPreviewBusy(false);
-    }
-  }, [loadPreviewDocument, refreshSnapshot, screenKey, sendFrontendCommand, snapshot, viewport]);
-
-  const tryDesignArtifact = useCallback(async (artifactId: string) => {
-    const designSessionId = chatThread?.conversation?.designSessionId ?? null;
-    setDesignArtifactBusyId(artifactId);
-    setDesignArtifactError(null);
-    setPromotionError(null);
-    try {
-      const acceptance = await sendFrontendCommand("frontend.design.try_live", { artifact_id: artifactId });
-      const candidateId = payloadString(acceptance, "candidateId");
-      if (!candidateId) throw new Error("Try Live did not return a candidate identity.");
-      setMode("design");
-      setActiveCandidateId(candidateId);
-      setPreview(null);
-      setPreviewBrowserReady(false);
-      setSelection(null);
-      setSelectedKey(null);
-      await Promise.all([refreshSnapshot(), refreshDesignArtifacts(designSessionId)]);
-      if (!screenKey) {
-        setPreviewError("Direction materialized. Select a PXG screen to start its code-backed preview.");
+      const needsSourceWorkspace = !activeCandidate?.workspaceId;
+      if (needsSourceWorkspace && !sourceWorkspaceId) {
+        const inventory = snapshot?.sourceWorkspaces;
+        setPreviewError(
+          inventory?.reason ??
+            "Select a READY source workspace before materializing this candidate.",
+        );
         return;
       }
       setPreviewBusy(true);
-      const previewAcceptance = await sendFrontendCommand("frontend.preview.start", {
-        candidate_id: candidateId,
-        screen_key: screenKey,
-        viewport,
-      });
-      const previewSessionId = payloadString(previewAcceptance, "previewSessionId");
-      const state = payloadString(previewAcceptance, "state") ?? "UNAVAILABLE";
-      const detail = payloadString(previewAcceptance, "stateDetail");
-      if (!previewSessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
-        setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
+      setPreviewError(null);
+      setSelection(null);
+      setPreviewBrowserReady(false);
+      try {
+        const parameters: Record<string, unknown> = {
+          candidate_id: activeCandidateId,
+          screen_key: screenKey,
+          viewport: viewportOverride ?? viewport,
+        };
+        if (needsSourceWorkspace && sourceWorkspaceId) {
+          parameters.source_workspace_id = sourceWorkspaceId;
+        }
+        const acceptance = await sendFrontendCommand(
+          "frontend.preview.start",
+          parameters,
+        );
+        const sessionId = payloadString(acceptance, "previewSessionId");
+        const state = payloadString(acceptance, "state") ?? "UNAVAILABLE";
+        const detail = payloadString(acceptance, "stateDetail");
+        if (!sessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
+          setPreview(null);
+          setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
+          await refreshSnapshot();
+          return;
+        }
         await refreshSnapshot();
+        await loadPreviewDocument(sessionId);
+      } catch (error) {
+        setPreview(null);
+        setPreviewError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setPreviewBusy(false);
+      }
+    },
+    [
+      activeCandidate,
+      activeCandidateId,
+      loadPreviewDocument,
+      refreshSnapshot,
+      screenKey,
+      sendFrontendCommand,
+      snapshot,
+      sourceWorkspaceId,
+      viewport,
+    ],
+  );
+
+  const tryCandidateLive = useCallback(
+    async (candidateId: string) => {
+      const candidate = snapshot?.candidates.cards.find(
+        (item) => item.candidateId === candidateId,
+      );
+      if (!candidate || !screenKey) {
+        setPreviewError(
+          "Select a real candidate and screen before trying it live.",
+        );
         return;
       }
-      await refreshSnapshot();
-      await loadPreviewDocument(previewSessionId);
-    } catch (error) {
-      setDesignArtifactError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setPreviewBusy(false);
-      setDesignArtifactBusyId(null);
-    }
-  }, [
-    chatThread?.conversation?.designSessionId,
-    loadPreviewDocument,
-    refreshDesignArtifacts,
-    refreshSnapshot,
-    screenKey,
-    sendFrontendCommand,
-    viewport,
-  ]);
-
-  const promoteCandidate = useCallback(async (candidateId: string) => {
-    setActiveCandidateId(candidateId);
-    setPromotionBusyCandidateId(candidateId);
-    setPromotionError(null);
-    try {
-      await sendFrontendCommand("frontend.candidate.promote", { candidate_id: candidateId });
-      setPreview(null);
-      setPreviewBrowserReady(false);
-      setSelection(null);
-      setSelectedKey(null);
-      const [nextSnapshot, nextAudit] = await Promise.all([
-        refreshSnapshot(),
-        bridge.requestRead<ScreenAuditMatrix>({ resource: "frontend.audit.matrix" }).catch(() => null),
-      ]);
-      if (nextAudit) setAuditMatrix(nextAudit);
-      if (!nextSnapshot.candidates.cards.some((item) => item.candidateId === candidateId)) {
-        setActiveCandidateId(nextSnapshot.candidates.cards[0]?.candidateId ?? null);
+      setMode("design");
+      setActiveCandidateId(candidateId);
+      setPromotionError(null);
+      if (candidate.previewSessionId) {
+        await loadPreviewDocument(candidate.previewSessionId);
+        return;
       }
-    } catch (error) {
-      setPromotionError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setPromotionBusyCandidateId(null);
-    }
-  }, [bridge, refreshSnapshot, sendFrontendCommand]);
+      if (!candidate.workspaceId) {
+        setPreviewError(
+          "This candidate needs a READY source workspace. Select it in the Canvas before starting the code-backed preview.",
+        );
+        return;
+      }
+      setPreviewBusy(true);
+      setPreviewError(null);
+      try {
+        const acceptance = await sendFrontendCommand("frontend.preview.start", {
+          candidate_id: candidateId,
+          screen_key: screenKey,
+          viewport,
+        });
+        const sessionId = payloadString(acceptance, "previewSessionId");
+        const state = payloadString(acceptance, "state") ?? "UNAVAILABLE";
+        const detail = payloadString(acceptance, "stateDetail");
+        if (!sessionId || state === "UNAVAILABLE" || state === "RENDER_ERROR") {
+          setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
+          await refreshSnapshot();
+          return;
+        }
+        await refreshSnapshot();
+        await loadPreviewDocument(sessionId);
+      } catch (error) {
+        setPreviewError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setPreviewBusy(false);
+      }
+    },
+    [
+      loadPreviewDocument,
+      refreshSnapshot,
+      screenKey,
+      sendFrontendCommand,
+      snapshot,
+      viewport,
+    ],
+  );
+
+  const tryDesignArtifact = useCallback(
+    async (artifactId: string) => {
+      const designSessionId = chatThread?.conversation?.designSessionId ?? null;
+      setDesignArtifactBusyId(artifactId);
+      setDesignArtifactError(null);
+      setPromotionError(null);
+      try {
+        const acceptance = await sendFrontendCommand(
+          "frontend.design.try_live",
+          { artifact_id: artifactId },
+        );
+        const candidateId = payloadString(acceptance, "candidateId");
+        if (!candidateId)
+          throw new Error("Try Live did not return a candidate identity.");
+        setMode("design");
+        setActiveCandidateId(candidateId);
+        setPreview(null);
+        setPreviewBrowserReady(false);
+        setSelection(null);
+        setSelectedKey(null);
+        await Promise.all([
+          refreshSnapshot(),
+          refreshDesignArtifacts(designSessionId),
+        ]);
+        if (!screenKey) {
+          setPreviewError(
+            "Direction materialized. Select a PXG screen to start its code-backed preview.",
+          );
+          return;
+        }
+        setPreviewBusy(true);
+        const previewAcceptance = await sendFrontendCommand(
+          "frontend.preview.start",
+          {
+            candidate_id: candidateId,
+            screen_key: screenKey,
+            viewport,
+          },
+        );
+        const previewSessionId = payloadString(
+          previewAcceptance,
+          "previewSessionId",
+        );
+        const state =
+          payloadString(previewAcceptance, "state") ?? "UNAVAILABLE";
+        const detail = payloadString(previewAcceptance, "stateDetail");
+        if (
+          !previewSessionId ||
+          state === "UNAVAILABLE" ||
+          state === "RENDER_ERROR"
+        ) {
+          setPreviewError(`${state}${detail ? ` — ${detail}` : ""}`);
+          await refreshSnapshot();
+          return;
+        }
+        await refreshSnapshot();
+        await loadPreviewDocument(previewSessionId);
+      } catch (error) {
+        setDesignArtifactError(
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setPreviewBusy(false);
+        setDesignArtifactBusyId(null);
+      }
+    },
+    [
+      chatThread?.conversation?.designSessionId,
+      loadPreviewDocument,
+      refreshDesignArtifacts,
+      refreshSnapshot,
+      screenKey,
+      sendFrontendCommand,
+      viewport,
+    ],
+  );
+
+  const promoteCandidate = useCallback(
+    async (candidateId: string) => {
+      setActiveCandidateId(candidateId);
+      setPromotionBusyCandidateId(candidateId);
+      setPromotionError(null);
+      try {
+        await sendFrontendCommand("frontend.candidate.promote", {
+          candidate_id: candidateId,
+        });
+        setPreview(null);
+        setPreviewBrowserReady(false);
+        setSelection(null);
+        setSelectedKey(null);
+        const [nextSnapshot, nextAudit] = await Promise.all([
+          refreshSnapshot(),
+          bridge
+            .requestRead<ScreenAuditMatrix>({
+              resource: "frontend.audit.matrix",
+            })
+            .catch(() => null),
+        ]);
+        if (nextAudit) setAuditMatrix(nextAudit);
+        if (
+          !nextSnapshot.candidates.cards.some(
+            (item) => item.candidateId === candidateId,
+          )
+        ) {
+          setActiveCandidateId(
+            nextSnapshot.candidates.cards[0]?.candidateId ?? null,
+          );
+        }
+      } catch (error) {
+        setPromotionError(
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setPromotionBusyCandidateId(null);
+      }
+    },
+    [bridge, refreshSnapshot, sendFrontendCommand],
+  );
 
   const handleChatSend = useCallback(
     async (text: string): Promise<boolean> => {
@@ -869,10 +1160,15 @@ export function DdeStudioApp({
         if (!conversationId) {
           const openParameters: Record<string, unknown> = { viewport };
           if (screenKey) openParameters.screen_key = screenKey;
-          const opened = await sendFrontendCommand("frontend.chat.open", openParameters);
+          const opened = await sendFrontendCommand(
+            "frontend.chat.open",
+            openParameters,
+          );
           conversationId = payloadString(opened, "conversationId");
           if (!conversationId) {
-            throw new Error("Frontend Chat did not return a conversation identity.");
+            throw new Error(
+              "Frontend Chat did not return a conversation identity.",
+            );
           }
         }
 
@@ -884,8 +1180,12 @@ export function DdeStudioApp({
         };
         contextParameters.active_candidate_id = activeCandidateId;
         contextParameters.screen_key = screenKey;
-        contextParameters.active_workspace_id = activeCandidate?.workspaceId ?? sourceWorkspaceId;
-        await sendFrontendCommand("frontend.chat.set_context", contextParameters);
+        contextParameters.active_workspace_id =
+          activeCandidate?.workspaceId ?? sourceWorkspaceId;
+        await sendFrontendCommand(
+          "frontend.chat.set_context",
+          contextParameters,
+        );
 
         const accepted = await sendFrontendCommand("frontend.chat.send", {
           conversation_id: conversationId,
@@ -970,7 +1270,8 @@ export function DdeStudioApp({
 
   const handlePreviewSignal = useCallback(
     async (signal: PreviewRuntimeSignal) => {
-      if (!preview || signal.previewSessionId !== preview.previewSessionId) return;
+      if (!preview || signal.previewSessionId !== preview.previewSessionId)
+        return;
       if (signal.kind === "selection") {
         setSelectedKey(signal.pxgKey);
         setSelection({ pxgKey: signal.pxgKey, geometry: signal.geometry });
@@ -978,11 +1279,14 @@ export function DdeStudioApp({
       }
       try {
         if (signal.kind === "ready") {
-          const acceptance = await sendFrontendCommand("frontend.preview.set_state", {
-            preview_session_id: signal.previewSessionId,
-            state: "LIVE",
-            content_hash: signal.contentHash,
-          });
+          const acceptance = await sendFrontendCommand(
+            "frontend.preview.set_state",
+            {
+              preview_session_id: signal.previewSessionId,
+              state: "LIVE",
+              content_hash: signal.contentHash,
+            },
+          );
           const state = payloadString(acceptance, "state");
           setPreview((current) =>
             current && state
@@ -990,22 +1294,30 @@ export function DdeStudioApp({
                   ...current,
                   state: state as PreviewDocument["state"],
                   stateDetail:
-                    payloadString(acceptance, "stateDetail") ?? current.stateDetail,
+                    payloadString(acceptance, "stateDetail") ??
+                    current.stateDetail,
                 }
               : current,
           );
           setPreviewBrowserReady(state === "LIVE");
           await refreshSnapshot();
         } else {
-          const acceptance = await sendFrontendCommand("frontend.preview.set_state", {
-            preview_session_id: signal.previewSessionId,
-            state: "RUNTIME_ERROR",
-            detail: signal.detail,
-          });
+          const acceptance = await sendFrontendCommand(
+            "frontend.preview.set_state",
+            {
+              preview_session_id: signal.previewSessionId,
+              state: "RUNTIME_ERROR",
+              detail: signal.detail,
+            },
+          );
           const state = payloadString(acceptance, "state");
           setPreview((current) =>
             current && state
-              ? { ...current, state: state as PreviewDocument["state"], stateDetail: signal.detail }
+              ? {
+                  ...current,
+                  state: state as PreviewDocument["state"],
+                  stateDetail: signal.detail,
+                }
               : current,
           );
           setPreviewBrowserReady(false);
@@ -1025,22 +1337,27 @@ export function DdeStudioApp({
       setApplyingProperty(propertyName);
       setInspectorError(null);
       try {
-        const acceptance = await sendFrontendCommand("frontend.mutation.apply", {
-          candidate_id: activeCandidateId,
-          mutations: [
-            {
-              operation: "SET_PROPERTY",
-              target_key: selectedKey,
-              origin: "INSPECTOR",
-              payload: { property: propertyName, value },
-            },
-          ],
-        });
+        const acceptance = await sendFrontendCommand(
+          "frontend.mutation.apply",
+          {
+            candidate_id: activeCandidateId,
+            mutations: [
+              {
+                operation: "SET_PROPERTY",
+                target_key: selectedKey,
+                origin: "INSPECTOR",
+                payload: { property: propertyName, value },
+              },
+            ],
+          },
+        );
         const refused = acceptance.payload.refused;
         if (Array.isArray(refused) && refused.length) {
           const first = refused[0] as Record<string, unknown>;
           setInspectorError(
-            String(first.refusalDetail ?? first.refusalCode ?? "Mutation refused."),
+            String(
+              first.refusalDetail ?? first.refusalCode ?? "Mutation refused.",
+            ),
           );
           return;
         }
@@ -1050,7 +1367,9 @@ export function DdeStudioApp({
         await refreshSnapshot();
         await startPreview();
       } catch (error) {
-        setInspectorError(error instanceof Error ? error.message : String(error));
+        setInspectorError(
+          error instanceof Error ? error.message : String(error),
+        );
       } finally {
         setApplyingProperty(null);
       }
@@ -1064,60 +1383,76 @@ export function DdeStudioApp({
     ],
   );
 
-  const changePreviewViewport = useCallback(async (nextViewport: string) => {
-    setViewport(nextViewport);
-    if (activeCandidateId && screenKey) {
-      await startPreview(nextViewport);
-    }
-  }, [activeCandidateId, screenKey, startPreview]);
+  const changePreviewViewport = useCallback(
+    async (nextViewport: string) => {
+      setViewport(nextViewport);
+      if (activeCandidateId && screenKey) {
+        await startPreview(nextViewport);
+      }
+    },
+    [activeCandidateId, screenKey, startPreview],
+  );
 
-  const createInspectorLock = useCallback(async (lockKind: "STYLE" | "SECTION") => {
-    if (!selectedKey) return;
-    setLockBusy(true);
-    setInspectorError(null);
-    try {
-      await sendFrontendCommand("frontend.lock.create", {
-        lock_kind: lockKind,
-        scope_key: selectedKey,
-        reason: `Created from Frontend Studio Inspector (${lockKind.toLowerCase()})`,
-      });
-      await refreshSnapshot();
-      setInspectorEpoch((value) => value + 1);
-    } catch (error) {
-      setInspectorError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setLockBusy(false);
-    }
-  }, [refreshSnapshot, selectedKey, sendFrontendCommand]);
+  const createInspectorLock = useCallback(
+    async (lockKind: "STYLE" | "SECTION") => {
+      if (!selectedKey) return;
+      setLockBusy(true);
+      setInspectorError(null);
+      try {
+        await sendFrontendCommand("frontend.lock.create", {
+          lock_kind: lockKind,
+          scope_key: selectedKey,
+          reason: `Created from Frontend Studio Inspector (${lockKind.toLowerCase()})`,
+        });
+        await refreshSnapshot();
+        setInspectorEpoch((value) => value + 1);
+      } catch (error) {
+        setInspectorError(
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setLockBusy(false);
+      }
+    },
+    [refreshSnapshot, selectedKey, sendFrontendCommand],
+  );
 
-  const releaseInspectorLock = useCallback(async (lockId: string) => {
-    setLockBusy(true);
-    setInspectorError(null);
-    try {
-      await sendFrontendCommand("frontend.lock.release", { lock_id: lockId });
-      await refreshSnapshot();
-      setInspectorEpoch((value) => value + 1);
-    } catch (error) {
-      setInspectorError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setLockBusy(false);
-    }
-  }, [refreshSnapshot, sendFrontendCommand]);
+  const releaseInspectorLock = useCallback(
+    async (lockId: string) => {
+      setLockBusy(true);
+      setInspectorError(null);
+      try {
+        await sendFrontendCommand("frontend.lock.release", { lock_id: lockId });
+        await refreshSnapshot();
+        setInspectorEpoch((value) => value + 1);
+      } catch (error) {
+        setInspectorError(
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setLockBusy(false);
+      }
+    },
+    [refreshSnapshot, sendFrontendCommand],
+  );
 
-  const selectChatConversation = useCallback(async (conversationId: string) => {
-    setChatLoading(true);
-    try {
-      const value = await bridge.requestRead<FrontendChatThread>({
-        resource: "frontend.chat.thread.by_id",
-        parameters: { conversationId },
-      });
-      setChatThread(value);
-      setPendingAttachmentIds([]);
-      await refreshChatResources(conversationId);
-    } finally {
-      setChatLoading(false);
-    }
-  }, [bridge, refreshChatResources]);
+  const selectChatConversation = useCallback(
+    async (conversationId: string) => {
+      setChatLoading(true);
+      try {
+        const value = await bridge.requestRead<FrontendChatThread>({
+          resource: "frontend.chat.thread.by_id",
+          parameters: { conversationId },
+        });
+        setChatThread(value);
+        setPendingAttachmentIds([]);
+        await refreshChatResources(conversationId);
+      } finally {
+        setChatLoading(false);
+      }
+    },
+    [bridge, refreshChatResources],
+  );
 
   const newChatConversation = useCallback(async () => {
     const opened = await sendFrontendCommand("frontend.chat.open", {
@@ -1130,178 +1465,309 @@ export function DdeStudioApp({
     const id = payloadString(opened, "conversationId");
     if (!id) throw new Error("DDE did not return a conversation id.");
     await selectChatConversation(id);
-  }, [activeCandidate?.workspaceId, screenKey, selectChatConversation, sendFrontendCommand, sourceWorkspaceId, viewport]);
+  }, [
+    activeCandidate?.workspaceId,
+    screenKey,
+    selectChatConversation,
+    sendFrontendCommand,
+    sourceWorkspaceId,
+    viewport,
+  ]);
 
-  const mutateConversation = useCallback(async (
-    commandType: string,
-    parameters: Record<string, unknown>,
-  ) => {
-    const conversationId = chatThread?.conversation?.conversationId;
-    if (!conversationId) throw new Error("Open a Chat conversation first.");
-    await sendFrontendCommand(commandType, { conversation_id: conversationId, ...parameters });
-    await selectChatConversation(conversationId);
-  }, [chatThread?.conversation?.conversationId, selectChatConversation, sendFrontendCommand]);
+  const mutateConversation = useCallback(
+    async (commandType: string, parameters: Record<string, unknown>) => {
+      const conversationId = chatThread?.conversation?.conversationId;
+      if (!conversationId) throw new Error("Open a Chat conversation first.");
+      await sendFrontendCommand(commandType, {
+        conversation_id: conversationId,
+        ...parameters,
+      });
+      await selectChatConversation(conversationId);
+    },
+    [
+      chatThread?.conversation?.conversationId,
+      selectChatConversation,
+      sendFrontendCommand,
+    ],
+  );
 
   const attachLocalFile = useCallback(async () => {
     const conversationId = chatThread?.conversation?.conversationId;
-    if (!conversationId) throw new Error("Open a Chat conversation before attaching files.");
+    if (!conversationId)
+      throw new Error("Open a Chat conversation before attaching files.");
     if (!bridge.pickLocalFile || !bridge.uploadPickedFile) {
       throw new Error("This host does not provide native Chat file upload.");
     }
     const picked = await bridge.pickLocalFile();
     if (!picked) return;
-    const reserved = await sendFrontendCommand("frontend.chat.attachment.reserve", {
-      conversation_id: conversationId,
-      filename: picked.filename,
-      media_type: picked.mediaType,
-      size_bytes: picked.sizeBytes,
-    });
+    const reserved = await sendFrontendCommand(
+      "frontend.chat.attachment.reserve",
+      {
+        conversation_id: conversationId,
+        filename: picked.filename,
+        media_type: picked.mediaType,
+        size_bytes: picked.sizeBytes,
+      },
+    );
     const rawAttachment = reserved.payload.attachment;
     if (!rawAttachment || typeof rawAttachment !== "object") {
       throw new Error("DDE did not return an attachment reservation.");
     }
-    const attachmentId = (rawAttachment as Record<string, unknown>).attachmentId;
-    if (typeof attachmentId !== "string") throw new Error("Attachment reservation has no identity.");
+    const attachmentId = (rawAttachment as Record<string, unknown>)
+      .attachmentId;
+    if (typeof attachmentId !== "string")
+      throw new Error("Attachment reservation has no identity.");
     await bridge.uploadPickedFile({
       token: picked.token,
       conversationId,
       attachmentId,
       idempotencyKey: `frontend.chat.attachment.upload:${attachmentId}`,
     });
-    setPendingAttachmentIds((current) => [...new Set([...current, attachmentId])]);
+    setPendingAttachmentIds((current) => [
+      ...new Set([...current, attachmentId]),
+    ]);
     await refreshChatResources(conversationId);
-  }, [bridge, chatThread?.conversation?.conversationId, refreshChatResources, sendFrontendCommand]);
-
-  const approvePlan = useCallback(async (plan: FrontendChatPlan) => {
-    await sendFrontendCommand("frontend.chat.plan.approve", {
-      plan_id: plan.planId,
-      lock_version: plan.lockVersion,
-    });
-    await refreshChatResources(plan.conversationId);
-    await refreshChat();
-  }, [refreshChat, refreshChatResources, sendFrontendCommand]);
-
-  const runPlanStep = useCallback(async (plan: FrontendChatPlan, step: FrontendChatPlanStep) => {
-    const prepared = await sendFrontendCommand("frontend.chat.plan.prepare_step", {
-      plan_id: plan.planId,
-      step_id: step.stepId,
-    });
-    const commandType = payloadString(prepared, "commandType");
-    const idempotencyKey = payloadString(prepared, "idempotencyKey");
-    const targetId = payloadString(prepared, "targetId");
-    const parameters = prepared.payload.parameters;
-    if (!commandType || !idempotencyKey || !targetId || !parameters || typeof parameters !== "object") {
-      throw new Error("Prepared Chat plan step is incomplete.");
-    }
-    const commandId = actionId();
-    try {
-      await bridge.sendCommand({
-        commandId,
-        commandType,
-        targetType: "mission",
-        targetId,
-        parameters: parameters as Readonly<Record<string, unknown>>,
-        idempotencyKey,
-      });
-    } finally {
-      await sendFrontendCommand("frontend.chat.plan.record_step", {
-        plan_id: plan.planId,
-        step_id: step.stepId,
-        command_id: commandId,
-      });
-      await refreshChatResources(plan.conversationId);
-      await refreshChat();
-      await refreshSnapshot();
-      if (commandType === "frontend.mutation.apply" || commandType === "frontend.mutation.revert") {
-        setSelection(null);
-        setSelectedKey(null);
-        setPreview(null);
-        setPreviewBrowserReady(false);
-        await startPreview();
-      }
-    }
-  }, [bridge, refreshChat, refreshChatResources, refreshSnapshot, sendFrontendCommand, startPreview]);
-
-  const chatCursor = useMemo(() => ({
-    canPickLocalFile,
-    conversations: chatConversations,
-    attachments: chatAttachments,
-    pendingAttachmentIds,
-    plans: chatPlans,
-    activities: chatActivities,
-    checkpoints: chatCheckpoints,
-    changes: chatChanges,
-    models: chatModels,
-    contextBudget: chatContextBudget,
-    onNewConversation: newChatConversation,
-    onSelectConversation: selectChatConversation,
-    onSearchConversations: async (query: string) => {
-      const value = await bridge.requestRead<{ conversations: readonly FrontendChatConversation[] }>({
-        resource: "frontend.chat.conversations", parameters: { query },
-      });
-      setChatConversations(value.conversations ?? []);
-    },
-    onRenameConversation: async (title: string) => mutateConversation("frontend.chat.rename", { title }),
-    onArchiveConversation: async () => {
-      await mutateConversation("frontend.chat.archive", { archived: true });
-      await refreshChat();
-      await refreshChatResources(null);
-    },
-    onBranchConversation: async (turnId?: string) => {
-      const conversationId = chatThread?.conversation?.conversationId;
-      if (!conversationId) return;
-      const accepted = await sendFrontendCommand("frontend.chat.branch", {
-        conversation_id: conversationId,
-        from_turn_id: turnId ?? null,
-      });
-      const raw = accepted.payload.conversation;
-      const id = raw && typeof raw === "object" ? (raw as Record<string, unknown>).conversationId : null;
-      if (typeof id === "string") await selectChatConversation(id);
-    },
-    onModeChange: async (next: FrontendChatMode) => mutateConversation("frontend.chat.set_mode", { mode: next }),
-    onModelChange: async (model: string | null) => mutateConversation("frontend.chat.set_model", { model_profile_id: model }),
-    onAttachLocalFile: attachLocalFile,
-    onRemoveAttachment: async (attachmentId: string) => {
-      await mutateConversation("frontend.chat.attachment.remove", { attachment_id: attachmentId });
-      setPendingAttachmentIds((current) => current.filter((item) => item !== attachmentId));
-    },
-    onCreateCheckpoint: async (note?: string) => mutateConversation("frontend.chat.checkpoint.create", { note: note ?? null }),
-    onRestoreCheckpoint: async (checkpointId: string) => mutateConversation("frontend.chat.checkpoint.restore", { checkpoint_id: checkpointId }),
-    onApprovePlan: approvePlan,
-    onRunPlanStep: runPlanStep,
-    onRetryPlanStep: async (plan: FrontendChatPlan, step: FrontendChatPlanStep) => {
-      await sendFrontendCommand("frontend.chat.plan.retry_step", { plan_id: plan.planId, step_id: step.stepId });
-      await refreshChatResources(plan.conversationId);
-    },
-    onCancelPlan: async (plan: FrontendChatPlan) => {
-      await sendFrontendCommand("frontend.chat.plan.cancel", { plan_id: plan.planId, lock_version: plan.lockVersion });
-      await refreshChatResources(plan.conversationId);
-    },
-    onCancelActivity: async (activity: FrontendChatActivity) => mutateConversation("frontend.chat.activity.cancel", { activity_id: activity.activityId, reason: "Stopped by user" }),
-    onAcceptChange: async (change: FrontendChatChange) => mutateConversation("frontend.chat.workspace.accept_file", { path: change.path, expected_diff_hash: change.diffHash }),
-    onRevertChange: async (change: FrontendChatChange) => mutateConversation("frontend.chat.workspace.revert_file", { path: change.path, expected_diff_hash: change.diffHash }),
-    onRevertAll: async () => {
-      const exact = chatCheckpoints.find((item) => item.diffHash && item.diffHash === chatChanges?.diffHash);
-      if (!exact) throw new Error("Create a checkpoint of the exact current diff before revert-all.");
-      await mutateConversation("frontend.chat.workspace.revert_all", { checkpoint_id: exact.checkpointId });
-    },
-    onApplyPatch: async (patch: string) => mutateConversation("frontend.chat.workspace.apply_patch", {
-      patch_text: patch,
-      expected_diff_hash: chatChanges?.diffHash ?? null,
-    }),
-    onPinContext: async (ref: string, pinned: boolean) => mutateConversation("frontend.chat.pin_context", { context_ref: ref, pinned }),
-  }), [
-    approvePlan, attachLocalFile, bridge, canPickLocalFile, chatActivities, chatAttachments,
-    chatChanges, chatCheckpoints, chatContextBudget, chatConversations, chatModels, chatPlans,
-    chatThread?.conversation?.conversationId, mutateConversation, newChatConversation,
-    pendingAttachmentIds, refreshChat, refreshChatResources, runPlanStep,
-    selectChatConversation, sendFrontendCommand,
+  }, [
+    bridge,
+    chatThread?.conversation?.conversationId,
+    refreshChatResources,
+    sendFrontendCommand,
   ]);
 
+  const approvePlan = useCallback(
+    async (plan: FrontendChatPlan) => {
+      await sendFrontendCommand("frontend.chat.plan.approve", {
+        plan_id: plan.planId,
+        lock_version: plan.lockVersion,
+      });
+      await refreshChatResources(plan.conversationId);
+      await refreshChat();
+    },
+    [refreshChat, refreshChatResources, sendFrontendCommand],
+  );
+
+  const runPlanStep = useCallback(
+    async (plan: FrontendChatPlan, step: FrontendChatPlanStep) => {
+      const prepared = await sendFrontendCommand(
+        "frontend.chat.plan.prepare_step",
+        {
+          plan_id: plan.planId,
+          step_id: step.stepId,
+        },
+      );
+      const commandType = payloadString(prepared, "commandType");
+      const idempotencyKey = payloadString(prepared, "idempotencyKey");
+      const targetId = payloadString(prepared, "targetId");
+      const parameters = prepared.payload.parameters;
+      if (
+        !commandType ||
+        !idempotencyKey ||
+        !targetId ||
+        !parameters ||
+        typeof parameters !== "object"
+      ) {
+        throw new Error("Prepared Chat plan step is incomplete.");
+      }
+      const commandId = actionId();
+      try {
+        await bridge.sendCommand({
+          commandId,
+          commandType,
+          targetType: "mission",
+          targetId,
+          parameters: parameters as Readonly<Record<string, unknown>>,
+          idempotencyKey,
+        });
+      } finally {
+        await sendFrontendCommand("frontend.chat.plan.record_step", {
+          plan_id: plan.planId,
+          step_id: step.stepId,
+          command_id: commandId,
+        });
+        await refreshChatResources(plan.conversationId);
+        await refreshChat();
+        await refreshSnapshot();
+        if (
+          commandType === "frontend.mutation.apply" ||
+          commandType === "frontend.mutation.revert"
+        ) {
+          setSelection(null);
+          setSelectedKey(null);
+          setPreview(null);
+          setPreviewBrowserReady(false);
+          await startPreview();
+        }
+      }
+    },
+    [
+      bridge,
+      refreshChat,
+      refreshChatResources,
+      refreshSnapshot,
+      sendFrontendCommand,
+      startPreview,
+    ],
+  );
+
+  const chatCursor = useMemo(
+    () => ({
+      canPickLocalFile,
+      conversations: chatConversations,
+      attachments: chatAttachments,
+      pendingAttachmentIds,
+      plans: chatPlans,
+      activities: chatActivities,
+      checkpoints: chatCheckpoints,
+      changes: chatChanges,
+      models: chatModels,
+      contextBudget: chatContextBudget,
+      onNewConversation: newChatConversation,
+      onSelectConversation: selectChatConversation,
+      onSearchConversations: async (query: string) => {
+        const value = await bridge.requestRead<{
+          conversations: readonly FrontendChatConversation[];
+        }>({
+          resource: "frontend.chat.conversations",
+          parameters: { query },
+        });
+        setChatConversations(value.conversations ?? []);
+      },
+      onRenameConversation: async (title: string) =>
+        mutateConversation("frontend.chat.rename", { title }),
+      onArchiveConversation: async () => {
+        await mutateConversation("frontend.chat.archive", { archived: true });
+        await refreshChat();
+        await refreshChatResources(null);
+      },
+      onBranchConversation: async (turnId?: string) => {
+        const conversationId = chatThread?.conversation?.conversationId;
+        if (!conversationId) return;
+        const accepted = await sendFrontendCommand("frontend.chat.branch", {
+          conversation_id: conversationId,
+          from_turn_id: turnId ?? null,
+        });
+        const raw = accepted.payload.conversation;
+        const id =
+          raw && typeof raw === "object"
+            ? (raw as Record<string, unknown>).conversationId
+            : null;
+        if (typeof id === "string") await selectChatConversation(id);
+      },
+      onModeChange: async (next: FrontendChatMode) =>
+        mutateConversation("frontend.chat.set_mode", { mode: next }),
+      onModelChange: async (model: string | null) =>
+        mutateConversation("frontend.chat.set_model", {
+          model_profile_id: model,
+        }),
+      onAttachLocalFile: attachLocalFile,
+      onRemoveAttachment: async (attachmentId: string) => {
+        await mutateConversation("frontend.chat.attachment.remove", {
+          attachment_id: attachmentId,
+        });
+        setPendingAttachmentIds((current) =>
+          current.filter((item) => item !== attachmentId),
+        );
+      },
+      onCreateCheckpoint: async (note?: string) =>
+        mutateConversation("frontend.chat.checkpoint.create", {
+          note: note ?? null,
+        }),
+      onRestoreCheckpoint: async (checkpointId: string) =>
+        mutateConversation("frontend.chat.checkpoint.restore", {
+          checkpoint_id: checkpointId,
+        }),
+      onApprovePlan: approvePlan,
+      onRunPlanStep: runPlanStep,
+      onRetryPlanStep: async (
+        plan: FrontendChatPlan,
+        step: FrontendChatPlanStep,
+      ) => {
+        await sendFrontendCommand("frontend.chat.plan.retry_step", {
+          plan_id: plan.planId,
+          step_id: step.stepId,
+        });
+        await refreshChatResources(plan.conversationId);
+      },
+      onCancelPlan: async (plan: FrontendChatPlan) => {
+        await sendFrontendCommand("frontend.chat.plan.cancel", {
+          plan_id: plan.planId,
+          lock_version: plan.lockVersion,
+        });
+        await refreshChatResources(plan.conversationId);
+      },
+      onCancelActivity: async (activity: FrontendChatActivity) =>
+        mutateConversation("frontend.chat.activity.cancel", {
+          activity_id: activity.activityId,
+          reason: "Stopped by user",
+        }),
+      onAcceptChange: async (change: FrontendChatChange) =>
+        mutateConversation("frontend.chat.workspace.accept_file", {
+          path: change.path,
+          expected_diff_hash: change.diffHash,
+        }),
+      onRevertChange: async (change: FrontendChatChange) =>
+        mutateConversation("frontend.chat.workspace.revert_file", {
+          path: change.path,
+          expected_diff_hash: change.diffHash,
+        }),
+      onRevertAll: async () => {
+        const exact = chatCheckpoints.find(
+          (item) => item.diffHash && item.diffHash === chatChanges?.diffHash,
+        );
+        if (!exact)
+          throw new Error(
+            "Create a checkpoint of the exact current diff before revert-all.",
+          );
+        await mutateConversation("frontend.chat.workspace.revert_all", {
+          checkpoint_id: exact.checkpointId,
+        });
+      },
+      onApplyPatch: async (patch: string) =>
+        mutateConversation("frontend.chat.workspace.apply_patch", {
+          patch_text: patch,
+          expected_diff_hash: chatChanges?.diffHash ?? null,
+        }),
+      onPinContext: async (ref: string, pinned: boolean) =>
+        mutateConversation("frontend.chat.pin_context", {
+          context_ref: ref,
+          pinned,
+        }),
+    }),
+    [
+      approvePlan,
+      attachLocalFile,
+      bridge,
+      canPickLocalFile,
+      chatActivities,
+      chatAttachments,
+      chatChanges,
+      chatCheckpoints,
+      chatContextBudget,
+      chatConversations,
+      chatModels,
+      chatPlans,
+      chatThread?.conversation?.conversationId,
+      mutateConversation,
+      newChatConversation,
+      pendingAttachmentIds,
+      refreshChat,
+      refreshChatResources,
+      runPlanStep,
+      selectChatConversation,
+      sendFrontendCommand,
+    ],
+  );
+
   const refreshComments = useCallback(async () => {
-    if (!activeCandidateId || !selectedKey) { setDesignComments([]); return []; }
-    const value = await bridge.requestRead<{ comments: readonly DesignCommentView[] }>({
-      resource: "frontend.comments", parameters: { candidateId: activeCandidateId, pxgKey: selectedKey },
+    if (!activeCandidateId || !selectedKey) {
+      setDesignComments([]);
+      return [];
+    }
+    const value = await bridge.requestRead<{
+      comments: readonly DesignCommentView[];
+    }>({
+      resource: "frontend.comments",
+      parameters: { candidateId: activeCandidateId, pxgKey: selectedKey },
     });
     const comments = value.comments ?? [];
     setDesignComments(comments);
@@ -1310,105 +1776,207 @@ export function DdeStudioApp({
 
   useEffect(() => {
     void refreshComments().catch((error: unknown) => {
-      setDesignComments([]); setReviewError(error instanceof Error ? error.message : String(error));
+      setDesignComments([]);
+      setReviewError(error instanceof Error ? error.message : String(error));
     });
   }, [refreshComments]);
 
   useEffect(() => {
     if (!preview?.previewSessionId) {
-      setPreviewScenarioState({ scenario: "DEFAULT", role: null, availability: "EMPTY", reason: "no simulated state selected" });
+      setPreviewScenarioState({
+        scenario: "DEFAULT",
+        role: null,
+        availability: "EMPTY",
+        reason: "no simulated state selected",
+      });
       return;
     }
-    void bridge.requestRead<PreviewScenarioView>({
-      resource: "frontend.preview.scenario", parameters: { previewSessionId: preview.previewSessionId },
-    }).then(setPreviewScenarioState).catch((error: unknown) => {
-      setPreviewScenarioState({ scenario: "DEFAULT", role: null, availability: "UNAVAILABLE", reason: error instanceof Error ? error.message : String(error) });
-    });
+    void bridge
+      .requestRead<PreviewScenarioView>({
+        resource: "frontend.preview.scenario",
+        parameters: { previewSessionId: preview.previewSessionId },
+      })
+      .then(setPreviewScenarioState)
+      .catch((error: unknown) => {
+        setPreviewScenarioState({
+          scenario: "DEFAULT",
+          role: null,
+          availability: "UNAVAILABLE",
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      });
   }, [bridge, preview?.previewSessionId]);
 
   useEffect(() => {
     if (!hostContext) return;
-    void bridge.requestRead<EditorAssistState>({ resource: "frontend.editor.assists" })
+    void bridge
+      .requestRead<EditorAssistState>({ resource: "frontend.editor.assists" })
       .then(setEditorAssists)
-      .catch((error: unknown) => setEditorAssists({ autoLayout: false, aiSuggest: false, availability: "UNAVAILABLE", reason: error instanceof Error ? error.message : String(error) }));
+      .catch((error: unknown) =>
+        setEditorAssists({
+          autoLayout: false,
+          aiSuggest: false,
+          availability: "UNAVAILABLE",
+          reason: error instanceof Error ? error.message : String(error),
+        }),
+      );
   }, [bridge, hostContext]);
 
-  const createDesignComment = useCallback(async (body: string) => {
-    if (!activeCandidateId || !selectedKey || !body.trim()) return;
-    setReviewBusy(true); setReviewError(null);
-    try {
-      await sendFrontendCommand("frontend.comment.create", { candidate_id: activeCandidateId, pxg_key: selectedKey, body: body.trim() });
-      await refreshComments();
-    } catch (error) { setReviewError(error instanceof Error ? error.message : String(error)); }
-    finally { setReviewBusy(false); }
-  }, [activeCandidateId, refreshComments, selectedKey, sendFrontendCommand]);
+  const createDesignComment = useCallback(
+    async (body: string) => {
+      if (!activeCandidateId || !selectedKey || !body.trim()) return;
+      setReviewBusy(true);
+      setReviewError(null);
+      try {
+        await sendFrontendCommand("frontend.comment.create", {
+          candidate_id: activeCandidateId,
+          pxg_key: selectedKey,
+          body: body.trim(),
+        });
+        await refreshComments();
+      } catch (error) {
+        setReviewError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setReviewBusy(false);
+      }
+    },
+    [activeCandidateId, refreshComments, selectedKey, sendFrontendCommand],
+  );
 
-  const resolveDesignComment = useCallback(async (commentId: string) => {
-    setReviewBusy(true); setReviewError(null);
-    try { await sendFrontendCommand("frontend.comment.resolve", { comment_id: commentId }); await refreshComments(); }
-    catch (error) { setReviewError(error instanceof Error ? error.message : String(error)); }
-    finally { setReviewBusy(false); }
-  }, [refreshComments, sendFrontendCommand]);
+  const resolveDesignComment = useCallback(
+    async (commentId: string) => {
+      setReviewBusy(true);
+      setReviewError(null);
+      try {
+        await sendFrontendCommand("frontend.comment.resolve", {
+          comment_id: commentId,
+        });
+        await refreshComments();
+      } catch (error) {
+        setReviewError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setReviewBusy(false);
+      }
+    },
+    [refreshComments, sendFrontendCommand],
+  );
 
-  const changePreviewScenario = useCallback(async (scenario: PreviewScenarioView["scenario"], role: string | null = null) => {
-    if (!preview?.previewSessionId) return;
-    const acceptance = await sendFrontendCommand("frontend.preview.set_scenario", { preview_session_id: preview.previewSessionId, scenario, role });
-    const raw = acceptance.payload.scenario;
-    if (raw && typeof raw === "object") setPreviewScenarioState(raw as unknown as PreviewScenarioView);
-    else {
-      const value = await bridge.requestRead<PreviewScenarioView>({ resource: "frontend.preview.scenario", parameters: { previewSessionId: preview.previewSessionId } });
-      setPreviewScenarioState(value);
-    }
-  }, [bridge, preview?.previewSessionId, sendFrontendCommand]);
+  const changePreviewScenario = useCallback(
+    async (
+      scenario: PreviewScenarioView["scenario"],
+      role: string | null = null,
+    ) => {
+      if (!preview?.previewSessionId) return;
+      const acceptance = await sendFrontendCommand(
+        "frontend.preview.set_scenario",
+        { preview_session_id: preview.previewSessionId, scenario, role },
+      );
+      const raw = acceptance.payload.scenario;
+      if (raw && typeof raw === "object")
+        setPreviewScenarioState(raw as unknown as PreviewScenarioView);
+      else {
+        const value = await bridge.requestRead<PreviewScenarioView>({
+          resource: "frontend.preview.scenario",
+          parameters: { previewSessionId: preview.previewSessionId },
+        });
+        setPreviewScenarioState(value);
+      }
+    },
+    [bridge, preview?.previewSessionId, sendFrontendCommand],
+  );
 
-  const changeEditorAssist = useCallback(async (assist: "auto_layout" | "ai_suggest", enabled: boolean) => {
-    await sendFrontendCommand("frontend.editor.set_assist", { assist, enabled });
-    const value = await bridge.requestRead<EditorAssistState>({ resource: "frontend.editor.assists" });
-    setEditorAssists(value);
-  }, [bridge, sendFrontendCommand]);
-
-  const acknowledgeAttention = useCallback(async (item: AttentionItemView) => {
-    await sendFrontendCommand("frontend.attention.acknowledge", { attention_key: item.attentionKey });
-    await refreshSnapshot();
-  }, [refreshSnapshot, sendFrontendCommand]);
-
-  const applyResizeGridSpan = useCallback(async (value: string) => {
-    if (!activeCandidateId || !selectedKey) return;
-    setInspectorError(null);
-    const acceptance = await sendFrontendCommand("frontend.mutation.apply", {
-      candidate_id: activeCandidateId, mutations: [{ operation: "SET_PROPERTY", target_key: selectedKey, origin: "DIRECT_MANIPULATION", payload: { property: "grid_span", value } }],
-    });
-    const refused = acceptance.payload.refused;
-    if (Array.isArray(refused) && refused.length) {
-      const first = refused[0] as Record<string, unknown>;
-      setInspectorError(String(first.refusalDetail ?? first.refusalCode ?? "Resize refused."));
-      return;
-    }
-    setSelection(null); setPreview(null); setPreviewBrowserReady(false);
-    await refreshSnapshot(); await startPreview();
-  }, [activeCandidateId, refreshSnapshot, selectedKey, sendFrontendCommand, startPreview]);
-
-  const switchProject = useCallback(async (project: FrontendProjectOption) => {
-    if (!hostContext || !project.missionId) {
-      setProjectSwitchError(project.reason ?? "Target project has no unambiguous Frontend Studio mission.");
-      return;
-    }
-    setProjectSwitchError(null);
-    try {
-      const acceptance = await bridge.sendCommand({
-        commandType: "frontend.project.switch",
-        targetType: "project",
-        targetId: project.projectId,
-        parameters: { mission_id: project.missionId },
-        idempotencyKey: `frontend.project.switch:${actionId()}`,
+  const changeEditorAssist = useCallback(
+    async (assist: "auto_layout" | "ai_suggest", enabled: boolean) => {
+      await sendFrontendCommand("frontend.editor.set_assist", {
+        assist,
+        enabled,
       });
-      const missionId = payloadString(acceptance, "missionId");
-      if (!missionId) throw new Error("Project switch returned no mission identity.");
-      await bridge.switchFrontendMission(missionId);
-    } catch (error) {
-      setProjectSwitchError(error instanceof Error ? error.message : String(error));
-    }
-  }, [bridge, hostContext]);
+      const value = await bridge.requestRead<EditorAssistState>({
+        resource: "frontend.editor.assists",
+      });
+      setEditorAssists(value);
+    },
+    [bridge, sendFrontendCommand],
+  );
+
+  const acknowledgeAttention = useCallback(
+    async (item: AttentionItemView) => {
+      await sendFrontendCommand("frontend.attention.acknowledge", {
+        attention_key: item.attentionKey,
+      });
+      await refreshSnapshot();
+    },
+    [refreshSnapshot, sendFrontendCommand],
+  );
+
+  const applyResizeGridSpan = useCallback(
+    async (value: string) => {
+      if (!activeCandidateId || !selectedKey) return;
+      setInspectorError(null);
+      const acceptance = await sendFrontendCommand("frontend.mutation.apply", {
+        candidate_id: activeCandidateId,
+        mutations: [
+          {
+            operation: "SET_PROPERTY",
+            target_key: selectedKey,
+            origin: "DIRECT_MANIPULATION",
+            payload: { property: "grid_span", value },
+          },
+        ],
+      });
+      const refused = acceptance.payload.refused;
+      if (Array.isArray(refused) && refused.length) {
+        const first = refused[0] as Record<string, unknown>;
+        setInspectorError(
+          String(first.refusalDetail ?? first.refusalCode ?? "Resize refused."),
+        );
+        return;
+      }
+      setSelection(null);
+      setPreview(null);
+      setPreviewBrowserReady(false);
+      await refreshSnapshot();
+      await startPreview();
+    },
+    [
+      activeCandidateId,
+      refreshSnapshot,
+      selectedKey,
+      sendFrontendCommand,
+      startPreview,
+    ],
+  );
+
+  const switchProject = useCallback(
+    async (project: FrontendProjectOption) => {
+      if (!hostContext || !project.missionId) {
+        setProjectSwitchError(
+          project.reason ??
+            "Target project has no unambiguous Frontend Studio mission.",
+        );
+        return;
+      }
+      setProjectSwitchError(null);
+      try {
+        const acceptance = await bridge.sendCommand({
+          commandType: "frontend.project.switch",
+          targetType: "project",
+          targetId: project.projectId,
+          parameters: { mission_id: project.missionId },
+          idempotencyKey: `frontend.project.switch:${actionId()}`,
+        });
+        const missionId = payloadString(acceptance, "missionId");
+        if (!missionId)
+          throw new Error("Project switch returned no mission identity.");
+        await bridge.switchFrontendMission(missionId);
+      } catch (error) {
+        setProjectSwitchError(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    },
+    [bridge, hostContext],
+  );
 
   const openHelp = useCallback(async () => {
     if (!hostContext?.helpRef || !canRevealFile) return;
@@ -1419,15 +1987,14 @@ export function DdeStudioApp({
     }
   }, [bridge, canRevealFile, hostContext?.helpRef]);
 
-  const projectBreadcrumb = displaySlug(hostContext?.projectSlug) ?? projectName ?? "Project";
+  const projectBreadcrumb =
+    displaySlug(hostContext?.projectSlug) ?? projectName ?? "Project";
   const screenBreadcrumb =
     snapshot?.screens.find((screen) => screen.pxgKey === screenKey)?.title ??
     screenKey ??
     "Screen";
   const selectionBreadcrumb =
-    descriptor?.pxgKey === selectedKey
-      ? descriptor.title
-      : selectedKey;
+    descriptor?.pxgKey === selectedKey ? descriptor.title : selectedKey;
   const breadcrumb = selectedKey
     ? [projectBreadcrumb, screenBreadcrumb, selectionBreadcrumb ?? selectedKey]
     : group
@@ -1436,7 +2003,11 @@ export function DdeStudioApp({
 
   const displayedPreview =
     preview && preview.state === "LIVE" && !previewBrowserReady
-      ? { ...preview, state: "LOADING" as const, stateDetail: "awaiting this browser handshake" }
+      ? {
+          ...preview,
+          state: "LOADING" as const,
+          stateDetail: "awaiting this browser handshake",
+        }
       : preview;
 
   return (
@@ -1455,8 +2026,8 @@ export function DdeStudioApp({
       rail={
         <AppRail
           modules={(hostContext?.modules ?? MODULES) as readonly RailModule[]}
-          activeId="frontend"
-          onSelect={() => {}}
+          activeId={activeModuleId}
+          onSelect={setActiveModuleId}
         />
       }
       explorer={
@@ -1470,13 +2041,27 @@ export function DdeStudioApp({
         />
       }
       workspace={
-        loadError || projectSwitchError ? (
+        activeModuleId === "knowledge" ? (
+          <KnowledgeWorkspace
+            projection={knowledgeProjection}
+            loading={knowledgeLoading}
+            error={knowledgeError}
+            onRefresh={() => void refreshKnowledge()}
+            onChallengeDecision={(challengeId, decision, reason) =>
+              decideKnowledgeChallenge(challengeId, decision, reason)
+            }
+            onChallengeReopen={(challengeId, reason) =>
+              reopenKnowledgeChallenge(challengeId, reason)
+            }
+          />
+        ) : loadError || projectSwitchError ? (
           <div className="dde-workspace-inner">
             <div className="dde-canvas">
               <div className="dde-unavailable" role="alert">
                 <span className="dde-unavailable-label">Unavailable</span>
                 <span className="dde-unavailable-reason">
-                  Frontend Studio context unavailable: {loadError ?? projectSwitchError}
+                  Frontend Studio context unavailable:{" "}
+                  {loadError ?? projectSwitchError}
                 </span>
               </div>
             </div>
@@ -1510,7 +2095,9 @@ export function DdeStudioApp({
             }}
             activeCandidateId={activeCandidateId}
             onActiveCandidateChange={setActiveCandidateId}
-            requiresSourceWorkspace={Boolean(activeCandidate && !activeCandidate.workspaceId)}
+            requiresSourceWorkspace={Boolean(
+              activeCandidate && !activeCandidate.workspaceId,
+            )}
             sourceWorkspaces={snapshot?.sourceWorkspaces ?? null}
             sourceWorkspaceId={sourceWorkspaceId}
             onSourceWorkspaceChange={setSourceWorkspaceId}
@@ -1521,7 +2108,9 @@ export function DdeStudioApp({
             designArtifactBusyId={designArtifactBusyId}
             designArtifactError={designArtifactError}
             onClaudeDesign={() => void handleClaudeDesign()}
-            onTryDesignArtifact={(artifactId) => void tryDesignArtifact(artifactId)}
+            onTryDesignArtifact={(artifactId) =>
+              void tryDesignArtifact(artifactId)
+            }
             preview={displayedPreview}
             previewError={previewError}
             previewBusy={previewBusy}
@@ -1535,16 +2124,26 @@ export function DdeStudioApp({
             reviewBusy={reviewBusy}
             reviewError={reviewError}
             onCreateComment={(body) => void createDesignComment(body)}
-            onResolveComment={(commentId) => void resolveDesignComment(commentId)}
+            onResolveComment={(commentId) =>
+              void resolveDesignComment(commentId)
+            }
             previewScenario={previewScenario}
-            onPreviewScenarioChange={(scenario, role) => void changePreviewScenario(scenario, role)}
+            onPreviewScenarioChange={(scenario, role) =>
+              void changePreviewScenario(scenario, role)
+            }
             editorAssists={editorAssists}
-            onEditorAssistChange={(assist, enabled) => void changeEditorAssist(assist, enabled)}
+            onEditorAssistChange={(assist, enabled) =>
+              void changeEditorAssist(assist, enabled)
+            }
             onResizeGridSpan={(value) => void applyResizeGridSpan(value)}
             onStartPreview={() => void startPreview()}
             onLoadPreviewDocument={readPreviewDocument}
-            onTryCandidateLive={(candidateId) => void tryCandidateLive(candidateId)}
-            onPromoteCandidate={(candidateId) => void promoteCandidate(candidateId)}
+            onTryCandidateLive={(candidateId) =>
+              void tryCandidateLive(candidateId)
+            }
+            onPromoteCandidate={(candidateId) =>
+              void promoteCandidate(candidateId)
+            }
             onPreviewSignal={(signal) => void handlePreviewSignal(signal)}
           />
         )
@@ -1567,30 +2166,48 @@ export function DdeStudioApp({
         />
       }
       inspector={
-        <InspectorPanel
-          bridge={bridge}
-          selectedKey={selectedKey}
-          descriptor={descriptor}
-          loading={inspectorLoading}
-          error={inspectorError}
-          applyingProperty={applyingProperty}
-          candidate={activeCandidate}
-          auditMatrix={auditMatrix}
-          provenance={selectedProvenance}
-          viewport={viewport}
-          lockBusy={lockBusy}
-          onApply={(propertyName, value) =>
-            void applyInspectorProperty(propertyName, value)
-          }
-          onViewportChange={(nextViewport) => void changePreviewViewport(nextViewport)}
-          onCreateLock={(kind) => void createInspectorLock(kind)}
-          onReleaseLock={(lockId) => void releaseInspectorLock(lockId)}
-        />
+        activeModuleId === "knowledge" ? (
+          <div className="dde-knowledge-inspector">
+            <span className="dde-eyebrow">Knowledge authority</span>
+            <h2>Project-scoped projection</h2>
+            <p>
+              Unit maps and graph edges are rebuildable projections. Project
+              Truth, TaskGraph, VEKL resources, Context and Verification remain
+              their owning authorities.
+            </p>
+          </div>
+        ) : (
+          <InspectorPanel
+            bridge={bridge}
+            selectedKey={selectedKey}
+            descriptor={descriptor}
+            loading={inspectorLoading}
+            error={inspectorError}
+            applyingProperty={applyingProperty}
+            candidate={activeCandidate}
+            auditMatrix={auditMatrix}
+            provenance={selectedProvenance}
+            viewport={viewport}
+            lockBusy={lockBusy}
+            onApply={(propertyName, value) =>
+              void applyInspectorProperty(propertyName, value)
+            }
+            onViewportChange={(nextViewport) =>
+              void changePreviewViewport(nextViewport)
+            }
+            onCreateLock={(kind) => void createInspectorLock(kind)}
+            onReleaseLock={(lockId) => void releaseInspectorLock(lockId)}
+          />
+        )
       }
       statusBar={
         <StatusBar
           snapshot={snapshot}
-          breadcrumb={breadcrumb}
+          breadcrumb={
+            activeModuleId === "knowledge"
+              ? [projectBreadcrumb, "Knowledge"]
+              : breadcrumb
+          }
           buildVersion={buildVersion ?? snapshot?.sync.buildVersion ?? null}
           auditMatrix={auditMatrix}
         />
@@ -1599,13 +2216,19 @@ export function DdeStudioApp({
   );
 }
 
-function payloadString(acceptance: CommandAcceptance, key: string): string | null {
+function payloadString(
+  acceptance: CommandAcceptance,
+  key: string,
+): string | null {
   const value = acceptance.payload[key];
   return typeof value === "string" && value ? value : null;
 }
 
 function actionId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;

@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_unit_map.json",
+  "title": "VEKLUnitMap",
+  "description": "Rebuildable knowledge projection over one dependency-coherent TaskGraph region; never Task authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_unit_maps",
+    "order": 356,
+    "pk": [
+      "unit_map_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_unit_map_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_unit_map_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_unit_maps_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "vekl_unit_maps_graph_fkey",
+        "columns": [
+          "task_graph_id"
+        ],
+        "ref_table": "task_graphs",
+        "ref_columns": [
+          "graph_id"
+        ]
+      },
+      {
+        "name": "vekl_unit_maps_stack_fkey",
+        "columns": [
+          "stack_fingerprint_id"
+        ],
+        "ref_table": "stack_fingerprints",
+        "ref_columns": [
+          "fingerprint_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "unit_revision_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_unit_maps_active_lineage",
+        "columns": [
+          "project_id",
+          "unit_lineage_id"
+        ],
+        "where": "invalidated_at IS NULL"
+      }
+    ]
+  },
+  "required": [
+    "unit_map_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_graph_id",
+    "task_graph_version",
+    "task_ids",
+    "unit_lineage_id",
+    "unit_revision_hash",
+    "unit_boundary_policy_version",
+    "unit_projection_compiler_version",
+    "project_truth_hash",
+    "applicable_truth_slice_hash",
+    "stack_fingerprint_id",
+    "stack_fingerprint_hash",
+    "contract_set_hash",
+    "retrieval_route_policy_hash",
+    "objective",
+    "scope",
+    "requirement_refs",
+    "edr_refs",
+    "constitution_refs",
+    "upstream_task_refs",
+    "downstream_task_refs",
+    "contracts_consumed",
+    "contracts_produced",
+    "code_targets",
+    "workspace_refs",
+    "product_experience_refs",
+    "security_refs",
+    "eventuality_refs",
+    "research_questions",
+    "knowledge_route_ids",
+    "required_verifiers",
+    "knowledge_readiness_state",
+    "challenge_state",
+    "unit_map_hash",
+    "created_at",
+    "updated_at",
+    "invalidation_reasons"
+  ],
+  "properties": {
+    "unit_map_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_graph_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_graph_version": {
+      "type": "integer"
+    },
+    "task_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "unit_lineage_id": {
+      "type": "string"
+    },
+    "unit_revision_hash": {
+      "type": "string"
+    },
+    "unit_boundary_policy_version": {
+      "type": "string"
+    },
+    "unit_projection_compiler_version": {
+      "type": "string"
+    },
+    "project_truth_hash": {
+      "type": "string"
+    },
+    "applicable_truth_slice_hash": {
+      "type": "string"
+    },
+    "stack_fingerprint_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "stack_fingerprint_hash": {
+      "type": "string"
+    },
+    "contract_set_hash": {
+      "type": "string"
+    },
+    "product_experience_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "retrieval_route_policy_hash": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "requirement_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "edr_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "constitution_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "upstream_task_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "downstream_task_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "contracts_consumed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contracts_produced": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "code_targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "workspace_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "product_experience_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "security_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "eventuality_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "research_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "knowledge_route_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "required_verifiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "knowledge_readiness_state": {
+      "type": "string",
+      "enum": [
+        "UNMAPPED",
+        "MAPPING",
+        "BLOCKED",
+        "READY",
+        "STALE",
+        "EXEMPT_BY_POLICY"
+      ]
+    },
+    "knowledge_exemption": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "challenge_state": {
+      "type": "string"
+    },
+    "unit_map_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "invalidated_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "invalidation_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

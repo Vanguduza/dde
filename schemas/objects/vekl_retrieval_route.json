@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_retrieval_route.json",
+  "title": "VEKLRetrievalRoute",
+  "description": "Versioned deterministic GraphRAG route policy. It selects graph relations and ranking semantics, never raw internet queries.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_retrieval_routes",
+    "order": 359,
+    "pk": [
+      "route_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_retrieval_route_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_retrieval_route_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "route_slug",
+        "version"
+      ],
+      [
+        "project_id",
+        "policy_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_retrieval_routes_active_concern",
+        "columns": [
+          "project_id",
+          "concern"
+        ],
+        "where": "active"
+      }
+    ]
+  },
+  "required": [
+    "route_id",
+    "tenant_id",
+    "project_id",
+    "route_slug",
+    "version",
+    "concern",
+    "policy",
+    "policy_hash",
+    "active",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "route_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "route_slug": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "concern": {
+      "type": "string"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "policy_hash": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

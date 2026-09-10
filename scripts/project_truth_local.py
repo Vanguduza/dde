@@ -1,49 +1,245 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,datetime as dt,hashlib,json,os,pathlib,subprocess,sys
-R=pathlib.Path(__file__).resolve().parents[1]; L=R/'docs/project-state/CHANGE_LEDGER.jsonl'; C=R/'docs/project-state/CURRENT_STATE.json'; X=[':(exclude)docs/project-state/CHANGE_LEDGER.jsonl',':(exclude)docs/project-state/CURRENT_STATE.json']
-def g(*a,check=True,b=False): return subprocess.run(['git',*a],cwd=R,check=check,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=not b)
-def o(*a): return g(*a).stdout.strip()
-def par(s):
- c=g('rev-parse',s+'^1',check=False); return c.stdout.strip() if c.returncode==0 else None
-def files_staged(): return [x for x in g('diff','--cached','--name-only','--no-renames','--','.',*X).stdout.splitlines() if x]
-def dig_staged(): return hashlib.sha256(g('diff','--cached','--binary','--no-ext-diff','--no-renames','--','.',*X,b=True).stdout).hexdigest()
-def cfiles(s):
- p=par(s); a=('diff','--name-only','--no-renames',p,s,'--','.',*X) if p else ('show','--pretty=','--name-only',s,'--','.',*X); return [x for x in g(*a).stdout.splitlines() if x]
-def cdig(s):
- p=par(s); a=('diff','--binary','--no-ext-diff','--no-renames',p,s,'--','.',*X) if p else ('show','--binary','--format=','--no-ext-diff',s,'--','.',*X); return hashlib.sha256(g(*a,b=True).stdout).hexdigest()
-def rows_at(s):
- c=g('show',f'{s}:docs/project-state/CHANGE_LEDGER.jsonl',check=False); r=[]
- if c.returncode==0:
-  for q in c.stdout.splitlines():
-   try:r.append(json.loads(q))
-   except:pass
- return r
-def record():
- f=files_staged()
- if not f:return 0
- d=dig_staged(); p=o('rev-parse','HEAD'); rows=[]
- if L.exists():
-  for q in L.read_text().splitlines():
-   try:rows.append(json.loads(q))
-   except:pass
- if not(rows and rows[-1].get('source_parent')==p and rows[-1].get('diff_sha256')==d):
-  e={'schema_version':1,'kind':'precommit-staged-diff','recorded_at_utc':dt.datetime.now(dt.timezone.utc).isoformat(),'branch':o('rev-parse','--abbrev-ref','HEAD'),'source_parent':p,'changed_files':f,'diff_sha256':d,'actor':os.getenv('USER') or os.getenv('USERNAME') or 'unknown'}; L.parent.mkdir(parents=True,exist_ok=True)
-  with L.open('a') as z:z.write(json.dumps(e,sort_keys=True,separators=(',',':'))+'\n')
-  C.write_text(json.dumps({'schema_version':1,'state':'PENDING_COMMIT',**e},indent=2,sort_keys=True)+'\n')
- subprocess.run(['git','add','docs/project-state/CHANGE_LEDGER.jsonl','docs/project-state/CURRENT_STATE.json'],cwd=R,check=True); return 0
-def install():
- c=g('log','--reverse','--format=%H','--diff-filter=A','--','scripts/project_truth_local.py',check=False); a=[x for x in c.stdout.splitlines() if x]; return a[0] if a else None
-def verify():
- b=install()
- if not b: print('BLOCKED: Project Truth local guard baseline missing',file=sys.stderr); return 40
- bad=[]
- for s in [x for x in o('rev-list','--reverse',f'{b}..HEAD').splitlines() if x]:
-  f=cfiles(s)
-  if not f:continue
-  p=par(s); d=cdig(s)
-  if not any(r.get('source_parent')==p and r.get('diff_sha256')==d and sorted(r.get('changed_files',[]))==sorted(f) for r in rows_at(s)):bad.append(s)
- if bad: print('BLOCKED: unlogged post-guard commits: '+', '.join(bad),file=sys.stderr); return 41
- return 0
-if __name__=='__main__':
- a=argparse.ArgumentParser(); a.add_argument('cmd',choices=['record','verify']); n=a.parse_args(); raise SystemExit(record() if n.cmd=='record' else verify())
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+from collections.abc import Sequence
+from typing import cast
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+LEDGER = ROOT / "docs/project-state/CHANGE_LEDGER.jsonl"
+CURRENT = ROOT / "docs/project-state/CURRENT_STATE.json"
+EXCLUDES = (
+    ":(exclude)docs/project-state/CHANGE_LEDGER.jsonl",
+    ":(exclude)docs/project-state/CURRENT_STATE.json",
+)
+_git = shutil.which("git")
+if _git is None:
+    raise RuntimeError("git executable is required by the Project Truth local guard")
+GIT: str = _git
+
+
+def git_text(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603 -- arguments are local Git operations only
+        [GIT, *args],
+        cwd=ROOT,
+        check=check,
+        capture_output=True,
+        text=True,
+    )
+
+
+def git_bytes(*args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(  # noqa: S603 -- arguments are local Git operations only
+        [GIT, *args],
+        cwd=ROOT,
+        check=check,
+        capture_output=True,
+    )
+
+
+def output(*args: str) -> str:
+    return git_text(*args).stdout.strip()
+
+
+def parent(commit: str) -> str | None:
+    result = git_text("rev-parse", f"{commit}^1", check=False)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def staged_files() -> list[str]:
+    result = git_text(
+        "diff", "--cached", "--name-only", "--no-renames", "--", ".", *EXCLUDES
+    )
+    return [line for line in result.stdout.splitlines() if line]
+
+
+def staged_digest() -> str:
+    diff = git_bytes(
+        "diff",
+        "--cached",
+        "--binary",
+        "--no-ext-diff",
+        "--no-renames",
+        "--",
+        ".",
+        *EXCLUDES,
+    ).stdout
+    return hashlib.sha256(diff).hexdigest()
+
+
+def commit_files(commit: str) -> list[str]:
+    ancestor = parent(commit)
+    args: Sequence[str]
+    if ancestor is None:
+        args = ("show", "--pretty=", "--name-only", commit, "--", ".", *EXCLUDES)
+    else:
+        args = (
+            "diff",
+            "--name-only",
+            "--no-renames",
+            ancestor,
+            commit,
+            "--",
+            ".",
+            *EXCLUDES,
+        )
+    return [line for line in git_text(*args).stdout.splitlines() if line]
+
+
+def commit_digest(commit: str) -> str:
+    ancestor = parent(commit)
+    args: Sequence[str]
+    if ancestor is None:
+        args = (
+            "show",
+            "--binary",
+            "--format=",
+            "--no-ext-diff",
+            commit,
+            "--",
+            ".",
+            *EXCLUDES,
+        )
+    else:
+        args = (
+            "diff",
+            "--binary",
+            "--no-ext-diff",
+            "--no-renames",
+            ancestor,
+            commit,
+            "--",
+            ".",
+            *EXCLUDES,
+        )
+    return hashlib.sha256(git_bytes(*args).stdout).hexdigest()
+
+
+def parse_rows(text: str) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for line in text.splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            rows.append(cast(dict[str, object], value))
+    return rows
+
+
+def rows_at(commit: str) -> list[dict[str, object]]:
+    result = git_text(
+        "show", f"{commit}:docs/project-state/CHANGE_LEDGER.jsonl", check=False
+    )
+    return parse_rows(result.stdout) if result.returncode == 0 else []
+
+
+def record() -> int:
+    files = staged_files()
+    if not files:
+        return 0
+    digest = staged_digest()
+    source_parent = output("rev-parse", "HEAD")
+    rows = parse_rows(LEDGER.read_text()) if LEDGER.exists() else []
+    is_duplicate = bool(
+        rows
+        and rows[-1].get("source_parent") == source_parent
+        and rows[-1].get("diff_sha256") == digest
+    )
+    if not is_duplicate:
+        entry: dict[str, object] = {
+            "schema_version": 1,
+            "kind": "precommit-staged-diff",
+            "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+            "branch": output("rev-parse", "--abbrev-ref", "HEAD"),
+            "source_parent": source_parent,
+            "changed_files": files,
+            "diff_sha256": digest,
+            "actor": os.getenv("USER") or os.getenv("USERNAME") or "unknown",
+        }
+        LEDGER.parent.mkdir(parents=True, exist_ok=True)
+        with LEDGER.open("a") as handle:
+            handle.write(
+                json.dumps(entry, sort_keys=True, separators=(",", ":")) + "\n"
+            )
+        CURRENT.write_text(
+            json.dumps(
+                {"schema_version": 1, "state": "PENDING_COMMIT", **entry},
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
+    git_text(
+        "add",
+        "docs/project-state/CHANGE_LEDGER.jsonl",
+        "docs/project-state/CURRENT_STATE.json",
+    )
+    return 0
+
+
+def install_commit() -> str | None:
+    result = git_text(
+        "log",
+        "--reverse",
+        "--format=%H",
+        "--diff-filter=A",
+        "--",
+        "scripts/project_truth_local.py",
+        check=False,
+    )
+    commits = [line for line in result.stdout.splitlines() if line]
+    return commits[0] if commits else None
+
+
+def verify() -> int:
+    baseline = install_commit()
+    if baseline is None:
+        print("BLOCKED: Project Truth local guard baseline missing", file=sys.stderr)
+        return 40
+    bad: list[str] = []
+    commits = [
+        line
+        for line in output("rev-list", "--reverse", f"{baseline}..HEAD").splitlines()
+        if line
+    ]
+    for commit in commits:
+        files = commit_files(commit)
+        if not files:
+            continue
+        source_parent = parent(commit)
+        digest = commit_digest(commit)
+        recorded = any(
+            row.get("source_parent") == source_parent
+            and row.get("diff_sha256") == digest
+            and sorted(cast(list[str], row.get("changed_files", []))) == sorted(files)
+            for row in rows_at(commit)
+        )
+        if not recorded:
+            bad.append(commit)
+    if bad:
+        print(
+            "BLOCKED: unlogged post-guard commits: " + ", ".join(bad),
+            file=sys.stderr,
+        )
+        return 41
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("cmd", choices=["record", "verify"])
+    args = parser.parse_args()
+    return record() if args.cmd == "record" else verify()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

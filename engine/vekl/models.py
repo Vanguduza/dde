@@ -63,8 +63,11 @@ class ActivationPlanSpec(BaseModel):
 
     request_mode: Literal["APPLICATION_MANUFACTURING_VEKL"]
     policy: dict[str, object]
+    knowledge_context: dict[str, object] = Field(default_factory=dict)
     requested_modes: list[str]
     mandatory_resource_ids: list[UUID] = Field(default_factory=list)
+    resolution_trace_id: UUID | None = None
+    resolved_resource_ids: list[UUID] = Field(default_factory=list)
     available_capabilities: list[str] = Field(default_factory=list)
     available_verifiers: list[str] = Field(default_factory=list)
     sandbox_available: bool
@@ -87,3 +90,92 @@ class ResourceOutcomeSpec(BaseModel):
     failure_signatures: list[str] = Field(default_factory=list)
     evidence_refs: list[str]
     recorded_by: Literal["DDE_VERIFIER", "DDE_OPERATOR"] = "DDE_VERIFIER"
+
+
+class ResearchFindingSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    unit_map_id: UUID
+    task_refs: list[UUID]
+    concern: str
+    source_id: UUID | None = None
+    source_artifact_id: UUID | None = None
+    resource_id: UUID | None = None
+    source_trust: str
+    source_revision: str
+    content_hash: str
+    claim: str
+    supporting_excerpt_hash: str
+    freshness: dict[str, object] = Field(default_factory=dict)
+    classification: Literal[
+        "NORMAL_GUIDANCE",
+        "COMPATIBILITY_SIGNAL",
+        "SECURITY_SIGNAL",
+        "TRUTH_CONFLICT_SIGNAL",
+        "DISCOVERY_ONLY",
+    ]
+    confidence: str
+    corroboration_refs: list[str] = Field(default_factory=list)
+    project_truth_refs: list[str] = Field(default_factory=list)
+    stack_refs: list[str] = Field(default_factory=list)
+    impact_hypothesis: list[str] = Field(default_factory=list)
+
+
+class TruthChallengeSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: UUID | None = None
+    finding_ids: list[UUID]
+    challenge_class: Literal[
+        "SECURITY_CHALLENGE",
+        "COMPATIBILITY_CHALLENGE",
+        "ARCHITECTURE_CHALLENGE",
+        "PRODUCT_EXPERIENCE_CHALLENGE",
+        "REGULATORY_CHALLENGE",
+        "PERFORMANCE_CHALLENGE",
+        "OPERABILITY_CHALLENGE",
+        "COST_CHALLENGE",
+        "OPPORTUNITY_CHALLENGE",
+    ]
+    severity: Literal["INFO", "MATERIAL", "HIGH", "CRITICAL"]
+    conflict: dict[str, object]
+    confidence: dict[str, object]
+    impact: dict[str, object]
+    proposal: dict[str, object]
+    decision_analysis: dict[str, object] = Field(default_factory=dict)
+    reopen_conditions: list[str] = Field(default_factory=list)
+
+
+class TruthChallengeReopenSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    challenge_id: UUID
+    additional_finding_ids: list[UUID] = Field(default_factory=list)
+    trigger_reason: str
+
+
+class ChangeImpactSpec(BaseModel):
+    """Non-authoritative observation emitted from existing change/task authority.
+
+    This transport does not create a ChangePacket ledger. It carries the exact
+    refs/hash already owned by the mutation path so VEKL can invalidate derived
+    knowledge projections deterministically.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_change_ref: str
+    source_change_hash: str
+    changed_contract_refs: list[str] = Field(default_factory=list)
+    changed_task_refs: list[UUID] = Field(default_factory=list)
+    changed_paths: list[str] = Field(default_factory=list)
+    changed_schema_refs: list[str] = Field(default_factory=list)
+    changed_api_refs: list[str] = Field(default_factory=list)
+    changed_event_refs: list[str] = Field(default_factory=list)
+    reason_code: Literal[
+        "CHANGE_PACKET_CONTRACT_DELTA",
+        "CONTRACT_CHANGED",
+        "SCHEMA_CHANGED",
+        "API_CHANGED",
+        "EVENT_CHANGED",
+    ] = "CHANGE_PACKET_CONTRACT_DELTA"

@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_resolution_trace.json",
+  "title": "VEKLResolutionTrace",
+  "description": "Immutable resolution evidence explaining exactly why one deterministic knowledge set was selected for one material task/unit resolution; later execution bindings are append-only records.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_resolution_traces",
+    "order": 365,
+    "pk": [
+      "resolution_trace_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_resolution_trace_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_resolution_trace_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_resolution_traces_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "vekl_resolution_traces_graph_fkey",
+        "columns": [
+          "task_graph_id"
+        ],
+        "ref_table": "task_graphs",
+        "ref_columns": [
+          "graph_id"
+        ]
+      },
+      {
+        "name": "vekl_resolution_traces_unit_fkey",
+        "columns": [
+          "unit_map_id"
+        ],
+        "ref_table": "vekl_unit_maps",
+        "ref_columns": [
+          "unit_map_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "trace_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_resolution_traces_unit",
+        "columns": [
+          "project_id",
+          "unit_map_id",
+          "created_at"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "resolution_trace_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "task_graph_id",
+    "task_ids",
+    "unit_map_id",
+    "unit_lineage_id",
+    "unit_revision_hash",
+    "project_truth_hash",
+    "applicable_truth_slice_hash",
+    "stack_fingerprint_hash",
+    "task_signature_hash",
+    "contract_set_hash",
+    "graph_snapshot_hash",
+    "resolution_envelope",
+    "traversed_node_ids",
+    "traversed_edge_ids",
+    "candidate_decisions",
+    "withheld_truth_conflicts",
+    "challenge_observation_refs",
+    "trace_hash",
+    "created_at"
+  ],
+  "properties": {
+    "resolution_trace_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_graph_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "unit_map_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "unit_lineage_id": {
+      "type": "string"
+    },
+    "unit_revision_hash": {
+      "type": "string"
+    },
+    "project_truth_hash": {
+      "type": "string"
+    },
+    "applicable_truth_slice_hash": {
+      "type": "string"
+    },
+    "stack_fingerprint_hash": {
+      "type": "string"
+    },
+    "task_signature_hash": {
+      "type": "string"
+    },
+    "contract_set_hash": {
+      "type": "string"
+    },
+    "graph_snapshot_hash": {
+      "type": "string"
+    },
+    "resolution_envelope": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "traversed_node_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "traversed_edge_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "candidate_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "withheld_truth_conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "challenge_observation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "trace_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

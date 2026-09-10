@@ -80,10 +80,15 @@ from engine.studio.reads import FrontendReadService
 from engine.studio.source.service import SourceIntelligenceService
 from engine.studio.tables import design_sessions
 from engine.truth.db import open_unit_of_work
+from engine.vekl.knowledge_service import VEKLKnowledgeService
 from engine.vekl.models import (
     ActivationPlanSpec,
+    ChangeImpactSpec,
+    ResearchFindingSpec,
     ResourceOutcomeSpec,
     TaskSignatureSpec,
+    TruthChallengeReopenSpec,
+    TruthChallengeSpec,
     VEKLResourceSpec,
 )
 from engine.vekl.service import VEKLService
@@ -177,6 +182,17 @@ def _validated[ModelT: BaseModel](
             "command parameters do not match the governed boundary contract",
             details={"errors": exc.errors(include_url=False)},
         ) from exc
+
+
+def _param_bool(parameters: dict[str, object], name: str) -> bool:
+    value = parameters.get(name)
+    if not isinstance(value, bool):
+        raise DdeError(
+            "FORBIDDEN",
+            f"Missing or invalid parameter '{name}'",
+            details={"parameter": name},
+        )
+    return value
 
 
 def _param_int(parameters: dict[str, object], name: str) -> int:
@@ -570,6 +586,7 @@ class CommandDispatcher:
         command_type: str,
     ) -> CommandAcceptance:
         service = VEKLService(self._engine)
+        knowledge = VEKLKnowledgeService(self._engine)
         params = command.parameters
         payload: dict[str, object]
         if command_type == "vekl.openai.install_catalog_candidates":
@@ -607,6 +624,208 @@ class CommandDispatcher:
                 request_mode=_param_str(params, "request_mode"),
             )
             payload = resource.model_dump(mode="json")
+        elif command_type == "vekl.knowledge.routes.seed":
+            routes = await knowledge.seed_retrieval_routes(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = {
+                "retrieval_routes": [item.model_dump(mode="json") for item in routes]
+            }
+        elif command_type == "vekl.knowledge.units.compile":
+            units = await knowledge.compile_units_for_graph(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_graph_id=_required_uuid_param(params, "task_graph_id"),
+                stack_fingerprint_id=_required_uuid_param(
+                    params, "stack_fingerprint_id"
+                ),
+                request_mode=_param_str(params, "request_mode"),
+                exemption=(
+                    _param_dict(params, "exemption")
+                    if isinstance(params.get("exemption"), dict)
+                    else None
+                ),
+            )
+            payload = {"unit_maps": [item.model_dump(mode="json") for item in units]}
+        elif command_type == "vekl.knowledge.foresight":
+            payload = await knowledge.foresight(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_graph_id=_required_uuid_param(params, "task_graph_id"),
+                request_mode=_param_str(params, "request_mode"),
+            )
+        elif command_type == "vekl.knowledge.graph.compile":
+            payload = await knowledge.compile_graph(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                unit_map_id=_required_uuid_param(params, "unit_map_id"),
+                request_mode=_param_str(params, "request_mode"),
+            )
+        elif command_type == "vekl.knowledge.resolve":
+            task = await self.load_task(_required_uuid_param(params, "task_id"))
+            if task.project_id != project_id or task.mission_id != command.target_id:
+                raise DdeError(
+                    "TENANT_SCOPE_VIOLATION",
+                    "VEKL task is outside the addressed mission/project",
+                )
+            request_mode = _param_str(params, "request_mode")
+            fingerprint = await service.build_stack_fingerprint_from_workspace(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                workspace_id=_required_uuid_param(params, "workspace_id"),
+                request_mode=request_mode,
+            )
+            signature = await service.build_task_signature(
+                task=task,
+                fingerprint=fingerprint,
+                spec=_validated(
+                    TaskSignatureSpec, _param_dict(params, "task_signature")
+                ),
+            )
+            exemption = (
+                _param_dict(params, "exemption")
+                if isinstance(params.get("exemption"), dict)
+                else None
+            )
+            units = await knowledge.compile_units_for_graph(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                task_graph_id=task.graph_id,
+                stack_fingerprint_id=fingerprint.fingerprint_id,
+                request_mode=request_mode,
+                exemption=exemption,
+            )
+            unit = next((item for item in units if task.task_id in item.task_ids), None)
+            if unit is None:
+                raise DdeError(
+                    "VEKL_UNIT_INVALID",
+                    "Task has no deterministic Unit Knowledge Map",
+                )
+            resolution = _param_dict(params, "resolution")
+            offline_raw = resolution.get("offline", False)
+            if not isinstance(offline_raw, bool):
+                raise DdeError(
+                    "VALIDATION_FAILED", "resolution.offline must be boolean"
+                )
+            sandbox_raw = resolution.get("sandbox_available")
+            if not isinstance(sandbox_raw, bool):
+                raise DdeError(
+                    "VALIDATION_FAILED",
+                    "resolution.sandbox_available must be boolean",
+                )
+            trace = await knowledge.resolve_knowledge(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                unit_map_id=unit.unit_map_id,
+                task_id=task.task_id,
+                task_signature_id=signature.signature_id,
+                requested_modes=_param_list(resolution, "requested_modes"),
+                available_capabilities=_param_list(
+                    resolution, "available_capabilities"
+                ),
+                available_verifiers=_param_list(resolution, "available_verifiers"),
+                sandbox_available=sandbox_raw,
+                offline=offline_raw,
+                request_mode=request_mode,
+            )
+            payload = {
+                "fingerprint": fingerprint.model_dump(mode="json"),
+                "task_signature": signature.model_dump(mode="json"),
+                "unit_map": unit.model_dump(mode="json"),
+                "resolution_trace": trace.model_dump(mode="json"),
+            }
+        elif command_type == "vekl.research.finding.record":
+            finding = _validated(ResearchFindingSpec, _param_dict(params, "finding"))
+            record = await knowledge.record_research_finding(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                unit_map_id=finding.unit_map_id,
+                task_refs=finding.task_refs,
+                concern=finding.concern,
+                source_id=finding.source_id,
+                source_artifact_id=finding.source_artifact_id,
+                resource_id=finding.resource_id,
+                source_trust=finding.source_trust,
+                source_revision=finding.source_revision,
+                content_hash=finding.content_hash,
+                claim=finding.claim,
+                supporting_excerpt_hash=finding.supporting_excerpt_hash,
+                freshness=finding.freshness,
+                classification=finding.classification,
+                confidence=finding.confidence,
+                corroboration_refs=finding.corroboration_refs,
+                project_truth_refs=finding.project_truth_refs,
+                stack_refs=finding.stack_refs,
+                impact_hypothesis=finding.impact_hypothesis,
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = record.model_dump(mode="json")
+        elif command_type == "vekl.truth.challenge.create":
+            spec = _validated(TruthChallengeSpec, _param_dict(params, "challenge"))
+            challenge = await knowledge.create_truth_challenge(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                mission_id=command.target_id,
+                task_id=spec.task_id,
+                finding_ids=spec.finding_ids,
+                challenge_class=spec.challenge_class,
+                severity=spec.severity,
+                conflict=spec.conflict,
+                confidence=spec.confidence,
+                impact=spec.impact,
+                proposal=spec.proposal,
+                decision_analysis=spec.decision_analysis,
+                reopen_conditions=spec.reopen_conditions,
+                requested_by=command.principal_id,
+                idempotency_key=f"vekl.truth:{command.idempotency_key}",
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = challenge.model_dump(mode="json")
+        elif command_type == "vekl.truth.challenge.decide":
+            challenge = await knowledge.decide_truth_challenge(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                challenge_id=_required_uuid_param(params, "challenge_id"),
+                decision=_param_str(params, "decision"),
+                reason=_param_str(params, "reason"),
+                decided_by=command.principal_id,
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = challenge.model_dump(mode="json")
+        elif command_type == "vekl.truth.challenge.reopen":
+            reopen_spec = _validated(
+                TruthChallengeReopenSpec, _param_dict(params, "reopen")
+            )
+            challenge = await knowledge.reopen_truth_challenge(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                challenge_id=reopen_spec.challenge_id,
+                additional_finding_ids=reopen_spec.additional_finding_ids,
+                trigger_reason=reopen_spec.trigger_reason,
+                requested_by=command.principal_id,
+                idempotency_key=f"vekl.truth.reopen:{command.idempotency_key}",
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = challenge.model_dump(mode="json")
+        elif command_type == "vekl.knowledge.invalidate_from_change":
+            impact = _validated(ChangeImpactSpec, _param_dict(params, "change_impact"))
+            records = await knowledge.invalidate_from_change(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                spec=impact,
+                request_mode=_param_str(params, "request_mode"),
+            )
+            payload = {
+                "invalidations": [item.model_dump(mode="json") for item in records]
+            }
+        elif command_type == "vekl.knowledge.projection":
+            payload = await knowledge.projection(
+                tenant_id=tenant_id,
+                project_id=project_id,
+                request_mode=_param_str(params, "request_mode"),
+            )
         elif command_type == "vekl.activation.prepare":
             task = await self.load_task(_required_uuid_param(params, "task_id"))
             if task.project_id != project_id or task.mission_id != command.target_id:
@@ -617,6 +836,53 @@ class CommandDispatcher:
             activation = _validated(
                 ActivationPlanSpec, _param_dict(params, "activation")
             )
+            trace = None
+            if activation.resolution_trace_id is not None:
+                trace = await knowledge.require_fresh_trace(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    resolution_trace_id=activation.resolution_trace_id,
+                    request_mode=activation.request_mode,
+                )
+                if task.task_id not in trace.task_ids:
+                    raise DdeError(
+                        "VEKL_RESOLUTION_MISMATCH",
+                        "knowledge resolution does not include the addressed task",
+                    )
+                selected_ids = sorted(
+                    {
+                        UUID(str(item["resource_id"]))
+                        for item in trace.candidate_decisions
+                        if bool(item.get("selected")) and item.get("resource_id")
+                    },
+                    key=str,
+                )
+                unit_knowledge = await knowledge.unit_context_for_trace(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    resolution_trace_id=trace.resolution_trace_id,
+                    request_mode=activation.request_mode,
+                )
+                activation = activation.model_copy(
+                    update={
+                        "mandatory_resource_ids": sorted(
+                            set(activation.mandatory_resource_ids) | set(selected_ids),
+                            key=str,
+                        ),
+                        "resolved_resource_ids": selected_ids,
+                        "knowledge_context": unit_knowledge,
+                        "policy": {
+                            **activation.policy,
+                            "knowledge_resolution_trace_id": str(
+                                trace.resolution_trace_id
+                            ),
+                            "knowledge_resolution_trace_hash": trace.trace_hash,
+                            "allowed_resource_ids": [
+                                str(item) for item in selected_ids
+                            ],
+                        },
+                    }
+                )
             fingerprint = await service.build_stack_fingerprint_from_workspace(
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -630,16 +896,40 @@ class CommandDispatcher:
                     TaskSignatureSpec, _param_dict(params, "task_signature")
                 ),
             )
+            if trace is not None and (
+                fingerprint.fingerprint_hash != trace.stack_fingerprint_hash
+                or signature.signature_hash != trace.task_signature_hash
+            ):
+                raise DdeError(
+                    "VEKL_KNOWLEDGE_STALE",
+                    "workspace StackFingerprint or TaskSignature changed after "
+                    "resolution",
+                )
             manifest = await service.plan_activation(
                 task=task,
                 fingerprint=fingerprint,
                 signature=signature,
                 spec=activation,
             )
+            if trace is not None:
+                await knowledge.bind_execution(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    resolution_trace_id=trace.resolution_trace_id,
+                    manifest_id=manifest.manifest_id,
+                    manifest_hash=manifest.manifest_hash,
+                    context_package_id=None,
+                    context_package_hash=None,
+                    context_capsule_hashes=[],
+                    request_mode=activation.request_mode,
+                )
             payload = {
                 "fingerprint": fingerprint.model_dump(mode="json"),
                 "task_signature": signature.model_dump(mode="json"),
                 "manifest": manifest.model_dump(mode="json"),
+                "resolution_trace_id": (
+                    None if trace is None else str(trace.resolution_trace_id)
+                ),
             }
         elif command_type == "vekl.context.compile":
             task = await self.load_task(_required_uuid_param(params, "task_id"))
@@ -665,10 +955,26 @@ class CommandDispatcher:
                     "combined DDE + VEKL worker context exceeds the context budget",
                     details=asdict(context_package),
                 )
+            resolution_trace_id = _param_uuid(params, "resolution_trace_id")
+            if resolution_trace_id is not None:
+                await knowledge.bind_execution(
+                    tenant_id=tenant_id,
+                    project_id=project_id,
+                    resolution_trace_id=resolution_trace_id,
+                    manifest_id=manifest.manifest_id,
+                    manifest_hash=manifest.manifest_hash,
+                    context_package_id=context_package.package_id,
+                    context_package_hash=context_package.assembly_hash,
+                    context_capsule_hashes=[worker_context.capsule.capsule_hash],
+                    request_mode="APPLICATION_MANUFACTURING_VEKL",
+                )
             payload = {
                 "capsule": asdict(worker_context.capsule),
                 "context_package": context_package.model_dump(mode="json"),
                 "budget_exhausted": False,
+                "resolution_trace_id": (
+                    None if resolution_trace_id is None else str(resolution_trace_id)
+                ),
             }
         elif command_type == "vekl.outcome.record":
             outcome = await service.record_outcome(
@@ -1534,8 +1840,8 @@ class GatewayCommandService:
                     "id": "knowledge",
                     "label": "Knowledge",
                     "glyph": "◎",
-                    "available": False,
-                    "reason": "Knowledge shell module is not packaged in this build.",
+                    "available": True,
+                    "reason": None,
                 },
             ],
             "help_ref": "docs/truth/FRONTEND_STUDIO_REV3.md",
@@ -1782,9 +2088,29 @@ class GatewayCommandService:
         session, mission = await self._frontend_mission_context(
             session_id=session_id, principal_id=principal_id, mission_id=mission_id
         )
-        return await VEKLService(self._engine).projection(
+        base = await VEKLService(self._engine).projection(
             tenant_id=session.tenant_id, project_id=mission.project_id
         )
+        try:
+            knowledge = await VEKLKnowledgeService(self._engine).projection(
+                tenant_id=session.tenant_id,
+                project_id=mission.project_id,
+                request_mode="APPLICATION_MANUFACTURING_VEKL",
+            )
+        except DdeError as exc:
+            if exc.error_code != "VEKL_SCOPE_VIOLATION":
+                raise
+            knowledge = {
+                "availability": "UNAVAILABLE",
+                "reason": exc.message,
+                "unit_maps": [],
+                "knowledge_nodes": [],
+                "knowledge_edges": [],
+                "retrieval_routes": [],
+                "challenges": [],
+                "conflict_observations": [],
+            }
+        return {**base, "knowledge_graph": knowledge}
 
     async def read_frontend_source_artifact(
         self,

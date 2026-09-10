@@ -2711,6 +2711,7 @@ CREATE TABLE vekl_activation_manifests (
     project_truth_hash text NOT NULL,
     stack_fingerprint_hash text NOT NULL,
     policy_hash text NOT NULL,
+    knowledge_context jsonb,
     selected_resources jsonb NOT NULL DEFAULT '[]'::jsonb,
     tools jsonb NOT NULL DEFAULT '[]'::jsonb,
     hooks jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -2760,6 +2761,292 @@ CREATE TABLE vekl_resource_outcomes (
     PRIMARY KEY (outcome_id),
     UNIQUE (manifest_id, outcome_id)
 );
+
+CREATE TABLE vekl_unit_maps (
+    unit_map_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_graph_id uuid NOT NULL,
+    task_graph_version integer NOT NULL,
+    task_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    unit_lineage_id text NOT NULL,
+    unit_revision_hash text NOT NULL,
+    unit_boundary_policy_version text NOT NULL,
+    unit_projection_compiler_version text NOT NULL,
+    project_truth_hash text NOT NULL,
+    applicable_truth_slice_hash text NOT NULL,
+    stack_fingerprint_id uuid NOT NULL,
+    stack_fingerprint_hash text NOT NULL,
+    contract_set_hash text NOT NULL,
+    product_experience_hash text,
+    retrieval_route_policy_hash text NOT NULL,
+    objective text NOT NULL,
+    scope jsonb NOT NULL DEFAULT '{}'::jsonb,
+    requirement_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    edr_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    constitution_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    upstream_task_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    downstream_task_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    contracts_consumed jsonb NOT NULL DEFAULT '[]'::jsonb,
+    contracts_produced jsonb NOT NULL DEFAULT '[]'::jsonb,
+    code_targets jsonb NOT NULL DEFAULT '[]'::jsonb,
+    workspace_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    product_experience_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    security_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    eventuality_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    research_questions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    knowledge_route_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    required_verifiers jsonb NOT NULL DEFAULT '[]'::jsonb,
+    knowledge_readiness_state text NOT NULL,
+    knowledge_exemption jsonb,
+    challenge_state text NOT NULL,
+    unit_map_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    invalidated_at timestamptz,
+    invalidation_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
+    PRIMARY KEY (unit_map_id),
+    UNIQUE (project_id, unit_revision_hash)
+);
+
+CREATE TABLE vekl_knowledge_nodes (
+    knowledge_node_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    node_kind text NOT NULL,
+    object_type text NOT NULL,
+    object_id uuid,
+    stable_ref text NOT NULL,
+    authority_class text NOT NULL,
+    authority_service text NOT NULL,
+    source_revision text,
+    content_hash text NOT NULL,
+    projection_compiler_version text NOT NULL,
+    project_truth_hash text,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    invalidated_at timestamptz,
+    PRIMARY KEY (knowledge_node_id),
+    UNIQUE (project_id, node_kind, stable_ref, content_hash, projection_compiler_version)
+);
+
+CREATE TABLE vekl_knowledge_edges (
+    knowledge_edge_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    from_node_id uuid NOT NULL,
+    relationship text NOT NULL,
+    to_node_id uuid NOT NULL,
+    provenance_ref text NOT NULL,
+    provenance_hash text NOT NULL,
+    derivation_class text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    invalidated_at timestamptz,
+    PRIMARY KEY (knowledge_edge_id),
+    UNIQUE (project_id, from_node_id, relationship, to_node_id, provenance_hash)
+);
+
+CREATE TABLE vekl_retrieval_routes (
+    route_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    route_slug text NOT NULL,
+    version text NOT NULL,
+    concern text NOT NULL,
+    policy jsonb NOT NULL DEFAULT '{}'::jsonb,
+    policy_hash text NOT NULL,
+    active boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (route_id),
+    UNIQUE (project_id, route_slug, version),
+    UNIQUE (project_id, policy_hash)
+);
+
+CREATE TABLE vekl_research_findings (
+    finding_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    unit_map_id uuid NOT NULL,
+    task_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    concern text NOT NULL,
+    source_id uuid,
+    source_artifact_id uuid,
+    resource_id uuid,
+    source_trust text NOT NULL,
+    source_revision text NOT NULL,
+    content_hash text NOT NULL,
+    claim text NOT NULL,
+    supporting_excerpt_hash text NOT NULL,
+    freshness jsonb NOT NULL DEFAULT '{}'::jsonb,
+    classification text NOT NULL,
+    confidence text NOT NULL,
+    corroboration_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    project_truth_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    stack_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    impact_hypothesis jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (finding_id)
+);
+
+CREATE TABLE vekl_conflict_observations (
+    observation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    resource_id uuid NOT NULL,
+    finding_id uuid NOT NULL,
+    current_truth_hash text NOT NULL,
+    conflicting_truth_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    conflict_keys jsonb NOT NULL DEFAULT '[]'::jsonb,
+    source_trust text NOT NULL,
+    freshness jsonb NOT NULL DEFAULT '{}'::jsonb,
+    provenance_valid boolean NOT NULL,
+    activation_rejected boolean NOT NULL,
+    challenge_evaluation_requested boolean NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (observation_id),
+    UNIQUE (project_id, finding_id, current_truth_hash)
+);
+
+CREATE TABLE vekl_truth_challenges (
+    challenge_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_id uuid,
+    challenge_class text NOT NULL,
+    severity text NOT NULL,
+    status text NOT NULL,
+    current_truth_hash text NOT NULL,
+    evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+    conflict jsonb NOT NULL DEFAULT '{}'::jsonb,
+    confidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+    impact jsonb NOT NULL DEFAULT '{}'::jsonb,
+    proposal jsonb NOT NULL DEFAULT '{}'::jsonb,
+    decision_analysis jsonb NOT NULL DEFAULT '{}'::jsonb,
+    approval_id uuid,
+    required_role text NOT NULL,
+    decision text,
+    decision_reason text,
+    decided_at timestamptz,
+    reopen_conditions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    challenge_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (challenge_id),
+    UNIQUE (project_id, challenge_hash)
+);
+
+CREATE TABLE vekl_truth_challenge_findings (
+    challenge_finding_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    challenge_id uuid NOT NULL,
+    finding_id uuid NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (challenge_finding_id),
+    UNIQUE (project_id, challenge_id, finding_id)
+);
+
+CREATE TABLE vekl_graph_invalidations (
+    graph_invalidation_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    unit_map_id uuid,
+    manifest_id uuid,
+    resolution_trace_id uuid,
+    reason_code text NOT NULL,
+    detail jsonb NOT NULL DEFAULT '{}'::jsonb,
+    observed_truth_hash text NOT NULL,
+    previous_hash text,
+    observed_hash text,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (graph_invalidation_id)
+);
+
+CREATE TABLE vekl_resolution_traces (
+    resolution_trace_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    mission_id uuid NOT NULL,
+    task_graph_id uuid NOT NULL,
+    task_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    unit_map_id uuid NOT NULL,
+    unit_lineage_id text NOT NULL,
+    unit_revision_hash text NOT NULL,
+    project_truth_hash text NOT NULL,
+    applicable_truth_slice_hash text NOT NULL,
+    stack_fingerprint_hash text NOT NULL,
+    task_signature_hash text NOT NULL,
+    contract_set_hash text NOT NULL,
+    graph_snapshot_hash text NOT NULL,
+    resolution_envelope jsonb NOT NULL DEFAULT '{}'::jsonb,
+    traversed_node_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    traversed_edge_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+    candidate_decisions jsonb NOT NULL DEFAULT '[]'::jsonb,
+    withheld_truth_conflicts jsonb NOT NULL DEFAULT '[]'::jsonb,
+    challenge_observation_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    trace_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    PRIMARY KEY (resolution_trace_id),
+    UNIQUE (project_id, trace_hash)
+);
+
+CREATE TABLE vekl_execution_knowledge_bindings (
+    execution_binding_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    resolution_trace_id uuid NOT NULL,
+    binding_stage text NOT NULL,
+    project_truth_hash text NOT NULL,
+    unit_lineage_id text NOT NULL,
+    unit_revision_hash text NOT NULL,
+    graph_revision_hash text NOT NULL,
+    graph_neighbourhood_hash text NOT NULL,
+    applicable_contract_fingerprints jsonb NOT NULL DEFAULT '[]'::jsonb,
+    technical_stack_fingerprint text NOT NULL,
+    knowledge_route_policy_hash text NOT NULL,
+    determinism_envelope_hash text NOT NULL,
+    activation_manifest_id uuid NOT NULL,
+    activation_manifest_hash text NOT NULL,
+    context_package_id uuid,
+    context_package_hash text,
+    context_capsule_hashes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    worker_delivery_hash text NOT NULL,
+    binding_hash text NOT NULL,
+    created_at timestamptz NOT NULL,
+    PRIMARY KEY (execution_binding_id),
+    UNIQUE (project_id, resolution_trace_id, binding_stage),
+    UNIQUE (project_id, binding_hash)
+);
+
+CREATE INDEX ix_vekl_unit_maps_active_lineage ON vekl_unit_maps (project_id, unit_lineage_id) WHERE invalidated_at IS NULL;
+
+CREATE INDEX ix_vekl_knowledge_nodes_active_ref ON vekl_knowledge_nodes (project_id, node_kind, stable_ref) WHERE invalidated_at IS NULL;
+
+CREATE INDEX ix_vekl_knowledge_edges_active_from ON vekl_knowledge_edges (project_id, from_node_id, relationship) WHERE invalidated_at IS NULL;
+CREATE INDEX ix_vekl_knowledge_edges_active_to ON vekl_knowledge_edges (project_id, to_node_id, relationship) WHERE invalidated_at IS NULL;
+
+CREATE INDEX ix_vekl_retrieval_routes_active_concern ON vekl_retrieval_routes (project_id, concern) WHERE active;
+
+CREATE INDEX ix_vekl_research_findings_unit_class ON vekl_research_findings (project_id, unit_map_id, classification);
+
+CREATE INDEX ix_vekl_conflict_observations_truth ON vekl_conflict_observations (project_id, current_truth_hash);
+
+CREATE INDEX ix_vekl_truth_challenges_status ON vekl_truth_challenges (project_id, status, severity);
+
+CREATE INDEX ix_vekl_graph_invalidations_unit ON vekl_graph_invalidations (project_id, unit_map_id, created_at);
+
+CREATE INDEX ix_vekl_resolution_traces_unit ON vekl_resolution_traces (project_id, unit_map_id, created_at);
+
+CREATE INDEX ix_vekl_execution_bindings_trace ON vekl_execution_knowledge_bindings (project_id, resolution_trace_id, created_at);
 
 ALTER TABLE tenants ADD CONSTRAINT tenants_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES organizations (organization_id);
 
@@ -3384,6 +3671,64 @@ ALTER TABLE vekl_resource_outcomes ADD CONSTRAINT vekl_outcomes_tenant_fkey FORE
 ALTER TABLE vekl_resource_outcomes ADD CONSTRAINT vekl_outcomes_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE vekl_resource_outcomes ADD CONSTRAINT vekl_outcomes_manifest_fkey FOREIGN KEY (manifest_id) REFERENCES vekl_activation_manifests (manifest_id);
 
+ALTER TABLE vekl_unit_maps ADD CONSTRAINT vekl_unit_map_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_unit_maps ADD CONSTRAINT vekl_unit_map_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_unit_maps ADD CONSTRAINT vekl_unit_maps_mission_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE vekl_unit_maps ADD CONSTRAINT vekl_unit_maps_graph_fkey FOREIGN KEY (task_graph_id) REFERENCES task_graphs (graph_id);
+ALTER TABLE vekl_unit_maps ADD CONSTRAINT vekl_unit_maps_stack_fkey FOREIGN KEY (stack_fingerprint_id) REFERENCES stack_fingerprints (fingerprint_id);
+
+ALTER TABLE vekl_knowledge_nodes ADD CONSTRAINT vekl_knowledge_node_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_knowledge_nodes ADD CONSTRAINT vekl_knowledge_node_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE vekl_knowledge_edges ADD CONSTRAINT vekl_knowledge_edge_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_knowledge_edges ADD CONSTRAINT vekl_knowledge_edge_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_knowledge_edges ADD CONSTRAINT vekl_knowledge_edges_from_fkey FOREIGN KEY (from_node_id) REFERENCES vekl_knowledge_nodes (knowledge_node_id);
+ALTER TABLE vekl_knowledge_edges ADD CONSTRAINT vekl_knowledge_edges_to_fkey FOREIGN KEY (to_node_id) REFERENCES vekl_knowledge_nodes (knowledge_node_id);
+
+ALTER TABLE vekl_retrieval_routes ADD CONSTRAINT vekl_retrieval_route_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_retrieval_routes ADD CONSTRAINT vekl_retrieval_route_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_finding_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_finding_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_unit_fkey FOREIGN KEY (unit_map_id) REFERENCES vekl_unit_maps (unit_map_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_source_fkey FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_resource_fkey FOREIGN KEY (resource_id) REFERENCES vekl_resources (resource_id);
+
+ALTER TABLE vekl_conflict_observations ADD CONSTRAINT vekl_conflict_observation_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_conflict_observations ADD CONSTRAINT vekl_conflict_observation_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_conflict_observations ADD CONSTRAINT vekl_conflict_observations_resource_fkey FOREIGN KEY (resource_id) REFERENCES vekl_resources (resource_id);
+ALTER TABLE vekl_conflict_observations ADD CONSTRAINT vekl_conflict_observations_finding_fkey FOREIGN KEY (finding_id) REFERENCES vekl_research_findings (finding_id);
+
+ALTER TABLE vekl_truth_challenges ADD CONSTRAINT vekl_truth_challenge_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_truth_challenges ADD CONSTRAINT vekl_truth_challenge_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_truth_challenges ADD CONSTRAINT vekl_truth_challenges_mission_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE vekl_truth_challenges ADD CONSTRAINT vekl_truth_challenges_task_fkey FOREIGN KEY (task_id) REFERENCES tasks (task_id);
+ALTER TABLE vekl_truth_challenges ADD CONSTRAINT vekl_truth_challenges_approval_fkey FOREIGN KEY (approval_id) REFERENCES approvals (approval_id);
+
+ALTER TABLE vekl_truth_challenge_findings ADD CONSTRAINT vekl_truth_challenge_finding_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_truth_challenge_findings ADD CONSTRAINT vekl_truth_challenge_finding_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_truth_challenge_findings ADD CONSTRAINT vekl_truth_challenge_findings_challenge_fkey FOREIGN KEY (challenge_id) REFERENCES vekl_truth_challenges (challenge_id);
+ALTER TABLE vekl_truth_challenge_findings ADD CONSTRAINT vekl_truth_challenge_findings_finding_fkey FOREIGN KEY (finding_id) REFERENCES vekl_research_findings (finding_id);
+
+ALTER TABLE vekl_graph_invalidations ADD CONSTRAINT vekl_graph_invalidation_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_graph_invalidations ADD CONSTRAINT vekl_graph_invalidation_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_graph_invalidations ADD CONSTRAINT vekl_graph_invalidations_unit_fkey FOREIGN KEY (unit_map_id) REFERENCES vekl_unit_maps (unit_map_id);
+ALTER TABLE vekl_graph_invalidations ADD CONSTRAINT vekl_graph_invalidations_manifest_fkey FOREIGN KEY (manifest_id) REFERENCES vekl_activation_manifests (manifest_id);
+ALTER TABLE vekl_graph_invalidations ADD CONSTRAINT vekl_graph_invalidations_trace_fkey FOREIGN KEY (resolution_trace_id) REFERENCES vekl_resolution_traces (resolution_trace_id);
+
+ALTER TABLE vekl_resolution_traces ADD CONSTRAINT vekl_resolution_trace_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_resolution_traces ADD CONSTRAINT vekl_resolution_trace_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_resolution_traces ADD CONSTRAINT vekl_resolution_traces_mission_fkey FOREIGN KEY (mission_id) REFERENCES missions (mission_id);
+ALTER TABLE vekl_resolution_traces ADD CONSTRAINT vekl_resolution_traces_graph_fkey FOREIGN KEY (task_graph_id) REFERENCES task_graphs (graph_id);
+ALTER TABLE vekl_resolution_traces ADD CONSTRAINT vekl_resolution_traces_unit_fkey FOREIGN KEY (unit_map_id) REFERENCES vekl_unit_maps (unit_map_id);
+
+ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_trace_fkey FOREIGN KEY (resolution_trace_id) REFERENCES vekl_resolution_traces (resolution_trace_id);
+ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_manifest_fkey FOREIGN KEY (activation_manifest_id) REFERENCES vekl_activation_manifests (manifest_id);
+ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_context_fkey FOREIGN KEY (context_package_id) REFERENCES context_packages (package_id);
+
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 CREATE POLICY organizations_tenant_isolation ON organizations USING (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid)) WITH CHECK (organization_id = CAST(current_setting('dde.organization_id', true) AS uuid));
@@ -3887,3 +4232,47 @@ CREATE POLICY vekl_manifest_invalidations_tenant_isolation ON vekl_manifest_inva
 ALTER TABLE vekl_resource_outcomes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vekl_resource_outcomes FORCE ROW LEVEL SECURITY;
 CREATE POLICY vekl_resource_outcomes_tenant_isolation ON vekl_resource_outcomes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_unit_maps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_unit_maps FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_unit_maps_tenant_isolation ON vekl_unit_maps USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_knowledge_nodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_knowledge_nodes FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_knowledge_nodes_tenant_isolation ON vekl_knowledge_nodes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_knowledge_edges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_knowledge_edges FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_knowledge_edges_tenant_isolation ON vekl_knowledge_edges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_retrieval_routes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_retrieval_routes FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_retrieval_routes_tenant_isolation ON vekl_retrieval_routes USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_research_findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_research_findings FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_research_findings_tenant_isolation ON vekl_research_findings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_conflict_observations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_conflict_observations FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_conflict_observations_tenant_isolation ON vekl_conflict_observations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_truth_challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_truth_challenges FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_truth_challenges_tenant_isolation ON vekl_truth_challenges USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_truth_challenge_findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_truth_challenge_findings FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_truth_challenge_findings_tenant_isolation ON vekl_truth_challenge_findings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_graph_invalidations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_graph_invalidations FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_graph_invalidations_tenant_isolation ON vekl_graph_invalidations USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_resolution_traces ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_resolution_traces FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_resolution_traces_tenant_isolation ON vekl_resolution_traces USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE vekl_execution_knowledge_bindings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vekl_execution_knowledge_bindings FORCE ROW LEVEL SECURITY;
+CREATE POLICY vekl_execution_knowledge_bindings_tenant_isolation ON vekl_execution_knowledge_bindings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

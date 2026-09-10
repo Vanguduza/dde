@@ -26,7 +26,7 @@ jobs:
           if not d.get('policy',{}).get('default_branch_is_not_authority'): sys.exit('BLOCKED: authority policy missing')
           PY
       - name: Automatically record pushed commits
-        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]' && github.ref_name == github.event.repository.default_branch
         env:
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}

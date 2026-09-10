@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_execution_knowledge_binding.json",
+  "title": "VEKLExecutionKnowledgeBinding",
+  "description": "Append-only immutable execution-knowledge tuple proving the exact knowledge, activation and bounded context admitted at a material execution checkpoint.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_execution_knowledge_bindings",
+    "order": 366,
+    "pk": [
+      "execution_binding_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_execution_binding_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_execution_binding_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_execution_binding_trace_fkey",
+        "columns": [
+          "resolution_trace_id"
+        ],
+        "ref_table": "vekl_resolution_traces",
+        "ref_columns": [
+          "resolution_trace_id"
+        ]
+      },
+      {
+        "name": "vekl_execution_binding_manifest_fkey",
+        "columns": [
+          "activation_manifest_id"
+        ],
+        "ref_table": "vekl_activation_manifests",
+        "ref_columns": [
+          "manifest_id"
+        ]
+      },
+      {
+        "name": "vekl_execution_binding_context_fkey",
+        "columns": [
+          "context_package_id"
+        ],
+        "ref_table": "context_packages",
+        "ref_columns": [
+          "package_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "resolution_trace_id",
+        "binding_stage"
+      ],
+      [
+        "project_id",
+        "binding_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_execution_bindings_trace",
+        "columns": [
+          "project_id",
+          "resolution_trace_id",
+          "created_at"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "execution_binding_id",
+    "tenant_id",
+    "project_id",
+    "resolution_trace_id",
+    "binding_stage",
+    "project_truth_hash",
+    "unit_lineage_id",
+    "unit_revision_hash",
+    "graph_revision_hash",
+    "graph_neighbourhood_hash",
+    "applicable_contract_fingerprints",
+    "technical_stack_fingerprint",
+    "knowledge_route_policy_hash",
+    "determinism_envelope_hash",
+    "activation_manifest_id",
+    "activation_manifest_hash",
+    "context_capsule_hashes",
+    "worker_delivery_hash",
+    "binding_hash",
+    "created_at"
+  ],
+  "properties": {
+    "execution_binding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resolution_trace_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "binding_stage": {
+      "type": "string",
+      "enum": [
+        "ACTIVATION_BOUND",
+        "CONTEXT_BOUND"
+      ]
+    },
+    "project_truth_hash": {
+      "type": "string"
+    },
+    "unit_lineage_id": {
+      "type": "string"
+    },
+    "unit_revision_hash": {
+      "type": "string"
+    },
+    "graph_revision_hash": {
+      "type": "string"
+    },
+    "graph_neighbourhood_hash": {
+      "type": "string"
+    },
+    "applicable_contract_fingerprints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "technical_stack_fingerprint": {
+      "type": "string"
+    },
+    "knowledge_route_policy_hash": {
+      "type": "string"
+    },
+    "determinism_envelope_hash": {
+      "type": "string"
+    },
+    "activation_manifest_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "activation_manifest_hash": {
+      "type": "string"
+    },
+    "context_package_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_package_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_capsule_hashes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "worker_delivery_hash": {
+      "type": "string"
+    },
+    "binding_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

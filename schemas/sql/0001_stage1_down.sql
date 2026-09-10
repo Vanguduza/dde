@@ -1,5 +1,16 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS vekl_execution_knowledge_bindings CASCADE;
+DROP TABLE IF EXISTS vekl_resolution_traces CASCADE;
+DROP TABLE IF EXISTS vekl_graph_invalidations CASCADE;
+DROP TABLE IF EXISTS vekl_truth_challenge_findings CASCADE;
+DROP TABLE IF EXISTS vekl_truth_challenges CASCADE;
+DROP TABLE IF EXISTS vekl_conflict_observations CASCADE;
+DROP TABLE IF EXISTS vekl_research_findings CASCADE;
+DROP TABLE IF EXISTS vekl_retrieval_routes CASCADE;
+DROP TABLE IF EXISTS vekl_knowledge_edges CASCADE;
+DROP TABLE IF EXISTS vekl_knowledge_nodes CASCADE;
+DROP TABLE IF EXISTS vekl_unit_maps CASCADE;
 DROP TABLE IF EXISTS vekl_resource_outcomes CASCADE;
 DROP TABLE IF EXISTS vekl_manifest_invalidations CASCADE;
 DROP TABLE IF EXISTS vekl_activation_manifests CASCADE;

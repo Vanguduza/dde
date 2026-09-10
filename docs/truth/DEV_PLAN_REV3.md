@@ -2525,6 +2525,8 @@ Release candidate requires:
 
 AD-048 and Blueprint §26A adopt Production VEKL for **target-application manufacturing only**. The VEKL-P0…P10 labels from the reviewed design pack are proposal-local decomposition labels, not new DDE mission numbers. DDE-070…DDE-083 remain locked.
 
+VEKL delivery must work across the certified Rev 3 worker harnesses: **Codex Native**, **Claude Code / Claude Agent SDK**, and **DDE-074 DeepSeek Harness**. DeepSeek Harness remains a first-class execution harness for bounded, economical, long-context/batch and other policy-eligible worker workloads. VEKL may enrich its exact resource/context package but may not bypass DDE routing, manager-chair, capability, side-effect or verification policy. **Development Prime / Prime Agent is not part of DDE and is forbidden as a DDE worker/orchestration dependency.**
+
 VEKL must extend existing DDE authorities rather than create a parallel resource/control plane. Current DDE-066/069 Source Intelligence and Donor Lab are the discovery/provenance foundation; future missions deepen qualification, activation, execution and certification.
 
 | VEKL work package | Canonical DDE owner | Required integration |
@@ -2541,6 +2543,17 @@ VEKL must extend existing DDE authorities rather than create a parallel resource
 | P9 Production Studio UX | DDE-081 + DDE-082 | Stack Map, Knowledge, Tools, Hooks, Loops, Community Evidence, Security, Learning from real projections only |
 | P10 production certification | DDE-083 | malicious resources, prompt injection, typosquat, excessive MCP scope, revocation, offline pins, stale feeds, cross-project and learning poisoning |
 
+The Unit Knowledge Graph / deterministic GraphRAG / Truth Evolution v2 enhancement is cross-cutting work inside the same locked owners, not P11+ or a new mission series:
+
+| VEKL v2 extension | Canonical DDE owner | Required integration |
+| --- | --- | --- |
+| stable Unit lineage + immutable Unit revision / contract topology | DDE-077 + DDE-080 | project/feature/facet lineage; TaskGraph/truth/stack/contract/PXG/policy/schema revision; no second task ledger |
+| rebuildable typed Knowledge Graph + deterministic route envelope | DDE-080 | PostgreSQL/RLS projection; graph before semantic retrieval; hard eligibility before ranking; closed vocabulary and deterministic tie-break |
+| immutable resolution + execution admission evidence | DDE-077 + DDE-080 | `VEKLResolutionTrace` plus append-only activation/context `VEKLExecutionKnowledgeBinding`; freshness barriers at dispatch/start/consequential effects |
+| research findings + governed Truth Challenge | DDE-075 + DDE-080 + DDE-083 | deterministic challenge prefilter; implementation conflict remains rejected; exact non-standing human truth-change approval; accepted EDR supersession only |
+| Unit Knowledge workbench + product-experience knowledge | DDE-081 | live projections only; Frontend Contract/PXG + hard structural/silhouette versus qualitative visual-critique split |
+| v2 adversarial/rebuild/race/reversibility certification | DDE-083 | cross-project/RLS, stale READY, deterministic rebuild, challenge authority, trace immutability, migration 0039 rollback/re-upgrade |
+
 ## 20A.1 Mission-specific acceptance additions
 
 **DDE-075:** Hermes must retrieve provenance-linked VEKL resource outcomes and recurring version/failure/recovery evidence while preserving the authoritative/advisory boundary. It may propose `DDE_LEARNED_RECIPE`/wrapper/playbook candidates only. AD-049 HAIF may preprocess admitted public target-application evidence through the DDE-scoped localhost tenant, but its packets remain `NON_AUTHORITATIVE_AUXILIARY_EVIDENCE` and cannot become routing or truth authority.
@@ -2556,6 +2569,16 @@ VEKL must extend existing DDE authorities rather than create a parallel resource
 **DDE-082:** workflow/playbook work must also compile canonical instruction/rule delivery, Hook IR and bounded loops through the same validated workflow/capability runtime. MCP/plugin/LSP/tool components are independently qualified; bundle approval never grants blanket execution. The DDE engineering playbook is an existing partial substrate for this mission: explicit engineering archetypes bind deterministic planning/context/review/parallelism/completion policy into `TaskSignature`; DDE-authored Skills are exact-revision VEKL resources; activation fails closed when required Skills are missing or unqualified; the initial per-archetype Skill ceiling is three; Claude materialization disables autonomous Skill invocation and never grants tools; hard completion/scope/effect gates remain DDE-native.
 
 **DDE-083:** add the complete VEKL adversarial suite to release certification. Required cases include DDE self-scope refusal, wrong-major docs, revoked resource, usable skill text with blocked script, malicious/prompt-injected README/forum, compromised/typosquat package, excessive MCP permissions, unadmitted host, stale mandatory security feed, offline pinned mode, failover activation-manifest continuity, cross-project leakage attempt and learning poisoning. HAIF release proof additionally covers wrong-project token/state access, xKiro-key isolation, provider free-route mislabelling, paid-capacity refusal, RPM/TPM/concurrency limits, uncertain-outcome replay safety, provider credential revocation, and proof that HAIF cannot invoke premium managers or mutate a repository.
+
+### 20A.1A Unit Knowledge Graph v2 acceptance
+
+The v2 extension is acceptable only when stable Unit lineage survives non-conceptual task churn while `unit_revision_hash` changes on TaskGraph/truth/stack/contract/PXG/retrieval/schema drift; same authoritative inputs reproduce graph and resolution identities; the graph remains a rebuildable typed projection; graph neighbourhood and existing VEKL hard eligibility precede semantic ranking; and every material dispatch can reconstruct why each resource was selected or excluded from an immutable `VEKLResolutionTrace`.
+
+`VEKLResolutionTrace` is never updated to attach execution state. Exact activation/context delivery is append-only `VEKLExecutionKnowledgeBinding` evidence. Freshness must be checked against current Truth, Unit, StackFingerprint, TaskSignature, graph snapshot, route/index envelope and manifest at admission, worker start and consequential effects. A stale Unit/trace/binding fails closed.
+
+Truth-conflicting knowledge remains ineligible for implementation. `VEKLResearchFinding`/`VEKLTruthChallenge` may elevate it only after deterministic provenance/trust/freshness/corroboration/reproduction thresholds. `project_truth_change` is standing-forbidden, exact-hash-bound and human-decided through ordinary Governance/project authorization; no VEKL-specific canon authority is created. Accepted EDR evolution uses supersession, never amendment. Critical challenges block only affected work through existing `BLOCKED_ON_DECISION`.
+
+UI-bearing Units must distinguish deterministic product completeness from qualitative aesthetic judgement. Frontend Contract/PXG, Screen Audit structural/functional/state/data/navigation/responsive/accessibility checks and silhouette are hard gates; `visual_critique` is the qualitative project-bound oracle and `prototype_pixel_signoff` remains its bounded human fallback.
 
 ## 20A.2 Schema-first boundary
 

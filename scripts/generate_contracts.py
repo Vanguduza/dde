@@ -346,6 +346,19 @@ def _fk_sql(schema: dict[str, Any]) -> list[str]:
     return statements
 
 
+def _index_sql(schema: dict[str, Any]) -> list[str]:
+    storage = schema["x-dde-storage"]
+    table = storage["table"]
+    statements: list[str] = []
+    for index in storage.get("indexes") or []:
+        name = index["name"]
+        columns = ", ".join(_sql_ident(col) for col in index["columns"])
+        unique = "UNIQUE " if index.get("unique") else ""
+        where = f" WHERE {index['where']}" if index.get("where") else ""
+        statements.append(f"CREATE {unique}INDEX {name} ON {table} ({columns}){where};")
+    return statements
+
+
 def _tenant_guc_predicate() -> str:
     return "tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid)"
 
@@ -414,6 +427,11 @@ def _sql_bundle(
     for _, schema in stored:
         up.append(_create_table_sql(schema))
         up.append("")
+    for _, schema in stored:
+        indexes = _index_sql(schema)
+        if indexes:
+            up.extend(indexes)
+            up.append("")
     for _, schema in stored:
         fks = _fk_sql(schema)
         if fks:

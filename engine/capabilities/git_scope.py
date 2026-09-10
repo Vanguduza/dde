@@ -30,6 +30,28 @@ class ProjectRepoScopeError(Exception):
 # project's repository to another project's identity.
 _BINDINGS: dict[str, GitConnectionScope] = {}
 
+# Owner-locked cross-project repository firewall. DIAL is an independent
+# project with its own repository authority. DDE must never bind, inspect,
+# fetch, clone, push or otherwise operate on either the current DIAL repository
+# or its superseded predecessor, even if a caller tries to present one as a
+# target-application repository.
+_FORBIDDEN_REPOSITORY_IDENTITIES = frozenset(
+    {
+        ("github.com", "vanguduza/dial-new"),
+        ("github.com", "vanguduza/dial"),
+    }
+)
+
+
+def _assert_repository_not_forbidden(*, host: str, path: str) -> None:
+    identity_path = path.strip("/").removesuffix(".git").lower()
+    identity = (host.lower(), identity_path)
+    if identity in _FORBIDDEN_REPOSITORY_IDENTITIES:
+        raise ProjectRepoScopeError(
+            "repository is outside DDE authority and is permanently denied",
+            {"repository": f"{identity[0]}/{identity[1]}"},
+        )
+
 
 def _normalize_remote_url(remote_url: str) -> str:
     parts = urlsplit(remote_url)
@@ -40,6 +62,8 @@ def _normalize_remote_url(remote_url: str) -> str:
     if not parts.path.strip("/"):
         raise ProjectRepoScopeError("remote URL has no repository path")
     path = "/" + "/".join(segment for segment in parts.path.split("/") if segment)
+    repository_host = parts.hostname or parts.netloc
+    _assert_repository_not_forbidden(host=repository_host, path=path)
     return f"{parts.scheme}://{parts.netloc}{path}"
 
 

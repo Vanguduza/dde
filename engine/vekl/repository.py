@@ -132,6 +132,24 @@ class VEKLRepository:
         row = result.mappings().first()
         return None if row is None else TaskSignature.model_validate(dict(row))
 
+    async def latest_signature_for_task(
+        self, connection: AsyncConnection, *, project_id: UUID, task_id: UUID
+    ) -> TaskSignature | None:
+        result = await connection.execute(
+            select(task_signatures)
+            .where(
+                task_signatures.c.project_id == project_id,
+                task_signatures.c.task_id == task_id,
+            )
+            .order_by(
+                task_signatures.c.created_at.desc(),
+                task_signatures.c.signature_id.desc(),
+            )
+            .limit(1)
+        )
+        row = result.mappings().first()
+        return None if row is None else TaskSignature.model_validate(dict(row))
+
     async def insert_manifest(
         self, connection: AsyncConnection, record: VEKLActivationManifest
     ) -> None:

@@ -28,6 +28,7 @@ class VEKLActivationManifest(BaseModel):
     project_truth_hash: str
     stack_fingerprint_hash: str
     policy_hash: str
+    knowledge_context: dict[str, object] | None = None
     selected_resources: list[dict[str, object]]
     tools: list[dict[str, object]]
     hooks: list[dict[str, object]]

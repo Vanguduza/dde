@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_truth_challenge_finding.json",
+  "title": "VEKLTruthChallengeFinding",
+  "description": "Project-scoped join binding a Truth Challenge to its exact research findings.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_truth_challenge_findings",
+    "order": 363,
+    "pk": [
+      "challenge_finding_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_truth_challenge_finding_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenge_finding_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenge_findings_challenge_fkey",
+        "columns": [
+          "challenge_id"
+        ],
+        "ref_table": "vekl_truth_challenges",
+        "ref_columns": [
+          "challenge_id"
+        ]
+      },
+      {
+        "name": "vekl_truth_challenge_findings_finding_fkey",
+        "columns": [
+          "finding_id"
+        ],
+        "ref_table": "vekl_research_findings",
+        "ref_columns": [
+          "finding_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "challenge_id",
+        "finding_id"
+      ]
+    ]
+  },
+  "required": [
+    "challenge_finding_id",
+    "tenant_id",
+    "project_id",
+    "challenge_id",
+    "finding_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "challenge_finding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "challenge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "finding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

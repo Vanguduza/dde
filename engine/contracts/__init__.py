@@ -136,9 +136,22 @@ from engine.contracts.tenant_overhead_budget_settings import (
 )
 from engine.contracts.validation_report import ValidationReport
 from engine.contracts.vekl_activation_manifest import VEKLActivationManifest
+from engine.contracts.vekl_conflict_observation import VEKLConflictObservation
+from engine.contracts.vekl_execution_knowledge_binding import (
+    VEKLExecutionKnowledgeBinding,
+)
+from engine.contracts.vekl_graph_invalidation import VEKLGraphInvalidation
+from engine.contracts.vekl_knowledge_edge import VEKLKnowledgeEdge
+from engine.contracts.vekl_knowledge_node import VEKLKnowledgeNode
 from engine.contracts.vekl_manifest_invalidation import VEKLManifestInvalidation
+from engine.contracts.vekl_research_finding import VEKLResearchFinding
+from engine.contracts.vekl_resolution_trace import VEKLResolutionTrace
 from engine.contracts.vekl_resource import VEKLResource
 from engine.contracts.vekl_resource_outcome import VEKLResourceOutcome
+from engine.contracts.vekl_retrieval_route import VEKLRetrievalRoute
+from engine.contracts.vekl_truth_challenge import VEKLTruthChallenge
+from engine.contracts.vekl_truth_challenge_finding import VEKLTruthChallengeFinding
+from engine.contracts.vekl_unit_map import VEKLUnitMap
 from engine.contracts.verification_run import VerificationRun
 from engine.contracts.worker_event import WorkerEvent
 from engine.contracts.worker_run import WorkerRun
@@ -276,9 +289,20 @@ __all__ = [
     "TenantOverheadBudgetSettings",
     "ValidationReport",
     "VEKLActivationManifest",
+    "VEKLConflictObservation",
+    "VEKLExecutionKnowledgeBinding",
+    "VEKLGraphInvalidation",
+    "VEKLKnowledgeEdge",
+    "VEKLKnowledgeNode",
     "VEKLManifestInvalidation",
+    "VEKLResearchFinding",
+    "VEKLResolutionTrace",
     "VEKLResource",
     "VEKLResourceOutcome",
+    "VEKLRetrievalRoute",
+    "VEKLTruthChallenge",
+    "VEKLTruthChallengeFinding",
+    "VEKLUnitMap",
     "VerificationRun",
     "WorkerEvent",
     "WorkerRun",

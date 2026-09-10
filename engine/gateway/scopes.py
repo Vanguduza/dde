@@ -165,6 +165,17 @@ COMMAND_SCOPES: Final[dict[str, str]] = {
     "vekl.activation.prepare": "mission.control",
     "vekl.context.compile": "mission.control",
     "vekl.outcome.record": "mission.control",
+    "vekl.knowledge.routes.seed": "mission.control",
+    "vekl.knowledge.units.compile": "mission.control",
+    "vekl.knowledge.foresight": "mission.read",
+    "vekl.knowledge.graph.compile": "mission.control",
+    "vekl.knowledge.resolve": "mission.control",
+    "vekl.knowledge.invalidate_from_change": "mission.control",
+    "vekl.research.finding.record": "mission.control",
+    "vekl.truth.challenge.create": "mission.control",
+    "vekl.truth.challenge.decide": "approval.decide",
+    "vekl.truth.challenge.reopen": "approval.decide",
+    "vekl.knowledge.projection": "mission.read",
 }
 
 #: Target kind each command must address (Chapter 15.2 target_type).
@@ -266,6 +277,17 @@ COMMAND_TARGET_TYPE: Final[dict[str, str]] = {
     "vekl.activation.prepare": "mission",
     "vekl.context.compile": "mission",
     "vekl.outcome.record": "mission",
+    "vekl.knowledge.routes.seed": "mission",
+    "vekl.knowledge.units.compile": "mission",
+    "vekl.knowledge.foresight": "mission",
+    "vekl.knowledge.graph.compile": "mission",
+    "vekl.knowledge.resolve": "mission",
+    "vekl.knowledge.invalidate_from_change": "mission",
+    "vekl.research.finding.record": "mission",
+    "vekl.truth.challenge.create": "mission",
+    "vekl.truth.challenge.decide": "mission",
+    "vekl.truth.challenge.reopen": "mission",
+    "vekl.knowledge.projection": "mission",
 }
 
 #: AI Conversation Fabric commands are explicit and mission-scoped. The dispatcher

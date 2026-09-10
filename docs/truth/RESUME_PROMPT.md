@@ -14,6 +14,10 @@ Do not infer current state from model memory, prior chat, screenshots or this pr
 
 # THE REPOSITORY IS THE SOURCE OF TRUTH.
 
+Current DDE Rev 3 harness law: **Codex Native + Claude Code / Claude Agent SDK + DeepSeek Harness** are the worker harness families; Hermes is the separately governed research/coordination fabric. **Development Prime / Prime Agent is not part of DDE and must not be restored from historical or cross-project material.**
+
+Repository firewall: **never access a DIAL repository from DDE work.** `Vanguduza/dial-new` is DIAL-only; `Vanguduza/dial` is superseded and permanently denied. Do not clone/fetch/inspect/compare/merge either repository during DDE development or runtime operations.
+
 Your current mission is DDE-069 — **DDE Code / Frontend Studio V2 + Live Design Foundation** — unless repository evidence proves that the mission has advanced.
 
 Do not restart the project. Preserve verified work. Do not create parallel architectures for functionality that already has an owner.
@@ -762,14 +766,40 @@ Do not rebuild these now-real primitives without evidence of regression:
   not infer
   that personal/community Skills such as `AppCreator` are OpenAI first-party;
 - real mission-scoped Gateway commands/read projection for Stack Map, Knowledge,
-  Tools/Plugins/MCP, Rules/Hooks, Loops, Community Evidence, Security and Learning.
+  Tools/Plugins/MCP, Rules/Hooks, Loops, Community Evidence, Security and Learning;
+- the additive Unit Knowledge Graph / deterministic GraphRAG / target Project Truth
+  Evolution v2 foundation in migration `0039`: stable feature/facet `unit_lineage_id`
+  separated from immutable `unit_revision_hash`; `VEKLUnitMap`; typed rebuildable graph
+  nodes/edges; deterministic concern/routes; pinned result-affecting resolution envelope;
+  graph-neighbourhood then hard-eligibility then lexical/semantic ranking; contextual
+  selection purpose/role; `VEKLResearchFinding`, conflict observation and governed
+  `VEKLTruthChallenge`; and explicit `EXEMPT_BY_POLICY` readiness rather than fake READY;
+- immutable `VEKLResolutionTrace` explaining traversal, exclusions/selections and withheld
+  truth conflicts. Do not add activation/context fields to that trace. Later execution
+  admission is append-only `VEKLExecutionKnowledgeBinding` at `ACTIVATION_BOUND` and
+  `CONTEXT_BOUND`, with freshness checks against current truth/unit/stack/signature/graph/
+  route/index/manifest identity;
+- `project_truth_change` is a standing-forbidden ordinary Governance approval. The decide
+  command requires existing human-only `approval.decide` plus project authorization; there
+  is deliberately no VEKL/DIAL-specific canon authority table. Accepted EDR evolution is
+  `EDR_SUPERSEDE`, never accepted-EDR mutation. Critical challenges reuse
+  `BLOCKED_ON_DECISION` for affected Tasks and do not create a second task state;
+- the Production Studio Knowledge rail/workbench is enabled from the real VEKL projection
+  and renders Unit/graph/challenge/resource state honestly. UI-bearing Unit knowledge
+  separates deterministic Frontend Contract/PXG + Screen Audit + silhouette gates from
+  qualitative `visual_critique` and bounded standing-forbidden `prototype_pixel_signoff`.
 
-Current verification (2026-09-08): 54 focused VEKL/playbook/contract tests pass; pure
-unit is 731 passed / 5 skipped / 562 integration deselected; contract is 223/223;
-extension/shared is 77/77; Frontend Studio Playwright is 79/79; desktop/UI TypeScript and
-React/Vite production build are green. Ruff, contract/design-token/binding drift checks,
-the design-lint ratchet and strict MyPy over 581 source files are green. Service-capable CI
-run `34234702640` additionally closes the former database gap: **6/6** VEKL PostgreSQL
+Current verification (2026-09-10): the v2 architecture/runtime focus is **15/15**; pure
+unit is **752 passed / 6 skipped / 562 integration deselected**; contract is **223/223**;
+extension/shared is **77/77**; Frontend Studio + desktop TypeScript and React/Vite
+production build are green. Repository Ruff and
+format are clean across **1,074 files**; strict MyPy is green across **596 source files**;
+contract/design-token/binding drift, `git diff --check`, Project Truth guard verification
+and the design-lint ratchet are green (the historical 70 DD206 baseline is unchanged).
+The new Knowledge Playwright and migration `0039` PostgreSQL/RLS/reversibility proofs are
+CI-pending because this Oracle-admin shell lacks the required browser OS library and local
+services. Earlier service-capable CI run `34234702640` remains valid evidence for the
+`0038` foundation: **6/6** VEKL PostgreSQL
 tests, **1550 passed / 7 skipped** across database-backed unit+contract+recovery, **5/5**
 integration, generated drift clean, and a live Alembic `head -> base -> head` cycle that
 exercises migration `0038` rollback and re-upgrade. The current shell remains service-free;

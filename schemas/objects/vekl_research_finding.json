@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_research_finding.json",
+  "title": "VEKLResearchFinding",
+  "description": "Typed source-admitted research result. Findings are evidence/candidate intelligence and never Project Truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_research_findings",
+    "order": 360,
+    "pk": [
+      "finding_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_research_finding_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_research_finding_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_research_findings_unit_fkey",
+        "columns": [
+          "unit_map_id"
+        ],
+        "ref_table": "vekl_unit_maps",
+        "ref_columns": [
+          "unit_map_id"
+        ]
+      },
+      {
+        "name": "vekl_research_findings_source_fkey",
+        "columns": [
+          "source_id"
+        ],
+        "ref_table": "design_sources",
+        "ref_columns": [
+          "source_id"
+        ]
+      },
+      {
+        "name": "vekl_research_findings_artifact_fkey",
+        "columns": [
+          "source_artifact_id"
+        ],
+        "ref_table": "design_source_artifacts",
+        "ref_columns": [
+          "artifact_id"
+        ]
+      },
+      {
+        "name": "vekl_research_findings_resource_fkey",
+        "columns": [
+          "resource_id"
+        ],
+        "ref_table": "vekl_resources",
+        "ref_columns": [
+          "resource_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_research_findings_unit_class",
+        "columns": [
+          "project_id",
+          "unit_map_id",
+          "classification"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "finding_id",
+    "tenant_id",
+    "project_id",
+    "unit_map_id",
+    "task_refs",
+    "concern",
+    "source_trust",
+    "source_revision",
+    "content_hash",
+    "claim",
+    "supporting_excerpt_hash",
+    "freshness",
+    "classification",
+    "confidence",
+    "corroboration_refs",
+    "project_truth_refs",
+    "stack_refs",
+    "impact_hypothesis",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "finding_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "unit_map_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "concern": {
+      "type": "string"
+    },
+    "source_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_artifact_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resource_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_trust": {
+      "type": "string"
+    },
+    "source_revision": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "claim": {
+      "type": "string"
+    },
+    "supporting_excerpt_hash": {
+      "type": "string"
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "NORMAL_GUIDANCE",
+        "COMPATIBILITY_SIGNAL",
+        "SECURITY_SIGNAL",
+        "TRUTH_CONFLICT_SIGNAL",
+        "DISCOVERY_ONLY"
+      ]
+    },
+    "confidence": {
+      "type": "string"
+    },
+    "corroboration_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "project_truth_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stack_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "impact_hypothesis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

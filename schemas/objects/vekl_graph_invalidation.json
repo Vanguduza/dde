@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_graph_invalidation.json",
+  "title": "VEKLGraphInvalidation",
+  "description": "Append-only invalidation event for stale knowledge projections, traces or manifests.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_graph_invalidations",
+    "order": 364,
+    "pk": [
+      "graph_invalidation_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_graph_invalidation_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_graph_invalidation_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_graph_invalidations_unit_fkey",
+        "columns": [
+          "unit_map_id"
+        ],
+        "ref_table": "vekl_unit_maps",
+        "ref_columns": [
+          "unit_map_id"
+        ]
+      },
+      {
+        "name": "vekl_graph_invalidations_manifest_fkey",
+        "columns": [
+          "manifest_id"
+        ],
+        "ref_table": "vekl_activation_manifests",
+        "ref_columns": [
+          "manifest_id"
+        ]
+      },
+      {
+        "name": "vekl_graph_invalidations_trace_fkey",
+        "columns": [
+          "resolution_trace_id"
+        ],
+        "ref_table": "vekl_resolution_traces",
+        "ref_columns": [
+          "resolution_trace_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_graph_invalidations_unit",
+        "columns": [
+          "project_id",
+          "unit_map_id",
+          "created_at"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "graph_invalidation_id",
+    "tenant_id",
+    "project_id",
+    "reason_code",
+    "detail",
+    "observed_truth_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "graph_invalidation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "unit_map_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "manifest_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolution_trace_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "VEKL_PROJECT_TRUTH_CHANGED",
+        "VEKL_UNIT_MAP_CHANGED",
+        "VEKL_GRAPH_NEIGHBOURHOOD_CHANGED",
+        "VEKL_CONTRACT_CHANGED",
+        "VEKL_STACK_FINGERPRINT_CHANGED",
+        "VEKL_TASK_SIGNATURE_CHANGED",
+        "VEKL_SOURCE_ADMISSION_REVOKED",
+        "VEKL_RESOURCE_REVOKED",
+        "VEKL_SECURITY_EVIDENCE_STALE",
+        "VEKL_PRODUCT_EXPERIENCE_CHANGED",
+        "VEKL_CHALLENGE_ACCEPTED",
+        "VEKL_RESOLUTION_ENVELOPE_CHANGED"
+      ]
+    },
+    "detail": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "observed_truth_hash": {
+      "type": "string"
+    },
+    "previous_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

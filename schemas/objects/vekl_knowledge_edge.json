@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/vekl_knowledge_edge.json",
+  "title": "VEKLKnowledgeEdge",
+  "description": "Typed provenance-bearing rebuildable relation between declared VEKL knowledge-node kinds.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "vekl_knowledge_edges",
+    "order": 358,
+    "pk": [
+      "knowledge_edge_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "vekl_knowledge_edge_tenant_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "vekl_knowledge_edge_project_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "vekl_knowledge_edges_from_fkey",
+        "columns": [
+          "from_node_id"
+        ],
+        "ref_table": "vekl_knowledge_nodes",
+        "ref_columns": [
+          "knowledge_node_id"
+        ]
+      },
+      {
+        "name": "vekl_knowledge_edges_to_fkey",
+        "columns": [
+          "to_node_id"
+        ],
+        "ref_table": "vekl_knowledge_nodes",
+        "ref_columns": [
+          "knowledge_node_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "project_id",
+        "from_node_id",
+        "relationship",
+        "to_node_id",
+        "provenance_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_vekl_knowledge_edges_active_from",
+        "columns": [
+          "project_id",
+          "from_node_id",
+          "relationship"
+        ],
+        "where": "invalidated_at IS NULL"
+      },
+      {
+        "name": "ix_vekl_knowledge_edges_active_to",
+        "columns": [
+          "project_id",
+          "to_node_id",
+          "relationship"
+        ],
+        "where": "invalidated_at IS NULL"
+      }
+    ]
+  },
+  "required": [
+    "knowledge_edge_id",
+    "tenant_id",
+    "project_id",
+    "from_node_id",
+    "relationship",
+    "to_node_id",
+    "provenance_ref",
+    "provenance_hash",
+    "derivation_class",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "knowledge_edge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "from_node_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "relationship": {
+      "type": "string",
+      "enum": [
+        "derives_from",
+        "governed_by",
+        "observes",
+        "classified_as",
+        "consumes",
+        "produces",
+        "depends_on",
+        "implemented_by",
+        "verified_by",
+        "realizes",
+        "constrained_by",
+        "supports",
+        "informs",
+        "verifies",
+        "diagnoses",
+        "conflicts_with",
+        "supersedes",
+        "supplies",
+        "selected_by",
+        "resolves",
+        "binds",
+        "evaluates",
+        "yields",
+        "proves",
+        "changes",
+        "invalidates",
+        "derived_from",
+        "challenges",
+        "aggregates",
+        "affects",
+        "requires"
+      ]
+    },
+    "to_node_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provenance_ref": {
+      "type": "string"
+    },
+    "provenance_hash": {
+      "type": "string"
+    },
+    "derivation_class": {
+      "type": "string",
+      "enum": [
+        "DETERMINISTIC",
+        "DECLARED",
+        "VERIFIED_INFERRED",
+        "RESEARCH_HYPOTHESIS"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "invalidated_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

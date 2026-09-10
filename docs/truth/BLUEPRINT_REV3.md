@@ -2613,6 +2613,9 @@ VEKL reuses, and never duplicates, existing DDE authorities:
 - Context compilation/budgets own worker context delivery.
 - Verification/Evidence own completion.
 - Hermes owns persistent research/retrieval and candidate discovery only; authoritative raw runtime facts remain in DDE.
+- VEKL output is worker-harness neutral and may be consumed only by DDE-certified harnesses. The current Rev 3 worker-harness set includes **Codex Native**, **Claude Code / Claude Agent SDK**, and the first-class **DeepSeek Harness**; Hermes remains a separately governed research/coordination fabric rather than a replacement worker authority.
+- **Development Prime / Prime Agent is not part of DDE Rev 3 and must not be introduced as a DDE harness, manager, routing authority or VEKL execution authority.** Historical or cross-project material that mentions Prime is non-canonical for DDE.
+- **Repository isolation is absolute across DDE and DIAL.** DDE development/runtime tooling MUST NOT clone, fetch, inspect, compare, bind, mutate, push to, merge from, or otherwise operate on any DIAL repository. `Vanguduza/dial-new` belongs exclusively to DIAL; `Vanguduza/dial` is superseded and is also permanently denied so legacy material cannot spill into DDE or be used as a donor/source. Any cross-project knowledge transfer requires an owner-supplied exported artifact admitted through normal Source Intelligence rather than repository access.
 
 The VEKL intelligence plane adds resource qualification, exact-version resolution, stack/task matching, executable-component decomposition, conflict/freshness analysis, activation planning and resource-outcome analytics. It MUST NOT create a second mission ledger, truth store, permission system, cost ledger, routing authority or memory authority.
 
@@ -2829,6 +2832,54 @@ Existing Source Intelligence/Donor Lab, capability, context, verification, routi
 The reviewed VEKL v1 pack began as candidate JSON/schema/source-policy input. The common runtime contracts have since entered the normal DDE schema-first path as the implemented-partial `VEKLResource`, `StackFingerprint`, `TaskSignature`, `VEKLActivationManifest`/invalidation, `VEKLResourceOutcome`, Instruction IR, Hook IR and bounded-loop authorities with migration/RLS and runtime integration evidence recorded in `IMPLEMENTATION_STATE.md`. Future owning missions extend those accepted names/authorities rather than reintroducing pack-local duplicates.
 
 Source-catalog/source-policy seeds and research URLs remain discovery/design inputs, not canonical egress authority. Narrow `capability.vekl.*` entries are real only where they exist in the capability registry with ordinary risk/side-effect metadata; no candidate source name or playbook provenance URL grants network access.
+
+### 26A.19 Development Unit identity and readiness
+
+Production VEKL SHALL project dependency-safe `VEKLUnitMap` records from the existing Mission/Task/TaskGraph authority; a Unit is not a second task ledger. Stable conceptual identity and immutable revision identity are separate. `unit_lineage_id` is derived from tenant/project identity, canonical feature membership plus realization facets and the versioned unit-boundary policy; only featureless fallback Units use canonical task membership. It deliberately excludes mutable Project Truth, stack, TaskGraph revision and retrieval policy. `unit_revision_hash` binds the lineage to TaskGraph version, current Project Truth/applicable truth-slice hash, `StackFingerprint`, contract-set fingerprint, Product Experience fingerprint where applicable, retrieval-route policy, graph/unit schema versions and projection compiler version.
+
+Knowledge readiness is separate from Task status. Allowed semantic states are `UNMAPPED`, `MAPPING`, `BLOCKED`, `READY`, `STALE` and explicit `EXEMPT_BY_POLICY`. An exempt task must record the exact policy/archetype basis and MUST NOT be represented as `READY`. UI-bearing Units cannot become `READY` without applicable Frontend Contract/PXG identity and required product-experience verification knowledge.
+
+### 26A.20 Rebuildable Knowledge Graph projection
+
+The Production VEKL Knowledge Graph is relational intelligence, not authority. PostgreSQL project-scoped `vekl_knowledge_nodes` and `vekl_knowledge_edges` reference authoritative objects by typed kind, ID/ref, revision/content hash, authority class/service and provenance. Graph rows are rebuildable projections: they MUST NOT become a writable copy of Requirements, EDRs, Tasks, contracts, verification or resources. Node and relationship vocabularies are closed schema enums; aliases such as generic `UNIT`, `TRUTH_NODE`, `TEST_ORACLE`, `VERIFICATION_RESULT` or `CONCERN` are forbidden unless first added schema-first with defined authority semantics. Every graph table and traversal remains tenant/project RLS scoped. Spatial layout in Studio carries no authority.
+
+### 26A.21 Deterministic GraphRAG envelope
+
+GraphRAG resolution SHALL bind a versioned determinism envelope containing the concern-classifier identity/version, retrieval-route registry/version and policy hash, graph compiler/version and graph snapshot hash, chunking algorithm version, embedding model and active Context index identity/version where semantic retrieval is used, lexical retriever version, hybrid ranker version/weight hash, hard-eligibility policy hash, resource-outcome policy version and stable tie-break rule. A change in any result-affecting member makes prior resolution stale.
+
+Resolution order is normative: current Unit/Truth/TaskSignature/StackFingerprint -> deterministic concern and route -> bounded graph neighbourhood -> existing VEKL/Source hard eligibility -> lexical/semantic ranking inside that eligible set -> deterministic purpose/role slot selection. Semantic similarity never decides authority and never resurrects an ineligible resource. `selection_purpose` and `selection_role` belong to the resolution/manifest binding for the current Unit, not to intrinsic `VEKLResource` identity.
+
+### 26A.22 Research findings and governed Project Truth evolution
+
+Ahead-of-work research may persist provenance-bearing `VEKLResearchFinding` records for active Units, but workers gain no unrestricted browsing and Source Intelligence/egress law remains unchanged. A `PROJECT_TRUTH_CONFLICT` remains a hard implementation rejection while a separate deterministic challenge prefilter may qualify the evidence for review. The prefilter binds classification, source trust, freshness, provenance, corroboration and deterministic reproduction where applicable; model confidence alone cannot promote a challenge.
+
+A qualified conflict may become `VEKLTruthChallenge`. Challenges carry current Project Truth hash, exact findings/evidence, conflict, confidence, impact, exact proposed truth patch, migration plan, verification plan and reopen conditions. They never write truth directly. The only mutation path is existing `TruthService` after a fresh `project_truth_change` Governance Approval whose scope hash binds the challenge, current truth hash, proposed delta, evidence, impact, migration and verification hashes. `project_truth_change` is permanently standing-forbidden and decision commands require the existing human-only `approval.decide` scope plus ordinary project authorization. Accepted EDRs are immutable: changes use `EDR_SUPERSEDE`, never `EDR_AMEND`.
+
+Critical challenges may block only the affected Unit and, when a concrete Task must stop, use the existing `BLOCKED_ON_DECISION` Task transition; they do not add another Task state. Independent Mission branches continue under existing partial/active workflow law. Accept/reject/defer decisions retain rationale; accepted truth changes invalidate affected Unit/graph/activation knowledge and require re-resolution before execution.
+
+### 26A.23 Immutable resolution and execution-knowledge evidence
+
+Every material graph-backed resolution writes an immutable `VEKLResolutionTrace` that records the Unit revision, Truth/stack/task-signature/contract hashes, graph snapshot, pinned determinism envelope, traversed nodes/edges, every candidate inclusion/exclusion decision, selected contextual purpose/role, withheld truth conflicts and challenge observations. Resolution traces have no update path.
+
+Later execution admission is represented by append-only `VEKLExecutionKnowledgeBinding` records rather than mutating the trace. The `ACTIVATION_BOUND` stage binds the exact `VEKLActivationManifest`; the `CONTEXT_BOUND` stage additionally binds the exact ContextPackage/capsule hashes and worker-delivery hash. Rebinding a stage to different evidence fails closed. Freshness is rechecked at activation/dispatch, worker start and consequential capability/effect boundaries against Project Truth, Unit revision, StackFingerprint, TaskSignature, graph snapshot, retrieval policy/index and exact manifest identity. Stale `READY` state therefore cannot race into execution.
+
+### 26A.24 Contract impact and downstream invalidation
+
+Unit maps expose machine-readable contracts consumed/produced and upstream/downstream task references. ChangePacket/contract changes SHALL mark dependent Unit knowledge stale using existing task/change authority; graph invalidation is evidence of derived staleness, not a new dependency authority. Rebuild/resolution restores readiness only after current authoritative hashes and required verification obligations are known.
+
+### 26A.25 Product Experience and anti-generic quality law
+
+UI-bearing Unit knowledge separates deterministic hard product-quality gates from qualitative visual judgement. Frontend Contract/PXG completeness, Screen Audit structural/functional/state/data/navigation/responsive/accessibility obligations, bound visible controls and deterministic silhouette checks are hard evidence gates. Aesthetic quality such as visual intentionality, hierarchy and polish is evaluated through the project-bound `visual_critique` AcceptanceOracle/rubric; if the bounded automated visual-revision loop cannot clear it, existing standing-forbidden `prototype_pixel_signoff` is the human fallback. No global model score, generic style preference or VEKL resource may replace the target project's PXG, Frontend Contract, visual authority or verification evidence.
+
+### 26A.26 Production Studio Knowledge workbench
+
+Production Studio SHALL extend the existing shell with a Knowledge workbench backed only by live VEKL projections. It may show Unit readiness/revision, graph node/edge counts and topology, qualified resources by section, Truth Challenges, stack/contracts/security/verification/learning state and provenance. Empty/unavailable state is rendered honestly; no fake active resources, fabricated graph nodes or manually curated duplicate truth is permitted. Map interaction may inspect/filter/navigate/request governed research or open an approval, but dragging visual nodes cannot create dependencies, mutate Requirements/EDRs or mark verification green.
+
+### 26A.27 Persistence extension and mission ownership
+
+The Unit/GraphRAG/Truth-Evolution extension uses the schema-first Production VEKL path and migration `0039`, adding project-scoped/RLS persistence for Unit Maps, knowledge nodes/edges, retrieval routes, research findings, conflict observations, Truth Challenges and finding links, graph invalidations, immutable resolution traces and append-only execution-knowledge bindings. It introduces no VEKL-specific canon-authority table: truth decisions reuse ordinary human/project authorization plus Governance Approval. The graph remains PostgreSQL-first; no Neo4j/vector authority is introduced.
+
+This extension is absorbed by the already locked DDE-075/076/077/080/081/082/083 ownership. In particular DDE-077 owns execution identity/change binding, DDE-080 owns deterministic graph-bounded resolution and context integration, DDE-081 owns the inspectable workbench, and DDE-083 owns adversarial/RLS/revocation/stale-race/rebuild/release certification. No new mission numbering is created.
 
 ---
 
