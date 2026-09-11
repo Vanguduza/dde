@@ -8,6 +8,7 @@ The repository follows an `Unreleased` section until a release/version boundary 
 
 ### Changed
 
+- Accepted Rev 2 architecture for exact-pinned automation-corpus acquisition and domain-neutral Source Intelligence, preserving target-application-only Production VEKL and non-executable raw workflow quarantine.
 - Established `main` as the only persistent integration branch, with temporary PR branches, automatic post-merge deletion, strict Project Truth/Linux/Windows merge gates, branch-orphan auditing, changelog enforcement, and an append-only fixed-bug ledger.
 
 ## 2026-09-10 — Governance and VEKL v2 baseline

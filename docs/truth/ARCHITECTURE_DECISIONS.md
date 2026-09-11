@@ -687,3 +687,12 @@ The same gate states that DDE-068 is the next sequential mission and that accept
 
 Do not use this file to bypass the EDR process.
 ---
+## AD-050 — Production VEKL automation corpora use domain-neutral Source Intelligence and exact-snapshot acquisition
+
+**Status:** Accepted 2026-09-11.
+
+Production VEKL may qualify exact-pinned public automation corpora for `TARGET_APPLICATION` engineering knowledge only through the EDR-0018 acquisition surface and a domain-neutral Source Intelligence base. DDE-069 design-source records remain frontend specializations; automation artifacts must not be represented as design-system admissions. Raw snapshot/workflow identity is distinct from derived descriptor identity: `CorpusSnapshot -> RawWorkflowArtifact -> AutomationPatternDescriptor -> VEKLResource`.
+
+Derived automation descriptors are non-authoritative and non-executable by default. They carry explicit guidance polarity (`POSITIVE`, `ANTI_PATTERN`, `OBSERVATION_ONLY`); anti-pattern resources may never satisfy positive implementation/reuse/execution slots. Automation knowledge uses a schema/policy-governed `WORKFLOW_AUTOMATION` concern and enters the ordinary Unit Knowledge Graph, hard eligibility, deterministic GraphRAG, ActivationManifest, immutable ResolutionTrace, compact `knowledge_context`, ContextPackage and append-only ExecutionKnowledgeBinding path. Future target n8n operations are target-runtime capability effects under CapabilityLease/ExternalEffect/verifier law, not DDE WorkerAdapters.
+
+This decision is additive to AD-048 and preserves Production VEKL's target-application-only scope, Project Truth authority, existing graph/context/governance/verification authorities and DDE/DIAL repository isolation.

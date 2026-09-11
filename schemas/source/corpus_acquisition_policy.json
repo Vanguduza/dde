@@ -1,0 +1,22 @@
+{
+  "policy_id": "edr-0018-automation-corpus-acquisition-v1",
+  "version": 1,
+  "authority_ref": "EDR-0018",
+  "project_kind": "TARGET_APPLICATION",
+  "sources": [
+    {
+      "repository": "Zie619/n8n-workflows",
+      "host": "codeload.github.com",
+      "path_prefix": "/Zie619/n8n-workflows/zip/",
+      "method": "GET",
+      "revision_pattern": "^[0-9a-f]{40}$",
+      "authentication": "ANONYMOUS_PUBLIC_HTTPS",
+      "max_compressed_bytes": 100663296,
+      "max_uncompressed_bytes": 536870912,
+      "max_workflow_count": 10000,
+      "max_workflow_bytes": 2097152,
+      "retention": "PROJECT_SCOPED_CONTENT_ADDRESSED_QUARANTINE",
+      "redirects": "FORBIDDEN"
+    }
+  ]
+}
