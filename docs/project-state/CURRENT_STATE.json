@@ -1,27 +1,13 @@
 {
   "actor": "ubuntu",
-  "branch": "feat/repository-governance-20260910",
+  "branch": "feat/vekl-zie619-rev2-20260911",
   "changed_files": [
-    ".github/workflows/branch-governance.yml",
-    ".github/workflows/project-truth-autolog.yml",
-    "AGENTS.md",
-    "BRANCH_MANAGEMENT.md",
-    "CHANGELOG.md",
-    "PROJECT_CANONICAL_STATE.json",
-    "PROJECT_TRUTH_PROTOCOL.md",
-    "README.md",
-    "docs/project-state/BUG_FIX_LEDGER.jsonl",
-    "docs/project-state/BUG_FIX_LEDGER.md",
-    "justfile",
-    "scripts/commit_if_green.ps1",
-    "scripts/commit_if_green.sh",
-    "scripts/repository_governance.py",
-    "tests/unit/test_repository_governance.py"
+    "scripts/accept_owner_edrs.py"
   ],
-  "diff_sha256": "934611a58da3f77f732c33173ee9a6de5c5bb0e594baae2c3adaf7b58898ee24",
+  "diff_sha256": "f4b96a4131c7205a5dbd171368680eaf641b7cce04b3dba8fb3ce11bcbedbf40",
   "kind": "precommit-staged-diff",
-  "recorded_at_utc": "2026-09-10T19:14:51.492569+00:00",
+  "recorded_at_utc": "2026-09-11T02:11:37.584980+00:00",
   "schema_version": 1,
-  "source_parent": "cde5b9e991d5caf05c33d075216743faa9cccbde",
+  "source_parent": "6178e95f250e4eda0c89f2412dc62c6dc25bd719",
   "state": "PENDING_COMMIT"
 }

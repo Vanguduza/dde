@@ -26,8 +26,15 @@ On 2026-09-04 the project owner decided EDR-0017 ("visual-critic execution
 route", resolved as Option C: a new narrow `capability.visual_critique`
 rather than relaxing the broad `capability.claude_code_invoke` or weakening
 `STANDING_FORBIDDEN_TYPES`), extending the accepted processing to
-EDR-0001..EDR-0017. This script is the repository's authoritative, versioned
-representation of those accepted decisions: the runtime database is
+EDR-0001..EDR-0017.
+
+On 2026-09-11 the project owner explicitly instructed DDE to "Implement rev 2
+fully" after reviewing the Production VEKL × Zie619/n8n workflow-corpus Rev 2
+plan. That accepts EDR-0018, which authorizes only the exact-pinned corpus
+acquisition surface and domain-neutral Source Intelligence decision recorded
+in its pre-image. The accepted processing therefore covers EDR-0001..EDR-0018.
+This script is the repository's authoritative, versioned representation of
+those accepted decisions: the runtime database is
 provisioned from here, never the other way round, so adding a slug and its
 payload here is what durably ratifies a decision for every environment.
 
@@ -40,6 +47,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import text
@@ -62,7 +70,7 @@ OWNER_ORGANIZATION_ID = UUID("9b6f1a58-e29a-4a35-a8e2-8e6c0f4b7d13")
 
 ACCEPTED_OWNER_EDR_SLUGS: frozenset[str] = frozenset(
     {
-        *(f"EDR-{number:04d}" for number in range(1, 18)),
+        *(f"EDR-{number:04d}" for number in range(1, 19)),
     }
 )
 
@@ -1571,6 +1579,73 @@ def _payload(slug: str) -> dict[str, object]:
             ],
             "affected_requirement_slugs": [],
         },
+        "EDR-0018": {
+            "context": (
+                "Production VEKL may extract bounded engineering patterns "
+                "from a public automation corpus, but EDR-0015 authorizes "
+                "donor search and README/licence/metadata reads rather than "
+                "bulk workflow-body or archive acquisition. Current VEKL "
+                "external resources also bind to DDE-069 frontend design "
+                "source tables whose admission fields are not a truthful "
+                "automation-corpus qualification contract. Rev 2 therefore "
+                "requires a separate exact-snapshot acquisition authority "
+                "and a domain-neutral Source Intelligence base before corpus "
+                "bytes may influence Production VEKL."
+            ),
+            "alternatives": [
+                "Silently reinterpret EDR-0015 as bulk corpus authority — "
+                "rejected because it widens an accepted host/path/use "
+                "decision without change control.",
+                "Store automation workflows as frontend DesignSourceAdmission "
+                "records — rejected because frontend design semantics would "
+                "misrepresent the source and create false qualification "
+                "evidence.",
+                "Allow workers or Hermes to browse or clone the corpus "
+                "directly — rejected because it bypasses Source Intelligence, "
+                "capability/effect journaling and target-only VEKL scope.",
+                "Admit one exact public snapshot through a dedicated control "
+                "plane capability plus domain-neutral Source Intelligence — "
+                "accepted.",
+            ],
+            "decision": (
+                "Accept the Rev 2 exact-pinned acquisition path. The initial "
+                "transport is anonymous GET of "
+                "https://codeload.github.com/Zie619/n8n-workflows/zip/"
+                "<40-char-sha>; floating refs and redirects are forbidden; "
+                "compressed bytes are capped at 96 MiB, quarantine bytes at "
+                "512 MiB, workflows at 10,000 and each workflow at 2 MiB. "
+                "Every acquisition requires a granted CapabilityLease and a "
+                "journaled ExternalEffect before network I/O. Bytes are "
+                "retained only in project-scoped content-addressed quarantine. "
+                "DDE introduces domain-neutral SourceRecord, SourceArtifact "
+                "and SourceAdmission authority for VEKL source qualification; "
+                "DDE-069 design sources become a specialization/bridge, not "
+                "the automation admission model. Raw workflows remain "
+                "non-authoritative and non-executable. Only separately hashed "
+                "sanitized descriptors may become qualified non-executable "
+                "VEKL resources."
+            ),
+            "rationale": (
+                "The decision preserves exact provenance, least privilege, "
+                "fail-closed egress, project isolation and existing VEKL, "
+                "Context and Task authorities. It enables useful pattern "
+                "extraction without turning public workflow files into "
+                "executable donors, credentials, Project Truth or a DDE "
+                "worker harness."
+            ),
+            "consequences": [
+                "Future corpus revisions create new immutable snapshot/source "
+                "states rather than mutating historical evidence.",
+                "Revocation stops new acquisition and invalidates affected "
+                "derived VEKL resources while preserving audit history.",
+                "Automation resources must pass secret, PII, prompt, code and "
+                "network analysis plus hard guidance-polarity rules before "
+                "GraphRAG ranking.",
+                "DDE_CONTROL_PLANE remains fail-closed and ordinary worker "
+                "egress is not widened by this decision.",
+            ],
+            "affected_requirement_slugs": [],
+        },
     }
     return payloads[slug]
 
@@ -1670,16 +1745,19 @@ async def accept_edr(
             )
             return "accepted-existing-proposal", accepted.edr_id
         return "already-accepted", existing.edr_id
+    payload = _payload(slug)
     proposed = await service.propose_edr(
         tenant_id=OWNER_TENANT_ID,
         project_id=OWNER_PROJECT_ID,
         slug=slug,
-        context=str(_payload(slug)["context"]),
-        alternatives=list(_payload(slug)["alternatives"]),
-        decision=str(_payload(slug)["decision"]),
-        rationale=str(_payload(slug)["rationale"]),
-        consequences=list(_payload(slug)["consequences"]),
-        affected_requirement_slugs=list(_payload(slug)["affected_requirement_slugs"]),
+        context=str(payload["context"]),
+        alternatives=cast(list[str], payload["alternatives"]),
+        decision=str(payload["decision"]),
+        rationale=str(payload["rationale"]),
+        consequences=cast(list[str], payload["consequences"]),
+        affected_requirement_slugs=cast(
+            list[str], payload["affected_requirement_slugs"]
+        ),
     )
     accepted = await service.accept_edr(
         tenant_id=OWNER_TENANT_ID,
