@@ -2,17 +2,12 @@
   "actor": "ubuntu",
   "branch": "feat/vekl-zie619-rev2-20260911",
   "changed_files": [
-    "CHANGELOG.md",
-    "docs/truth/ARCHITECTURE_DECISIONS.md",
-    "docs/truth/BLUEPRINT_REV3.md",
-    "docs/truth/DEV_PLAN_REV3.md",
-    "docs/truth/edr/EDR-0018-automation-corpus-snapshot-acquisition.md",
-    "schemas/source/corpus_acquisition_policy.json"
+    "scripts/accept_owner_edrs.py"
   ],
-  "diff_sha256": "a9a983a2cd0ce8539ded629f562d60d16a88295c12a7a2f82d1c333a664b5043",
+  "diff_sha256": "f4b96a4131c7205a5dbd171368680eaf641b7cce04b3dba8fb3ce11bcbedbf40",
   "kind": "precommit-staged-diff",
-  "recorded_at_utc": "2026-09-11T01:56:50.037128+00:00",
+  "recorded_at_utc": "2026-09-11T02:11:37.584980+00:00",
   "schema_version": 1,
-  "source_parent": "76b521631f3354d71e842fe0b305064062bede65",
+  "source_parent": "6178e95f250e4eda0c89f2412dc62c6dc25bd719",
   "state": "PENDING_COMMIT"
 }
