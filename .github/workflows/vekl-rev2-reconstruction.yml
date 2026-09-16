@@ -61,8 +61,16 @@ jobs:
                   "CASE WHEN status IN ('AVAILABLE','DEGRADED','NOT_CONFIGURED','UNAVAILABLE','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END",
               )
               migration.write_text(text, encoding="utf-8")
+
+          tables = Path("engine/source/tables.py")
+          text = tables.read_text(encoding="utf-8")
+          text = text.replace(
+              '"""SQLAlchemy Core mappings for domain-neutral Source Intelligence and automation corpus."""',
+              '"""SQLAlchemy Core mappings for domain-neutral Source Intelligence\nand the automation corpus."""',
+          )
+          tables.write_text(text, encoding="utf-8")
           PY
-          git add schemas/objects/source_record.json schemas/objects/vekl_resource.json schemas/objects/vekl_research_finding.json migrations/versions/0040_source_intelligence_automation_corpus.py
+          git add schemas/objects/source_record.json schemas/objects/vekl_resource.json schemas/objects/vekl_research_finding.json migrations/versions/0040_source_intelligence_automation_corpus.py engine/source/tables.py
           if ! git diff --cached --quiet; then
             git commit -m "feat(vekl): bind VEKL provenance to neutral Source Intelligence"
           fi
