@@ -5,29 +5,38 @@ from __future__ import annotations
 import io
 import json
 import zipfile
-from datetime import UTC, datetime
-from hashlib import sha256
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
 
-from engine.contracts.automation_corpus_snapshot import AutomationCorpusSnapshot
-from engine.contracts.source_artifact import SourceArtifact
+from engine.contracts.worker_run import WorkerRun
+from engine.core.clock import SystemClock
 from engine.core.ids import uuid7
+from engine.execution.service import ExecutionPlanService
 from engine.object_store.durable import LocalScopedObjectStore
+from engine.source.acquisition import AutomationCorpusAcquisitionService
 from engine.source.materialization import AutomationCorpusMaterializationService
-from engine.source.repository import SourceRepository
-from engine.source.service import SourceService
 from engine.truth.db import open_unit_of_work
-from tests.support.db import new_engine, seed_tenant
+from tests.support.capability_fixtures import ensure_capabilities_seeded
+from tests.support.db import new_engine
+from tests.support.execution_fixtures import build_execution_fixture
 
 pytestmark = pytest.mark.integration
+
+MIT = """MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the \"Software\"), to deal
+in the Software without restriction.
+"""
 
 
 def _workflow_archive() -> bytes:
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("repo/LICENSE", MIT)
         zf.writestr(
             "repo/positive.json",
             json.dumps(
@@ -77,102 +86,92 @@ def _workflow_archive() -> bytes:
     return stream.getvalue()
 
 
+async def _target_run(engine, tmp_path: Path) -> tuple[object, WorkerRun]:
+    fixture = await build_execution_fixture(
+        engine,
+        tmp_path,
+        mission_slug=f"MISSION-AUTOMATION-MATERIALIZE-{uuid4().hex}",
+        task_class="verification",
+    )
+    await ensure_capabilities_seeded(
+        engine,
+        tenant_id=fixture.tenant.tenant_id,
+        project_id=fixture.tenant.project_id,
+    )
+    async with open_unit_of_work(
+        engine,
+        tenant_id=fixture.tenant.tenant_id,
+        project_id=fixture.tenant.project_id,
+    ) as uow:
+        await uow.connection.execute(
+            text("UPDATE projects SET kind='TARGET_APPLICATION' WHERE project_id=:p"),
+            {"p": fixture.tenant.project_id},
+        )
+        await uow.commit()
+    plan = await ExecutionPlanService(engine).plan(
+        task=fixture.task,
+        route_decision=fixture.route_decision,
+        context_package_id=fixture.context_package.package_id,
+    )
+    now = SystemClock().now()
+    run = WorkerRun(
+        run_id=uuid7(),
+        tenant_id=fixture.tenant.tenant_id,
+        project_id=fixture.tenant.project_id,
+        mission_id=fixture.mission.mission_id,
+        task_attempt_id=uuid7(),
+        sequence=1,
+        execution_plan_id=plan.plan_id,
+        worker_id="worker.scripted-deterministic-v1",
+        worker_profile_id="profile.deterministic_runner",
+        environment_id=plan.execution_environment_id,
+        workspace_id=uuid7(),
+        context_package_id=plan.context_package_id,
+        policy_version="test",
+        lease_set_hash="test",
+        status="RUNNING",
+        created_at=now,
+        updated_at=now,
+    )
+    return fixture, run
+
+
 @pytest.mark.asyncio
 async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
     tmp_path: Path,
 ) -> None:
     engine = new_engine()
     try:
-        fixture = await seed_tenant(engine)
-        source_service = SourceService(engine)
-        repository = SourceRepository()
-        source = await source_service.ensure_source(
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
-            provider_key="automation:test-corpus",
-            display_name="Automation materialization fixture",
-            source_domain="AUTOMATION",
-            source_class="MAINTAINED_OSS",
-            source_kind="PUBLIC_WORKFLOW_CORPUS",
-            source_trust="S4_MAINTAINED_OSS",
-        )
+        fixture, worker_run = await _target_run(engine, tmp_path)
         archive = _workflow_archive()
-        archive_hash = sha256(archive).hexdigest()
         store = LocalScopedObjectStore(
             namespace="automation-corpus",
             root=tmp_path / "objects",
         )
-        object_ref = store.put(
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
-            content_hash=archive_hash,
-            content=archive,
-        )
-        now = datetime.now(UTC)
-        snapshot_artifact = await source_service.register_artifact(
-            SourceArtifact(
-                artifact_id=uuid7(),
-                source_id=source.source_id,
-                tenant_id=fixture.tenant_id,
-                project_id=fixture.project_id,
-                parent_artifact_id=None,
-                artifact_kind="AUTOMATION_CORPUS_SNAPSHOT",
-                provider_artifact_key="fixture@" + ("c" * 40),
-                title="materialization fixture",
-                source_uri="https://codeload.github.com/fixture",
-                revision="c" * 40,
-                content_hash=archive_hash,
-                content_object_ref=object_ref,
-                content_object_backend="LOCAL",
-                content_size_bytes=len(archive),
-                media_type="application/zip",
-                metadata={},
-                provenance={"fixture": True},
-                created_at=now,
-                updated_at=now,
-            )
-        )
-        snapshot = AutomationCorpusSnapshot(
-            snapshot_id=uuid7(),
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
-            source_id=source.source_id,
-            artifact_id=snapshot_artifact.artifact_id,
-            repository="Zie619/n8n-workflows",
-            commit_sha="c" * 40,
-            archive_sha256=archive_hash,
-            acquisition_policy_version="test",
-            acquisition_policy_hash="d" * 64,
-            acquisition_effect_id=uuid7(),
-            acquired_at=now,
-            compressed_bytes=len(archive),
-            expanded_bytes=1,
-            workflow_count=4,
-            object_ref=object_ref,
-            object_backend="LOCAL",
-            state="QUARANTINED",
-            license_state="VERIFIED",
-            license_path="repo/LICENSE",
-            created_at=now,
-            updated_at=now,
-        )
-        async with open_unit_of_work(
+
+        async def fetch(_uri: str) -> bytes:
+            return archive
+
+        snapshot = await AutomationCorpusAcquisitionService(
             engine,
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
-        ) as uow:
-            snapshot = await repository.insert_snapshot(uow.connection, snapshot)
-            await uow.commit()
+            object_store=store,
+            fetch=fetch,
+        ).acquire_snapshot(
+            worker_run=worker_run,
+            commit_sha="c" * 40,
+            idempotency_key="materialization-fixture",
+        )
+        assert snapshot.state == "QUARANTINED"
+        assert snapshot.license_state == "VERIFIED"
+        assert snapshot.workflow_count == 4
 
         service = AutomationCorpusMaterializationService(
             engine,
-            repository=repository,
-            sources=source_service,
             object_store=store,
         )
         result = await service.materialize_snapshot(
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
             snapshot_id=snapshot.snapshot_id,
         )
         assert result.processed_workflows == 4
@@ -185,8 +184,8 @@ async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
 
         async with open_unit_of_work(
             engine,
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
         ) as uow:
             workflow_states = (
                 await uow.connection.execute(
@@ -255,8 +254,8 @@ async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
             assert "connections" not in rendered_capsule
             assert "super-secret-value" not in rendered_capsule
             descriptor_bytes = store.read(
-                tenant_id=fixture.tenant_id,
-                project_id=fixture.project_id,
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
                 key=row["content_object_ref"],
             )
             rendered_descriptor = descriptor_bytes.decode()
@@ -265,15 +264,15 @@ async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
             assert "nodes" not in rendered_descriptor
 
         second = await service.materialize_snapshot(
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
             snapshot_id=snapshot.snapshot_id,
         )
         assert second == result
         async with open_unit_of_work(
             engine,
-            tenant_id=fixture.tenant_id,
-            project_id=fixture.project_id,
+            tenant_id=fixture.tenant.tenant_id,
+            project_id=fixture.tenant.project_id,
         ) as uow:
             workflow_count = await uow.connection.execute(
                 text(
