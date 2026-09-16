@@ -146,7 +146,7 @@ async def test_acquisition_is_lease_effect_bound_quarantined_and_idempotent(
                         "capability": CAPABILITY_AUTOMATION_CORPUS,
                     },
                 )
-                assert lease.scalar_one() == "GRANTED"
+                assert lease.scalar_one() == "ACTIVE"
                 effect = await uow.connection.execute(
                     text(
                         "SELECT status FROM external_effects "
