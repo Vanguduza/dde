@@ -621,11 +621,32 @@ def _rewire_vekl_to_neutral() -> None:
     )
 
 
+def _existing_0040_tables() -> set[str]:
+    connection = op.get_bind()
+    return {
+        table
+        for table in _NEW_TABLES
+        if connection.execute(
+            sa.text("SELECT to_regclass(:name)"), {"name": f"public.{table}"}
+        ).scalar()
+        is not None
+    }
+
+
 def upgrade() -> None:
-    _create_source_tables()
-    _create_automation_tables()
-    for table in _NEW_TABLES:
-        _enable_rls(table)
+    existing = _existing_0040_tables()
+    if existing:
+        if existing != set(_NEW_TABLES):
+            missing = sorted(set(_NEW_TABLES) - existing)
+            raise RuntimeError(
+                "partial Source Intelligence schema detected before migration 0040; "
+                f"missing tables: {', '.join(missing)}"
+            )
+    else:
+        _create_source_tables()
+        _create_automation_tables()
+        for table in _NEW_TABLES:
+            _enable_rls(table)
     _backfill_design_sources()
     _rewire_vekl_to_neutral()
 

@@ -12,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from engine.core.ids import uuid7
 from engine.source.service import SourceService
 from engine.truth.db import open_unit_of_work
-from tests.support.db import ensure_rls_probe_role, new_engine, open_rls_probe, seed_tenant
+from tests.support.db import (
+    ensure_rls_probe_role,
+    new_engine,
+    open_rls_probe,
+    seed_tenant,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -118,7 +123,9 @@ async def test_0040_tables_force_project_and_tenant_rls() -> None:
                 project_id=tenant_a.project_id,
             ) as connection:
                 rows = await connection.execute(
-                    text("SELECT provider_key FROM source_records ORDER BY provider_key")
+                    text(
+                        "SELECT provider_key FROM source_records ORDER BY provider_key"
+                    )
                 )
                 assert [row[0] for row in rows.all()] == ["automation:a"]
 
@@ -128,7 +135,9 @@ async def test_0040_tables_force_project_and_tenant_rls() -> None:
                 project_id=project_b,
             ) as connection:
                 rows = await connection.execute(
-                    text("SELECT provider_key FROM source_records ORDER BY provider_key")
+                    text(
+                        "SELECT provider_key FROM source_records ORDER BY provider_key"
+                    )
                 )
                 assert [row[0] for row in rows.all()] == ["automation:b"]
 
@@ -138,7 +147,9 @@ async def test_0040_tables_force_project_and_tenant_rls() -> None:
                 project_id=tenant_c.project_id,
             ) as connection:
                 rows = await connection.execute(
-                    text("SELECT provider_key FROM source_records ORDER BY provider_key")
+                    text(
+                        "SELECT provider_key FROM source_records ORDER BY provider_key"
+                    )
                 )
                 assert [row[0] for row in rows.all()] == ["automation:c"]
         finally:
