@@ -1,5 +1,11 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS automation_pattern_descriptors CASCADE;
+DROP TABLE IF EXISTS automation_workflow_artifacts CASCADE;
+DROP TABLE IF EXISTS automation_corpus_snapshots CASCADE;
+DROP TABLE IF EXISTS source_admissions CASCADE;
+DROP TABLE IF EXISTS source_artifacts CASCADE;
+DROP TABLE IF EXISTS source_records CASCADE;
 DROP TABLE IF EXISTS vekl_execution_knowledge_bindings CASCADE;
 DROP TABLE IF EXISTS vekl_resolution_traces CASCADE;
 DROP TABLE IF EXISTS vekl_graph_invalidations CASCADE;

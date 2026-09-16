@@ -3027,6 +3027,174 @@ CREATE TABLE vekl_execution_knowledge_bindings (
     UNIQUE (project_id, binding_hash)
 );
 
+CREATE TABLE source_records (
+    source_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    provider_key text NOT NULL,
+    display_name text NOT NULL,
+    source_domain text NOT NULL,
+    source_class text NOT NULL,
+    source_kind text NOT NULL,
+    source_trust text NOT NULL,
+    status text NOT NULL,
+    policy_revision text NOT NULL,
+    config jsonb NOT NULL DEFAULT '{}'::jsonb,
+    revoked_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (source_id),
+    UNIQUE (project_id, provider_key)
+);
+
+CREATE TABLE source_artifacts (
+    artifact_id uuid NOT NULL,
+    source_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    parent_artifact_id uuid,
+    artifact_kind text NOT NULL,
+    provider_artifact_key text NOT NULL,
+    title text NOT NULL,
+    source_uri text,
+    revision text NOT NULL,
+    content_hash text NOT NULL,
+    content_object_ref text,
+    content_object_backend text,
+    content_size_bytes integer,
+    media_type text,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (artifact_id),
+    UNIQUE (source_id, provider_artifact_key, revision, content_hash)
+);
+
+CREATE TABLE source_admissions (
+    admission_id uuid NOT NULL,
+    source_id uuid NOT NULL,
+    artifact_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    content_hash text NOT NULL,
+    compiler_version text NOT NULL,
+    policy_version text NOT NULL,
+    qualification_domain text NOT NULL,
+    qualification_profile text NOT NULL,
+    state text NOT NULL,
+    source_trust text NOT NULL,
+    reuse_class text NOT NULL,
+    analysis jsonb NOT NULL DEFAULT '{}'::jsonb,
+    hard_failures jsonb NOT NULL DEFAULT '[]'::jsonb,
+    validation_obligations jsonb NOT NULL DEFAULT '[]'::jsonb,
+    provenance jsonb NOT NULL DEFAULT '{}'::jsonb,
+    security_state text NOT NULL,
+    license_state text NOT NULL,
+    provenance_state text NOT NULL,
+    sanitization_state text NOT NULL,
+    injection_state text NOT NULL,
+    revoked_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (admission_id),
+    UNIQUE (artifact_id, content_hash, compiler_version, policy_version)
+);
+
+CREATE TABLE automation_corpus_snapshots (
+    snapshot_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    source_id uuid NOT NULL,
+    artifact_id uuid NOT NULL,
+    repository text NOT NULL,
+    commit_sha text NOT NULL,
+    archive_sha256 text NOT NULL,
+    acquisition_policy_version text NOT NULL,
+    acquisition_policy_hash text NOT NULL,
+    acquisition_effect_id uuid NOT NULL,
+    acquired_at timestamptz NOT NULL,
+    compressed_bytes integer NOT NULL,
+    expanded_bytes integer NOT NULL,
+    workflow_count integer NOT NULL,
+    object_ref text NOT NULL,
+    object_backend text NOT NULL,
+    state text NOT NULL,
+    license_state text NOT NULL,
+    license_path text,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (snapshot_id),
+    UNIQUE (project_id, repository, commit_sha, archive_sha256)
+);
+
+CREATE TABLE automation_workflow_artifacts (
+    workflow_artifact_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    snapshot_id uuid NOT NULL,
+    artifact_id uuid NOT NULL,
+    path text NOT NULL,
+    raw_hash text NOT NULL,
+    raw_size_bytes integer NOT NULL,
+    parser_state text NOT NULL,
+    source_metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    state text NOT NULL,
+    findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    pattern_lineage_id text,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (workflow_artifact_id),
+    UNIQUE (snapshot_id, path, raw_hash)
+);
+
+CREATE TABLE automation_pattern_descriptors (
+    descriptor_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    project_id uuid NOT NULL,
+    snapshot_id uuid NOT NULL,
+    artifact_id uuid NOT NULL,
+    pattern_lineage_id text NOT NULL,
+    pattern_revision_hash text NOT NULL,
+    archetype text NOT NULL,
+    guidance_polarity text NOT NULL,
+    title text NOT NULL,
+    summary text NOT NULL,
+    trigger_classes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    action_classes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    integration_classes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    control_flow jsonb NOT NULL DEFAULT '{}'::jsonb,
+    resilience_controls jsonb NOT NULL DEFAULT '[]'::jsonb,
+    security_controls jsonb NOT NULL DEFAULT '[]'::jsonb,
+    observability_controls jsonb NOT NULL DEFAULT '[]'::jsonb,
+    failure_modes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    required_capabilities jsonb NOT NULL DEFAULT '[]'::jsonb,
+    stack_constraints jsonb NOT NULL DEFAULT '{}'::jsonb,
+    source_workflow_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+    source_workflow_hashes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    parser_version text NOT NULL,
+    sanitizer_version text NOT NULL,
+    scanner_version text NOT NULL,
+    descriptor_hash text NOT NULL,
+    topology_hash text NOT NULL,
+    topology_compiler_version text NOT NULL,
+    security_findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    pii_findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    secret_findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    prompt_findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    implementation_guidance jsonb NOT NULL DEFAULT '[]'::jsonb,
+    anti_pattern_notes jsonb NOT NULL DEFAULT '[]'::jsonb,
+    auth_pattern jsonb NOT NULL DEFAULT '{}'::jsonb,
+    retry_error_pattern jsonb NOT NULL DEFAULT '{}'::jsonb,
+    idempotency_pattern jsonb NOT NULL DEFAULT '{}'::jsonb,
+    persistence_pattern jsonb NOT NULL DEFAULT '{}'::jsonb,
+    worker_safe_capsule jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    PRIMARY KEY (descriptor_id),
+    UNIQUE (project_id, pattern_lineage_id, pattern_revision_hash)
+);
+
 CREATE INDEX ix_vekl_unit_maps_active_lineage ON vekl_unit_maps (project_id, unit_lineage_id) WHERE invalidated_at IS NULL;
 
 CREATE INDEX ix_vekl_knowledge_nodes_active_ref ON vekl_knowledge_nodes (project_id, node_kind, stable_ref) WHERE invalidated_at IS NULL;
@@ -3643,8 +3811,8 @@ ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attentio
 ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_parent_fkey FOREIGN KEY (parent_resource_id) REFERENCES vekl_resources (resource_id);
-ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_source_fkey FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
-ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES source_artifacts (artifact_id);
 
 ALTER TABLE stack_fingerprints ADD CONSTRAINT stack_fingerprints_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE stack_fingerprints ADD CONSTRAINT stack_fingerprints_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -3691,8 +3859,8 @@ ALTER TABLE vekl_retrieval_routes ADD CONSTRAINT vekl_retrieval_route_project_fk
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_finding_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_finding_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_unit_fkey FOREIGN KEY (unit_map_id) REFERENCES vekl_unit_maps (unit_map_id);
-ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_source_fkey FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
-ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES source_artifacts (artifact_id);
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_resource_fkey FOREIGN KEY (resource_id) REFERENCES vekl_resources (resource_id);
 
 ALTER TABLE vekl_conflict_observations ADD CONSTRAINT vekl_conflict_observation_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
@@ -3728,6 +3896,35 @@ ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_bind
 ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_trace_fkey FOREIGN KEY (resolution_trace_id) REFERENCES vekl_resolution_traces (resolution_trace_id);
 ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_manifest_fkey FOREIGN KEY (activation_manifest_id) REFERENCES vekl_activation_manifests (manifest_id);
 ALTER TABLE vekl_execution_knowledge_bindings ADD CONSTRAINT vekl_execution_binding_context_fkey FOREIGN KEY (context_package_id) REFERENCES context_packages (package_id);
+
+ALTER TABLE source_records ADD CONSTRAINT source_records_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE source_records ADD CONSTRAINT source_records_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE source_artifacts ADD CONSTRAINT source_artifacts_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE source_artifacts ADD CONSTRAINT source_artifacts_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE source_artifacts ADD CONSTRAINT source_artifacts_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE source_artifacts ADD CONSTRAINT source_artifacts_parent_fkey FOREIGN KEY (parent_artifact_id) REFERENCES source_artifacts (artifact_id);
+
+ALTER TABLE source_admissions ADD CONSTRAINT source_admissions_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE source_admissions ADD CONSTRAINT source_admissions_artifact_fkey FOREIGN KEY (artifact_id) REFERENCES source_artifacts (artifact_id);
+ALTER TABLE source_admissions ADD CONSTRAINT source_admissions_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE source_admissions ADD CONSTRAINT source_admissions_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE automation_corpus_snapshots ADD CONSTRAINT automation_snapshots_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE automation_corpus_snapshots ADD CONSTRAINT automation_snapshots_artifact_fkey FOREIGN KEY (artifact_id) REFERENCES source_artifacts (artifact_id);
+ALTER TABLE automation_corpus_snapshots ADD CONSTRAINT automation_snapshots_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE automation_corpus_snapshots ADD CONSTRAINT automation_snapshots_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+ALTER TABLE automation_corpus_snapshots ADD CONSTRAINT automation_snapshots_effect_fkey FOREIGN KEY (acquisition_effect_id) REFERENCES external_effects (effect_id);
+
+ALTER TABLE automation_workflow_artifacts ADD CONSTRAINT automation_workflows_snapshot_fkey FOREIGN KEY (snapshot_id) REFERENCES automation_corpus_snapshots (snapshot_id);
+ALTER TABLE automation_workflow_artifacts ADD CONSTRAINT automation_workflows_artifact_fkey FOREIGN KEY (artifact_id) REFERENCES source_artifacts (artifact_id);
+ALTER TABLE automation_workflow_artifacts ADD CONSTRAINT automation_workflows_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE automation_workflow_artifacts ADD CONSTRAINT automation_workflows_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
+
+ALTER TABLE automation_pattern_descriptors ADD CONSTRAINT automation_descriptors_snapshot_fkey FOREIGN KEY (snapshot_id) REFERENCES automation_corpus_snapshots (snapshot_id);
+ALTER TABLE automation_pattern_descriptors ADD CONSTRAINT automation_descriptors_artifact_fkey FOREIGN KEY (artifact_id) REFERENCES source_artifacts (artifact_id);
+ALTER TABLE automation_pattern_descriptors ADD CONSTRAINT automation_descriptors_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
+ALTER TABLE automation_pattern_descriptors ADD CONSTRAINT automation_descriptors_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
@@ -4276,3 +4473,27 @@ CREATE POLICY vekl_resolution_traces_tenant_isolation ON vekl_resolution_traces 
 ALTER TABLE vekl_execution_knowledge_bindings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vekl_execution_knowledge_bindings FORCE ROW LEVEL SECURITY;
 CREATE POLICY vekl_execution_knowledge_bindings_tenant_isolation ON vekl_execution_knowledge_bindings USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE source_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE source_records FORCE ROW LEVEL SECURITY;
+CREATE POLICY source_records_tenant_isolation ON source_records USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE source_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE source_artifacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY source_artifacts_tenant_isolation ON source_artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE source_admissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE source_admissions FORCE ROW LEVEL SECURITY;
+CREATE POLICY source_admissions_tenant_isolation ON source_admissions USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE automation_corpus_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_corpus_snapshots FORCE ROW LEVEL SECURITY;
+CREATE POLICY automation_corpus_snapshots_tenant_isolation ON automation_corpus_snapshots USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE automation_workflow_artifacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_workflow_artifacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY automation_workflow_artifacts_tenant_isolation ON automation_workflow_artifacts USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));
+
+ALTER TABLE automation_pattern_descriptors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_pattern_descriptors FORCE ROW LEVEL SECURITY;
+CREATE POLICY automation_pattern_descriptors_tenant_isolation ON automation_pattern_descriptors USING (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid)) WITH CHECK (tenant_id = CAST(current_setting('dde.tenant_id', true) AS uuid) AND project_id = CAST(current_setting('dde.project_id', true) AS uuid));

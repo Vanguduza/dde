@@ -8,6 +8,7 @@ The repository follows an `Unreleased` section until a release/version boundary 
 
 ### Changed
 
+- Implemented the Rev 2 automation-corpus runtime foundation with domain-neutral Source Intelligence schemas, exact-pinned ZIP quarantine primitives, static secret/PII/prompt-injection screening, deterministic topology/lineage derivation, guidance polarity, and worker-safe descriptor capsules pending service-backed certification in PR #9.
 - Accepted Rev 2 architecture for exact-pinned automation-corpus acquisition and domain-neutral Source Intelligence, preserving target-application-only Production VEKL and non-executable raw workflow quarantine.
 - Established `main` as the only persistent integration branch, with temporary PR branches, automatic post-merge deletion, strict Project Truth/Linux/Windows merge gates, branch-orphan auditing, changelog enforcement, and an append-only fixed-bug ledger.
 

@@ -1,0 +1,71 @@
+name: VEKL Rev2 materialization fix
+
+on:
+  push:
+    branches:
+      - feat/vekl-automation-corpus-runtime-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dde
+          POSTGRES_PASSWORD: dde
+          POSTGRES_DB: dde
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dde -d dde"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DDE_DATABASE_URL: postgresql+asyncpg://dde:dde@localhost:5432/dde
+      DDE_REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: feat/vekl-automation-corpus-runtime-20260916
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --group dev
+      - name: Normalize tranche
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          uv run ruff format engine/source/materialization.py tests/integration/test_automation_corpus_materialization.py tests/integration/test_automation_corpus_acquisition.py
+          uv run ruff check engine/source/materialization.py tests/integration/test_automation_corpus_materialization.py tests/integration/test_automation_corpus_acquisition.py
+          uv run mypy engine/source/materialization.py engine/source/acquisition.py
+          git add engine/source/materialization.py tests/integration/test_automation_corpus_materialization.py tests/integration/test_automation_corpus_acquisition.py
+          if ! git diff --cached --quiet; then
+            git commit -m "test(vekl): normalize materialization certification"
+          fi
+      - name: Provision schema
+        run: |
+          uv run alembic upgrade 0039
+          uv run alembic upgrade 0040
+      - name: Focused acquisition and materialization certification
+        run: |
+          uv run pytest tests/integration/test_automation_corpus_acquisition.py tests/integration/test_automation_corpus_materialization.py -q
+      - name: Push normalized branch
+        run: git push origin HEAD:feat/vekl-automation-corpus-runtime-20260916

@@ -364,6 +364,34 @@ SEED_CAPABILITIES: tuple[SeedCapability, ...] = (
         supported_workloads=("planning",),
         network_requirements={"egress": "none"},
     ),
+    # EDR-0018: exact-pinned public automation-corpus acquisition.
+    # EXTERNAL_IDEMPOTENT because the immutable SHA GET is journaled and
+    # repeated requests for the same exact revision have identical bytes.
+    # No credential broker is used: anonymous codeload HTTPS only.
+    SeedCapability(
+        capability_id="capability.automation_corpus_snapshot",
+        version="1",
+        category="source_intelligence",
+        summary=(
+            "Acquire one exact Zie619/n8n-workflows Git SHA through the "
+            "EDR-0018 anonymous, redirect-free codeload path into project-"
+            "scoped quarantine. Raw workflows are never executable authority."
+        ),
+        side_effect_class="EXTERNAL_IDEMPOTENT",
+        risk_class="medium",
+        enforcement_tier="T1",
+        implementations=(
+            "engine.source.acquisition.AutomationCorpusAcquisitionService",
+        ),
+        supported_workloads=("planning", "verification"),
+        network_requirements={
+            "egress": "allowlist:https://codeload.github.com",
+            "edr": "EDR-0018",
+            "credentials": "forbidden",
+            "redirects": "forbidden",
+            "repository": "Zie619/n8n-workflows",
+        },
+    ),
     SeedCapability(
         capability_id="capability.vekl.qualify",
         version="1",

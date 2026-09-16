@@ -1,0 +1,154 @@
+name: VEKL Rev2 acquisition reconcile
+
+on:
+  push:
+    branches:
+      - feat/vekl-automation-corpus-runtime-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: feat/vekl-automation-corpus-runtime-20260916
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --group dev
+      - name: Configure identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Reconcile acquisition capability and exact-SHA idempotency
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          seed = Path("engine/capabilities/seed.py")
+          text = seed.read_text(encoding="utf-8")
+          if 'capability.automation_corpus_snapshot' not in text:
+              anchor = '''    SeedCapability(\n        capability_id="capability.vekl.qualify",\n'''
+              block = '''    # EDR-0018: exact-pinned public automation-corpus acquisition.\n    # EXTERNAL_IDEMPOTENT because the immutable SHA GET is journaled and\n    # repeated requests for the same exact revision have identical bytes.\n    # No credential broker is used: anonymous codeload HTTPS only.\n    SeedCapability(\n        capability_id="capability.automation_corpus_snapshot",\n        version="1",\n        category="source_intelligence",\n        summary=(\n            "Acquire one exact Zie619/n8n-workflows Git SHA through the "\n            "EDR-0018 anonymous, redirect-free codeload path into project-"\n            "scoped quarantine. Raw workflows are never executable authority."\n        ),\n        side_effect_class="EXTERNAL_IDEMPOTENT",\n        risk_class="medium",\n        enforcement_tier="T1",\n        implementations=(\n            "engine.source.acquisition.AutomationCorpusAcquisitionService",\n        ),\n        supported_workloads=("planning", "verification"),\n        network_requirements={\n            "egress": "allowlist:https://codeload.github.com",\n            "edr": "EDR-0018",\n            "credentials": "forbidden",\n            "redirects": "forbidden",\n            "repository": "Zie619/n8n-workflows",\n        },\n    ),\n'''
+              if anchor not in text:
+                  raise SystemExit("VEKL capability anchor not found")
+              seed.write_text(text.replace(anchor, block + anchor, 1), encoding="utf-8")
+
+          repository = Path("engine/source/repository.py")
+          text = repository.read_text(encoding="utf-8")
+          if "get_snapshot_by_revision" not in text:
+              anchor = '''    async def get_snapshot(\n        self, connection: AsyncConnection, *, snapshot_id: UUID\n    ) -> AutomationCorpusSnapshot | None:\n'''
+              method = '''    async def get_snapshot_by_revision(\n        self,\n        connection: AsyncConnection,\n        *,\n        project_id: UUID,\n        repository: str,\n        commit_sha: str,\n    ) -> AutomationCorpusSnapshot | None:\n        row = (\n            (\n                await connection.execute(\n                    select(automation_corpus_snapshots)\n                    .where(\n                        automation_corpus_snapshots.c.project_id == project_id,\n                        automation_corpus_snapshots.c.repository == repository,\n                        automation_corpus_snapshots.c.commit_sha == commit_sha,\n                    )\n                    .order_by(automation_corpus_snapshots.c.created_at.desc())\n                    .limit(1)\n                )\n            )\n            .mappings()\n            .first()\n        )\n        return AutomationCorpusSnapshot.model_validate(dict(row)) if row else None\n\n'''
+              if anchor not in text:
+                  raise SystemExit("snapshot repository anchor not found")
+              repository.write_text(text.replace(anchor, method + anchor, 1), encoding="utf-8")
+
+          acquisition = Path("engine/source/acquisition.py")
+          text = acquisition.read_text(encoding="utf-8")
+          if "get_snapshot_by_revision" not in text:
+              anchor = '''        await self._require_target_application(\n            tenant_id=tenant_id,\n            project_id=project_id,\n        )\n        plan = await self._plans.get_plan(\n'''
+              replacement = '''        await self._require_target_application(\n            tenant_id=tenant_id,\n            project_id=project_id,\n        )\n        async with open_unit_of_work(\n            self._engine, tenant_id=tenant_id, project_id=project_id\n        ) as uow:\n            existing = await self._repository.get_snapshot_by_revision(\n                uow.connection,\n                project_id=project_id,\n                repository=SOURCE_REPOSITORY,\n                commit_sha=commit_sha,\n            )\n        if existing is not None:\n            return existing\n        plan = await self._plans.get_plan(\n'''
+              if anchor not in text:
+                  raise SystemExit("acquisition target-scope anchor not found")
+              acquisition.write_text(text.replace(anchor, replacement, 1), encoding="utf-8")
+          PY
+          uv run ruff format engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
+          uv run ruff check engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
+          uv run mypy engine/source
+          git add engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(vekl): make exact corpus acquisition replay-safe"
+          fi
+      - name: Backfill API and reconciliation commits
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime as dt
+          import hashlib
+          import json
+          import pathlib
+          import subprocess
+
+          ledger = pathlib.Path("docs/project-state/CHANGE_LEDGER.jsonl")
+          current = pathlib.Path("docs/project-state/CURRENT_STATE.json")
+          excludes = [
+              ":(exclude)docs/project-state/CHANGE_LEDGER.jsonl",
+              ":(exclude)docs/project-state/CURRENT_STATE.json",
+          ]
+          lines = ledger.read_text(encoding="utf-8").splitlines()
+          existing = []
+          for line in lines:
+              try:
+                  row = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(row, dict):
+                  existing.append(row)
+          base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"], text=True).strip()
+          commits = subprocess.check_output(["git", "rev-list", "--reverse", f"{base}..HEAD"], text=True).splitlines()
+          added = []
+          for sha in commits:
+              parent = subprocess.check_output(["git", "rev-parse", f"{sha}^1"], text=True).strip()
+              files = subprocess.check_output(
+                  ["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes],
+                  text=True,
+              ).splitlines()
+              if not files or all(name.startswith("docs/project-state/") for name in files):
+                  continue
+              patch = subprocess.check_output(
+                  ["git", "diff", "--binary", "--no-ext-diff", "--no-renames", parent, sha, "--", ".", *excludes]
+              )
+              digest = hashlib.sha256(patch).hexdigest()
+              if any(row.get("commit_sha") == sha and row.get("diff_sha256") == digest for row in existing):
+                  continue
+              row = {
+                  "schema_version": 1,
+                  "kind": "commit-backfill",
+                  "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+                  "branch": "feat/vekl-automation-corpus-runtime-20260916",
+                  "commit_sha": sha,
+                  "source_parent": parent,
+                  "changed_files": files,
+                  "diff_sha256": digest,
+                  "actor": "github-actions[bot]:vekl-rev2-acquisition-reconcile",
+              }
+              lines.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
+              existing.append(row)
+              added.append(row)
+          if added:
+              ledger.write_text("\n".join(lines) + "\n", encoding="utf-8")
+              current.write_text(
+                  json.dumps(
+                      {
+                          "schema_version": 1,
+                          "state": "API_COMMIT_BACKFILL_RECONCILED",
+                          "branch": "feat/vekl-automation-corpus-runtime-20260916",
+                          "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                          "recorded_commit_count": len(added),
+                          "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+                      },
+                      indent=2,
+                      sort_keys=True,
+                  ) + "\n",
+                  encoding="utf-8",
+              )
+              subprocess.check_call(["git", "add", str(ledger), str(current)])
+              subprocess.check_call([
+                  "git", "commit", "-m",
+                  "chore(project-truth): backfill acquisition reconstruction commits [skip ci]",
+              ])
+          PY
+      - name: Verify and push
+        run: |
+          uv run ruff check engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
+          uv run mypy engine/source
+          uv run python scripts/project_truth_local.py verify
+          uv run pytest tests/unit/test_automation_corpus_rev2.py -q
+          git push origin HEAD:feat/vekl-automation-corpus-runtime-20260916

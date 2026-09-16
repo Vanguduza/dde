@@ -19,6 +19,9 @@ from engine.contracts.artifact import Artifact
 from engine.contracts.asserted_edge import AssertedEdge
 from engine.contracts.attention_item import AttentionItem
 from engine.contracts.audit_event import AuditEvent
+from engine.contracts.automation_corpus_snapshot import AutomationCorpusSnapshot
+from engine.contracts.automation_pattern_descriptor import AutomationPatternDescriptor
+from engine.contracts.automation_workflow_artifact import AutomationWorkflowArtifact
 from engine.contracts.bounded_loop_definition import BoundedLoopDefinition
 from engine.contracts.capability_descriptor import CapabilityDescriptor
 from engine.contracts.capability_lease import CapabilityLease
@@ -123,6 +126,9 @@ from engine.contracts.screen_audit_resolution import ScreenAuditResolution
 from engine.contracts.screen_audit_run import ScreenAuditRun
 from engine.contracts.screen_audit_screen_record import ScreenAuditScreenRecord
 from engine.contracts.seed_dataset import SeedDataset
+from engine.contracts.source_admission import SourceAdmission
+from engine.contracts.source_artifact import SourceArtifact
+from engine.contracts.source_record import SourceRecord
 from engine.contracts.stack_fingerprint import StackFingerprint
 from engine.contracts.standing_approval import StandingApproval
 from engine.contracts.task import Task
@@ -178,6 +184,9 @@ __all__ = [
     "AssertedEdge",
     "AttentionItem",
     "AuditEvent",
+    "AutomationCorpusSnapshot",
+    "AutomationPatternDescriptor",
+    "AutomationWorkflowArtifact",
     "BoundedLoopDefinition",
     "CapabilityDescriptor",
     "CapabilityLease",
@@ -278,6 +287,9 @@ __all__ = [
     "ScreenAuditRun",
     "ScreenAuditScreenRecord",
     "SeedDataset",
+    "SourceAdmission",
+    "SourceArtifact",
+    "SourceRecord",
     "StackFingerprint",
     "StandingApproval",
     "Task",
