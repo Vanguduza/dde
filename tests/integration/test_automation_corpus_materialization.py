@@ -1,4 +1,4 @@
-"""PostgreSQL certification for raw quarantine -> sanitized descriptor materialization."""
+"""Certify PostgreSQL raw-quarantine to descriptor materialization."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import zipfile
 from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
-from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
@@ -168,7 +167,7 @@ async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
         service = AutomationCorpusMaterializationService(
             engine,
             repository=repository,
-            source_service=source_service,
+            sources=source_service,
             object_store=store,
         )
         result = await service.materialize_snapshot(
@@ -204,16 +203,20 @@ async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
                 "SANITIZED": 2,
             }
             raw_admissions = (
-                await uow.connection.execute(
-                    text(
-                        "SELECT a.state FROM source_admissions a "
-                        "JOIN source_artifacts s ON s.artifact_id=a.artifact_id "
-                        "WHERE s.parent_artifact_id=:snapshot_artifact "
-                        "AND s.artifact_kind='RAW_AUTOMATION_WORKFLOW'"
-                    ),
-                    {"snapshot_artifact": snapshot.artifact_id},
+                (
+                    await uow.connection.execute(
+                        text(
+                            "SELECT a.state FROM source_admissions a "
+                            "JOIN source_artifacts s ON s.artifact_id=a.artifact_id "
+                            "WHERE s.parent_artifact_id=:snapshot_artifact "
+                            "AND s.artifact_kind='RAW_AUTOMATION_WORKFLOW'"
+                        ),
+                        {"snapshot_artifact": snapshot.artifact_id},
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             assert "ADMITTED" not in raw_admissions
             assert sorted(raw_admissions) == [
                 "BLOCKED",
@@ -222,18 +225,22 @@ async def test_materialization_quarantines_raw_and_admits_only_safe_descriptors(
                 "REJECTED",
             ]
             descriptor_rows = (
-                await uow.connection.execute(
-                    text(
-                        "SELECT d.guidance_polarity, d.implementation_guidance, "
-                        "d.anti_pattern_notes, d.worker_safe_capsule, "
-                        "s.content_object_ref "
-                        "FROM automation_pattern_descriptors d "
-                        "JOIN source_artifacts s ON s.artifact_id=d.artifact_id "
-                        "WHERE d.snapshot_id=:snapshot ORDER BY d.guidance_polarity"
-                    ),
-                    {"snapshot": snapshot.snapshot_id},
+                (
+                    await uow.connection.execute(
+                        text(
+                            "SELECT d.guidance_polarity, d.implementation_guidance, "
+                            "d.anti_pattern_notes, d.worker_safe_capsule, "
+                            "s.content_object_ref "
+                            "FROM automation_pattern_descriptors d "
+                            "JOIN source_artifacts s ON s.artifact_id=d.artifact_id "
+                            "WHERE d.snapshot_id=:snapshot ORDER BY d.guidance_polarity"
+                        ),
+                        {"snapshot": snapshot.snapshot_id},
+                    )
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
         assert [row["guidance_polarity"] for row in descriptor_rows] == [
             "ANTI_PATTERN",
             "POSITIVE",
