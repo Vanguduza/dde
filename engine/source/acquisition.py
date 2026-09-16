@@ -133,7 +133,8 @@ class AutomationCorpusAcquisitionService:
         if row is None or row[0] != "TARGET_APPLICATION":
             raise DdeError(
                 "POLICY_DENIED",
-                "automation corpus acquisition is allowed only for TARGET_APPLICATION projects",
+                "automation corpus acquisition is allowed only for "
+                "TARGET_APPLICATION projects",
                 retryable=False,
                 details={"project_id": str(project_id)},
             )
@@ -171,9 +172,7 @@ class AutomationCorpusAcquisitionService:
             requested_by=(
                 "engine.source.acquisition.AutomationCorpusAcquisitionService"
             ),
-            idempotency_key=(
-                f"{idempotency_key}:lease:{CAPABILITY_AUTOMATION_CORPUS}"
-            ),
+            idempotency_key=(f"{idempotency_key}:lease:{CAPABILITY_AUTOMATION_CORPUS}"),
         )
         if lease.status == "DENIED":
             raise DdeError(
