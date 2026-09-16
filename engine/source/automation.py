@@ -506,7 +506,9 @@ def describe_workflow(path: str, raw: bytes) -> dict[str, Any]:
     lineage_payload = {
         "archetype": archetype,
         "classes": classes,
-        "topology": {key: value for key, value in top.items() if key != "topology_hash"},
+        "topology": {
+            key: value for key, value in top.items() if key != "topology_hash"
+        },
     }
     lineage = _hash(lineage_payload)
     revision = _hash(
