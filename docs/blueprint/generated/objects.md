@@ -1097,3 +1097,51 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## SourceRecord
+
+- table: `source_records`
+- primary key: source_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## SourceArtifact
+
+- table: `source_artifacts`
+- primary key: artifact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## SourceAdmission
+
+- table: `source_admissions`
+- primary key: admission_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationCorpusSnapshot
+
+- table: `automation_corpus_snapshots`
+- primary key: snapshot_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationWorkflowArtifact
+
+- table: `automation_workflow_artifacts`
+- primary key: workflow_artifact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationPatternDescriptor
+
+- table: `automation_pattern_descriptors`
+- primary key: descriptor_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
