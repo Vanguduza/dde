@@ -6,49 +6,120 @@ on:
       - feat/vekl-automation-corpus-runtime-20260916
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   reconstruct:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: feat/vekl-automation-corpus-runtime-20260916
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
       - name: Install
         run: uv sync --group dev
-      - name: Generate canonical contract outputs
-        run: uv run python -m scripts.generate_contracts
-      - name: Compute exact API-commit backfill evidence
+      - name: Configure reconstruction identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Generate and commit canonical contract outputs
+        shell: bash
+        run: |
+          uv run python -m scripts.generate_contracts
+          git add engine/contracts schemas/sql/0001_stage1.sql schemas/sql/0001_stage1_down.sql docs/blueprint/generated/objects.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(contracts): regenerate automation corpus authorities"
+          fi
+      - name: Backfill exact API-created commit evidence
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, json, subprocess
+          import datetime as dt
+          import hashlib
+          import json
+          import pathlib
+          import subprocess
+
+          ledger = pathlib.Path("docs/project-state/CHANGE_LEDGER.jsonl")
+          current = pathlib.Path("docs/project-state/CURRENT_STATE.json")
+          excludes = [
+              ":(exclude)docs/project-state/CHANGE_LEDGER.jsonl",
+              ":(exclude)docs/project-state/CURRENT_STATE.json",
+          ]
+          existing_lines = ledger.read_text(encoding="utf-8").splitlines() if ledger.exists() else []
+          existing = []
+          for line in existing_lines:
+              try:
+                  value = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(value, dict):
+                  existing.append(value)
           base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"], text=True).strip()
           commits = subprocess.check_output(["git", "rev-list", "--reverse", f"{base}..HEAD"], text=True).splitlines()
-          rows = []
-          excludes = [":(exclude)docs/project-state/CHANGE_LEDGER.jsonl", ":(exclude)docs/project-state/CURRENT_STATE.json"]
+          added = []
           for sha in commits:
               parent = subprocess.check_output(["git", "rev-parse", f"{sha}^1"], text=True).strip()
-              files = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes], text=True).splitlines()
-              patch = subprocess.check_output(["git", "diff", "--binary", "--no-ext-diff", "--no-renames", parent, sha, "--", ".", *excludes])
-              rows.append({"commit_sha": sha, "source_parent": parent, "changed_files": files, "diff_sha256": hashlib.sha256(patch).hexdigest()})
-          open("/tmp/project-truth-backfill.json", "w", encoding="utf-8").write(json.dumps(rows, indent=2, sort_keys=True) + "\n")
+              files = subprocess.check_output(
+                  ["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes],
+                  text=True,
+              ).splitlines()
+              if not files or all(path.startswith("docs/project-state/") for path in files):
+                  continue
+              patch = subprocess.check_output(
+                  ["git", "diff", "--binary", "--no-ext-diff", "--no-renames", parent, sha, "--", ".", *excludes]
+              )
+              digest = hashlib.sha256(patch).hexdigest()
+              if any(row.get("commit_sha") == sha and row.get("diff_sha256") == digest for row in existing):
+                  continue
+              row = {
+                  "schema_version": 1,
+                  "kind": "commit-backfill",
+                  "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+                  "branch": "feat/vekl-automation-corpus-runtime-20260916",
+                  "commit_sha": sha,
+                  "source_parent": parent,
+                  "changed_files": files,
+                  "diff_sha256": digest,
+                  "actor": "github-actions[bot]:vekl-rev2-reconstruction",
+              }
+              existing_lines.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
+              existing.append(row)
+              added.append(row)
+          if added:
+              ledger.write_text("\n".join(existing_lines) + "\n", encoding="utf-8")
+              current.write_text(
+                  json.dumps(
+                      {
+                          "schema_version": 1,
+                          "state": "API_COMMIT_BACKFILL_RECONCILED",
+                          "branch": "feat/vekl-automation-corpus-runtime-20260916",
+                          "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                          "recorded_commit_count": len(added),
+                          "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+                      },
+                      indent=2,
+                      sort_keys=True,
+                  )
+                  + "\n",
+                  encoding="utf-8",
+              )
           PY
-      - name: Package generated outputs
+          git add docs/project-state/CHANGE_LEDGER.jsonl docs/project-state/CURRENT_STATE.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(project-truth): backfill Rev2 reconstruction API commits [skip ci]"
+          fi
+      - name: Verify reconstruction state
+        run: |
+          uv run python -m scripts.generate_contracts --check
+          uv run python scripts/project_truth_local.py verify
+      - name: Push reconciled feature branch
         shell: bash
         run: |
-          tar -czf /tmp/vekl-rev2-generated.tgz \
-            engine/contracts \
-            schemas/sql/0001_stage1.sql \
-            schemas/sql/0001_stage1_down.sql \
-            docs/blueprint/generated/objects.md \
-            /tmp/project-truth-backfill.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vekl-rev2-reconstruction
-          path: /tmp/vekl-rev2-generated.tgz
-          retention-days: 1
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse origin/feat/vekl-automation-corpus-runtime-20260916)" ]]; then
+            git push origin HEAD:feat/vekl-automation-corpus-runtime-20260916
+          fi
