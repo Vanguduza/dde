@@ -1,7 +1,7 @@
 """Materialize quarantined workflow snapshots into sanitized descriptors.
 
 Raw n8n workflow bytes remain project-scoped Source Intelligence artifacts and
-never become VEKL context.  Only deterministic descriptors produced by the
+never become VEKL context. Only deterministic descriptors produced by the
 pure parser/scanner in :mod:`engine.source.automation` are admitted for later
 VEKL qualification.
 """
@@ -12,11 +12,12 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from engine.contracts.automation_corpus_snapshot import AutomationCorpusSnapshot
 from engine.contracts.automation_pattern_descriptor import AutomationPatternDescriptor
 from engine.contracts.automation_workflow_artifact import AutomationWorkflowArtifact
 from engine.contracts.source_admission import SourceAdmission
@@ -41,6 +42,10 @@ RAW_ADMISSION_POLICY_VERSION = "dde-automation-raw-quarantine-v2"
 DESCRIPTOR_COMPILER_VERSION = "dde-automation-pattern-descriptor-v2"
 DESCRIPTOR_ADMISSION_POLICY_VERSION = "dde-automation-pattern-admission-v2"
 
+WorkflowState = Literal["QUARANTINED", "SANITIZED", "REJECTED", "BLOCKED"]
+AdmissionState = Literal["ADMITTED", "REJECTED", "BLOCKED", "REVOKED", "QUARANTINED"]
+GuidancePolarity = Literal["POSITIVE", "ANTI_PATTERN", "OBSERVATION_ONLY"]
+
 
 @dataclass(frozen=True)
 class MaterializationResult:
@@ -64,12 +69,34 @@ def _canonical_json(value: object) -> bytes:
     ).encode()
 
 
-def _raw_admission_state(state: str) -> str:
+def _workflow_state(value: object) -> WorkflowState:
+    state = str(value)
+    if state not in {"QUARANTINED", "SANITIZED", "REJECTED", "BLOCKED"}:
+        raise DdeError(
+            "VERSION_CONFLICT",
+            "workflow analyzer returned an unknown materialization state",
+            details={"state": state},
+        )
+    return cast(WorkflowState, state)
+
+
+def _raw_admission_state(state: WorkflowState) -> AdmissionState:
     if state == "BLOCKED":
         return "BLOCKED"
     if state == "REJECTED":
         return "REJECTED"
     return "QUARANTINED"
+
+
+def _guidance_polarity(value: object) -> GuidancePolarity:
+    polarity = str(value)
+    if polarity not in {"POSITIVE", "ANTI_PATTERN", "OBSERVATION_ONLY"}:
+        raise DdeError(
+            "VERSION_CONFLICT",
+            "workflow analyzer returned an unknown guidance polarity",
+            details={"guidance_polarity": polarity},
+        )
+    return cast(GuidancePolarity, polarity)
 
 
 class AutomationCorpusMaterializationService:
@@ -110,9 +137,13 @@ class AutomationCorpusMaterializationService:
         if snapshot.state in {"REJECTED", "REVOKED"}:
             raise DdeError(
                 "POLICY_DENIED",
-                "rejected or revoked automation corpus snapshots cannot be materialized",
+                "rejected or revoked automation corpus snapshots cannot be "
+                "materialized",
                 retryable=False,
-                details={"snapshot_id": str(snapshot.snapshot_id), "state": snapshot.state},
+                details={
+                    "snapshot_id": str(snapshot.snapshot_id),
+                    "state": snapshot.state,
+                },
             )
         if snapshot.license_state != "VERIFIED":
             raise DdeError(
@@ -147,11 +178,8 @@ class AutomationCorpusMaterializationService:
         blocked = 0
         rejected = 0
         for row in rows:
-            workflow = await self._persist_raw_workflow(
-                snapshot=snapshot,
-                row=row,
-            )
-            state = str(row["state"])
+            workflow = await self._persist_raw_workflow(snapshot=snapshot, row=row)
+            state = _workflow_state(row["state"])
             if state == "SANITIZED":
                 sanitized += 1
             elif state == "BLOCKED":
@@ -188,12 +216,16 @@ class AutomationCorpusMaterializationService:
     async def _persist_raw_workflow(
         self,
         *,
-        snapshot: Any,
+        snapshot: AutomationCorpusSnapshot,
         row: dict[str, Any],
     ) -> AutomationWorkflowArtifact:
         raw = row["raw"]
         if not isinstance(raw, bytes):
-            raise DdeError("VERSION_CONFLICT", "workflow analyzer did not return raw bytes")
+            raise DdeError(
+                "VERSION_CONFLICT",
+                "workflow analyzer did not return raw bytes",
+            )
+        state = _workflow_state(row["state"])
         raw_hash = str(row["raw_hash"])
         object_ref = self._objects.put(
             tenant_id=snapshot.tenant_id,
@@ -224,7 +256,7 @@ class AutomationCorpusMaterializationService:
                 metadata={
                     "path": str(row["path"]),
                     "parser_state": str(row["parser_state"]),
-                    "workflow_state": str(row["state"]),
+                    "workflow_state": state,
                 },
                 provenance={
                     "snapshot_id": str(snapshot.snapshot_id),
@@ -235,7 +267,7 @@ class AutomationCorpusMaterializationService:
                 updated_at=now,
             )
         )
-        raw_state = _raw_admission_state(str(row["state"]))
+        raw_state = _raw_admission_state(state)
         findings = [str(value) for value in row.get("findings", [])]
         await self._sources.admit_artifact(
             SourceAdmission(
@@ -299,7 +331,7 @@ class AutomationCorpusMaterializationService:
             raw_size_bytes=int(row["raw_size_bytes"]),
             parser_state=str(row["parser_state"]),
             source_metadata=dict(row.get("source_metadata") or {}),
-            state=str(row["state"]),
+            state=state,
             findings=findings,
             pattern_lineage_id=(
                 str(row["pattern_lineage_id"])
@@ -321,7 +353,7 @@ class AutomationCorpusMaterializationService:
     async def _persist_descriptor(
         self,
         *,
-        snapshot: Any,
+        snapshot: AutomationCorpusSnapshot,
         workflow: AutomationWorkflowArtifact,
         row: dict[str, Any],
     ) -> AutomationPatternDescriptor:
@@ -360,22 +392,25 @@ class AutomationCorpusMaterializationService:
                 "parser_version",
                 "sanitizer_version",
                 "scanner_version",
-                "descriptor_hash",
             )
         }
         descriptor_bytes = _canonical_json(descriptor_payload)
         descriptor_hash = str(row["descriptor_hash"])
-        if sha256(_canonical_json({k: v for k, v in descriptor_payload.items() if k != "descriptor_hash"})).hexdigest() != descriptor_hash:
+        actual_descriptor_hash = sha256(descriptor_bytes).hexdigest()
+        if actual_descriptor_hash != descriptor_hash:
             raise DdeError(
                 "VERSION_CONFLICT",
                 "descriptor hash no longer matches sanitized descriptor payload",
                 retryable=False,
+                details={
+                    "expected": descriptor_hash,
+                    "actual": actual_descriptor_hash,
+                },
             )
-        object_hash = sha256(descriptor_bytes).hexdigest()
         object_ref = self._objects.put(
             tenant_id=snapshot.tenant_id,
             project_id=snapshot.project_id,
-            content_hash=object_hash,
+            content_hash=descriptor_hash,
             content=descriptor_bytes,
         )
         now = datetime.now(UTC)
@@ -388,7 +423,8 @@ class AutomationCorpusMaterializationService:
                 parent_artifact_id=workflow.artifact_id,
                 artifact_kind="AUTOMATION_PATTERN_DESCRIPTOR",
                 provider_artifact_key=(
-                    f"descriptor:{row['pattern_lineage_id']}:{row['pattern_revision_hash']}"
+                    f"descriptor:{row['pattern_lineage_id']}:"
+                    f"{row['pattern_revision_hash']}"
                 ),
                 title=str(row["title"]),
                 source_uri=None,
@@ -469,18 +505,22 @@ class AutomationCorpusMaterializationService:
             pattern_lineage_id=str(row["pattern_lineage_id"]),
             pattern_revision_hash=str(row["pattern_revision_hash"]),
             archetype=str(row["archetype"]),
-            guidance_polarity=str(row["guidance_polarity"]),
+            guidance_polarity=_guidance_polarity(row["guidance_polarity"]),
             title=str(row["title"]),
             summary=str(row["summary"]),
-            trigger_classes=list(row["trigger_classes"]),
-            action_classes=list(row["action_classes"]),
-            integration_classes=list(row["integration_classes"]),
+            trigger_classes=[str(value) for value in row["trigger_classes"]],
+            action_classes=[str(value) for value in row["action_classes"]],
+            integration_classes=[str(value) for value in row["integration_classes"]],
             control_flow=dict(row["control_flow"]),
-            resilience_controls=list(row["resilience_controls"]),
-            security_controls=list(row["security_controls"]),
-            observability_controls=list(row["observability_controls"]),
-            failure_modes=list(row["failure_modes"]),
-            required_capabilities=list(row["required_capabilities"]),
+            resilience_controls=[str(value) for value in row["resilience_controls"]],
+            security_controls=[str(value) for value in row["security_controls"]],
+            observability_controls=[
+                str(value) for value in row["observability_controls"]
+            ],
+            failure_modes=[str(value) for value in row["failure_modes"]],
+            required_capabilities=[
+                str(value) for value in row["required_capabilities"]
+            ],
             stack_constraints=dict(row["stack_constraints"]),
             source_workflow_refs=[str(workflow.workflow_artifact_id)],
             source_workflow_hashes=[workflow.raw_hash],
@@ -490,12 +530,14 @@ class AutomationCorpusMaterializationService:
             descriptor_hash=descriptor_hash,
             topology_hash=str(row["topology_hash"]),
             topology_compiler_version=str(row["topology_compiler_version"]),
-            security_findings=list(row["security_findings"]),
-            pii_findings=list(row["pii_findings"]),
-            secret_findings=list(row["secret_findings"]),
-            prompt_findings=list(row["prompt_findings"]),
-            implementation_guidance=list(row["implementation_guidance"]),
-            anti_pattern_notes=list(row["anti_pattern_notes"]),
+            security_findings=[str(value) for value in row["security_findings"]],
+            pii_findings=[str(value) for value in row["pii_findings"]],
+            secret_findings=[str(value) for value in row["secret_findings"]],
+            prompt_findings=[str(value) for value in row["prompt_findings"]],
+            implementation_guidance=[
+                str(value) for value in row["implementation_guidance"]
+            ],
+            anti_pattern_notes=[str(value) for value in row["anti_pattern_notes"]],
             auth_pattern=dict(row["auth_pattern"]),
             retry_error_pattern=dict(row["retry_error_pattern"]),
             idempotency_pattern=dict(row["idempotency_pattern"]),
