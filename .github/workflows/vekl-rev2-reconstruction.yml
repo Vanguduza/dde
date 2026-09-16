@@ -1,0 +1,54 @@
+name: VEKL Rev2 reconstruction helper
+
+on:
+  push:
+    branches:
+      - feat/vekl-automation-corpus-runtime-20260916
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --group dev
+      - name: Generate canonical contract outputs
+        run: uv run python -m scripts.generate_contracts
+      - name: Compute exact API-commit backfill evidence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, subprocess
+          base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"], text=True).strip()
+          commits = subprocess.check_output(["git", "rev-list", "--reverse", f"{base}..HEAD"], text=True).splitlines()
+          rows = []
+          excludes = [":(exclude)docs/project-state/CHANGE_LEDGER.jsonl", ":(exclude)docs/project-state/CURRENT_STATE.json"]
+          for sha in commits:
+              parent = subprocess.check_output(["git", "rev-parse", f"{sha}^1"], text=True).strip()
+              files = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes], text=True).splitlines()
+              patch = subprocess.check_output(["git", "diff", "--binary", "--no-ext-diff", "--no-renames", parent, sha, "--", ".", *excludes])
+              rows.append({"commit_sha": sha, "source_parent": parent, "changed_files": files, "diff_sha256": hashlib.sha256(patch).hexdigest()})
+          open("/tmp/project-truth-backfill.json", "w", encoding="utf-8").write(json.dumps(rows, indent=2, sort_keys=True) + "\n")
+          PY
+      - name: Package generated outputs
+        shell: bash
+        run: |
+          tar -czf /tmp/vekl-rev2-generated.tgz \
+            engine/contracts \
+            schemas/sql/0001_stage1.sql \
+            schemas/sql/0001_stage1_down.sql \
+            docs/blueprint/generated/objects.md \
+            /tmp/project-truth-backfill.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vekl-rev2-reconstruction
+          path: /tmp/vekl-rev2-generated.tgz
+          retention-days: 1
