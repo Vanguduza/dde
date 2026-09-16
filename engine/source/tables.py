@@ -82,7 +82,9 @@ source_admissions = Table(
     Column("revoked_at", TIMESTAMP(timezone=True)),
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False),
-    UniqueConstraint("artifact_id", "content_hash", "compiler_version", "policy_version"),
+    UniqueConstraint(
+        "artifact_id", "content_hash", "compiler_version", "policy_version"
+    ),
 )
 
 automation_corpus_snapshots = Table(

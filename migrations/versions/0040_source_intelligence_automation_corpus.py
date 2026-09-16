@@ -70,7 +70,12 @@ def _create_source_tables() -> None:
         sa.Column("source_trust", sa.Text(), nullable=False),
         sa.Column("status", sa.Text(), nullable=False),
         sa.Column("policy_revision", sa.Text(), nullable=False),
-        sa.Column("config", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "config",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("revoked_at", sa.TIMESTAMP(timezone=True)),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
@@ -96,15 +101,39 @@ def _create_source_tables() -> None:
         sa.Column("content_object_backend", sa.Text()),
         sa.Column("content_size_bytes", sa.Integer()),
         sa.Column("media_type", sa.Text()),
-        sa.Column("metadata", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("provenance", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "metadata",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "provenance",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.UniqueConstraint("source_id", "provider_artifact_key", "revision", "content_hash"),
+        sa.UniqueConstraint(
+            "source_id", "provider_artifact_key", "revision", "content_hash"
+        ),
     )
     _add_scope_fks("source_artifacts")
-    op.create_foreign_key("source_artifacts_source_fkey", "source_artifacts", "source_records", ["source_id"], ["source_id"])
-    op.create_foreign_key("source_artifacts_parent_fkey", "source_artifacts", "source_artifacts", ["parent_artifact_id"], ["artifact_id"])
+    op.create_foreign_key(
+        "source_artifacts_source_fkey",
+        "source_artifacts",
+        "source_records",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "source_artifacts_parent_fkey",
+        "source_artifacts",
+        "source_artifacts",
+        ["parent_artifact_id"],
+        ["artifact_id"],
+    )
 
     tenant, project = _scope_columns()
     op.create_table(
@@ -122,10 +151,30 @@ def _create_source_tables() -> None:
         sa.Column("state", sa.Text(), nullable=False),
         sa.Column("source_trust", sa.Text(), nullable=False),
         sa.Column("reuse_class", sa.Text(), nullable=False),
-        sa.Column("analysis", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("hard_failures", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("validation_obligations", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("provenance", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "analysis",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "hard_failures",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "validation_obligations",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "provenance",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("security_state", sa.Text(), nullable=False),
         sa.Column("license_state", sa.Text(), nullable=False),
         sa.Column("provenance_state", sa.Text(), nullable=False),
@@ -134,11 +183,25 @@ def _create_source_tables() -> None:
         sa.Column("revoked_at", sa.TIMESTAMP(timezone=True)),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.UniqueConstraint("artifact_id", "content_hash", "compiler_version", "policy_version"),
+        sa.UniqueConstraint(
+            "artifact_id", "content_hash", "compiler_version", "policy_version"
+        ),
     )
     _add_scope_fks("source_admissions")
-    op.create_foreign_key("source_admissions_source_fkey", "source_admissions", "source_records", ["source_id"], ["source_id"])
-    op.create_foreign_key("source_admissions_artifact_fkey", "source_admissions", "source_artifacts", ["artifact_id"], ["artifact_id"])
+    op.create_foreign_key(
+        "source_admissions_source_fkey",
+        "source_admissions",
+        "source_records",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "source_admissions_artifact_fkey",
+        "source_admissions",
+        "source_artifacts",
+        ["artifact_id"],
+        ["artifact_id"],
+    )
 
 
 def _create_automation_tables() -> None:
@@ -170,9 +233,27 @@ def _create_automation_tables() -> None:
         sa.UniqueConstraint("project_id", "repository", "commit_sha", "archive_sha256"),
     )
     _add_scope_fks("automation_corpus_snapshots")
-    op.create_foreign_key("automation_snapshot_source_fkey", "automation_corpus_snapshots", "source_records", ["source_id"], ["source_id"])
-    op.create_foreign_key("automation_snapshot_artifact_fkey", "automation_corpus_snapshots", "source_artifacts", ["artifact_id"], ["artifact_id"])
-    op.create_foreign_key("automation_snapshot_effect_fkey", "automation_corpus_snapshots", "external_effects", ["acquisition_effect_id"], ["effect_id"])
+    op.create_foreign_key(
+        "automation_snapshot_source_fkey",
+        "automation_corpus_snapshots",
+        "source_records",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "automation_snapshot_artifact_fkey",
+        "automation_corpus_snapshots",
+        "source_artifacts",
+        ["artifact_id"],
+        ["artifact_id"],
+    )
+    op.create_foreign_key(
+        "automation_snapshot_effect_fkey",
+        "automation_corpus_snapshots",
+        "external_effects",
+        ["acquisition_effect_id"],
+        ["effect_id"],
+    )
 
     tenant, project = _scope_columns()
     op.create_table(
@@ -186,17 +267,39 @@ def _create_automation_tables() -> None:
         sa.Column("raw_hash", sa.Text(), nullable=False),
         sa.Column("raw_size_bytes", sa.Integer(), nullable=False),
         sa.Column("parser_state", sa.Text(), nullable=False),
-        sa.Column("source_metadata", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "source_metadata",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("state", sa.Text(), nullable=False),
-        sa.Column("findings", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
+        sa.Column(
+            "findings",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
         sa.Column("pattern_lineage_id", sa.Text()),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.UniqueConstraint("snapshot_id", "path", "raw_hash"),
     )
     _add_scope_fks("automation_workflow_artifacts")
-    op.create_foreign_key("automation_workflow_snapshot_fkey", "automation_workflow_artifacts", "automation_corpus_snapshots", ["snapshot_id"], ["snapshot_id"])
-    op.create_foreign_key("automation_workflow_artifact_fkey", "automation_workflow_artifacts", "source_artifacts", ["artifact_id"], ["artifact_id"])
+    op.create_foreign_key(
+        "automation_workflow_snapshot_fkey",
+        "automation_workflow_artifacts",
+        "automation_corpus_snapshots",
+        ["snapshot_id"],
+        ["snapshot_id"],
+    )
+    op.create_foreign_key(
+        "automation_workflow_artifact_fkey",
+        "automation_workflow_artifacts",
+        "source_artifacts",
+        ["artifact_id"],
+        ["artifact_id"],
+    )
 
     tenant, project = _scope_columns()
     op.create_table(
@@ -212,43 +315,172 @@ def _create_automation_tables() -> None:
         sa.Column("guidance_polarity", sa.Text(), nullable=False),
         sa.Column("title", sa.Text(), nullable=False),
         sa.Column("summary", sa.Text(), nullable=False),
-        sa.Column("trigger_classes", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("action_classes", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("integration_classes", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("control_flow", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("resilience_controls", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("security_controls", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("observability_controls", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("failure_modes", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("required_capabilities", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("stack_constraints", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("source_workflow_refs", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("source_workflow_hashes", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
+        sa.Column(
+            "trigger_classes",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "action_classes",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "integration_classes",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "control_flow",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "resilience_controls",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "security_controls",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "observability_controls",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "failure_modes",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "required_capabilities",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "stack_constraints",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "source_workflow_refs",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "source_workflow_hashes",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
         sa.Column("parser_version", sa.Text(), nullable=False),
         sa.Column("sanitizer_version", sa.Text(), nullable=False),
         sa.Column("scanner_version", sa.Text(), nullable=False),
         sa.Column("descriptor_hash", sa.Text(), nullable=False),
         sa.Column("topology_hash", sa.Text(), nullable=False),
         sa.Column("topology_compiler_version", sa.Text(), nullable=False),
-        sa.Column("security_findings", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("pii_findings", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("secret_findings", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("prompt_findings", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("implementation_guidance", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("anti_pattern_notes", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("auth_pattern", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("retry_error_pattern", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("idempotency_pattern", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("persistence_pattern", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("worker_safe_capsule", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "security_findings",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "pii_findings",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "secret_findings",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "prompt_findings",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "implementation_guidance",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "anti_pattern_notes",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'[]'::jsonb"),
+        ),
+        sa.Column(
+            "auth_pattern",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "retry_error_pattern",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "idempotency_pattern",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "persistence_pattern",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "worker_safe_capsule",
+            postgresql.JSONB(),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False),
-        sa.UniqueConstraint("project_id", "pattern_lineage_id", "pattern_revision_hash"),
+        sa.UniqueConstraint(
+            "project_id", "pattern_lineage_id", "pattern_revision_hash"
+        ),
         sa.UniqueConstraint("project_id", "descriptor_hash"),
     )
     _add_scope_fks("automation_pattern_descriptors")
-    op.create_foreign_key("automation_descriptor_snapshot_fkey", "automation_pattern_descriptors", "automation_corpus_snapshots", ["snapshot_id"], ["snapshot_id"])
-    op.create_foreign_key("automation_descriptor_artifact_fkey", "automation_pattern_descriptors", "source_artifacts", ["artifact_id"], ["artifact_id"])
+    op.create_foreign_key(
+        "automation_descriptor_snapshot_fkey",
+        "automation_pattern_descriptors",
+        "automation_corpus_snapshots",
+        ["snapshot_id"],
+        ["snapshot_id"],
+    )
+    op.create_foreign_key(
+        "automation_descriptor_artifact_fkey",
+        "automation_pattern_descriptors",
+        "source_artifacts",
+        ["artifact_id"],
+        ["artifact_id"],
+    )
 
 
 def _backfill_design_sources() -> None:
@@ -343,14 +575,50 @@ def _backfill_design_sources() -> None:
 
 
 def _rewire_vekl_to_neutral() -> None:
-    op.drop_constraint("vekl_resources_source_fkey", "vekl_resources", type_="foreignkey")
-    op.drop_constraint("vekl_resources_artifact_fkey", "vekl_resources", type_="foreignkey")
-    op.create_foreign_key("vekl_resources_source_fkey", "vekl_resources", "source_records", ["source_id"], ["source_id"])
-    op.create_foreign_key("vekl_resources_artifact_fkey", "vekl_resources", "source_artifacts", ["source_artifact_id"], ["artifact_id"])
-    op.drop_constraint("vekl_research_findings_source_fkey", "vekl_research_findings", type_="foreignkey")
-    op.drop_constraint("vekl_research_findings_artifact_fkey", "vekl_research_findings", type_="foreignkey")
-    op.create_foreign_key("vekl_research_findings_source_fkey", "vekl_research_findings", "source_records", ["source_id"], ["source_id"])
-    op.create_foreign_key("vekl_research_findings_artifact_fkey", "vekl_research_findings", "source_artifacts", ["source_artifact_id"], ["artifact_id"])
+    op.drop_constraint(
+        "vekl_resources_source_fkey", "vekl_resources", type_="foreignkey"
+    )
+    op.drop_constraint(
+        "vekl_resources_artifact_fkey", "vekl_resources", type_="foreignkey"
+    )
+    op.create_foreign_key(
+        "vekl_resources_source_fkey",
+        "vekl_resources",
+        "source_records",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "vekl_resources_artifact_fkey",
+        "vekl_resources",
+        "source_artifacts",
+        ["source_artifact_id"],
+        ["artifact_id"],
+    )
+    op.drop_constraint(
+        "vekl_research_findings_source_fkey",
+        "vekl_research_findings",
+        type_="foreignkey",
+    )
+    op.drop_constraint(
+        "vekl_research_findings_artifact_fkey",
+        "vekl_research_findings",
+        type_="foreignkey",
+    )
+    op.create_foreign_key(
+        "vekl_research_findings_source_fkey",
+        "vekl_research_findings",
+        "source_records",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "vekl_research_findings_artifact_fkey",
+        "vekl_research_findings",
+        "source_artifacts",
+        ["source_artifact_id"],
+        ["artifact_id"],
+    )
 
 
 def upgrade() -> None:
@@ -386,13 +654,49 @@ def _assert_design_compatible_downgrade() -> None:
 
 def downgrade() -> None:
     _assert_design_compatible_downgrade()
-    op.drop_constraint("vekl_research_findings_artifact_fkey", "vekl_research_findings", type_="foreignkey")
-    op.drop_constraint("vekl_research_findings_source_fkey", "vekl_research_findings", type_="foreignkey")
-    op.create_foreign_key("vekl_research_findings_source_fkey", "vekl_research_findings", "design_sources", ["source_id"], ["source_id"])
-    op.create_foreign_key("vekl_research_findings_artifact_fkey", "vekl_research_findings", "design_source_artifacts", ["source_artifact_id"], ["artifact_id"])
-    op.drop_constraint("vekl_resources_artifact_fkey", "vekl_resources", type_="foreignkey")
-    op.drop_constraint("vekl_resources_source_fkey", "vekl_resources", type_="foreignkey")
-    op.create_foreign_key("vekl_resources_source_fkey", "vekl_resources", "design_sources", ["source_id"], ["source_id"])
-    op.create_foreign_key("vekl_resources_artifact_fkey", "vekl_resources", "design_source_artifacts", ["source_artifact_id"], ["artifact_id"])
+    op.drop_constraint(
+        "vekl_research_findings_artifact_fkey",
+        "vekl_research_findings",
+        type_="foreignkey",
+    )
+    op.drop_constraint(
+        "vekl_research_findings_source_fkey",
+        "vekl_research_findings",
+        type_="foreignkey",
+    )
+    op.create_foreign_key(
+        "vekl_research_findings_source_fkey",
+        "vekl_research_findings",
+        "design_sources",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "vekl_research_findings_artifact_fkey",
+        "vekl_research_findings",
+        "design_source_artifacts",
+        ["source_artifact_id"],
+        ["artifact_id"],
+    )
+    op.drop_constraint(
+        "vekl_resources_artifact_fkey", "vekl_resources", type_="foreignkey"
+    )
+    op.drop_constraint(
+        "vekl_resources_source_fkey", "vekl_resources", type_="foreignkey"
+    )
+    op.create_foreign_key(
+        "vekl_resources_source_fkey",
+        "vekl_resources",
+        "design_sources",
+        ["source_id"],
+        ["source_id"],
+    )
+    op.create_foreign_key(
+        "vekl_resources_artifact_fkey",
+        "vekl_resources",
+        "design_source_artifacts",
+        ["source_artifact_id"],
+        ["artifact_id"],
+    )
     for table in reversed(_NEW_TABLES):
         op.drop_table(table)

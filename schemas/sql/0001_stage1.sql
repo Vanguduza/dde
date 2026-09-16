@@ -3811,8 +3811,8 @@ ALTER TABLE frontend_attention_acknowledgements ADD CONSTRAINT frontend_attentio
 ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_parent_fkey FOREIGN KEY (parent_resource_id) REFERENCES vekl_resources (resource_id);
-ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_source_fkey FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
-ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE vekl_resources ADD CONSTRAINT vekl_resources_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES source_artifacts (artifact_id);
 
 ALTER TABLE stack_fingerprints ADD CONSTRAINT stack_fingerprints_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE stack_fingerprints ADD CONSTRAINT stack_fingerprints_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
@@ -3859,8 +3859,8 @@ ALTER TABLE vekl_retrieval_routes ADD CONSTRAINT vekl_retrieval_route_project_fk
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_finding_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_finding_project_fkey FOREIGN KEY (project_id) REFERENCES projects (project_id);
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_unit_fkey FOREIGN KEY (unit_map_id) REFERENCES vekl_unit_maps (unit_map_id);
-ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_source_fkey FOREIGN KEY (source_id) REFERENCES design_sources (source_id);
-ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES design_source_artifacts (artifact_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_source_fkey FOREIGN KEY (source_id) REFERENCES source_records (source_id);
+ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_artifact_fkey FOREIGN KEY (source_artifact_id) REFERENCES source_artifacts (artifact_id);
 ALTER TABLE vekl_research_findings ADD CONSTRAINT vekl_research_findings_resource_fkey FOREIGN KEY (resource_id) REFERENCES vekl_resources (resource_id);
 
 ALTER TABLE vekl_conflict_observations ADD CONSTRAINT vekl_conflict_observation_tenant_fkey FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id);

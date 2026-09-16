@@ -43,7 +43,15 @@ class SourceRecord(BaseModel):
         "S7_DISCOVERY_ONLY",
         "S8_UNTRUSTED",
     ]
-    status: Literal["AVAILABLE", "DEGRADED", "BLOCKED", "DISABLED", "REVOKED"]
+    status: Literal[
+        "AVAILABLE",
+        "DEGRADED",
+        "NOT_CONFIGURED",
+        "UNAVAILABLE",
+        "BLOCKED",
+        "DISABLED",
+        "REVOKED",
+    ]
     policy_revision: str
     config: dict[str, object]
     revoked_at: datetime | None = None

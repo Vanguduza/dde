@@ -39,7 +39,9 @@ class SourceRepository:
         row = (
             (
                 await connection.execute(
-                    select(source_records).where(source_records.c.source_id == source_id)
+                    select(source_records).where(
+                        source_records.c.source_id == source_id
+                    )
                 )
             )
             .mappings()
@@ -96,7 +98,9 @@ class SourceRepository:
         row = (
             (
                 await connection.execute(
-                    select(source_artifacts).where(source_artifacts.c.artifact_id == artifact_id)
+                    select(source_artifacts).where(
+                        source_artifacts.c.artifact_id == artifact_id
+                    )
                 )
             )
             .mappings()
@@ -176,7 +180,8 @@ class SourceRepository:
                         automation_corpus_snapshots.c.project_id == record.project_id,
                         automation_corpus_snapshots.c.repository == record.repository,
                         automation_corpus_snapshots.c.commit_sha == record.commit_sha,
-                        automation_corpus_snapshots.c.archive_sha256 == record.archive_sha256,
+                        automation_corpus_snapshots.c.archive_sha256
+                        == record.archive_sha256,
                     )
                 )
             )
@@ -213,7 +218,8 @@ class SourceRepository:
             (
                 await connection.execute(
                     select(automation_workflow_artifacts).where(
-                        automation_workflow_artifacts.c.snapshot_id == record.snapshot_id,
+                        automation_workflow_artifacts.c.snapshot_id
+                        == record.snapshot_id,
                         automation_workflow_artifacts.c.path == record.path,
                         automation_workflow_artifacts.c.raw_hash == record.raw_hash,
                     )
@@ -236,7 +242,8 @@ class SourceRepository:
             (
                 await connection.execute(
                     select(automation_pattern_descriptors).where(
-                        automation_pattern_descriptors.c.project_id == record.project_id,
+                        automation_pattern_descriptors.c.project_id
+                        == record.project_id,
                         automation_pattern_descriptors.c.descriptor_hash
                         == record.descriptor_hash,
                     )
@@ -269,4 +276,6 @@ class SourceRepository:
             .mappings()
             .all()
         )
-        return tuple(AutomationPatternDescriptor.model_validate(dict(row)) for row in rows)
+        return tuple(
+            AutomationPatternDescriptor.model_validate(dict(row)) for row in rows
+        )
