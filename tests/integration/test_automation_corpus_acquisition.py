@@ -179,11 +179,14 @@ async def test_acquisition_is_lease_effect_bound_quarantined_and_idempotent(
         assert first.object_ref.startswith(
             f"automation-corpus/{fixture.tenant.tenant_id}/{fixture.tenant.project_id}/"
         )
-        assert store.read(
-            tenant_id=fixture.tenant.tenant_id,
-            project_id=fixture.tenant.project_id,
-            key=first.object_ref,
-        ) == archive
+        assert (
+            store.read(
+                tenant_id=fixture.tenant.tenant_id,
+                project_id=fixture.tenant.project_id,
+                key=first.object_ref,
+            )
+            == archive
+        )
 
         async with open_unit_of_work(
             engine,
@@ -203,10 +206,7 @@ async def test_acquisition_is_lease_effect_bound_quarantined_and_idempotent(
             assert admission.state == "QUARANTINED"
             assert admission.sanitization_state == "NOT_STARTED"
             effect = await uow.connection.execute(
-                text(
-                    "SELECT status FROM external_effects "
-                    "WHERE effect_id=:effect_id"
-                ),
+                text("SELECT status FROM external_effects WHERE effect_id=:effect_id"),
                 {"effect_id": first.acquisition_effect_id},
             )
             assert effect.scalar_one() == "CONFIRMED"
@@ -237,7 +237,9 @@ async def test_control_plane_is_refused_before_lease_or_network(tmp_path: Path) 
             project_id=fixture.tenant.project_id,
         ) as uow:
             await uow.connection.execute(
-                text("UPDATE projects SET kind='DDE_CONTROL_PLANE' WHERE project_id=:p"),
+                text(
+                    "UPDATE projects SET kind='DDE_CONTROL_PLANE' WHERE project_id=:p"
+                ),
                 {"p": fixture.tenant.project_id},
             )
             await uow.commit()

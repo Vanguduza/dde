@@ -195,6 +195,32 @@ class SourceRepository:
         )
         return record
 
+    async def get_snapshot_by_revision(
+        self,
+        connection: AsyncConnection,
+        *,
+        project_id: UUID,
+        repository: str,
+        commit_sha: str,
+    ) -> AutomationCorpusSnapshot | None:
+        row = (
+            (
+                await connection.execute(
+                    select(automation_corpus_snapshots)
+                    .where(
+                        automation_corpus_snapshots.c.project_id == project_id,
+                        automation_corpus_snapshots.c.repository == repository,
+                        automation_corpus_snapshots.c.commit_sha == commit_sha,
+                    )
+                    .order_by(automation_corpus_snapshots.c.created_at.desc())
+                    .limit(1)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return AutomationCorpusSnapshot.model_validate(dict(row)) if row else None
+
     async def get_snapshot(
         self, connection: AsyncConnection, *, snapshot_id: UUID
     ) -> AutomationCorpusSnapshot | None:

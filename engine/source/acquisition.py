@@ -154,6 +154,17 @@ class AutomationCorpusAcquisitionService:
             tenant_id=tenant_id,
             project_id=project_id,
         )
+        async with open_unit_of_work(
+            self._engine, tenant_id=tenant_id, project_id=project_id
+        ) as uow:
+            existing = await self._repository.get_snapshot_by_revision(
+                uow.connection,
+                project_id=project_id,
+                repository=SOURCE_REPOSITORY,
+                commit_sha=commit_sha,
+            )
+        if existing is not None:
+            return existing
         plan = await self._plans.get_plan(
             tenant_id=tenant_id,
             project_id=project_id,
