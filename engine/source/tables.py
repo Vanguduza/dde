@@ -1,4 +1,5 @@
-"""SQLAlchemy Core mappings for domain-neutral Source Intelligence and automation corpus."""
+"""SQLAlchemy Core mappings for domain-neutral Source Intelligence
+and the automation corpus."""
 
 from __future__ import annotations
 

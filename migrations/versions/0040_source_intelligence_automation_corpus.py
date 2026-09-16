@@ -268,7 +268,7 @@ def _backfill_design_sources() -> None:
                 WHEN source_class = 'DONOR' THEN 'S7_DISCOVERY_ONLY'
                 ELSE 'S8_UNTRUSTED'
             END,
-            CASE WHEN status IN ('AVAILABLE','DEGRADED','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END,
+            CASE WHEN status IN ('AVAILABLE','DEGRADED','NOT_CONFIGURED','UNAVAILABLE','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END,
             'dde-design-source-bridge-v2',
             jsonb_build_object('design_source_id', source_id::text),
             NULL, created_at, updated_at
