@@ -217,14 +217,17 @@ def test_layout_and_node_ids_do_not_change_lineage_or_topology() -> None:
 
 def test_raw_descriptor_revision_and_topology_hash_are_distinct() -> None:
     result = describe_workflow("flow.json", json.dumps(_workflow()).encode())
-    assert len(
-        {
-            result["raw_hash"],
-            result["pattern_revision_hash"],
-            result["topology_hash"],
-            result["descriptor_hash"],
-        }
-    ) == 4
+    assert (
+        len(
+            {
+                result["raw_hash"],
+                result["pattern_revision_hash"],
+                result["topology_hash"],
+                result["descriptor_hash"],
+            }
+        )
+        == 4
+    )
 
 
 def test_prompt_injection_makes_descriptor_negative_and_capsule_safe() -> None:
@@ -279,10 +282,7 @@ def test_archive_analysis_keeps_raw_quarantined_and_derives_sanitized_only() -> 
 def test_workflow_limit_is_deterministic() -> None:
     entries = {
         "repo/LICENSE": "MIT License\nPermission is hereby granted, free of charge",
-        **{
-            f"repo/{index:03d}.json": json.dumps(_workflow())
-            for index in range(5)
-        },
+        **{f"repo/{index:03d}.json": json.dumps(_workflow()) for index in range(5)},
     }
     rows, _ = analyze_archive(_zip(entries), workflow_limit=2)
     assert [row["path"] for row in rows] == ["repo/000.json", "repo/001.json"]
