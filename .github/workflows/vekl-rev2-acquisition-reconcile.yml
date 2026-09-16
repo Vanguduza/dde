@@ -26,7 +26,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Register acquisition capability and normalize module
+      - name: Reconcile acquisition capability and exact-SHA idempotency
         shell: bash
         run: |
           python3 - <<'PY'
@@ -39,23 +39,32 @@ jobs:
               block = '''    # EDR-0018: exact-pinned public automation-corpus acquisition.\n    # EXTERNAL_IDEMPOTENT because the immutable SHA GET is journaled and\n    # repeated requests for the same exact revision have identical bytes.\n    # No credential broker is used: anonymous codeload HTTPS only.\n    SeedCapability(\n        capability_id="capability.automation_corpus_snapshot",\n        version="1",\n        category="source_intelligence",\n        summary=(\n            "Acquire one exact Zie619/n8n-workflows Git SHA through the "\n            "EDR-0018 anonymous, redirect-free codeload path into project-"\n            "scoped quarantine. Raw workflows are never executable authority."\n        ),\n        side_effect_class="EXTERNAL_IDEMPOTENT",\n        risk_class="medium",\n        enforcement_tier="T1",\n        implementations=(\n            "engine.source.acquisition.AutomationCorpusAcquisitionService",\n        ),\n        supported_workloads=("planning", "verification"),\n        network_requirements={\n            "egress": "allowlist:https://codeload.github.com",\n            "edr": "EDR-0018",\n            "credentials": "forbidden",\n            "redirects": "forbidden",\n            "repository": "Zie619/n8n-workflows",\n        },\n    ),\n'''
               if anchor not in text:
                   raise SystemExit("VEKL capability anchor not found")
-              text = text.replace(anchor, block + anchor, 1)
-              seed.write_text(text, encoding="utf-8")
+              seed.write_text(text.replace(anchor, block + anchor, 1), encoding="utf-8")
+
+          repository = Path("engine/source/repository.py")
+          text = repository.read_text(encoding="utf-8")
+          if "get_snapshot_by_revision" not in text:
+              anchor = '''    async def get_snapshot(\n        self, connection: AsyncConnection, *, snapshot_id: UUID\n    ) -> AutomationCorpusSnapshot | None:\n'''
+              method = '''    async def get_snapshot_by_revision(\n        self,\n        connection: AsyncConnection,\n        *,\n        project_id: UUID,\n        repository: str,\n        commit_sha: str,\n    ) -> AutomationCorpusSnapshot | None:\n        row = (\n            (\n                await connection.execute(\n                    select(automation_corpus_snapshots)\n                    .where(\n                        automation_corpus_snapshots.c.project_id == project_id,\n                        automation_corpus_snapshots.c.repository == repository,\n                        automation_corpus_snapshots.c.commit_sha == commit_sha,\n                    )\n                    .order_by(automation_corpus_snapshots.c.created_at.desc())\n                    .limit(1)\n                )\n            )\n            .mappings()\n            .first()\n        )\n        return AutomationCorpusSnapshot.model_validate(dict(row)) if row else None\n\n'''
+              if anchor not in text:
+                  raise SystemExit("snapshot repository anchor not found")
+              repository.write_text(text.replace(anchor, method + anchor, 1), encoding="utf-8")
 
           acquisition = Path("engine/source/acquisition.py")
           text = acquisition.read_text(encoding="utf-8")
-          text = text.replace(
-              '                "automation corpus acquisition is allowed only for TARGET_APPLICATION projects",\n',
-              '                "automation corpus acquisition is allowed only for "\n                "TARGET_APPLICATION projects",\n',
-          )
-          acquisition.write_text(text, encoding="utf-8")
+          if "get_snapshot_by_revision" not in text:
+              anchor = '''        await self._require_target_application(\n            tenant_id=tenant_id,\n            project_id=project_id,\n        )\n        plan = await self._plans.get_plan(\n'''
+              replacement = '''        await self._require_target_application(\n            tenant_id=tenant_id,\n            project_id=project_id,\n        )\n        async with open_unit_of_work(\n            self._engine, tenant_id=tenant_id, project_id=project_id\n        ) as uow:\n            existing = await self._repository.get_snapshot_by_revision(\n                uow.connection,\n                project_id=project_id,\n                repository=SOURCE_REPOSITORY,\n                commit_sha=commit_sha,\n            )\n        if existing is not None:\n            return existing\n        plan = await self._plans.get_plan(\n'''
+              if anchor not in text:
+                  raise SystemExit("acquisition target-scope anchor not found")
+              acquisition.write_text(text.replace(anchor, replacement, 1), encoding="utf-8")
           PY
-          uv run ruff format engine/capabilities/seed.py engine/source/acquisition.py
-          uv run ruff check engine/capabilities/seed.py engine/source/acquisition.py
-          uv run mypy engine/source/acquisition.py
-          git add engine/capabilities/seed.py engine/source/acquisition.py
+          uv run ruff format engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
+          uv run ruff check engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
+          uv run mypy engine/source
+          git add engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
           if ! git diff --cached --quiet; then
-            git commit -m "feat(vekl): register governed corpus acquisition capability"
+            git commit -m "feat(vekl): make exact corpus acquisition replay-safe"
           fi
       - name: Backfill API and reconciliation commits
         shell: bash
@@ -138,7 +147,7 @@ jobs:
           PY
       - name: Verify and push
         run: |
-          uv run ruff check engine/capabilities/seed.py engine/source
+          uv run ruff check engine/capabilities/seed.py engine/source tests/integration/test_automation_corpus_acquisition.py
           uv run mypy engine/source
           uv run python scripts/project_truth_local.py verify
           uv run pytest tests/unit/test_automation_corpus_rev2.py -q
