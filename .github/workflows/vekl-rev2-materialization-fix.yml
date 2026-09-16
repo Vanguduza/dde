@@ -29,8 +29,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           python3 - <<'PY'
           from pathlib import Path
+
           path = Path("tests/integration/test_automation_corpus_materialization.py")
           text = path.read_text(encoding="utf-8")
+          text = text.replace(
+              '"""PostgreSQL certification for raw quarantine -> sanitized descriptor materialization."""',
+              '"""Certify PostgreSQL raw-quarantine to descriptor materialization."""',
+          )
+          text = text.replace("from uuid import uuid4\n", "")
           text = text.replace("source_service=source_service,", "sources=source_service,")
           path.write_text(text, encoding="utf-8")
           PY
