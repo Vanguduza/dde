@@ -26,13 +26,54 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Apply Rev2 schema authority reconciliation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          record_path = Path("schemas/objects/source_record.json")
+          record = json.loads(record_path.read_text(encoding="utf-8"))
+          status = record["properties"]["status"]["enum"]
+          for value in ("NOT_CONFIGURED", "UNAVAILABLE"):
+              if value not in status:
+                  status.insert(status.index("BLOCKED"), value)
+          record_path.write_text(json.dumps(record, separators=(",", ":")) + "\n", encoding="utf-8")
+
+          for path in (
+              Path("schemas/objects/vekl_resource.json"),
+              Path("schemas/objects/vekl_research_finding.json"),
+          ):
+              schema = json.loads(path.read_text(encoding="utf-8"))
+              for fk in schema["x-dde-storage"].get("foreign_keys", []):
+                  if fk.get("ref_table") == "design_sources":
+                      fk["ref_table"] = "source_records"
+                  elif fk.get("ref_table") == "design_source_artifacts":
+                      fk["ref_table"] = "source_artifacts"
+              path.write_text(json.dumps(schema, separators=(",", ":")) + "\n", encoding="utf-8")
+
+          migration = Path("migrations/versions/0040_source_intelligence_automation_corpus.py")
+          if migration.exists():
+              text = migration.read_text(encoding="utf-8")
+              text = text.replace(
+                  "CASE WHEN status IN ('AVAILABLE','DEGRADED','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END",
+                  "CASE WHEN status IN ('AVAILABLE','DEGRADED','NOT_CONFIGURED','UNAVAILABLE','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END",
+              )
+              migration.write_text(text, encoding="utf-8")
+          PY
+          git add schemas/objects/source_record.json schemas/objects/vekl_resource.json schemas/objects/vekl_research_finding.json migrations/versions/0040_source_intelligence_automation_corpus.py
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(vekl): bind VEKL provenance to neutral Source Intelligence"
+          fi
       - name: Generate and commit canonical contract outputs
         shell: bash
         run: |
           uv run python -m scripts.generate_contracts
-          git add engine/contracts schemas/sql/0001_stage1.sql schemas/sql/0001_stage1_down.sql docs/blueprint/generated/objects.md
+          uv run ruff format engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py
+          git add engine/contracts schemas/sql/0001_stage1.sql schemas/sql/0001_stage1_down.sql docs/blueprint/generated/objects.md engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py
           if ! git diff --cached --quiet; then
-            git commit -m "chore(contracts): regenerate automation corpus authorities"
+            git commit -m "chore(contracts): regenerate neutral Source Intelligence outputs"
           fi
       - name: Backfill exact API-created commit evidence
         shell: bash
@@ -117,6 +158,9 @@ jobs:
         run: |
           uv run python -m scripts.generate_contracts --check
           uv run python scripts/project_truth_local.py verify
+          uv run ruff check engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py
+          uv run mypy engine/source
+          uv run pytest tests/unit/test_automation_corpus_rev2.py -q
       - name: Push reconciled feature branch
         shell: bash
         run: |
