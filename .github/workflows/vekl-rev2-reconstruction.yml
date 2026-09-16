@@ -26,62 +26,34 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Apply Rev2 schema authority reconciliation
+      - name: Reconcile 0040 fresh-schema compatibility
         shell: bash
         run: |
           python3 - <<'PY'
-          import json
           from pathlib import Path
 
-          record_path = Path("schemas/objects/source_record.json")
-          record = json.loads(record_path.read_text(encoding="utf-8"))
-          status = record["properties"]["status"]["enum"]
-          for value in ("NOT_CONFIGURED", "UNAVAILABLE"):
-              if value not in status:
-                  status.insert(status.index("BLOCKED"), value)
-          record_path.write_text(json.dumps(record, separators=(",", ":")) + "\n", encoding="utf-8")
-
-          for path in (
-              Path("schemas/objects/vekl_resource.json"),
-              Path("schemas/objects/vekl_research_finding.json"),
-          ):
-              schema = json.loads(path.read_text(encoding="utf-8"))
-              for fk in schema["x-dde-storage"].get("foreign_keys", []):
-                  if fk.get("ref_table") == "design_sources":
-                      fk["ref_table"] = "source_records"
-                  elif fk.get("ref_table") == "design_source_artifacts":
-                      fk["ref_table"] = "source_artifacts"
-              path.write_text(json.dumps(schema, separators=(",", ":")) + "\n", encoding="utf-8")
-
-          migration = Path("migrations/versions/0040_source_intelligence_automation_corpus.py")
-          if migration.exists():
-              text = migration.read_text(encoding="utf-8")
-              text = text.replace(
-                  "CASE WHEN status IN ('AVAILABLE','DEGRADED','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END",
-                  "CASE WHEN status IN ('AVAILABLE','DEGRADED','NOT_CONFIGURED','UNAVAILABLE','BLOCKED','DISABLED') THEN status ELSE 'BLOCKED' END",
-              )
-              migration.write_text(text, encoding="utf-8")
-
-          tables = Path("engine/source/tables.py")
-          text = tables.read_text(encoding="utf-8")
-          text = text.replace(
-              '"""SQLAlchemy Core mappings for domain-neutral Source Intelligence and automation corpus."""',
-              '"""SQLAlchemy Core mappings for domain-neutral Source Intelligence\nand the automation corpus."""',
-          )
-          tables.write_text(text, encoding="utf-8")
+          path = Path("migrations/versions/0040_source_intelligence_automation_corpus.py")
+          text = path.read_text(encoding="utf-8")
+          needle = '''def upgrade() -> None:\n    _create_source_tables()\n    _create_automation_tables()\n    for table in _NEW_TABLES:\n        _enable_rls(table)\n    _backfill_design_sources()\n    _rewire_vekl_to_neutral()\n'''
+          replacement = '''def _existing_0040_tables() -> set[str]:\n    connection = op.get_bind()\n    return {\n        table\n        for table in _NEW_TABLES\n        if connection.execute(\n            sa.text("SELECT to_regclass(:name)"), {"name": f"public.{table}"}\n        ).scalar()\n        is not None\n    }\n\n\ndef upgrade() -> None:\n    existing = _existing_0040_tables()\n    if existing:\n        if existing != set(_NEW_TABLES):\n            missing = sorted(set(_NEW_TABLES) - existing)\n            raise RuntimeError(\n                "partial Source Intelligence schema detected before migration 0040; "\n                f"missing tables: {', '.join(missing)}"\n            )\n    else:\n        _create_source_tables()\n        _create_automation_tables()\n        for table in _NEW_TABLES:\n            _enable_rls(table)\n    _backfill_design_sources()\n    _rewire_vekl_to_neutral()\n'''
+          if needle in text:
+              text = text.replace(needle, replacement)
+              path.write_text(text, encoding="utf-8")
+          elif "def _existing_0040_tables()" not in text:
+              raise SystemExit("0040 upgrade block did not match expected source")
           PY
-          git add schemas/objects/source_record.json schemas/objects/vekl_resource.json schemas/objects/vekl_research_finding.json migrations/versions/0040_source_intelligence_automation_corpus.py engine/source/tables.py
+          uv run ruff format migrations/versions/0040_source_intelligence_automation_corpus.py tests/integration/test_automation_corpus_rev2.py
+          git add migrations/versions/0040_source_intelligence_automation_corpus.py tests/integration/test_automation_corpus_rev2.py .github/workflows/ci.yml
           if ! git diff --cached --quiet; then
-            git commit -m "feat(vekl): bind VEKL provenance to neutral Source Intelligence"
+            git commit -m "test(vekl): certify Source Intelligence migration and RLS"
           fi
-      - name: Generate and commit canonical contract outputs
+      - name: Generate canonical contract outputs
         shell: bash
         run: |
           uv run python -m scripts.generate_contracts
-          uv run ruff format engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py
-          git add engine/contracts schemas/sql/0001_stage1.sql schemas/sql/0001_stage1_down.sql docs/blueprint/generated/objects.md engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py
+          git add engine/contracts schemas/sql/0001_stage1.sql schemas/sql/0001_stage1_down.sql docs/blueprint/generated/objects.md
           if ! git diff --cached --quiet; then
-            git commit -m "chore(contracts): regenerate neutral Source Intelligence outputs"
+            git commit -m "chore(contracts): regenerate Source Intelligence outputs"
           fi
       - name: Backfill exact API-created commit evidence
         shell: bash
@@ -99,25 +71,24 @@ jobs:
               ":(exclude)docs/project-state/CHANGE_LEDGER.jsonl",
               ":(exclude)docs/project-state/CURRENT_STATE.json",
           ]
-          existing_lines = ledger.read_text(encoding="utf-8").splitlines() if ledger.exists() else []
+          lines = ledger.read_text(encoding="utf-8").splitlines() if ledger.exists() else []
           existing = []
-          for line in existing_lines:
+          for line in lines:
               try:
-                  value = json.loads(line)
+                  row = json.loads(line)
               except json.JSONDecodeError:
                   continue
-              if isinstance(value, dict):
-                  existing.append(value)
+              if isinstance(row, dict):
+                  existing.append(row)
           base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"], text=True).strip()
           commits = subprocess.check_output(["git", "rev-list", "--reverse", f"{base}..HEAD"], text=True).splitlines()
           added = []
           for sha in commits:
               parent = subprocess.check_output(["git", "rev-parse", f"{sha}^1"], text=True).strip()
               files = subprocess.check_output(
-                  ["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes],
-                  text=True,
+                  ["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes], text=True
               ).splitlines()
-              if not files or all(path.startswith("docs/project-state/") for path in files):
+              if not files or all(name.startswith("docs/project-state/") for name in files):
                   continue
               patch = subprocess.check_output(
                   ["git", "diff", "--binary", "--no-ext-diff", "--no-renames", parent, sha, "--", ".", *excludes]
@@ -136,11 +107,11 @@ jobs:
                   "diff_sha256": digest,
                   "actor": "github-actions[bot]:vekl-rev2-reconstruction",
               }
-              existing_lines.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
+              lines.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
               existing.append(row)
               added.append(row)
           if added:
-              ledger.write_text("\n".join(existing_lines) + "\n", encoding="utf-8")
+              ledger.write_text("\n".join(lines) + "\n", encoding="utf-8")
               current.write_text(
                   json.dumps(
                       {
@@ -153,8 +124,7 @@ jobs:
                       },
                       indent=2,
                       sort_keys=True,
-                  )
-                  + "\n",
+                  ) + "\n",
                   encoding="utf-8",
               )
           PY
@@ -166,7 +136,7 @@ jobs:
         run: |
           uv run python -m scripts.generate_contracts --check
           uv run python scripts/project_truth_local.py verify
-          uv run ruff check engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py
+          uv run ruff check engine/source migrations/versions/0040_source_intelligence_automation_corpus.py tests/unit/test_automation_corpus_rev2.py tests/integration/test_automation_corpus_rev2.py
           uv run mypy engine/source
           uv run pytest tests/unit/test_automation_corpus_rev2.py -q
       - name: Push reconciled feature branch

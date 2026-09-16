@@ -50,10 +50,13 @@ jobs:
       - name: Design lints (shrink-only budget)
         run: just design-lints
       - name: Migration validation and test schema provisioning
-        # Database-backed unit/recovery tests require the migrated schema.
-        # Prove the empty database is reversible first, then leave it at head.
+        # EDR-0018 requires an explicit 0039 -> 0040 -> 0039 -> 0040 proof.
+        # Then prove the complete schema remains reversible and leave it at head.
         run: |
-          uv run alembic upgrade head
+          uv run alembic upgrade 0039
+          uv run alembic upgrade 0040
+          uv run alembic downgrade 0039
+          uv run alembic upgrade 0040
           uv run alembic downgrade base
           uv run alembic upgrade head
       - name: Unit tests
