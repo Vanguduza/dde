@@ -133,7 +133,9 @@ class AutomationCorpusMaterializationService:
                 snapshot_id=snapshot_id,
             )
         if snapshot is None:
-            raise DdeError("CONTEXT_INCOMPLETE", "automation corpus snapshot is missing")
+            raise DdeError(
+                "CONTEXT_INCOMPLETE", "automation corpus snapshot is missing"
+            )
         if snapshot.state in {"REJECTED", "REVOKED"}:
             raise DdeError(
                 "POLICY_DENIED",
@@ -487,9 +489,7 @@ class AutomationCorpusMaterializationService:
                 provenance_state="VERIFIED",
                 sanitization_state="PASSED",
                 injection_state=(
-                    "SANITIZED"
-                    if row.get("prompt_findings")
-                    else "NO_INJECTION_TEXT"
+                    "SANITIZED" if row.get("prompt_findings") else "NO_INJECTION_TEXT"
                 ),
                 revoked_at=None,
                 created_at=now,
