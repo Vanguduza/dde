@@ -1,0 +1,145 @@
+name: VEKL Rev2 acquisition reconcile
+
+on:
+  push:
+    branches:
+      - feat/vekl-automation-corpus-runtime-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: feat/vekl-automation-corpus-runtime-20260916
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --group dev
+      - name: Configure identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Register acquisition capability and normalize module
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          seed = Path("engine/capabilities/seed.py")
+          text = seed.read_text(encoding="utf-8")
+          if 'capability.automation_corpus_snapshot' not in text:
+              anchor = '''    SeedCapability(\n        capability_id="capability.vekl.qualify",\n'''
+              block = '''    # EDR-0018: exact-pinned public automation-corpus acquisition.\n    # EXTERNAL_IDEMPOTENT because the immutable SHA GET is journaled and\n    # repeated requests for the same exact revision have identical bytes.\n    # No credential broker is used: anonymous codeload HTTPS only.\n    SeedCapability(\n        capability_id="capability.automation_corpus_snapshot",\n        version="1",\n        category="source_intelligence",\n        summary=(\n            "Acquire one exact Zie619/n8n-workflows Git SHA through the "\n            "EDR-0018 anonymous, redirect-free codeload path into project-"\n            "scoped quarantine. Raw workflows are never executable authority."\n        ),\n        side_effect_class="EXTERNAL_IDEMPOTENT",\n        risk_class="medium",\n        enforcement_tier="T1",\n        implementations=(\n            "engine.source.acquisition.AutomationCorpusAcquisitionService",\n        ),\n        supported_workloads=("planning", "verification"),\n        network_requirements={\n            "egress": "allowlist:https://codeload.github.com",\n            "edr": "EDR-0018",\n            "credentials": "forbidden",\n            "redirects": "forbidden",\n            "repository": "Zie619/n8n-workflows",\n        },\n    ),\n'''
+              if anchor not in text:
+                  raise SystemExit("VEKL capability anchor not found")
+              text = text.replace(anchor, block + anchor, 1)
+              seed.write_text(text, encoding="utf-8")
+
+          acquisition = Path("engine/source/acquisition.py")
+          text = acquisition.read_text(encoding="utf-8")
+          text = text.replace(
+              '                "automation corpus acquisition is allowed only for TARGET_APPLICATION projects",\n',
+              '                "automation corpus acquisition is allowed only for "\n                "TARGET_APPLICATION projects",\n',
+          )
+          acquisition.write_text(text, encoding="utf-8")
+          PY
+          uv run ruff format engine/capabilities/seed.py engine/source/acquisition.py
+          uv run ruff check engine/capabilities/seed.py engine/source/acquisition.py
+          uv run mypy engine/source/acquisition.py
+          git add engine/capabilities/seed.py engine/source/acquisition.py
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(vekl): register governed corpus acquisition capability"
+          fi
+      - name: Backfill API and reconciliation commits
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import datetime as dt
+          import hashlib
+          import json
+          import pathlib
+          import subprocess
+
+          ledger = pathlib.Path("docs/project-state/CHANGE_LEDGER.jsonl")
+          current = pathlib.Path("docs/project-state/CURRENT_STATE.json")
+          excludes = [
+              ":(exclude)docs/project-state/CHANGE_LEDGER.jsonl",
+              ":(exclude)docs/project-state/CURRENT_STATE.json",
+          ]
+          lines = ledger.read_text(encoding="utf-8").splitlines()
+          existing = []
+          for line in lines:
+              try:
+                  row = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(row, dict):
+                  existing.append(row)
+          base = subprocess.check_output(["git", "merge-base", "origin/main", "HEAD"], text=True).strip()
+          commits = subprocess.check_output(["git", "rev-list", "--reverse", f"{base}..HEAD"], text=True).splitlines()
+          added = []
+          for sha in commits:
+              parent = subprocess.check_output(["git", "rev-parse", f"{sha}^1"], text=True).strip()
+              files = subprocess.check_output(
+                  ["git", "diff", "--name-only", "--no-renames", parent, sha, "--", ".", *excludes],
+                  text=True,
+              ).splitlines()
+              if not files or all(name.startswith("docs/project-state/") for name in files):
+                  continue
+              patch = subprocess.check_output(
+                  ["git", "diff", "--binary", "--no-ext-diff", "--no-renames", parent, sha, "--", ".", *excludes]
+              )
+              digest = hashlib.sha256(patch).hexdigest()
+              if any(row.get("commit_sha") == sha and row.get("diff_sha256") == digest for row in existing):
+                  continue
+              row = {
+                  "schema_version": 1,
+                  "kind": "commit-backfill",
+                  "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+                  "branch": "feat/vekl-automation-corpus-runtime-20260916",
+                  "commit_sha": sha,
+                  "source_parent": parent,
+                  "changed_files": files,
+                  "diff_sha256": digest,
+                  "actor": "github-actions[bot]:vekl-rev2-acquisition-reconcile",
+              }
+              lines.append(json.dumps(row, sort_keys=True, separators=(",", ":")))
+              existing.append(row)
+              added.append(row)
+          if added:
+              ledger.write_text("\n".join(lines) + "\n", encoding="utf-8")
+              current.write_text(
+                  json.dumps(
+                      {
+                          "schema_version": 1,
+                          "state": "API_COMMIT_BACKFILL_RECONCILED",
+                          "branch": "feat/vekl-automation-corpus-runtime-20260916",
+                          "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                          "recorded_commit_count": len(added),
+                          "recorded_at_utc": dt.datetime.now(dt.UTC).isoformat(),
+                      },
+                      indent=2,
+                      sort_keys=True,
+                  ) + "\n",
+                  encoding="utf-8",
+              )
+              subprocess.check_call(["git", "add", str(ledger), str(current)])
+              subprocess.check_call([
+                  "git", "commit", "-m",
+                  "chore(project-truth): backfill acquisition reconstruction commits [skip ci]",
+              ])
+          PY
+      - name: Verify and push
+        run: |
+          uv run ruff check engine/capabilities/seed.py engine/source
+          uv run mypy engine/source
+          uv run python scripts/project_truth_local.py verify
+          uv run pytest tests/unit/test_automation_corpus_rev2.py -q
+          git push origin HEAD:feat/vekl-automation-corpus-runtime-20260916
