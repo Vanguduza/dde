@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/steering_barrier.json",
+  "title": "SteeringBarrier",
+  "description": "The admission barrier a material steer places over a write-ownership scope. While a barrier is open no new conflicting workspace/write lease may be claimed, but already-active writers are allowed to run on to their own safe boundary. A barrier bounds new claims; it never revokes work in flight.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "steering_barriers",
+    "order": 941,
+    "pk": [
+      "barrier_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "steering_barriers_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "steering_barriers_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "steering_barriers_steer_fkey",
+        "columns": [
+          "steer_id"
+        ],
+        "ref_table": "mission_steer_requests",
+        "ref_columns": [
+          "steer_id"
+        ]
+      },
+      {
+        "name": "steering_barriers_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "barrier_id",
+    "tenant_id",
+    "project_id",
+    "steer_id",
+    "mission_id",
+    "scope_kind",
+    "write_ownership_scope",
+    "blocked_lease_kinds",
+    "state",
+    "active_writer_count",
+    "awaited_writer_refs",
+    "opened_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "barrier_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "steer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scope_kind": {
+      "type": "string",
+      "enum": [
+        "MISSION",
+        "TASK_SUBTREE",
+        "PATH_SCOPE",
+        "WHOLE_PROJECT"
+      ]
+    },
+    "write_ownership_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocked_lease_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "WORKSPACE",
+          "WRITE_SCOPE",
+          "CAPABILITY"
+        ]
+      }
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "DRAINING",
+        "SATISFIED",
+        "RELEASED",
+        "EXPIRED"
+      ]
+    },
+    "active_writer_count": {
+      "type": "integer"
+    },
+    "awaited_writer_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "drained_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "released_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

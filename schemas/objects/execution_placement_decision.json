@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/execution_placement_decision.json",
+  "title": "ExecutionPlacementDecision",
+  "description": "EDR-0019 Epic B immutable record of where a provider-routed unit of work was placed and why. This is evidence, not a second routing registry: selection remains owned by the existing routing authority and this row records the inputs, exclusions and fallback chain that produced the decision. Fallback may occur only at a declared checkpoint; a model is never switched mid-effect. Until DDE-076/077 land TaskExecutionDescriptor and ExecutionStrategy, task_ref/descriptor_ref are forward-compatible references rather than foreign keys.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "execution_placement_decisions",
+    "order": 931,
+    "pk": [
+      "placement_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "execution_placement_decisions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "execution_placement_decisions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "execution_placement_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "execution_placement_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "execution_placement_readiness_fkey",
+        "columns": [
+          "readiness_snapshot_id"
+        ],
+        "ref_table": "provider_readiness_snapshots",
+        "ref_columns": [
+          "readiness_snapshot_id"
+        ]
+      }
+    ]
+  },
+  "$defs": {
+    "ProviderExclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "reason"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "readiness_state": {
+          "type": "string",
+          "enum": [
+            "ABSENT",
+            "INSTALLED",
+            "CONFIGURED",
+            "REACHABLE",
+            "QUALIFIED",
+            "READY",
+            "DEGRADED",
+            "RATE_LIMITED",
+            "ACCOUNT_LIMITED",
+            "AUTH_FAILED",
+            "QUARANTINED",
+            "REVOKED"
+          ]
+        }
+      }
+    }
+  },
+  "required": [
+    "placement_id",
+    "tenant_id",
+    "project_id",
+    "required_capabilities",
+    "candidate_providers",
+    "excluded_providers",
+    "selected_provider",
+    "fallback_chain",
+    "decision_hash",
+    "decided_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "placement_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_execution_descriptor_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "candidate_providers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excluded_providers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ProviderExclusion"
+      }
+    },
+    "selected_provider": {
+      "type": "string"
+    },
+    "selected_harness": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_identity_requested": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_identity_attested": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capacity_snapshot_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "readiness_snapshot_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fallback_chain": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fallback_checkpoint_kind": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "TASK_START",
+            "VERIFIER_BOUNDARY",
+            "CHECKPOINT_COMMIT",
+            "EFFECT_BOUNDARY"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fallback_of_placement_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "carried_work_state_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "carried_diff_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "carried_context_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decision_hash": {
+      "type": "string"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

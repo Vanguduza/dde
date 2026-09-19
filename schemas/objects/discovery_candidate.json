@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/discovery_candidate.json",
+  "title": "DiscoveryCandidate",
+  "description": "EDR-0019 Epic C open-world discovery candidate. Pre-admission identity only: a candidate carries no Project Truth, implementation, execution or capability authority and never becomes a VEKLResource by existing. lifecycle_state and source_trust are independent axes -- a successful sandbox trial advances lifecycle_state and may never raise source_trust. source_trust reuses the canonical vekl_resources S1..S8 vocabulary; this contract introduces no second trust vocabulary. candidate_id is derived deterministically from normalized_identity_key so independent discoveries merge evidence instead of creating duplicates.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "discovery_candidates",
+    "order": 910,
+    "pk": [
+      "candidate_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "discovery_candidates_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "discovery_candidates_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "discovery_candidates_source_id_fkey",
+        "columns": [
+          "source_id"
+        ],
+        "ref_table": "source_records",
+        "ref_columns": [
+          "source_id"
+        ]
+      },
+      {
+        "name": "discovery_candidates_resource_id_fkey",
+        "columns": [
+          "admitted_resource_id"
+        ],
+        "ref_table": "vekl_resources",
+        "ref_columns": [
+          "resource_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id",
+        "normalized_identity_key"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "discovery_candidates_lifecycle_idx",
+        "columns": [
+          "tenant_id",
+          "project_id",
+          "lifecycle_state"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "candidate_id",
+    "tenant_id",
+    "project_id",
+    "canonical_locator",
+    "normalized_identity_key",
+    "identity_scheme",
+    "lifecycle_state",
+    "source_trust",
+    "discovered_by",
+    "discovery_refs",
+    "observation_count",
+    "license_ids",
+    "sanitizer_findings",
+    "architecture_findings",
+    "first_seen_at",
+    "last_observed_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "canonical_locator": {
+      "type": "string"
+    },
+    "normalized_identity_key": {
+      "type": "string"
+    },
+    "identity_scheme": {
+      "type": "string",
+      "enum": [
+        "GITHUB_REPOSITORY",
+        "HTTP_ORIGIN_PATH",
+        "PACKAGE_COORDINATE",
+        "OPAQUE"
+      ]
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "publisher": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "DISCOVERED",
+        "TRIAGED",
+        "PROVENANCE_CHECKED",
+        "CONTENT_ACQUIRED",
+        "SANITIZED",
+        "ARCHITECTURE_CHECKED",
+        "TRIAL_ELIGIBLE",
+        "SANDBOX_TESTED",
+        "QUALIFIED",
+        "ADMITTED",
+        "REJECTED",
+        "SUPERSEDED",
+        "REVOKED"
+      ]
+    },
+    "source_trust": {
+      "type": "string",
+      "enum": [
+        "S1_NORMATIVE",
+        "S2_FIRST_PARTY",
+        "S3_VERIFIED_REGISTRY",
+        "S4_MAINTAINED_OSS",
+        "S5_MAINTAINER_COMMUNITY",
+        "S6_COMMUNITY_CORROBORATED",
+        "S7_DISCOVERY_ONLY",
+        "S8_UNTRUSTED"
+      ]
+    },
+    "discovered_by": {
+      "type": "string",
+      "enum": [
+        "RESEARCH_MISSION",
+        "SOURCE_INTELLIGENCE",
+        "OPERATOR",
+        "VEKL_GAP",
+        "CORROBORATION_FOLLOW"
+      ]
+    },
+    "discovery_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "observation_count": {
+      "type": "integer"
+    },
+    "source_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "admitted_resource_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersedes_candidate_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "license_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sanitizer_findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "architecture_findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "first_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

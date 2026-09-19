@@ -1016,3 +1016,58 @@ DDE now has an implemented localhost-only HAIF client/bridge in `engine/fabric/h
 The shared Oracle HAIF implementation remains outside DDE Core and holds the xKiro credential. DDE has a distinct account/control root/token from DIAL. Live 2026-09-08 qualification proved the DDE xKiro account authenticated `/v1/usage` and completed a real `minimax/minimax-m3:free` canary. This is transport evidence only; catalogue/free labels do not promote a model. Normal HAIF execution still requires elite task-archetype benchmark promotion.
 
 Current implementation deliberately does not widen DDE Core to direct xKiro network egress, paid routes, tools, non-public data, repository mutation or manager authority. Those remain forbidden by AD-049 and require future change control if ever proposed.
+
+## 2026-09-19 — EDR-0019 / AD-051 cross-system operational intelligence (contracts + persistence)
+
+**State: `IMPLEMENTED_PARTIAL`.** Blueprint phases 0–2 only. No runtime service exists for any of the twelve epics, and **no production call site invokes any of these contracts**. Per `AGENTS.md`, schemas, migrations and tests are not completion; this tranche must not be read as delivering steering, discovery, research, readiness, verified actions, automation, browser capability, attention or certification behaviour.
+
+### Phase 0 — reconciliation (done)
+
+Work is based on `feat/vekl-automation-corpus-runtime-20260916`, measured at **42 commits ahead of and 0 behind `main`** (`git rev-list --left-right --count origin/main...FETCH_HEAD` → `0  42`). That branch owns migration `0040` and the domain-neutral `SourceRecord`/`SourceArtifact`/`SourceAdmission` base. Basing on `main` would have produced a second Alembic head at `0039`.
+
+### Phase 1 — contracts (done)
+
+29 new object schemas under `schemas/objects/`, generated into `engine/contracts/` by `scripts.generate_contracts`. Generated DDL grew from **145 to 174** `CREATE TABLE` statements (+29, −0). Additive change to `external_effect`: `postcondition_policy`, `postcondition_state`, `postcondition_verified_at`; the existing `status` enum is untouched.
+
+Families: discovery (5), research (6), provider readiness/placement (2), capability gates/certification (3), mission steering (4), context facts (1), attention (2), automation runtime (4), browser capability (1), external-effect verification (1).
+
+### Phase 2 — persistence (done, after two defects were found and fixed)
+
+`migrations/versions/0041_cross_system_operational_intelligence.py` — 29 tables, 103 foreign keys, 5 indexes, 87 row-level-security statements (29 × ENABLE/FORCE/POLICY), extracted verbatim from generated `schemas/sql/0001_stage1.sql`.
+
+**A measurement error was found and corrected first.** The initial reversibility runs captured `$?` after a pipeline (`alembic ... | tail -3; echo "EXIT=$?"`), which reports **`tail`'s** status, not alembic's. Those runs would have reported success even if every migration had failed. Re-run without the pipeline, they exposed two real defects:
+
+1. migration `0001` replays the **generated** `0001_stage1.sql` in full, so adding a schema already creates its table. The first `0041` created them again and failed from base with `DuplicateTableError: relation "discovery_candidates" already exists`. `0041` now uses the same `to_regclass` guard convention as `0040` — skip when all present, raise on a partial schema;
+2. on a from-base build the postcondition check constraint is created inline and **unnamed** by `stage1`, so the downgrade's named `DROP CONSTRAINT` failed. The teardown is now `IF EXISTS` on all four statements.
+
+A third defect was exposed only by running the whole unit suite on the baseline and on this branch through the same instrument. `engine/recovery/tables.py` declares the `external_effects` SQLAlchemy table by hand while the contract is generated, so adding the postcondition columns to the schema alone made every ExternalEffect insert fail with `CompileError: Unconsumed column names`. Effects are journaled by many subsystems, so that single omission cascaded into **82 unit failures** (`pytest tests/unit tests/recovery`: pristine baseline `1383 passed, 6 skipped`; this branch before the fix `82 failed, 1301 passed, 6 skipped, 1 error` — 1301 + 82 = 1383, so exactly the passing set regressed). The columns are now declared on the table and the branch is back at **exact parity with baseline: `1383 passed, 6 skipped`**.
+
+All three are covered by regression tests. Evidence (PostgreSQL 16.13, alembic invoked directly so its own exit code is captured):
+
+| Proof | Path A (built from base) | Path B (upgrade from an existing `0040`) |
+| --- | --- | --- |
+| `upgrade head` | exit 0 | exit 0 |
+| `downgrade base` → `upgrade head` | exit 0 / exit 0 | n/a |
+| `downgrade 0040` → `upgrade head` | exit 0 / exit 0 | exit 0 / exit 0 |
+| new tables created | via `0001`, `0041` skips | **29 of 29** |
+| RLS enabled and forced | 29 of 29 | **29 of 29** |
+| postcondition columns | via `stage1` | **3 of 3 added, 3 removed on downgrade** |
+
+Path B was run against a database built from the pristine branch and verified beforehand to be at head `0040` with `discovery_candidates` absent and zero postcondition columns, so the creation path was genuinely exercised. The partial-schema guard was induced by dropping one table and resetting the version: the upgrade refused with `partial cross-system operational intelligence schema detected before migration 0041; missing tables: steering_impacts`.
+
+**Gates were induced, not assumed.** 13 deliberately illegal rows were each refused by a *check* constraint (not an incidental NOT NULL/FK failure): green certification without evidence; `READY` capability gate without an evidence pointer; `READY` provider readiness without fresh evidence; postcondition `VERIFIED` without a timestamp; a grant consuming more than `max_uses`; a non-isolated browser profile; a browser session allowing cookie export; an `INFO` attention candidate bypassing the budget; a read-only steer taking a barrier; a `NO_AUTHORITY` steer that is not read-only; a promoted `MODEL_INFERENCE` fact; an automation run `VERIFIED` without callback/journal/verifier; and a `PRODUCTION_QUALIFIED` release without security and sandbox evidence. The instrument was then checked in the opposite direction: 12 legal counterparts were accepted, and none was blocked by a check constraint.
+
+### Contract tests
+
+`tests/contract/test_cross_system_integration_schema_objects.py` — 24 tests, passing. Six invariants were deliberately broken and each was caught by its own test before the source was restored: a second trust vocabulary added; `STEERING_HELD` appended to `tasks.status`; the `external_effects.status` enum replaced; the postcondition teardown made non-idempotent; the stage1 double-create guard removed; and a generated column removed from the hand-written `external_effects` table.
+
+### Corrections to the source artifact
+
+The integration blueprint overstated current DDE state in two places, and both change sequencing:
+
+- it lists `TaskExecutionDescriptor`, `ChangePacket` and `WorkspaceLease` among DDE's existing strengths, and instructs Epic B to extend `HarnessInstallation`, `HarnessRuntimeCapabilities`, `ModelControlCapabilities`, `WorkerConfiguration` and `WorkerProfileCertification`. **None of these exist.** They are Rev 3 designs owned by the unimplemented DDE-076/DDE-077, which carry no rows in this file. Epic B's placement contracts are therefore self-standing and reference a descriptor by an untyped `*_ref`; full fleet binding is **`BLOCKED_EXTERNAL` on DDE-076/077**;
+- it names a task state `COMPLETE_EVIDENCED` in its completion law. The real `tasks.status` enum has no such value, so the postcondition completion law is bound to `COMPLETED`.
+
+### Residuals and next work packet
+
+`PLANNED` for every epic runtime (blueprint phases 3–10), in the dependency order recorded in `DEV_PLAN_REV3.md` §20B.1. The immediate next packet is **Phase 3 discovery runtime** — deterministic identity and dedupe, trust assignment, append-only transition enforcement in service code, the sanitizer, and the qualification bridge into `source_admissions`/`vekl_resources`. Phases 8–9 must not begin before phases 5–6 work, because an automation or browser runtime without readiness gating and postcondition verification is precisely the false-green surface this programme exists to remove.

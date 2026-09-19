@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/automation_workflow_definition.json",
+  "title": "AutomationWorkflowDefinition",
+  "description": "EDR-0019 Epic J authored automation workflow. DDE owns intent: an automation runtime is a target runtime effect under CapabilityLease/ExternalEffect/verifier law, never a DDE WorkerAdapter and never a task orchestrator. A workflow may not decide what DDE does next.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "automation_workflow_definitions",
+    "order": 960,
+    "pk": [
+      "definition_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "automation_workflow_definitions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "automation_workflow_definitions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "automation_workflow_definitions_descriptor_fkey",
+        "columns": [
+          "derived_from_descriptor_id"
+        ],
+        "ref_table": "automation_pattern_descriptors",
+        "ref_columns": [
+          "descriptor_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "definition_id",
+    "tenant_id",
+    "project_id",
+    "runtime_kind",
+    "name",
+    "intent_summary",
+    "authored_by",
+    "definition_hash",
+    "node_inventory",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "definition_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "runtime_kind": {
+      "type": "string",
+      "enum": [
+        "N8N",
+        "OTHER"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "intent_summary": {
+      "type": "string"
+    },
+    "authored_by": {
+      "type": "string",
+      "enum": [
+        "OPERATOR",
+        "DDE_TASK",
+        "PATTERN_DESCRIPTOR"
+      ]
+    },
+    "derived_from_descriptor_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "definition_hash": {
+      "type": "string"
+    },
+    "node_inventory": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/safe_boundary_receipt.json",
+  "title": "SafeBoundaryReceipt",
+  "description": "Durable proof that one active writer reached a named safe boundary, so a steer can proceed and so recovery after a crash can tell whether the boundary was actually reached. The receipt is written before the steer is allowed to execute; a process crash after the receipt is recoverable, a crash before it is not treated as a boundary.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "safe_boundary_receipts",
+    "order": 942,
+    "pk": [
+      "receipt_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "safe_boundary_receipts_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "safe_boundary_receipts_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "safe_boundary_receipts_barrier_fkey",
+        "columns": [
+          "barrier_id"
+        ],
+        "ref_table": "steering_barriers",
+        "ref_columns": [
+          "barrier_id"
+        ]
+      },
+      {
+        "name": "safe_boundary_receipts_steer_fkey",
+        "columns": [
+          "steer_id"
+        ],
+        "ref_table": "mission_steer_requests",
+        "ref_columns": [
+          "steer_id"
+        ]
+      },
+      {
+        "name": "safe_boundary_receipts_run_fkey",
+        "columns": [
+          "worker_run_id"
+        ],
+        "ref_table": "worker_runs",
+        "ref_columns": [
+          "run_id"
+        ]
+      },
+      {
+        "name": "safe_boundary_receipts_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "receipt_id",
+    "tenant_id",
+    "project_id",
+    "barrier_id",
+    "steer_id",
+    "writer_ref",
+    "boundary_kind",
+    "reached_at",
+    "created_at"
+  ],
+  "properties": {
+    "receipt_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "barrier_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "steer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "writer_ref": {
+      "type": "string"
+    },
+    "worker_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "boundary_kind": {
+      "type": "string",
+      "enum": [
+        "COMMITTED_CHECKPOINT",
+        "CLEAN_STAGED_CHECKPOINT",
+        "ROLLBACK_CHECKPOINT",
+        "VERIFIER_COMPLETE",
+        "NO_ACTIVE_WRITER"
+      ]
+    },
+    "change_packet_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "change_packet_disposition": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "PRESERVED",
+            "INTEGRATED",
+            "STAGED",
+            "ROLLED_BACK"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "workspace_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reached_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

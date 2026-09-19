@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/provider_readiness_snapshot.json",
+  "title": "ProviderReadinessSnapshot",
+  "description": "EDR-0019 Epic B readiness axis. Readiness is NOT capacity: provider_capacity_snapshots remain the observed availability/quota authority and this contract adds the orthogonal installed -> configured -> reachable -> qualified -> READY axis. READY is refused without a live probe, an attested model/harness identity and a fresh evidence pointer -- a configured API key is never sufficient, and a provider may never assert its own readiness.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "provider_readiness_snapshots",
+    "order": 930,
+    "pk": [
+      "readiness_snapshot_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "provider_readiness_snapshots_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "provider_readiness_snapshots_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "provider_readiness_capacity_fkey",
+        "columns": [
+          "capacity_snapshot_id"
+        ],
+        "ref_table": "provider_capacity_snapshots",
+        "ref_columns": [
+          "snapshot_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "provider_readiness_state_idx",
+        "columns": [
+          "tenant_id",
+          "project_id",
+          "provider_id",
+          "readiness_state"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "(readiness_state <> 'READY') OR (evidence_fresh AND qualification_evidence_pointer IS NOT NULL)"
+      }
+    ]
+  },
+  "required": [
+    "readiness_snapshot_id",
+    "tenant_id",
+    "project_id",
+    "provider_id",
+    "environment",
+    "readiness_state",
+    "identity_drift",
+    "evidence_fresh",
+    "owner_action_required",
+    "observed_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "readiness_snapshot_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "harness_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "endpoint_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "environment": {
+      "type": "string"
+    },
+    "readiness_state": {
+      "type": "string",
+      "enum": [
+        "ABSENT",
+        "INSTALLED",
+        "CONFIGURED",
+        "REACHABLE",
+        "QUALIFIED",
+        "READY",
+        "DEGRADED",
+        "RATE_LIMITED",
+        "ACCOUNT_LIMITED",
+        "AUTH_FAILED",
+        "QUARANTINED",
+        "REVOKED"
+      ]
+    },
+    "capacity_snapshot_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_identity_expected": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_identity_attested": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "identity_drift": {
+      "type": "boolean"
+    },
+    "qualification_evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_recorded_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_fresh": {
+      "type": "boolean"
+    },
+    "probe_method": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "LIVE_COMPLETION",
+            "LIVE_METADATA",
+            "HARNESS_SELFTEST",
+            "AUTH_CHECK"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_probe_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "degraded_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blocking_scope": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "TASK",
+            "MISSION",
+            "PROJECT",
+            "ENVIRONMENT"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "owner_action_required": {
+      "type": "boolean"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

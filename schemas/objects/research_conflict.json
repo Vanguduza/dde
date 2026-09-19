@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/research_conflict.json",
+  "title": "ResearchConflict",
+  "description": "A detected contradiction between research findings, or between a finding and Project Truth. A conflict never resolves itself by majority or recency: an implementation conflict with Project Truth remains rejected and may only be escalated through the existing governed VEKLTruthChallenge path.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "research_conflicts",
+    "order": 924,
+    "pk": [
+      "conflict_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "research_conflicts_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "research_conflicts_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "research_conflicts_mission_fkey",
+        "columns": [
+          "research_mission_id"
+        ],
+        "ref_table": "research_missions",
+        "ref_columns": [
+          "research_mission_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "conflict_id",
+    "tenant_id",
+    "project_id",
+    "research_mission_id",
+    "unit_revision",
+    "dimension",
+    "conflict_class",
+    "finding_a_ref",
+    "status",
+    "detected_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "conflict_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "research_mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "unit_revision": {
+      "type": "string"
+    },
+    "dimension": {
+      "type": "string",
+      "enum": [
+        "ARCHITECTURE",
+        "OFFICIAL_DOCUMENTATION",
+        "CURRENT_RELEASES",
+        "SECURITY",
+        "FAILURE_MODES",
+        "TESTING",
+        "PERFORMANCE",
+        "DEPLOYMENT",
+        "INTEGRATION",
+        "UX",
+        "FRONTEND_QUALITY",
+        "ACCESSIBILITY",
+        "SOURCE_INTELLIGENCE",
+        "CONTRADICTIONS",
+        "ANTI_PATTERNS",
+        "WORKFLOW_AUTOMATION",
+        "OBSERVABILITY",
+        "COMPATIBILITY_MIGRATION"
+      ]
+    },
+    "conflict_class": {
+      "type": "string",
+      "enum": [
+        "EVIDENCE_DISAGREEMENT",
+        "VERSION_DISAGREEMENT",
+        "TRUTH_CONFLICT",
+        "SECURITY_DISAGREEMENT",
+        "POLARITY_DISAGREEMENT"
+      ]
+    },
+    "finding_a_ref": {
+      "type": "string"
+    },
+    "finding_b_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "project_truth_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "CORROBORATED",
+        "RESOLVED_BY_EVIDENCE",
+        "ESCALATED_TRUTH_CHALLENGE",
+        "REJECTED",
+        "SUPERSEDED"
+      ]
+    },
+    "truth_challenge_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolution_note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

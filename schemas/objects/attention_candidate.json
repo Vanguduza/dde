@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/attention_candidate.json",
+  "title": "AttentionCandidate",
+  "description": "EDR-0019 Epic I pre-item attention candidate. This does not replace attention_items: the existing governance attention_items table remains the durable attention authority, and a candidate is the scored, deduplicated proposal that may become one. Deduplication is by dedupe_key, so a repeating failure collapses into one item with a repeat count instead of flooding the operator. Security and owner-approval classes bypass the non-urgent budget; everything else is budgeted.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "attention_candidates",
+    "order": 955,
+    "pk": [
+      "candidate_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "attention_candidates_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "attention_candidates_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "attention_candidates_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "attention_candidates_item_fkey",
+        "columns": [
+          "attention_id"
+        ],
+        "ref_table": "attention_items",
+        "ref_columns": [
+          "attention_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id",
+        "dedupe_key"
+      ]
+    ],
+    "checks": [
+      {
+        "expression": "(NOT bypassed_budget) OR attention_class IN ('SECURITY','APPROVAL','URGENT')"
+      }
+    ]
+  },
+  "required": [
+    "candidate_id",
+    "tenant_id",
+    "project_id",
+    "attention_class",
+    "dedupe_key",
+    "summary",
+    "importance",
+    "urgency",
+    "actionability",
+    "novelty",
+    "confidence",
+    "blast_radius",
+    "time_sensitivity",
+    "owner_required",
+    "repeat_penalty",
+    "score",
+    "repeat_count",
+    "first_seen_at",
+    "last_seen_at",
+    "disposition",
+    "bypassed_budget",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attention_class": {
+      "type": "string",
+      "enum": [
+        "INFO",
+        "FOLLOW_UP",
+        "BLOCKER",
+        "APPROVAL",
+        "SECURITY",
+        "DRIFT",
+        "URGENT"
+      ]
+    },
+    "dedupe_key": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "source_event_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "importance": {
+      "type": "number"
+    },
+    "urgency": {
+      "type": "number"
+    },
+    "actionability": {
+      "type": "number"
+    },
+    "novelty": {
+      "type": "number"
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "blast_radius": {
+      "type": "number"
+    },
+    "time_sensitivity": {
+      "type": "number"
+    },
+    "owner_required": {
+      "type": "boolean"
+    },
+    "repeat_penalty": {
+      "type": "number"
+    },
+    "score": {
+      "type": "number"
+    },
+    "repeat_count": {
+      "type": "integer"
+    },
+    "first_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROMOTED",
+        "SUPPRESSED_BUDGET",
+        "SUPPRESSED_DUPLICATE",
+        "SUPPRESSED_QUIET_HOURS",
+        "SNOOZED",
+        "EXPIRED"
+      ]
+    },
+    "bypassed_budget": {
+      "type": "boolean"
+    },
+    "attention_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "snoozed_until": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

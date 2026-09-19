@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/automation_run_grant.json",
+  "title": "AutomationRunGrant",
+  "description": "A run-scoped grant. The automation runtime never holds a general DDE control token: a grant is bound to exactly one run, release, capability and context hash, carries an explicit operation/domain allowlist and action-class ceiling, and expires. It is single-use by default and replay of a spent or expired nonce is refused. The runtime cannot mint its own grant, authorize new capabilities, change task scope or mark a DDE task verified.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "automation_run_grants",
+    "order": 962,
+    "pk": [
+      "grant_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "automation_run_grants_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "automation_run_grants_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "automation_run_grants_release_fkey",
+        "columns": [
+          "release_id"
+        ],
+        "ref_table": "automation_workflow_releases",
+        "ref_columns": [
+          "release_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id",
+        "nonce"
+      ]
+    ],
+    "checks": [
+      {
+        "expression": "uses_consumed <= max_uses"
+      }
+    ]
+  },
+  "required": [
+    "grant_id",
+    "tenant_id",
+    "project_id",
+    "run_id",
+    "release_id",
+    "capability_id",
+    "context_hash",
+    "input_digest",
+    "allowed_gateway_operations",
+    "allowed_external_domains",
+    "action_class_ceiling",
+    "max_uses",
+    "uses_consumed",
+    "nonce",
+    "issued_at",
+    "expires_at",
+    "state",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "grant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "release_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "task_execution_descriptor_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "context_hash": {
+      "type": "string"
+    },
+    "input_digest": {
+      "type": "string"
+    },
+    "allowed_gateway_operations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_external_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "action_class_ceiling": {
+      "type": "string",
+      "enum": [
+        "PURE_READ",
+        "WORKSPACE_LOCAL",
+        "EXTERNAL_IDEMPOTENT",
+        "EXTERNAL_NON_IDEMPOTENT",
+        "IRREVERSIBLE"
+      ]
+    },
+    "max_uses": {
+      "type": "integer"
+    },
+    "uses_consumed": {
+      "type": "integer"
+    },
+    "nonce": {
+      "type": "string"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "ISSUED",
+        "CONSUMED",
+        "EXPIRED",
+        "REVOKED",
+        "REPLAY_REFUSED"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

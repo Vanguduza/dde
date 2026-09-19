@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/capability_gate.json",
+  "title": "CapabilityGate",
+  "description": "EDR-0019 Epic G external capability gate. Presence and configuration are not production readiness. READY requires complete configuration, a live probe, the expected identity/version, the required security policy, successful qualification and a still-fresh evidence pointer; evidence that ages out moves the gate to STALE_EVIDENCE rather than silently remaining READY. A degraded gate must state what is broken, what still works, what it will not do and how to restore it, so partial capability loss is never reported as total system failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "capability_gates",
+    "order": 935,
+    "pk": [
+      "gate_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "capability_gates_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "capability_gates_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id",
+        "capability_id",
+        "environment"
+      ]
+    ],
+    "checks": [
+      {
+        "expression": "(readiness_state <> 'READY') OR (evidence_pointer IS NOT NULL AND last_probe_at IS NOT NULL)"
+      }
+    ]
+  },
+  "$defs": {
+    "DegradedContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "broken",
+        "still_works",
+        "will_not_do",
+        "restore_action"
+      ],
+      "properties": {
+        "broken": {
+          "type": "string"
+        },
+        "still_works": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "will_not_do": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restore_action": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "gate_id",
+    "tenant_id",
+    "project_id",
+    "capability_id",
+    "environment",
+    "desired_state",
+    "configuration_state",
+    "reachability_state",
+    "qualification_state",
+    "readiness_state",
+    "blocking_scope",
+    "owner_action_required",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "gate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "provider_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "environment": {
+      "type": "string"
+    },
+    "desired_state": {
+      "type": "string",
+      "enum": [
+        "UNCONFIGURED",
+        "CONFIGURED",
+        "REACHABLE",
+        "QUALIFIED",
+        "READY",
+        "DEGRADED",
+        "BLOCKED_EXTERNAL",
+        "BLOCKED_OWNER",
+        "REVOKED",
+        "STALE_EVIDENCE"
+      ]
+    },
+    "configuration_state": {
+      "type": "string",
+      "enum": [
+        "ABSENT",
+        "PARTIAL",
+        "COMPLETE"
+      ]
+    },
+    "reachability_state": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "UNREACHABLE",
+        "REACHABLE"
+      ]
+    },
+    "qualification_state": {
+      "type": "string",
+      "enum": [
+        "UNQUALIFIED",
+        "IN_PROGRESS",
+        "QUALIFIED",
+        "FAILED"
+      ]
+    },
+    "readiness_state": {
+      "type": "string",
+      "enum": [
+        "UNCONFIGURED",
+        "CONFIGURED",
+        "REACHABLE",
+        "QUALIFIED",
+        "READY",
+        "DEGRADED",
+        "BLOCKED_EXTERNAL",
+        "BLOCKED_OWNER",
+        "REVOKED",
+        "STALE_EVIDENCE"
+      ]
+    },
+    "degraded_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "degraded_contract": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DegradedContract"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_probe_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blocking_scope": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "TASK",
+        "MISSION",
+        "PROJECT",
+        "ENVIRONMENT"
+      ]
+    },
+    "owner_action_required": {
+      "type": "boolean"
+    },
+    "owner_action_note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

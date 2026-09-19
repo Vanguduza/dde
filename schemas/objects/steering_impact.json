@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/steering_impact.json",
+  "title": "SteeringImpact",
+  "description": "The computed consequence of one steer on one task, including the steering hold. The hold lives here rather than in task.status: the core task state machine is not widened by this programme, and the scheduler consults open impacts when deciding eligibility. Holds are released explicitly, so a crashed steer cannot strand a task in a hidden state.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "steering_impacts",
+    "order": 943,
+    "pk": [
+      "impact_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "steering_impacts_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "steering_impacts_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "steering_impacts_steer_fkey",
+        "columns": [
+          "steer_id"
+        ],
+        "ref_table": "mission_steer_requests",
+        "ref_columns": [
+          "steer_id"
+        ]
+      },
+      {
+        "name": "steering_impacts_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "steer_id",
+        "task_id"
+      ]
+    ]
+  },
+  "required": [
+    "impact_id",
+    "tenant_id",
+    "project_id",
+    "steer_id",
+    "task_id",
+    "impact_kind",
+    "hold_state",
+    "closed_lease_refs",
+    "reason_code",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "impact_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "steer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "impact_kind": {
+      "type": "string",
+      "enum": [
+        "HELD",
+        "SUPERSEDED",
+        "REPLANNED",
+        "LEASE_CLOSED",
+        "CONTEXT_RECOMPILE_REQUIRED",
+        "UNAFFECTED"
+      ]
+    },
+    "hold_state": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "STEERING_HELD",
+        "RELEASED"
+      ]
+    },
+    "previous_task_status": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "closed_lease_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason_code": {
+      "type": "string"
+    },
+    "held_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "released_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

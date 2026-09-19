@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/research_packet.json",
+  "title": "ResearchPacket",
+  "description": "A completeness-gated bundle of research output for one unit revision. A packet advances only when every required dimension is covered and source identity, provenance, evidence, contradiction status, freshness, relevance, qualification and graph-compilation status are all present. Packets may regress: a new contradiction or a stale invalidation moves a packet backwards, and that regression is reportable rather than hidden.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "research_packets",
+    "order": 922,
+    "pk": [
+      "packet_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "research_packets_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "research_packets_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "research_packets_mission_fkey",
+        "columns": [
+          "research_mission_id"
+        ],
+        "ref_table": "research_missions",
+        "ref_columns": [
+          "research_mission_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "research_mission_id",
+        "unit_revision",
+        "revision"
+      ]
+    ]
+  },
+  "required": [
+    "packet_id",
+    "tenant_id",
+    "project_id",
+    "research_mission_id",
+    "unit_revision",
+    "revision",
+    "state",
+    "required_dimensions_covered",
+    "missing_dimensions",
+    "finding_refs",
+    "conflict_refs",
+    "freshness",
+    "relevance",
+    "graph_compiled",
+    "capsule_compiled",
+    "activation_eligible",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "packet_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "research_mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "unit_revision": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "EVIDENCE_PENDING",
+        "CONTRADICTION_PENDING",
+        "QUALIFICATION_PENDING",
+        "GRAPH_PENDING",
+        "COMPLETE",
+        "REGRESSED",
+        "ABANDONED"
+      ]
+    },
+    "required_dimensions_covered": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ARCHITECTURE",
+          "OFFICIAL_DOCUMENTATION",
+          "CURRENT_RELEASES",
+          "SECURITY",
+          "FAILURE_MODES",
+          "TESTING",
+          "PERFORMANCE",
+          "DEPLOYMENT",
+          "INTEGRATION",
+          "UX",
+          "FRONTEND_QUALITY",
+          "ACCESSIBILITY",
+          "SOURCE_INTELLIGENCE",
+          "CONTRADICTIONS",
+          "ANTI_PATTERNS",
+          "WORKFLOW_AUTOMATION",
+          "OBSERVABILITY",
+          "COMPATIBILITY_MIGRATION"
+        ]
+      }
+    },
+    "missing_dimensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ARCHITECTURE",
+          "OFFICIAL_DOCUMENTATION",
+          "CURRENT_RELEASES",
+          "SECURITY",
+          "FAILURE_MODES",
+          "TESTING",
+          "PERFORMANCE",
+          "DEPLOYMENT",
+          "INTEGRATION",
+          "UX",
+          "FRONTEND_QUALITY",
+          "ACCESSIBILITY",
+          "SOURCE_INTELLIGENCE",
+          "CONTRADICTIONS",
+          "ANTI_PATTERNS",
+          "WORKFLOW_AUTOMATION",
+          "OBSERVABILITY",
+          "COMPATIBILITY_MIGRATION"
+        ]
+      }
+    },
+    "finding_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conflict_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "freshness": {
+      "type": "object"
+    },
+    "relevance": {
+      "type": "object"
+    },
+    "graph_compiled": {
+      "type": "boolean"
+    },
+    "capsule_compiled": {
+      "type": "boolean"
+    },
+    "activation_eligible": {
+      "type": "boolean"
+    },
+    "activation_block_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "regressed_from_revision": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completeness_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

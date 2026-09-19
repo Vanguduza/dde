@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/capability_gate_probe.json",
+  "title": "CapabilityGateProbe",
+  "description": "One live probe observation against a CapabilityGate. Probes are the only thing that may move a gate to REACHABLE or READY; a probe result is never inferred from configuration state.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "capability_gate_probes",
+    "order": 936,
+    "pk": [
+      "probe_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "capability_gate_probes_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "capability_gate_probes_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "capability_gate_probes_gate_fkey",
+        "columns": [
+          "gate_id"
+        ],
+        "ref_table": "capability_gates",
+        "ref_columns": [
+          "gate_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "probe_id",
+    "tenant_id",
+    "project_id",
+    "gate_id",
+    "probe_kind",
+    "outcome",
+    "observed_at",
+    "created_at"
+  ],
+  "properties": {
+    "probe_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "gate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "probe_kind": {
+      "type": "string",
+      "enum": [
+        "REACHABILITY",
+        "IDENTITY",
+        "VERSION",
+        "AUTHENTICATION",
+        "QUALIFICATION",
+        "SELFTEST"
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "PASSED",
+        "FAILED",
+        "REFUSED",
+        "TIMEOUT",
+        "ERROR"
+      ]
+    },
+    "observed_identity": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expected_identity": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latency_ms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "detail_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

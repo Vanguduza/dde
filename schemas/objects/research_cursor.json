@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/research_cursor.json",
+  "title": "ResearchCursor",
+  "description": "EDR-0019 Epic E durable observation cursor. Progress is only understandable as a delta, so the Research Observatory answers 'what changed since the last cursor' from these revisions rather than recomputing totals. The cursor is also the idempotent restart point after process failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "research_cursors",
+    "order": 925,
+    "pk": [
+      "cursor_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "research_cursors_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "research_cursors_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "research_cursors_mission_fkey",
+        "columns": [
+          "research_mission_id"
+        ],
+        "ref_table": "research_missions",
+        "ref_columns": [
+          "research_mission_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "cursor_id",
+    "tenant_id",
+    "project_id",
+    "research_mission_id",
+    "coverage_revision",
+    "packet_revision",
+    "admission_revision",
+    "graph_revision",
+    "last_event_sequence",
+    "observed_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "cursor_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "research_mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "coverage_revision": {
+      "type": "integer"
+    },
+    "packet_revision": {
+      "type": "integer"
+    },
+    "admission_revision": {
+      "type": "integer"
+    },
+    "graph_revision": {
+      "type": "integer"
+    },
+    "last_event_sequence": {
+      "type": "integer"
+    },
+    "last_cell_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_packet_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_provider_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

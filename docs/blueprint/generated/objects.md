@@ -1145,3 +1145,235 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## DiscoveryCandidate
+
+- table: `discovery_candidates`
+- primary key: candidate_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DiscoveryTransition
+
+- table: `discovery_transitions`
+- primary key: transition_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DiscoveryObservation
+
+- table: `discovery_observations`
+- primary key: observation_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DiscoveryTrial
+
+- table: `discovery_trials`
+- primary key: trial_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## DiscoveryQualification
+
+- table: `discovery_qualifications`
+- primary key: qualification_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ResearchMission
+
+- table: `research_missions`
+- primary key: research_mission_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ResearchCell
+
+- table: `research_cells`
+- primary key: cell_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ResearchPacket
+
+- table: `research_packets`
+- primary key: packet_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ResearchProviderRun
+
+- table: `research_provider_runs`
+- primary key: provider_run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ResearchConflict
+
+- table: `research_conflicts`
+- primary key: conflict_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ResearchCursor
+
+- table: `research_cursors`
+- primary key: cursor_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ProviderReadinessSnapshot
+
+- table: `provider_readiness_snapshots`
+- primary key: readiness_snapshot_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ExecutionPlacementDecision
+
+- table: `execution_placement_decisions`
+- primary key: placement_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## CapabilityGate
+
+- table: `capability_gates`
+- primary key: gate_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## CapabilityGateProbe
+
+- table: `capability_gate_probes`
+- primary key: probe_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## EnvironmentCertification
+
+- table: `environment_certifications`
+- primary key: certification_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## MissionSteerRequest
+
+- table: `mission_steer_requests`
+- primary key: steer_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## SteeringBarrier
+
+- table: `steering_barriers`
+- primary key: barrier_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## SafeBoundaryReceipt
+
+- table: `safe_boundary_receipts`
+- primary key: receipt_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## SteeringImpact
+
+- table: `steering_impacts`
+- primary key: impact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ContextFact
+
+- table: `context_facts`
+- primary key: fact_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AttentionCandidate
+
+- table: `attention_candidates`
+- primary key: candidate_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AttentionPreference
+
+- table: `attention_preferences`
+- primary key: preference_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationWorkflowDefinition
+
+- table: `automation_workflow_definitions`
+- primary key: definition_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationWorkflowRelease
+
+- table: `automation_workflow_releases`
+- primary key: release_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationRunGrant
+
+- table: `automation_run_grants`
+- primary key: grant_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AutomationRun
+
+- table: `automation_runs`
+- primary key: run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## BrowserCapabilitySession
+
+- table: `browser_capability_sessions`
+- primary key: session_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ExternalEffectVerification
+
+- table: `external_effect_verifications`
+- primary key: verification_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

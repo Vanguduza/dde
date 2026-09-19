@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/discovery_observation.json",
+  "title": "DiscoveryObservation",
+  "description": "One evidence sighting of a DiscoveryCandidate. Independent discoveries of the same normalized identity append observations rather than creating duplicate candidates. Observation content is untrusted external material and may never alter task authority, policy or Project Truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "discovery_observations",
+    "order": 912,
+    "pk": [
+      "observation_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "discovery_observations_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "discovery_observations_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "discovery_observations_candidate_id_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "discovery_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "observation_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "observed_via",
+    "observed_at",
+    "created_at"
+  ],
+  "properties": {
+    "observation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "observed_via": {
+      "type": "string",
+      "enum": [
+        "RESEARCH_PROVIDER",
+        "SOURCE_FEED",
+        "OPERATOR_SUBMISSION",
+        "CORROBORATION",
+        "REGISTRY"
+      ]
+    },
+    "observer_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "claim_excerpt_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "corroborates_observation_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

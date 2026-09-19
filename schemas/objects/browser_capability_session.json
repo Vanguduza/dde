@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/browser_capability_session.json",
+  "title": "BrowserCapabilitySession",
+  "description": "EDR-0019 Epic K governed browser session. The capability ladder runs L0_FETCH_ONLY -> L1_DETERMINISTIC_BROWSER -> L2_STRUCTURED_EXTRACTION -> L3_SEMANTIC_ELEMENT_RESOLUTION -> L4_BOUNDED_DISCOVERY (owner/policy gated) -> L5_AGENTIC_BROWSER (off by default). Semantic output is never verification authority: release, accessibility, pixel and security verification remain independent DDE verifier duties. Browser profiles are secrets -- profiles are isolated per project/provider, raw cookies are never model-visible, never logged and never exported into prompts, and every session is leased, expiring and revocable.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "browser_capability_sessions",
+    "order": 970,
+    "pk": [
+      "session_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "browser_capability_sessions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "browser_capability_sessions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "browser_capability_sessions_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "browser_capability_sessions_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "browser_capability_sessions_lease_fkey",
+        "columns": [
+          "capability_lease_id"
+        ],
+        "ref_table": "capability_leases",
+        "ref_columns": [
+          "lease_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "profile_isolated"
+      },
+      {
+        "expression": "cookie_export_blocked"
+      }
+    ]
+  },
+  "required": [
+    "session_id",
+    "tenant_id",
+    "project_id",
+    "capability_level",
+    "profile_ref",
+    "profile_isolated",
+    "allowed_domains",
+    "semantic_layer_used",
+    "verification_authority",
+    "screenshot_redaction",
+    "cookie_export_blocked",
+    "state",
+    "issued_at",
+    "expires_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capability_level": {
+      "type": "string",
+      "enum": [
+        "L0_FETCH_ONLY",
+        "L1_DETERMINISTIC_BROWSER",
+        "L2_STRUCTURED_EXTRACTION",
+        "L3_SEMANTIC_ELEMENT_RESOLUTION",
+        "L4_BOUNDED_DISCOVERY",
+        "L5_AGENTIC_BROWSER"
+      ]
+    },
+    "profile_ref": {
+      "type": "string"
+    },
+    "profile_isolated": {
+      "type": "boolean"
+    },
+    "capability_lease_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "allowed_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "semantic_layer_used": {
+      "type": "boolean"
+    },
+    "verification_authority": {
+      "type": "string",
+      "enum": [
+        "NONE"
+      ]
+    },
+    "screenshot_redaction": {
+      "type": "boolean"
+    },
+    "cookie_export_blocked": {
+      "type": "boolean"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "ACTIVE",
+        "CLOSED",
+        "EXPIRED",
+        "REVOKED",
+        "REFUSED"
+      ]
+    },
+    "refusal_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

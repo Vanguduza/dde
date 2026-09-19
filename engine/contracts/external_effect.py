@@ -27,7 +27,14 @@ class ExternalEffect(BaseModel):
     confirmed_at. IRREVERSIBLE reconciliation failure raises EFFECT_IRREVERSIBLE and
     emits ExternalEffectIrreversibleEscalated. worker_run_id is a soft reference, not a
     foreign key (prepare/mark_sent commit before the side effect, while invoke_run may
-    still hold the WorkerRun insert uncommitted).
+    still hold the WorkerRun insert uncommitted). EDR-0019 Epic F adds an additive
+    postcondition axis: `status` keeps its existing transport and recovery meaning
+    (CONFIRMED means the adapter's request was confirmed, not that the desired world
+    state was observed), while `postcondition_state` records whether an independent
+    observation proved the effect actually happened. Engine-reported success may never
+    set postcondition_state to VERIFIED; only an ExternalEffectVerification observation
+    may. A task that depends on an external mutation may not reach COMPLETED while a
+    required postcondition is REQUIRED_PENDING, VERIFYING, UNVERIFIABLE or REFUTED.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -60,6 +67,22 @@ class ExternalEffect(BaseModel):
         "RECONCILING",
         "RECONCILED",
     ]
+    postcondition_policy: (
+        Literal["NOT_REQUIRED", "REQUIRED", "REQUIRED_INDEPENDENT"] | None
+    ) = None
+    postcondition_state: (
+        Literal[
+            "NOT_REQUIRED",
+            "REQUIRED_PENDING",
+            "VERIFYING",
+            "VERIFIED",
+            "PARTIAL",
+            "UNVERIFIABLE",
+            "REFUTED",
+        ]
+        | None
+    ) = None
+    postcondition_verified_at: datetime | None = None
     external_reference: str | None = None
     response_hash: str | None = None
     reconciliation_method: str | None = None

@@ -42,6 +42,12 @@ external_effects = Table(
     Column("idempotency_key", Text, nullable=False),
     Column("request_hash", Text, nullable=False),
     Column("status", Text, nullable=False),
+    # EDR-0019 Epic F postcondition axis. Separate from `status`, which keeps its
+    # transport/recovery meaning: only an ExternalEffectVerification observation may
+    # move postcondition_state to VERIFIED.
+    Column("postcondition_policy", Text, nullable=True),
+    Column("postcondition_state", Text, nullable=True),
+    Column("postcondition_verified_at", TIMESTAMP(timezone=True), nullable=True),
     Column("external_reference", Text, nullable=True),
     Column("response_hash", Text, nullable=True),
     Column("reconciliation_method", Text, nullable=True),

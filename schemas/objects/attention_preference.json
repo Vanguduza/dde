@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/attention_preference.json",
+  "title": "AttentionPreference",
+  "description": "Operator attention budget. Bounds how much non-urgent attention DDE may spend per hour and per day, plus quiet hours, repeat cooldown and escalation. Critical security and owner-approval events are never suppressed by these budgets.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "attention_preferences",
+    "order": 956,
+    "pk": [
+      "preference_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "attention_preferences_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "attention_preferences_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id"
+      ]
+    ]
+  },
+  "required": [
+    "preference_id",
+    "tenant_id",
+    "project_id",
+    "max_nonurgent_per_hour",
+    "max_nonurgent_per_day",
+    "quiet_hours",
+    "timezone",
+    "repeat_cooldown_seconds",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "preference_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "max_nonurgent_per_hour": {
+      "type": "integer"
+    },
+    "max_nonurgent_per_day": {
+      "type": "integer"
+    },
+    "quiet_hours": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "repeat_cooldown_seconds": {
+      "type": "integer"
+    },
+    "escalation_after_seconds": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

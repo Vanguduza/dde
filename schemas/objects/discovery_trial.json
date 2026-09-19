@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/discovery_trial.json",
+  "title": "DiscoveryTrial",
+  "description": "EDR-0019 Epic C ExecutableTrialManifest: a bounded sandbox trial of a discovery candidate. A passing trial advances lifecycle_state to SANDBOX_TESTED and never raises source_trust or grants execution authority in production. Trials run under the ordinary CapabilityLease/sandbox law with no DDE credentials and no network beyond the declared scopes.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "discovery_trials",
+    "order": 913,
+    "pk": [
+      "trial_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "discovery_trials_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "discovery_trials_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "discovery_trials_candidate_id_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "discovery_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "discovery_trials_lease_id_fkey",
+        "columns": [
+          "capability_lease_id"
+        ],
+        "ref_table": "capability_leases",
+        "ref_columns": [
+          "lease_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "trial_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "trial_kind",
+    "sandbox_profile",
+    "declared_network_scopes",
+    "declared_filesystem_scopes",
+    "command",
+    "outcome",
+    "observed_signals",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "trial_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "trial_kind": {
+      "type": "string",
+      "enum": [
+        "STATIC_ONLY",
+        "IMPORT_SMOKE",
+        "COMMAND_SMOKE",
+        "FIXTURE_REPLAY"
+      ]
+    },
+    "sandbox_profile": {
+      "type": "string"
+    },
+    "declared_network_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "declared_filesystem_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "capability_lease_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "command": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "input_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PASSED",
+        "FAILED",
+        "REFUSED",
+        "TIMEOUT",
+        "ERROR"
+      ]
+    },
+    "observed_signals": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/automation_run.json",
+  "title": "AutomationRun",
+  "description": "One governed automation execution. A run is successful only when the runtime reports completion, DDE receives the callback, the callback grant is valid, the effect journal is consistent and the required postcondition verifier passes. Runtime-reported success alone is never completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "automation_runs",
+    "order": 963,
+    "pk": [
+      "run_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "automation_runs_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "automation_runs_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "automation_runs_release_fkey",
+        "columns": [
+          "release_id"
+        ],
+        "ref_table": "automation_workflow_releases",
+        "ref_columns": [
+          "release_id"
+        ]
+      },
+      {
+        "name": "automation_runs_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "automation_runs_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "automation_runs_lease_fkey",
+        "columns": [
+          "capability_lease_id"
+        ],
+        "ref_table": "capability_leases",
+        "ref_columns": [
+          "lease_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "(state <> 'VERIFIED') OR (callback_grant_valid AND effect_journal_consistent AND verification_ref IS NOT NULL)"
+      }
+    ]
+  },
+  "required": [
+    "run_id",
+    "tenant_id",
+    "project_id",
+    "release_id",
+    "state",
+    "external_effect_refs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "release_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "capability_lease_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "runtime_execution_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PREPARED",
+        "DISPATCHED",
+        "RUNNING",
+        "RUNTIME_REPORTED_COMPLETE",
+        "CALLBACK_RECEIVED",
+        "VERIFYING",
+        "VERIFIED",
+        "FAILED",
+        "UNVERIFIABLE",
+        "UNKNOWN",
+        "REVOKED"
+      ]
+    },
+    "callback_grant_valid": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "effect_journal_consistent": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "external_effect_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

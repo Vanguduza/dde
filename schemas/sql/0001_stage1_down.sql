@@ -1,5 +1,34 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS external_effect_verifications CASCADE;
+DROP TABLE IF EXISTS browser_capability_sessions CASCADE;
+DROP TABLE IF EXISTS automation_runs CASCADE;
+DROP TABLE IF EXISTS automation_run_grants CASCADE;
+DROP TABLE IF EXISTS automation_workflow_releases CASCADE;
+DROP TABLE IF EXISTS automation_workflow_definitions CASCADE;
+DROP TABLE IF EXISTS attention_preferences CASCADE;
+DROP TABLE IF EXISTS attention_candidates CASCADE;
+DROP TABLE IF EXISTS context_facts CASCADE;
+DROP TABLE IF EXISTS steering_impacts CASCADE;
+DROP TABLE IF EXISTS safe_boundary_receipts CASCADE;
+DROP TABLE IF EXISTS steering_barriers CASCADE;
+DROP TABLE IF EXISTS mission_steer_requests CASCADE;
+DROP TABLE IF EXISTS environment_certifications CASCADE;
+DROP TABLE IF EXISTS capability_gate_probes CASCADE;
+DROP TABLE IF EXISTS capability_gates CASCADE;
+DROP TABLE IF EXISTS execution_placement_decisions CASCADE;
+DROP TABLE IF EXISTS provider_readiness_snapshots CASCADE;
+DROP TABLE IF EXISTS research_cursors CASCADE;
+DROP TABLE IF EXISTS research_conflicts CASCADE;
+DROP TABLE IF EXISTS research_provider_runs CASCADE;
+DROP TABLE IF EXISTS research_packets CASCADE;
+DROP TABLE IF EXISTS research_cells CASCADE;
+DROP TABLE IF EXISTS research_missions CASCADE;
+DROP TABLE IF EXISTS discovery_qualifications CASCADE;
+DROP TABLE IF EXISTS discovery_trials CASCADE;
+DROP TABLE IF EXISTS discovery_observations CASCADE;
+DROP TABLE IF EXISTS discovery_transitions CASCADE;
+DROP TABLE IF EXISTS discovery_candidates CASCADE;
 DROP TABLE IF EXISTS automation_pattern_descriptors CASCADE;
 DROP TABLE IF EXISTS automation_workflow_artifacts CASCADE;
 DROP TABLE IF EXISTS automation_corpus_snapshots CASCADE;

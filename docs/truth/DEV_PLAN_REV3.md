@@ -4020,3 +4020,69 @@ REV-3A → DDE-068 → DDE-069 → DDE-070 → DDE-071 → DDE-072 → DDE-073
 ```
 
 **No implementation agent may respond to Rev 3.3 by creating more planning documents instead of implementing the next evidence-producing slice.**
+
+---
+
+# 20B. Cross-system operational intelligence — cross-mission delivery, no renumbering
+
+EDR-0019 / AD-051 accept twelve operational-intelligence and execution-hardening capabilities imported from an **owner-supplied exported artifact**. As with the VEKL and Zie619 overlays, the epic labels A…L are proposal-local decomposition labels, **not** new DDE mission numbers. DDE-068…DDE-083 remain locked and the execution order above is unchanged.
+
+Every capability extends an existing DDE authority. None becomes a second control plane, and none introduces a runtime dependency on DIAL, Hermes or VAN — those are design/provenance inputs only, admitted through the owner-exported artifact path that `AGENTS.md` requires.
+
+| Epic | Capability | Canonical DDE owner | Required integration |
+| --- | --- | --- | --- |
+| A | Safe-boundary owner steering | DDE-077 + DDE-081 | steer never races an active writer; barrier blocks new conflicting lease claims only; holds live on `SteeringImpact`, never on `tasks.status`; read-only owner questions never serialize writers |
+| B | Provider readiness + execution placement | DDE-076 + DDE-079 | readiness is a separate axis from `provider_capacity_snapshots`; `READY` requires live probe + attested identity + fresh evidence; fallback only at a declared checkpoint, never mid-effect |
+| C | Open-world discovery lifecycle | DDE-076 + DDE-080 | pre-admission lifecycle only, bridging into `source_records`/`source_admissions`/`vekl_resources`; trust reuses `S1..S8`; history append-only |
+| D | Ahead-of-work research harvest | DDE-075 + DDE-080 | measurable coverage cells; findings remain `vekl_research_findings`; advisory only — may never reorder the TaskGraph, create tasks, expand scope or amend Project Truth |
+| E | Research Observatory | DDE-081 | delta-first projection over Epic D from a durable cursor; no second truth |
+| F | Verified external action | DDE-077 + DDE-083 | additive postcondition axis on `external_effects`; `status` semantics unchanged; independent observation required for high-impact effect classes |
+| G | Capability readiness + external gates | DDE-076 + DDE-082 | degraded entries must state broken / still_works / will_not_do / restore_action; stale evidence demotes readiness |
+| H | Epistemic context facts | DDE-080 | authority labels survive context compilation; `MODEL_INFERENCE` is never rendered as settled fact |
+| I | Operator attention plane | DDE-081 | existing governance `attention_items` remains the authority; only candidate scoring/dedupe/budget is added |
+| J | Governed automation runtime | DDE-082 + DDE-083 | target-runtime effect under `CapabilityLease`/`ExternalEffect`/verifier law; run-scoped grants only; never a WorkerAdapter or task orchestrator |
+| K | Browser intelligence capability | DDE-082 | capability ladder L0…L5 with L4 gated and L5 off by default; semantic output is never verification authority; profiles are secrets |
+| L | Environment bootstrap + certification | DDE-083 | green only when desired + configured + live + qualified + evidenced + evidence fresh; self-tests include deliberately induced failure |
+
+## 20B.1 Sequencing and current blockers
+
+The source artifact's phase plan is adopted with one correction. Phases 0–2 are **complete and evidenced** (see `IMPLEMENTATION_STATE.md`); Phases 3–10 are not started.
+
+```text
+Phase 0  reconcile Source Intelligence branch / migration 0040   DONE
+Phase 1  contracts first (schemas + generated contracts)         DONE
+Phase 2  persistence (migration 0041, reversible)                DONE
+Phase 3  discovery runtime                                       NOT STARTED
+Phase 4  research runtime                                        NOT STARTED
+Phase 5  readiness runtime                                       NOT STARTED
+Phase 6  verified-action runtime                                 NOT STARTED
+Phase 7  mission steering runtime                                NOT STARTED
+Phase 8  automation + browser runtimes                           NOT STARTED
+Phase 9  attention + Studio projections                          NOT STARTED
+Phase 10 DDE-083 adversarial certification                       NOT STARTED
+```
+
+**Epic B is partially blocked.** The source artifact instructs Epic B to extend `HarnessInstallation`, `HarnessRuntimeCapabilities`, `ModelControlCapabilities`, `WorkerConfiguration`, `WorkerProfileCertification`, `TaskExecutionDescriptor` and `ExecutionStrategy`. None of those contracts exist — they are Rev 3 designs owned by the unimplemented DDE-076/DDE-077, and `ChangePacket`/`WorkspaceLease` are likewise unbuilt. `ProviderReadinessSnapshot` and `ExecutionPlacementDecision` are therefore self-standing and reference a descriptor by an untyped `*_ref`. Full placement binding must wait for DDE-076/077 and must not be claimed before then.
+
+Phases 8–9 additionally require Phases 5–6 to be working first: an automation or browser runtime without readiness gating and postcondition verification would be exactly the false-green surface this programme exists to remove.
+
+## 20B.2 Acceptance gates
+
+This programme is complete only when all of the following hold. Gates 1–6 are met at Phase 2; the remainder are open.
+
+1. the Source Intelligence branch is reconciled and migration `0040` preserved — **met**;
+2. no duplicate authority was created — **met**;
+3. no sibling runtime is required — **met**;
+4. discovery history is append-only, and trust and lifecycle are separate axes — **met (contract level)**;
+5. useful bounded evidence is not discarded merely for lack of high trust — **met (contract level)**;
+6. `READY`, green certification, verified postconditions, qualified releases and isolated browser profiles are refused without their evidence — **met (enforced by database check constraints; failures induced and observed)**;
+7. research coverage is measurable and resumes after process failure;
+8. deep-evidence state is independently visible;
+9. research cannot reprioritize the TaskGraph;
+10. an owner steer cannot race an active writer, and read-only questions do not serialize writers;
+11. external mutation success requires postcondition evidence where policy requires it;
+12. the automation runtime holds no general DDE bearer credential;
+13. semantic browser output cannot replace deterministic verification;
+14. attention dedupes repeated failures within budget;
+15. Production Studio state is a projection of Core, not a second truth;
+16. the DDE-083 adversarial suite passes, including discovery poisoning, malicious automation nodes, stale gate evidence, provider identity drift, browser prompt injection, grant replay, research conflict poisoning, false-success adapters and cross-project leakage.

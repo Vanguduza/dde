@@ -4591,3 +4591,165 @@ The Rev 3 architecture is considered **Dial-grade complete as a specification** 
 The development plan is responsible for realizing this architecture without turning these appendices into documentation-only ceremony.
 
 **Rev 3.3 hardening does not change the inherited product baseline, does not claim these target contracts are already implemented, and does not alter the locked implementation order `REV-3A → DDE-068 … DDE-083`.**
+
+---
+
+# Appendix N — Cross-system operational intelligence and execution hardening
+
+Authority: EDR-0019 / AD-051. This appendix describes **target architecture**. Contracts and persistence exist; the runtimes do not. Nothing here may be read as implemented — `IMPLEMENTATION_STATE.md` is the state authority.
+
+## N.1 Position in the architecture
+
+Every capability below is an extension of an existing DDE authority seam, never a new top-level subsystem with its own truth.
+
+```text
+                         OWNER / OPERATOR
+                               |
+                  Production Studio projections
+                     (read-only over Core)
+                               |
+                      typed Core commands
+                               v
++---------------------------------------------------------------------+
+|                            DDE CORE                                  |
+|  Project Truth   Mission/Task graph   Policy   Context   Evidence     |
+|  CapabilityLease   write-scope leases   ExternalEffect   Verification |
+|  VEKL   Source Intelligence   Recovery   Experience   Governance      |
+|                                                                      |
+|  ADDITIVE SEAMS (EDR-0019)                                           |
+|   steering ..... barrier + safe boundary over write ownership        |
+|   readiness .... provider/capability gates with evidence freshness   |
+|   discovery .... pre-admission candidate lifecycle -> Source Intel    |
+|   research ..... coverage cells + packets -> vekl_research_findings   |
+|   epistemics ... labelled context facts -> ContextPackage compiler    |
+|   attention .... scored candidates -> existing attention_items        |
+|   postcondition. independent observation -> ExternalEffect            |
++----------------------+--------------------+--------------------------+
+                       |                    |
+               governed workers     governed external effects
+                       |                    |
+                       v                    v
+              Claude / Codex / etc.   automation / browser / APIs
+                       |                    |
+                       v                    v
+              isolated workspace      postcondition verifier
+```
+
+## N.2 The three independent axes
+
+The central law. Conflating any two of these produces either false authority or discarded knowledge.
+
+| Axis | Question it answers | Where it lives |
+| --- | --- | --- |
+| Lifecycle | How far has this been processed? | `DiscoveryCandidate.lifecycle_state`, then `vekl_resources.lifecycle_state` |
+| Trust | How credible is the origin? | `source_trust` (`S1_NORMATIVE…S8_UNTRUSTED`), one vocabulary only |
+| Permitted use | What may it be used for? | `authority_ceiling` + `allowed_uses`/`forbidden_uses`, plus existing `reuse_class` |
+
+A candidate that passes every sandbox trial advances lifecycle and gains no trust. A first-party source may be unavailable. Community material that cannot support implementation is retained as `ANTI_PATTERN` or `FAILURE_SIGNATURE` and stays retrievable while never filling a positive implementation, reuse or execution slot.
+
+## N.3 Safe-boundary steering
+
+A steer is acknowledged immediately, then executed at a boundary the writer chooses to reach. It neither kills active work nor queues behind autonomous dispatch.
+
+```text
+RECEIVED -> ACKNOWLEDGED -> BARRIER_SET -> WAITING_FOR_SAFE_BOUNDARY
+         -> SAFE_BOUNDARY_REACHED -> AUTHORITY_RECONCILED -> EXECUTING
+         -> VERIFIED -> COMPLETE          (also: FAILED | BLOCKED | SUPERSEDED)
+```
+
+Invariants: the barrier blocks *new* conflicting lease claims only; an active writer runs on to a committed, cleanly staged, rolled-back or verifier-complete boundary and records a `SafeBoundaryReceipt` before the steer proceeds; no active change set is silently discarded; the steer executes under ordinary DDE authority and cannot write around `TruthService`; a read-only owner question takes no barrier and never serializes writers.
+
+## N.4 Readiness versus capacity
+
+`provider_capacity_snapshots` answers *is there room right now* (availability, quota, rate limits). `ProviderReadinessSnapshot` answers the orthogonal *is this thing actually usable at all*:
+
+```text
+ABSENT -> INSTALLED -> CONFIGURED -> REACHABLE -> QUALIFIED -> READY
+          (degraded paths: DEGRADED | RATE_LIMITED | ACCOUNT_LIMITED
+           | AUTH_FAILED | QUARANTINED | REVOKED)
+```
+
+`READY` requires a live probe, an attested model/harness identity and a still-fresh evidence pointer. A configured credential is never sufficient and a provider may never assert its own readiness. `CapabilityGate` applies the same law to external capabilities and adds the degraded contract — *broken*, *still works*, *will not do*, *restore action* — so partial capability loss is never reported as total failure, and never as full health.
+
+## N.5 Completion means observed, not accepted
+
+`external_effects.status` keeps its transport and recovery meaning: `CONFIRMED` means the adapter's request was confirmed, not that the world changed. The additive postcondition axis carries the separate question:
+
+```text
+NOT_REQUIRED | REQUIRED_PENDING | VERIFYING | VERIFIED | PARTIAL | UNVERIFIABLE | REFUTED
+```
+
+Only an `ExternalEffectVerification` observation may set `VERIFIED`, and for high-impact effect classes that observation must be independent of the adapter that performed the effect. A task depending on an external mutation may not reach `COMPLETED` while a required postcondition is pending, verifying, unverifiable or refuted. This closes the false-completion class where "HTTP 200" was read as "desired state exists".
+
+## N.6 Epistemic context
+
+Context items carry an authority class that must survive compilation into a `ContextPackage`:
+
+```text
+OWNER_CANONICAL > PROJECT_TRUTH > POLICY_CANONICAL > VERIFIED_LIVE_STATE
+> VERIFIED_REPOSITORY_STATE > VERIFIED_HISTORY > QUALIFIED_KNOWLEDGE
+> LEARNED_CANDIDATE > MODEL_INFERENCE > UNTRUSTED_EXTERNAL
+```
+
+`VERIFIED_LIVE_STATE` may supersede a stale runtime observation but never rewrites Project Truth. `LEARNED_CANDIDATE` cannot satisfy a canonical requirement. `UNTRUSTED_EXTERNAL` may trigger discovery and grants no authority. `MODEL_INFERENCE` is never persisted as fact without explicit promotion, and a model must never receive *"the project uses X"* when the underlying record says *"X may be useful"*.
+
+## N.7 Attention
+
+Not every event is a notification. Candidates are scored on importance, urgency, actionability, novelty, confidence, blast radius, time sensitivity, owner requirement and repeat penalty, then deduplicated on a stable key (`mission:{id}:blocker:{code}`, `capability:{id}:degraded:{code}`, `provider:{id}:rate_limit`, …) so a repeating failure collapses into one item with a repeat count. Non-urgent volume is bounded per hour and per day with quiet hours and cooldown; only `SECURITY`, `APPROVAL` and `URGENT` bypass the budget. Promotion writes to the existing governance `attention_items` — the attention authority is not duplicated. The main dashboard shows only active blockers, approvals, urgent drift and degraded critical capabilities; detail lives on the Attention page.
+
+## N.8 Governed external runtimes
+
+DDE owns intent. An automation runtime is a target-runtime effect, never a WorkerAdapter and never a task orchestrator:
+
+```text
+DDE Task -> qualified automation capability -> CapabilityLease -> run-scoped grant
+         -> workflow release -> gateway callbacks -> ExternalEffect
+         -> postcondition verifier -> DDE task state
+```
+
+A workflow is not executable because it exists: `DRAFT → VALIDATED → SECURITY_CHECKED → SANDBOX_CERTIFIED → CANARY → PRODUCTION_QUALIFIED → REVOKED`, with arbitrary shell, unrestricted filesystem, unrestricted HTTP, dynamic code execution, credential enumeration, generic AI-agent nodes, unbounded loops and uncontrolled webhooks prohibited or explicitly gated. Grants are bound to one run, release, capability and context hash, carry an operation/domain allowlist and action-class ceiling, expire, and refuse replay.
+
+The browser capability ladder runs `L0_FETCH_ONLY → L1_DETERMINISTIC_BROWSER → L2_STRUCTURED_EXTRACTION → L3_SEMANTIC_ELEMENT_RESOLUTION → L4_BOUNDED_DISCOVERY` (owner/policy gated) `→ L5_AGENTIC_BROWSER` (off by default). Semantic output can never satisfy release, accessibility, pixel or security verification — those remain independent verifier duties. Browser profiles are secrets: isolated per project/provider, never model-visible, never logged, never exported into prompts, leased, expiring and revocable.
+
+## N.8A Event taxonomy
+
+`CoreEvent.event_type` is an open string, so this programme adds no closed enum and no new
+event schema. The names below are the taxonomy each runtime emits **when it is built**;
+they are audit/projection facts and never replace a canonical table. Nothing emits them today.
+
+```text
+MISSION_STEER_RECEIVED         MISSION_STEER_BARRIER_SET
+MISSION_SAFE_BOUNDARY_REACHED  MISSION_STEER_APPLIED
+
+PROVIDER_READINESS_CHANGED     CAPABILITY_GATE_DEGRADED
+CAPABILITY_GATE_READY
+
+RESEARCH_CELL_ADVANCED         RESEARCH_PACKET_ADVANCED
+RESEARCH_PACKET_REGRESSED      RESEARCH_CONFLICT_DETECTED
+RESEARCH_ADMISSION_COMPLETED
+
+DISCOVERY_CANDIDATE_FOUND      DISCOVERY_CANDIDATE_TRANSITIONED
+DISCOVERY_CANDIDATE_ADMITTED   DISCOVERY_CANDIDATE_REJECTED
+
+EXTERNAL_EFFECT_VERIFYING      EXTERNAL_EFFECT_VERIFIED
+EXTERNAL_EFFECT_PARTIAL        EXTERNAL_EFFECT_UNVERIFIABLE
+
+ATTENTION_ITEM_CREATED         ATTENTION_ITEM_ACKED
+ATTENTION_ITEM_SNOOZED
+
+AUTOMATION_RUN_STARTED         AUTOMATION_RUN_VERIFIED
+AUTOMATION_RUN_FAILED          AUTOMATION_RELEASE_REVOKED
+```
+
+## N.8B Studio projections
+
+Production Studio surfaces are projections of Core and never a second state model. The main
+dashboard carries compact cards only — active mission, active writers, owner steering,
+research coverage, VEKL health, provider readiness, capability degradation, attention,
+verification queue, automation runtime — each deep-linking to its own page (Mission Control,
+Research Observatory, Discovery, Capabilities, Automation, Attention) rather than growing a
+single scrolling console. These surfaces belong to blueprint phase 9 and do not exist yet.
+
+## N.9 What this architecture buys
+
+Not autonomy — **operational truthfulness**. The system becomes able to answer from evidence: what is being worked on; what changed since the last observation; which provider is actually ready; which research dimensions are still missing; which open-world resources were found and why each was admitted, held or rejected; which are useful only as anti-patterns; which capability is degraded and what still works; whether an external action actually happened; whether an owner steer is waiting on an active writer; which automation release ran and which verifier proved it; and which facts in a model's context are canonical, live, learned, inferred or untrusted.

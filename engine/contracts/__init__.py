@@ -17,13 +17,22 @@ from engine.contracts.ai_skill import AiSkill
 from engine.contracts.approval import Approval
 from engine.contracts.artifact import Artifact
 from engine.contracts.asserted_edge import AssertedEdge
+from engine.contracts.attention_candidate import AttentionCandidate
 from engine.contracts.attention_item import AttentionItem
+from engine.contracts.attention_preference import AttentionPreference
 from engine.contracts.audit_event import AuditEvent
 from engine.contracts.automation_corpus_snapshot import AutomationCorpusSnapshot
 from engine.contracts.automation_pattern_descriptor import AutomationPatternDescriptor
+from engine.contracts.automation_run import AutomationRun
+from engine.contracts.automation_run_grant import AutomationRunGrant
 from engine.contracts.automation_workflow_artifact import AutomationWorkflowArtifact
+from engine.contracts.automation_workflow_definition import AutomationWorkflowDefinition
+from engine.contracts.automation_workflow_release import AutomationWorkflowRelease
 from engine.contracts.bounded_loop_definition import BoundedLoopDefinition
+from engine.contracts.browser_capability_session import BrowserCapabilitySession
 from engine.contracts.capability_descriptor import CapabilityDescriptor
+from engine.contracts.capability_gate import CapabilityGate
+from engine.contracts.capability_gate_probe import CapabilityGateProbe
 from engine.contracts.capability_lease import CapabilityLease
 from engine.contracts.captured_provider_credential import CapturedProviderCredential
 from engine.contracts.checkpoint import Checkpoint
@@ -34,6 +43,7 @@ from engine.contracts.context_activation_state import ContextActivationState
 from engine.contracts.context_chunk import ContextChunk
 from engine.contracts.context_conflict import ContextConflict
 from engine.contracts.context_critic_finding import ContextCriticFinding
+from engine.contracts.context_fact import ContextFact
 from engine.contracts.context_index import ContextIndex
 from engine.contracts.context_package import ContextPackage
 from engine.contracts.control_plane_overhead_task import ControlPlaneOverheadTask
@@ -49,19 +59,27 @@ from engine.contracts.design_source_admission import DesignSourceAdmission
 from engine.contracts.design_source_artifact import DesignSourceArtifact
 from engine.contracts.design_source_search_run import DesignSourceSearchRun
 from engine.contracts.diff_gate_report import DiffGateReport
+from engine.contracts.discovery_candidate import DiscoveryCandidate
+from engine.contracts.discovery_observation import DiscoveryObservation
+from engine.contracts.discovery_qualification import DiscoveryQualification
+from engine.contracts.discovery_transition import DiscoveryTransition
+from engine.contracts.discovery_trial import DiscoveryTrial
 from engine.contracts.domain_invariant import DomainInvariant
 from engine.contracts.donor_artifact import DonorArtifact
 from engine.contracts.donor_taint import DonorTaint
 from engine.contracts.edr import Edr
+from engine.contracts.environment_certification import EnvironmentCertification
 from engine.contracts.error import Error
 from engine.contracts.eval_case import EvalCase
 from engine.contracts.event import Event
 from engine.contracts.evidence import Evidence
 from engine.contracts.execution_environment import ExecutionEnvironment
 from engine.contracts.execution_experience_record import ExecutionExperienceRecord
+from engine.contracts.execution_placement_decision import ExecutionPlacementDecision
 from engine.contracts.execution_plan import ExecutionPlan
 from engine.contracts.experience_record import ExperienceRecord
 from engine.contracts.external_effect import ExternalEffect
+from engine.contracts.external_effect_verification import ExternalEffectVerification
 from engine.contracts.failure_attribution import FailureAttribution
 from engine.contracts.feature_dna import FeatureDNA
 from engine.contracts.frontend_attention_acknowledgement import (
@@ -99,6 +117,7 @@ from engine.contracts.learned_routing_policy import LearnedRoutingPolicy
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
 from engine.contracts.mission_oracle_evaluation import MissionOracleEvaluation
+from engine.contracts.mission_steer_request import MissionSteerRequest
 from engine.contracts.mission_template import MissionTemplate
 from engine.contracts.organization import Organization
 from engine.contracts.outbox import Outbox
@@ -110,16 +129,24 @@ from engine.contracts.product_environment import ProductEnvironment
 from engine.contracts.project import Project
 from engine.contracts.promotion_gate_run import PromotionGateRun
 from engine.contracts.provider_capacity_snapshot import ProviderCapacitySnapshot
+from engine.contracts.provider_readiness_snapshot import ProviderReadinessSnapshot
 from engine.contracts.pxg_edge import PxgEdge
 from engine.contracts.pxg_node import PxgNode
 from engine.contracts.readyz import Readyz
 from engine.contracts.replan_decision import ReplanDecision
 from engine.contracts.requirement import Requirement
+from engine.contracts.research_cell import ResearchCell
+from engine.contracts.research_conflict import ResearchConflict
+from engine.contracts.research_cursor import ResearchCursor
+from engine.contracts.research_mission import ResearchMission
+from engine.contracts.research_packet import ResearchPacket
+from engine.contracts.research_provider_run import ResearchProviderRun
 from engine.contracts.route_decision import RouteDecision
 from engine.contracts.routing_activation_state import RoutingActivationState
 from engine.contracts.routing_decision_outcome import RoutingDecisionOutcome
 from engine.contracts.routing_insight_candidate import RoutingInsightCandidate
 from engine.contracts.routing_simulation_run import RoutingSimulationRun
+from engine.contracts.safe_boundary_receipt import SafeBoundaryReceipt
 from engine.contracts.screen_audit_evidence import ScreenAuditEvidence
 from engine.contracts.screen_audit_finding import ScreenAuditFinding
 from engine.contracts.screen_audit_resolution import ScreenAuditResolution
@@ -131,6 +158,8 @@ from engine.contracts.source_artifact import SourceArtifact
 from engine.contracts.source_record import SourceRecord
 from engine.contracts.stack_fingerprint import StackFingerprint
 from engine.contracts.standing_approval import StandingApproval
+from engine.contracts.steering_barrier import SteeringBarrier
+from engine.contracts.steering_impact import SteeringImpact
 from engine.contracts.task import Task
 from engine.contracts.task_attempt import TaskAttempt
 from engine.contracts.task_graph import TaskGraph
@@ -182,13 +211,22 @@ __all__ = [
     "Approval",
     "Artifact",
     "AssertedEdge",
+    "AttentionCandidate",
     "AttentionItem",
+    "AttentionPreference",
     "AuditEvent",
     "AutomationCorpusSnapshot",
     "AutomationPatternDescriptor",
+    "AutomationRun",
+    "AutomationRunGrant",
     "AutomationWorkflowArtifact",
+    "AutomationWorkflowDefinition",
+    "AutomationWorkflowRelease",
     "BoundedLoopDefinition",
+    "BrowserCapabilitySession",
     "CapabilityDescriptor",
+    "CapabilityGate",
+    "CapabilityGateProbe",
     "CapabilityLease",
     "CapturedProviderCredential",
     "Checkpoint",
@@ -199,6 +237,7 @@ __all__ = [
     "ContextChunk",
     "ContextConflict",
     "ContextCriticFinding",
+    "ContextFact",
     "ContextIndex",
     "ContextPackage",
     "ControlPlaneOverheadTask",
@@ -214,19 +253,27 @@ __all__ = [
     "DesignSourceArtifact",
     "DesignSourceSearchRun",
     "DiffGateReport",
+    "DiscoveryCandidate",
+    "DiscoveryObservation",
+    "DiscoveryQualification",
+    "DiscoveryTransition",
+    "DiscoveryTrial",
     "DomainInvariant",
     "DonorArtifact",
     "DonorTaint",
     "Edr",
+    "EnvironmentCertification",
     "Error",
     "EvalCase",
     "Event",
     "Evidence",
     "ExecutionEnvironment",
     "ExecutionExperienceRecord",
+    "ExecutionPlacementDecision",
     "ExecutionPlan",
     "ExperienceRecord",
     "ExternalEffect",
+    "ExternalEffectVerification",
     "FailureAttribution",
     "FeatureDNA",
     "FrontendAttentionAcknowledgement",
@@ -260,6 +307,7 @@ __all__ = [
     "Mission",
     "MissionControl",
     "MissionOracleEvaluation",
+    "MissionSteerRequest",
     "MissionTemplate",
     "Organization",
     "Outbox",
@@ -271,16 +319,24 @@ __all__ = [
     "Project",
     "PromotionGateRun",
     "ProviderCapacitySnapshot",
+    "ProviderReadinessSnapshot",
     "PxgEdge",
     "PxgNode",
     "Readyz",
     "ReplanDecision",
     "Requirement",
+    "ResearchCell",
+    "ResearchConflict",
+    "ResearchCursor",
+    "ResearchMission",
+    "ResearchPacket",
+    "ResearchProviderRun",
     "RouteDecision",
     "RoutingActivationState",
     "RoutingDecisionOutcome",
     "RoutingInsightCandidate",
     "RoutingSimulationRun",
+    "SafeBoundaryReceipt",
     "ScreenAuditEvidence",
     "ScreenAuditFinding",
     "ScreenAuditResolution",
@@ -292,6 +348,8 @@ __all__ = [
     "SourceRecord",
     "StackFingerprint",
     "StandingApproval",
+    "SteeringBarrier",
+    "SteeringImpact",
     "Task",
     "TaskAttempt",
     "TaskGraph",

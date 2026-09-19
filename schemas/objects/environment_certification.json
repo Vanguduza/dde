@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/environment_certification.json",
+  "title": "EnvironmentCertification",
+  "description": "EDR-0019 Epic L machine-certifiable development-environment readiness. A capability is green only when it is desired, configured, live, qualified, evidenced and the evidence is still fresh. Self-test classes include deliberately induced failure (FAULT_INJECTION, EGRESS_DENIAL, SECRET_ISOLATION), because a gate whose failure mode has never been induced is not known to work.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "environment_certifications",
+    "order": 937,
+    "pk": [
+      "certification_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "environment_certifications_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "environment_certifications_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "environment_certifications_env_fkey",
+        "columns": [
+          "environment_id"
+        ],
+        "ref_table": "execution_environments",
+        "ref_columns": [
+          "environment_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id",
+        "environment",
+        "capability_id"
+      ]
+    ],
+    "checks": [
+      {
+        "expression": "(NOT green) OR (desired AND configured AND live AND qualified AND evidenced AND evidence_fresh)"
+      }
+    ]
+  },
+  "required": [
+    "certification_id",
+    "tenant_id",
+    "project_id",
+    "environment",
+    "capability_id",
+    "desired",
+    "configured",
+    "live",
+    "qualified",
+    "evidenced",
+    "evidence_fresh",
+    "green",
+    "self_test_classes",
+    "self_test_results",
+    "certification_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "certification_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "environment_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capability_id": {
+      "type": "string"
+    },
+    "desired": {
+      "type": "boolean"
+    },
+    "configured": {
+      "type": "boolean"
+    },
+    "live": {
+      "type": "boolean"
+    },
+    "qualified": {
+      "type": "boolean"
+    },
+    "evidenced": {
+      "type": "boolean"
+    },
+    "evidence_fresh": {
+      "type": "boolean"
+    },
+    "green": {
+      "type": "boolean"
+    },
+    "self_test_classes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DETERMINISM",
+          "FAULT_INJECTION",
+          "RECOVERY",
+          "AUTHENTICATION",
+          "EGRESS_DENIAL",
+          "SECRET_ISOLATION",
+          "PROVIDER_FALLBACK",
+          "DATABASE_MIGRATION",
+          "EVIDENCE_DURABILITY"
+        ]
+      }
+    },
+    "self_test_results": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "certified_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "certification_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

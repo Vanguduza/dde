@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/research_provider_run.json",
+  "title": "ResearchProviderRun",
+  "description": "One provider execution for one research stage. The stage is architectural and the model is not: provider policy may route cheap high-throughput models to PASS_1 and stronger analysis models to later stages without changing the stage contract. Egress is recorded here -- sanitized query intent, admitted source identity and returned evidence hashes -- so research egress stays auditable.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "research_provider_runs",
+    "order": 923,
+    "pk": [
+      "provider_run_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "research_provider_runs_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "research_provider_runs_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "research_provider_runs_mission_fkey",
+        "columns": [
+          "research_mission_id"
+        ],
+        "ref_table": "research_missions",
+        "ref_columns": [
+          "research_mission_id"
+        ]
+      },
+      {
+        "name": "research_provider_runs_cell_fkey",
+        "columns": [
+          "cell_id"
+        ],
+        "ref_table": "research_cells",
+        "ref_columns": [
+          "cell_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "provider_run_id",
+    "tenant_id",
+    "project_id",
+    "research_mission_id",
+    "stage",
+    "provider_id",
+    "request_class",
+    "sanitized_query_hash",
+    "egress_recorded",
+    "returned_evidence_hashes",
+    "admitted_source_refs",
+    "outcome",
+    "cost",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "provider_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "research_mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "cell_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "PASS_1_DISCOVERY",
+        "PASS_2_ANALYSIS",
+        "PASS_3_DEEP_EVIDENCE",
+        "PASS_4_CONTRADICTION_CHECK",
+        "PASS_5_QUALIFICATION",
+        "PASS_6_GRAPH_COMPILE",
+        "PASS_7_CAPSULE_COMPILE"
+      ]
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "model_identity_requested": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_identity_attested": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "request_class": {
+      "type": "string",
+      "enum": [
+        "PUBLIC",
+        "PROJECT_LOCAL"
+      ]
+    },
+    "sanitized_query_hash": {
+      "type": "string"
+    },
+    "egress_recorded": {
+      "type": "boolean"
+    },
+    "returned_evidence_hashes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "admitted_source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SUCCEEDED",
+        "MALFORMED",
+        "REFUSED",
+        "RATE_LIMITED",
+        "FAILED",
+        "TIMEOUT"
+      ]
+    },
+    "error_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cost": {
+      "type": "object"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

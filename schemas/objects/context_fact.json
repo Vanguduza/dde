@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/context_fact.json",
+  "title": "ContextFact",
+  "description": "EDR-0019 Epic H labelled context fact. The ContextPackage compiler must preserve these labels: a model may never receive a MODEL_INFERENCE or UNTRUSTED_EXTERNAL claim rendered as though it were settled project fact. Conflict rules are fixed by authority_class -- PROJECT_TRUTH outranks QUALIFIED_KNOWLEDGE, VERIFIED_LIVE_STATE may supersede a stale runtime observation but never rewrites Project Truth, LEARNED_CANDIDATE cannot satisfy a canonical requirement, UNTRUSTED_EXTERNAL may trigger discovery but grants no authority, and MODEL_INFERENCE is never persisted as fact without explicit promotion.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "context_facts",
+    "order": 950,
+    "pk": [
+      "fact_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "context_facts_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "context_facts_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "context_facts_subject_idx",
+        "columns": [
+          "tenant_id",
+          "project_id",
+          "subject",
+          "predicate"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "(authority_class <> 'MODEL_INFERENCE') OR (promoted_by_ref IS NULL)"
+      }
+    ]
+  },
+  "required": [
+    "fact_id",
+    "tenant_id",
+    "project_id",
+    "subject",
+    "predicate",
+    "value",
+    "authority_class",
+    "valid_from",
+    "observed_at",
+    "content_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "fact_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "predicate": {
+      "type": "string"
+    },
+    "value": {
+      "type": "object"
+    },
+    "authority_class": {
+      "type": "string",
+      "enum": [
+        "OWNER_CANONICAL",
+        "PROJECT_TRUTH",
+        "POLICY_CANONICAL",
+        "VERIFIED_LIVE_STATE",
+        "VERIFIED_REPOSITORY_STATE",
+        "VERIFIED_HISTORY",
+        "QUALIFIED_KNOWLEDGE",
+        "LEARNED_CANDIDATE",
+        "MODEL_INFERENCE",
+        "UNTRUSTED_EXTERNAL"
+      ]
+    },
+    "source_trust": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "S1_NORMATIVE",
+            "S2_FIRST_PARTY",
+            "S3_VERIFIED_REGISTRY",
+            "S4_MAINTAINED_OSS",
+            "S5_MAINTAINER_COMMUNITY",
+            "S6_COMMUNITY_CORROBORATED",
+            "S7_DISCOVERY_ONLY",
+            "S8_UNTRUSTED"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "superseded_by_fact_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersession_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "promoted_from_authority_class": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "OWNER_CANONICAL",
+            "PROJECT_TRUTH",
+            "POLICY_CANONICAL",
+            "VERIFIED_LIVE_STATE",
+            "VERIFIED_REPOSITORY_STATE",
+            "VERIFIED_HISTORY",
+            "QUALIFIED_KNOWLEDGE",
+            "LEARNED_CANDIDATE",
+            "MODEL_INFERENCE",
+            "UNTRUSTED_EXTERNAL"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "promoted_by_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

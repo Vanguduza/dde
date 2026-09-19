@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/research_mission.json",
+  "title": "ResearchMission",
+  "description": "EDR-0019 Epic D ahead-of-work research mission. Advisory only: a research mission may prepare knowledge for upcoming Development Units but may never reorder the TaskGraph, create implementation tasks, expand product scope or amend Project Truth. Restart is idempotent from the mission's ResearchCursor; mission_definition_hash pins the coverage definition so a redefinition is a new mission rather than a silent mutation.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "research_missions",
+    "order": 920,
+    "pk": [
+      "research_mission_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "research_missions_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "research_missions_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "research_missions_mission_id_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "research_mission_id",
+    "tenant_id",
+    "project_id",
+    "title",
+    "required_dimensions",
+    "optional_dimensions",
+    "target_unit_revisions",
+    "status",
+    "mission_definition_hash",
+    "policy_revision",
+    "budget",
+    "egress_profile",
+    "cells_total",
+    "cells_complete",
+    "cells_conflicted",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "research_mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unit_map_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "required_dimensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ARCHITECTURE",
+          "OFFICIAL_DOCUMENTATION",
+          "CURRENT_RELEASES",
+          "SECURITY",
+          "FAILURE_MODES",
+          "TESTING",
+          "PERFORMANCE",
+          "DEPLOYMENT",
+          "INTEGRATION",
+          "UX",
+          "FRONTEND_QUALITY",
+          "ACCESSIBILITY",
+          "SOURCE_INTELLIGENCE",
+          "CONTRADICTIONS",
+          "ANTI_PATTERNS",
+          "WORKFLOW_AUTOMATION",
+          "OBSERVABILITY",
+          "COMPATIBILITY_MIGRATION"
+        ]
+      }
+    },
+    "optional_dimensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ARCHITECTURE",
+          "OFFICIAL_DOCUMENTATION",
+          "CURRENT_RELEASES",
+          "SECURITY",
+          "FAILURE_MODES",
+          "TESTING",
+          "PERFORMANCE",
+          "DEPLOYMENT",
+          "INTEGRATION",
+          "UX",
+          "FRONTEND_QUALITY",
+          "ACCESSIBILITY",
+          "SOURCE_INTELLIGENCE",
+          "CONTRADICTIONS",
+          "ANTI_PATTERNS",
+          "WORKFLOW_AUTOMATION",
+          "OBSERVABILITY",
+          "COMPATIBILITY_MIGRATION"
+        ]
+      }
+    },
+    "target_unit_revisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "ACTIVE",
+        "PAUSED",
+        "COMPLETE",
+        "ABANDONED",
+        "SUPERSEDED"
+      ]
+    },
+    "mission_definition_hash": {
+      "type": "string"
+    },
+    "coverage_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy_revision": {
+      "type": "string"
+    },
+    "budget": {
+      "type": "object"
+    },
+    "egress_profile": {
+      "type": "string"
+    },
+    "cells_total": {
+      "type": "integer"
+    },
+    "cells_complete": {
+      "type": "integer"
+    },
+    "cells_conflicted": {
+      "type": "integer"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

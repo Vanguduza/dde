@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/external_effect_verification.json",
+  "title": "ExternalEffectVerification",
+  "description": "EDR-0019 Epic F independent postcondition observation for one ExternalEffect. 'The API accepted the request' is not 'the desired state exists'. This contract is additive: external_effects.status keeps its existing PREPARED/SENT/CONFIRMED/FAILED/UNKNOWN/RECONCILING/RECONCILED transport-and-recovery meaning, and the separate external_effects.postcondition_state axis is driven by these observations. For high-impact effect classes a VERIFIED postcondition requires an observation produced independently of the adapter that performed the effect.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "external_effect_verifications",
+    "order": 975,
+    "pk": [
+      "verification_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "external_effect_verifications_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "external_effect_verifications_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "external_effect_verifications_effect_fkey",
+        "columns": [
+          "effect_id"
+        ],
+        "ref_table": "external_effects",
+        "ref_columns": [
+          "effect_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "external_effect_verifications_effect_idx",
+        "columns": [
+          "effect_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "verification_id",
+    "tenant_id",
+    "project_id",
+    "effect_id",
+    "verifier_type",
+    "independent_of_adapter",
+    "observed_postcondition",
+    "outcome",
+    "observation_hash",
+    "observed_at",
+    "created_at"
+  ],
+  "properties": {
+    "verification_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "effect_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "verifier_type": {
+      "type": "string",
+      "enum": [
+        "API_READBACK",
+        "STATE_QUERY",
+        "FILE_HASH",
+        "BROWSER_OBSERVATION",
+        "DATABASE_READBACK",
+        "CUSTOM"
+      ]
+    },
+    "independent_of_adapter": {
+      "type": "boolean"
+    },
+    "observed_postcondition": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "SUCCESS",
+        "PARTIAL",
+        "REFUTED",
+        "UNVERIFIABLE",
+        "ERROR"
+      ]
+    },
+    "correlation": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observation_hash": {
+      "type": "string"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

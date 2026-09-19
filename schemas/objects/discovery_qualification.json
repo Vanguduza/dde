@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/discovery_qualification.json",
+  "title": "DiscoveryQualification",
+  "description": "EDR-0019 Epic C ResourceQualificationManifest. Qualification emits a bounded disposition plus an explicit authority_ceiling and allowed/forbidden uses, so useful material is retained at a truthful authority level instead of being discarded for failing the strongest admission bar. authority_ceiling reuses the canonical S1..S8 source-trust vocabulary and can never exceed the candidate's source_trust. ANTI_PATTERN and FAILURE_SIGNATURE material stays retrievable but may never fill a positive implementation, reuse or execution slot.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "discovery_qualifications",
+    "order": 914,
+    "pk": [
+      "qualification_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "discovery_qualifications_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "discovery_qualifications_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "discovery_qualifications_candidate_id_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "discovery_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "discovery_qualifications_trial_id_fkey",
+        "columns": [
+          "trial_id"
+        ],
+        "ref_table": "discovery_trials",
+        "ref_columns": [
+          "trial_id"
+        ]
+      },
+      {
+        "name": "discovery_qualifications_admission_id_fkey",
+        "columns": [
+          "admission_id"
+        ],
+        "ref_table": "source_admissions",
+        "ref_columns": [
+          "admission_id"
+        ]
+      },
+      {
+        "name": "discovery_qualifications_resource_id_fkey",
+        "columns": [
+          "resource_id"
+        ],
+        "ref_table": "vekl_resources",
+        "ref_columns": [
+          "resource_id"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "qualification_id",
+    "tenant_id",
+    "project_id",
+    "candidate_id",
+    "disposition",
+    "authority_ceiling",
+    "allowed_uses",
+    "forbidden_uses",
+    "guidance_polarity",
+    "rationale",
+    "policy_revision",
+    "qualified_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "qualification_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "candidate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "ADMIT_EXECUTABLE",
+        "ADMIT_POSITIVE_GUIDANCE",
+        "ADMIT_REFERENCE_ONLY",
+        "ADMIT_OBSERVATION_ONLY",
+        "ADMIT_ANTI_PATTERN",
+        "HOLD_FOR_CORROBORATION",
+        "HOLD_FOR_VERSION",
+        "HOLD_FOR_LICENSE",
+        "HOLD_FOR_SECURITY",
+        "REJECT_MALICIOUS",
+        "REJECT_IRRELEVANT",
+        "REJECT_UNVERIFIABLE",
+        "SUPERSEDED"
+      ]
+    },
+    "authority_ceiling": {
+      "type": "string",
+      "enum": [
+        "S1_NORMATIVE",
+        "S2_FIRST_PARTY",
+        "S3_VERIFIED_REGISTRY",
+        "S4_MAINTAINED_OSS",
+        "S5_MAINTAINER_COMMUNITY",
+        "S6_COMMUNITY_CORROBORATED",
+        "S7_DISCOVERY_ONLY",
+        "S8_UNTRUSTED"
+      ]
+    },
+    "allowed_uses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DISCOVERY",
+          "CORROBORATION",
+          "REFERENCE",
+          "FAILURE_SIGNATURE",
+          "ANTI_PATTERN",
+          "NORMATIVE_IMPLEMENTATION",
+          "SECURITY_AUTHORITY",
+          "EXECUTABLE_ACTIVATION"
+        ]
+      }
+    },
+    "forbidden_uses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DISCOVERY",
+          "CORROBORATION",
+          "REFERENCE",
+          "FAILURE_SIGNATURE",
+          "ANTI_PATTERN",
+          "NORMATIVE_IMPLEMENTATION",
+          "SECURITY_AUTHORITY",
+          "EXECUTABLE_ACTIVATION"
+        ]
+      }
+    },
+    "guidance_polarity": {
+      "type": "string",
+      "enum": [
+        "POSITIVE",
+        "ANTI_PATTERN",
+        "OBSERVATION_ONLY"
+      ]
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "policy_revision": {
+      "type": "string"
+    },
+    "trial_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "admission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resource_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hold_expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "qualified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

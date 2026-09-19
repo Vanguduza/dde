@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/automation_workflow_release.json",
+  "title": "AutomationWorkflowRelease",
+  "description": "A workflow is not executable because it exists. A release must pass validation, security check, sandbox certification and canary before PRODUCTION_QUALIFIED, and node policy is enforced at release time: arbitrary shell, unrestricted filesystem, unrestricted HTTP, dynamic code execution, credential enumeration, generic AI-agent nodes, unbounded loops and uncontrolled webhooks are prohibited or explicitly gated. Revocation stops future runs without deleting historical evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "automation_workflow_releases",
+    "order": 961,
+    "pk": [
+      "release_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "automation_workflow_releases_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "automation_workflow_releases_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "automation_workflow_releases_definition_fkey",
+        "columns": [
+          "definition_id"
+        ],
+        "ref_table": "automation_workflow_definitions",
+        "ref_columns": [
+          "definition_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "definition_id",
+        "version"
+      ]
+    ],
+    "checks": [
+      {
+        "expression": "(lifecycle_state <> 'PRODUCTION_QUALIFIED') OR (security_evidence_pointer IS NOT NULL AND sandbox_evidence_pointer IS NOT NULL)"
+      }
+    ]
+  },
+  "required": [
+    "release_id",
+    "tenant_id",
+    "project_id",
+    "definition_id",
+    "version",
+    "release_hash",
+    "lifecycle_state",
+    "node_policy_findings",
+    "prohibited_nodes_present",
+    "gated_nodes_present",
+    "allowed_external_domains",
+    "action_class_ceiling",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "release_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "definition_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "string"
+    },
+    "release_hash": {
+      "type": "string"
+    },
+    "lifecycle_state": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "VALIDATED",
+        "SECURITY_CHECKED",
+        "SANDBOX_CERTIFIED",
+        "CANARY",
+        "PRODUCTION_QUALIFIED",
+        "REVOKED"
+      ]
+    },
+    "node_policy_findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "prohibited_nodes_present": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gated_nodes_present": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_external_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "action_class_ceiling": {
+      "type": "string",
+      "enum": [
+        "PURE_READ",
+        "WORKSPACE_LOCAL",
+        "EXTERNAL_IDEMPOTENT",
+        "EXTERNAL_NON_IDEMPOTENT",
+        "IRREVERSIBLE"
+      ]
+    },
+    "security_evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sandbox_evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revoked_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revoked_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

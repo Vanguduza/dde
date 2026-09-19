@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/research_cell.json",
+  "title": "ResearchCell",
+  "description": "The EDR-0019 Epic D coverage unit: DevelopmentUnitRevision x ResearchDimension. Coverage is measurable because every cell carries an explicit state; a mission is never 'complete' merely because a model answered. NO_USEFUL_EVIDENCE is a real terminal outcome and is not failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "research_cells",
+    "order": 921,
+    "pk": [
+      "cell_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "research_cells_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "research_cells_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "research_cells_mission_fkey",
+        "columns": [
+          "research_mission_id"
+        ],
+        "ref_table": "research_missions",
+        "ref_columns": [
+          "research_mission_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "research_mission_id",
+        "unit_revision",
+        "dimension"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "research_cells_state_idx",
+        "columns": [
+          "research_mission_id",
+          "state"
+        ]
+      }
+    ]
+  },
+  "required": [
+    "cell_id",
+    "tenant_id",
+    "project_id",
+    "research_mission_id",
+    "unit_revision",
+    "dimension",
+    "state",
+    "attempts",
+    "retry_count",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "cell_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "research_mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "unit_revision": {
+      "type": "string"
+    },
+    "dimension": {
+      "type": "string",
+      "enum": [
+        "ARCHITECTURE",
+        "OFFICIAL_DOCUMENTATION",
+        "CURRENT_RELEASES",
+        "SECURITY",
+        "FAILURE_MODES",
+        "TESTING",
+        "PERFORMANCE",
+        "DEPLOYMENT",
+        "INTEGRATION",
+        "UX",
+        "FRONTEND_QUALITY",
+        "ACCESSIBILITY",
+        "SOURCE_INTELLIGENCE",
+        "CONTRADICTIONS",
+        "ANTI_PATTERNS",
+        "WORKFLOW_AUTOMATION",
+        "OBSERVABILITY",
+        "COMPATIBILITY_MIGRATION"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "UNSEEDED",
+        "QUEUED",
+        "FIRST_PASS",
+        "ANALYZED",
+        "DEEP_EVIDENCE_PENDING",
+        "DEEP_EVIDENCE_COMPLETE",
+        "CONFLICTED",
+        "QUALIFICATION_PENDING",
+        "ADMITTED",
+        "PARTIALLY_ADMITTED",
+        "NO_USEFUL_EVIDENCE",
+        "FAILED_RETRYABLE",
+        "FAILED_TERMINAL",
+        "STALE"
+      ]
+    },
+    "attempts": {
+      "type": "integer"
+    },
+    "retry_count": {
+      "type": "integer"
+    },
+    "last_error_class": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stale_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stale_invalidated_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "first_pass_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deep_evidence_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/mission_steer_request.json",
+  "title": "MissionSteerRequest",
+  "description": "EDR-0019 Epic A live owner steer. A steer is acknowledged immediately and executed at a safe boundary: it never races an active repository writer, and it never kills active work to take effect. A steer executes under ordinary DDE authority only -- it cannot write around TruthService, cannot mutate Project Truth without ordinary accepted authority, and cannot silently discard an active ChangePacket. A read-only owner question is not a steer and must not serialize writers, which is why read_only requests take no barrier.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "mission_steer_requests",
+    "order": 940,
+    "pk": [
+      "steer_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "mission_steer_requests_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "mission_steer_requests_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "mission_steer_requests_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "(NOT read_only) OR (barrier_id IS NULL)"
+      },
+      {
+        "expression": "(authority_class <> 'NO_AUTHORITY') OR read_only"
+      }
+    ]
+  },
+  "required": [
+    "steer_id",
+    "tenant_id",
+    "project_id",
+    "mission_id",
+    "authority_class",
+    "read_only",
+    "material",
+    "intent_text_hash",
+    "intent_summary",
+    "state",
+    "requires_truth_change",
+    "decision_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "steer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "requested_by_principal_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "authority_class": {
+      "type": "string",
+      "enum": [
+        "OWNER_EXPLICIT",
+        "OWNER_DERIVED",
+        "OWNER_DELEGATED_AUTONOMY",
+        "NO_AUTHORITY"
+      ]
+    },
+    "read_only": {
+      "type": "boolean"
+    },
+    "material": {
+      "type": "boolean"
+    },
+    "intent_text_hash": {
+      "type": "string"
+    },
+    "intent_summary": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "RECEIVED",
+        "ACKNOWLEDGED",
+        "BARRIER_SET",
+        "WAITING_FOR_SAFE_BOUNDARY",
+        "SAFE_BOUNDARY_REACHED",
+        "AUTHORITY_RECONCILED",
+        "EXECUTING",
+        "VERIFIED",
+        "COMPLETE",
+        "FAILED",
+        "BLOCKED",
+        "SUPERSEDED"
+      ]
+    },
+    "disposition": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "APPLIED",
+            "SUPERSEDED",
+            "REJECTED_AUTHORITY",
+            "REJECTED_CONFLICT",
+            "ABANDONED"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requires_truth_change": {
+      "type": "boolean"
+    },
+    "truth_change_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersedes_steer_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "barrier_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "acknowledged_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "safe_boundary_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "applied_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decision_hash": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
