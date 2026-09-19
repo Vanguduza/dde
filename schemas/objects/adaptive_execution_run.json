@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/adaptive_execution_run.json",
+  "title": "AdaptiveExecutionRun",
+  "description": "EDR-0019 Amendment 1. Durable state for one adaptive execution attempt against a placement decision. Fallback may occur only at a declared checkpoint and never mid-effect, so a run carries the work/diff/context hashes it hands to its successor and points back at the run it replaced. Until DDE-076/077 land TaskExecutionDescriptor and ExecutionStrategy this references a descriptor by an untyped ref; it does not itself become an execution authority, and the existing routing authority still chooses placement.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "adaptive_execution_runs",
+    "order": 982,
+    "pk": [
+      "adaptive_run_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "adaptive_execution_runs_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "adaptive_execution_runs_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "adaptive_execution_runs_placement_fkey",
+        "columns": [
+          "placement_id"
+        ],
+        "ref_table": "execution_placement_decisions",
+        "ref_columns": [
+          "placement_id"
+        ]
+      },
+      {
+        "name": "adaptive_execution_runs_mission_fkey",
+        "columns": [
+          "mission_id"
+        ],
+        "ref_table": "missions",
+        "ref_columns": [
+          "mission_id"
+        ]
+      },
+      {
+        "name": "adaptive_execution_runs_task_fkey",
+        "columns": [
+          "task_id"
+        ],
+        "ref_table": "tasks",
+        "ref_columns": [
+          "task_id"
+        ]
+      },
+      {
+        "name": "adaptive_execution_runs_lease_fkey",
+        "columns": [
+          "provider_lease_id"
+        ],
+        "ref_table": "capability_leases",
+        "ref_columns": [
+          "lease_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "(state <> 'FALLBACK_APPLIED') OR (checkpoint_kind IS NOT NULL)"
+      }
+    ]
+  },
+  "required": [
+    "adaptive_run_id",
+    "tenant_id",
+    "project_id",
+    "placement_id",
+    "attempt",
+    "state",
+    "completed_verifier_refs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "adaptive_run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mission_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "placement_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "task_execution_descriptor_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attempt": {
+      "type": "integer"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PREPARED",
+        "RUNNING",
+        "CHECKPOINT_REACHED",
+        "FALLBACK_PENDING",
+        "FALLBACK_APPLIED",
+        "COMPLETED",
+        "FAILED",
+        "ABANDONED"
+      ]
+    },
+    "checkpoint_kind": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "TASK_START",
+            "VERIFIER_BOUNDARY",
+            "CHECKPOINT_COMMIT",
+            "EFFECT_BOUNDARY"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "carried_work_state_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "carried_diff_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "carried_context_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_verifier_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "previous_adaptive_run_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fallback_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider_lease_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

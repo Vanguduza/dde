@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/knowledge_borrow_grant.json",
+  "title": "KnowledgeBorrowGrant",
+  "description": "EDR-0019 Amendment 1, owner-derived design for the VAN VATI/VTIL borrowing model, which the source artifact names but does not specify. Borrowing is COPY-ON-GRANT, never a live cross-project read: DDE's tenant/project RLS and the DDE-083 cross-project leakage proofs stay intact because the borrower never queries the lender's rows. Only OWNER_EXPLICIT authority may authorize a grant. External source trust is a property of the source and travels with the copy, but a lender's project-internal learning (DDE_LEARNED_RECIPE and other derived material) is not transferable as authority and borrows at S7_DISCOVERY_ONLY at best. Revocation invalidates derived activations without deleting evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "knowledge_borrow_grants",
+    "order": 984,
+    "pk": [
+      "borrow_grant_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "knowledge_borrow_grants_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "knowledge_borrow_grants_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "knowledge_borrow_grants_lender_idx",
+        "columns": [
+          "tenant_id",
+          "project_id",
+          "lender_project_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "lender_project_id <> project_id"
+      },
+      {
+        "expression": "(NOT includes_derived_learning) OR (trust_ceiling = 'S7_DISCOVERY_ONLY')"
+      }
+    ]
+  },
+  "required": [
+    "borrow_grant_id",
+    "tenant_id",
+    "project_id",
+    "lender_project_id",
+    "lender_tenant_id",
+    "authority_class",
+    "resource_selector",
+    "requested_resource_refs",
+    "materialized_resource_ids",
+    "trust_ceiling",
+    "allowed_uses",
+    "forbidden_uses",
+    "includes_derived_learning",
+    "state",
+    "provenance_hash",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "borrow_grant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "lender_project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "lender_tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "authorized_by_principal_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "authority_class": {
+      "type": "string",
+      "enum": [
+        "OWNER_EXPLICIT"
+      ]
+    },
+    "resource_selector": {
+      "type": "object"
+    },
+    "requested_resource_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "materialized_resource_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trust_ceiling": {
+      "type": "string",
+      "enum": [
+        "S1_NORMATIVE",
+        "S2_FIRST_PARTY",
+        "S3_VERIFIED_REGISTRY",
+        "S4_MAINTAINED_OSS",
+        "S5_MAINTAINER_COMMUNITY",
+        "S6_COMMUNITY_CORROBORATED",
+        "S7_DISCOVERY_ONLY",
+        "S8_UNTRUSTED"
+      ]
+    },
+    "allowed_uses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DISCOVERY",
+          "CORROBORATION",
+          "REFERENCE",
+          "FAILURE_SIGNATURE",
+          "ANTI_PATTERN",
+          "NORMATIVE_IMPLEMENTATION",
+          "SECURITY_AUTHORITY",
+          "EXECUTABLE_ACTIVATION"
+        ]
+      }
+    },
+    "forbidden_uses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DISCOVERY",
+          "CORROBORATION",
+          "REFERENCE",
+          "FAILURE_SIGNATURE",
+          "ANTI_PATTERN",
+          "NORMATIVE_IMPLEMENTATION",
+          "SECURITY_AUTHORITY",
+          "EXECUTABLE_ACTIVATION"
+        ]
+      }
+    },
+    "includes_derived_learning": {
+      "type": "boolean"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "AUTHORIZED",
+        "MATERIALIZED",
+        "REVOKED",
+        "EXPIRED",
+        "REFUSED"
+      ]
+    },
+    "refusal_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revocation_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provenance_hash": {
+      "type": "string"
+    },
+    "materialized_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revoked_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

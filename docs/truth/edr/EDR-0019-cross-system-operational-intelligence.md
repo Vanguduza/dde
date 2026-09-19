@@ -121,3 +121,52 @@ Principal separation, run-scoped grants with no ambient secrets, sanitized and r
 This EDR makes DDE able to answer, from evidence rather than assertion: which provider is actually ready, which research dimensions are still missing, why each resource was admitted/held/rejected, which capability is degraded and what still works, whether an external action actually happened, and whether an owner steer is waiting on an active writer. It does not grant additional agent autonomy; the gain is operational truthfulness.
 
 It does not make any runtime behaviour live, does not widen ordinary worker egress, does not admit any new source host, and does not make DIAL, Hermes or VAN a DDE dependency.
+
+---
+
+# Amendment 1 — the five feature gaps, and two owner-derived designs (2026-09-19)
+
+> **ACCEPTED 2026-09-19 by explicit project-owner instruction:** *"Implement fully"*, issued after a feature-level inventory of the source artifact showed that the first tranche adopted 24 of its 33 named features and left five genuine gaps. Two of those five carry **no design at all** in the source artifact, so the designs below are `OWNER_DERIVED`: necessary consequences of an owner-ordered gap closure, using the best available solution. They may be reconciled into canon but do not materially redefine product, security, money/custody or owner-control intent.
+
+## Gaps closed
+
+| Gap | Source | DDE-native form |
+| --- | --- | --- |
+| Discovery graph projection | DIAL | `GraphTrustProjection` |
+| Model availability discovery | DIAL | `ProviderModelAvailability` |
+| Adaptive execution runner | DIAL | `AdaptiveExecutionRun` |
+| **Guided frontend design orchestration** | DIAL | `FrontendDesignOrchestrationRun` *(owner-derived)* |
+| **VATI/VTIL knowledge borrowing** | VAN | `KnowledgeBorrowGrant` *(owner-derived)* |
+
+## Owner-derived design 1 — guided frontend design orchestration
+
+The source artifact names this in one line and specifies nothing. DDE already owns the surface through DDE-069/082: design sources, candidates, mutations, the frontend contract, golden visual authority and the visual/silhouette/accessibility verifiers.
+
+**Decision:** do **not** build a second design engine. `FrontendDesignOrchestrationRun` binds the frontend-relevant research dimensions (`UX`, `FRONTEND_QUALITY`, `ACCESSIBILITY`) to the existing Frontend Studio and may only **propose**. The existing candidate/mutation/verification path stays the sole authority for applying a change. The contract carries `authority: ADVISORY` as a single-value enum and a database check that pins `verification_satisfied` to false, so an orchestration run can never claim to have satisfied release, pixel, silhouette or accessibility verification. Those remain independent verifier duties.
+
+## Owner-derived design 2 — VATI/VTIL knowledge borrowing
+
+The source artifact names the VAN borrowing model sixteen times and never specifies it. The hard constraint is DDE's cross-project isolation: tenant/project RLS on every table, and the DDE-083 cross-project leakage proofs.
+
+**Decision:** borrowing is **copy-on-grant, never a live cross-project read**. A `KnowledgeBorrowGrant` records an `OWNER_EXPLICIT` authorization to copy selected qualified resources from a lender project into the borrower, with provenance and a trust ceiling. The borrower never queries the lender's rows, so RLS and the leakage proofs stay intact by construction.
+
+Two laws bound it:
+
+- **external trust travels, project-internal learning does not.** A source's trust is a property of the source and is project-independent, so a copied external resource keeps it. A lender's own derived learning (`DDE_LEARNED_RECIPE` and similar) is not transferable as authority and borrows at `S7_DISCOVERY_ONLY` at best — enforced by a database check binding `includes_derived_learning` to that ceiling;
+- **a project cannot borrow from itself**, enforced by a check that `lender_project_id <> project_id`, so the grant path can never be used to launder a project's own learning into higher authority.
+
+Revocation stops future use and invalidates derived activations without deleting evidence.
+
+## Runtime landed under this amendment
+
+Beyond contracts, this amendment lands the first working runtime for the programme:
+
+- **discovery** (`engine/source/discovery/`) — deterministic identity and merge, lifecycle legality, append-only dense history, sanitizer with blocking classes, bounded trials, qualification with capped authority, the graph trust projection, and the admission bridge to `SourceRecord`. The bridge deliberately stops there: a `SourceAdmission` needs an acquired hashed artifact, which is EDR-0018 acquisition's job;
+- **capability gates** (`engine/capabilities/gates.py`) — readiness computed, never asserted;
+- **postconditions** (`engine/recovery/postcondition.py`) — completion refused while a required postcondition is unproven;
+- **steering** (`engine/missions/steering.py`) — barrier bounds new claims only, read-only questions take no barrier;
+- **attention** (`engine/attention/`) — scoring, dedupe, budget, quiet hours, with security/approval bypass;
+- **epistemic context** (`engine/context/epistemics.py`) — authority rank beats recency, labels survive compilation;
+- **research** (`engine/research/`) — coverage accounting, packet completeness, delta-first cursor, and a hard refusal of any programme-steering action.
+
+These are policy and persistence engines with tests. They are **not yet wired to a production call site**, so `IMPLEMENTATION_STATE.md` continues to record the programme as `IMPLEMENTED_PARTIAL` rather than delivered.

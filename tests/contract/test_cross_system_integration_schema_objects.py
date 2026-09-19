@@ -243,6 +243,66 @@ def test_external_effect_sqlalchemy_table_matches_the_generated_schema() -> None
     assert generated <= declared, f"table is missing: {sorted(generated - declared)}"
 
 
+def test_discovery_tables_match_the_generated_schema() -> None:
+    """Hand-written Core tables must carry every generated column.
+
+    Same failure mode as the `external_effects` drift that cascaded into 82 unit
+    failures: the contract is generated, these mappings are not.
+    """
+    from engine.source.discovery import tables as discovery_tables
+
+    pairs = (
+        (discovery_tables.discovery_candidates, "discovery_candidate"),
+        (discovery_tables.discovery_transitions, "discovery_transition"),
+        (discovery_tables.discovery_observations, "discovery_observation"),
+        (discovery_tables.discovery_trials, "discovery_trial"),
+        (discovery_tables.discovery_qualifications, "discovery_qualification"),
+        (discovery_tables.graph_trust_projections, "graph_trust_projection"),
+    )
+    for table, schema_name in pairs:
+        declared = {column.name for column in table.columns}
+        generated = set(_schema(schema_name)["properties"])
+        assert generated <= declared, (
+            f"{table.name} is missing: {sorted(generated - declared)}"
+        )
+
+
+def test_amendment_1_tables_are_tenant_and_project_scoped() -> None:
+    for schema_name in (
+        "graph_trust_projection",
+        "provider_model_availability",
+        "adaptive_execution_run",
+        "frontend_design_orchestration",
+        "knowledge_borrow_grant",
+    ):
+        storage = _schema(schema_name)["x-dde-storage"]
+        assert storage["tenant_scoped"], storage["table"]
+        assert storage["project_scoped"], storage["table"]
+
+
+def test_frontend_orchestration_can_never_claim_verification() -> None:
+    schema = _schema("frontend_design_orchestration")
+    assert _enum(schema, "authority") == ["ADVISORY"]
+    checks = [c["expression"] for c in schema["x-dde-storage"]["checks"]]
+    assert any("verification_satisfied" in check for check in checks)
+
+
+def test_knowledge_borrowing_cannot_launder_a_project_into_itself() -> None:
+    checks = [
+        c["expression"]
+        for c in _schema("knowledge_borrow_grant")["x-dde-storage"]["checks"]
+    ]
+    joined = " ".join(checks)
+    assert "lender_project_id <> project_id" in joined
+    assert "includes_derived_learning" in joined and "S7_DISCOVERY_ONLY" in joined
+
+
+def test_borrow_grants_are_owner_explicit_only() -> None:
+    assert _enum(_schema("knowledge_borrow_grant"), "authority_class") == [
+        "OWNER_EXPLICIT"
+    ]
+
+
 # --------------------------------------------------------------- model-level invariants
 
 

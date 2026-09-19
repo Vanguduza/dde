@@ -1,5 +1,10 @@
 -- GENERATED from schemas/objects. Do not edit.
 
+DROP TABLE IF EXISTS knowledge_borrow_grants CASCADE;
+DROP TABLE IF EXISTS frontend_design_orchestrations CASCADE;
+DROP TABLE IF EXISTS adaptive_execution_runs CASCADE;
+DROP TABLE IF EXISTS provider_model_availability CASCADE;
+DROP TABLE IF EXISTS graph_trust_projections CASCADE;
 DROP TABLE IF EXISTS external_effect_verifications CASCADE;
 DROP TABLE IF EXISTS browser_capability_sessions CASCADE;
 DROP TABLE IF EXISTS automation_runs CASCADE;

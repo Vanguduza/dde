@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/provider_model_availability.json",
+  "title": "ProviderModelAvailability",
+  "description": "EDR-0019 Amendment 1. Observed catalogue of the models a provider actually exposes. This is discovery evidence only and never promotion: catalogue presence, a free-tier label or a vendor announcement does not make a model routable, exactly as DEV_PLAN 20A already states for the OpenAI catalogue. Routing eligibility still requires a ProviderReadinessSnapshot at READY with a live probe and attested identity, so `attested` here records only that the provider named this model, not that DDE ran it.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "provider_model_availability",
+    "order": 981,
+    "pk": [
+      "availability_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "provider_model_availability_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "provider_model_availability_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "provider_model_availability_readiness_fkey",
+        "columns": [
+          "readiness_snapshot_id"
+        ],
+        "ref_table": "provider_readiness_snapshots",
+        "ref_columns": [
+          "readiness_snapshot_id"
+        ]
+      }
+    ],
+    "uniques": [
+      [
+        "tenant_id",
+        "project_id",
+        "provider_id",
+        "model_identity"
+      ]
+    ]
+  },
+  "required": [
+    "availability_id",
+    "tenant_id",
+    "project_id",
+    "provider_id",
+    "model_identity",
+    "discovered_via",
+    "available",
+    "deprecated",
+    "attested",
+    "cost_metadata",
+    "first_seen_at",
+    "last_seen_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "availability_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "model_identity": {
+      "type": "string"
+    },
+    "harness_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "discovered_via": {
+      "type": "string",
+      "enum": [
+        "LIVE_CATALOGUE",
+        "METADATA_PROBE",
+        "OPERATOR_DECLARED"
+      ]
+    },
+    "available": {
+      "type": "boolean"
+    },
+    "deprecated": {
+      "type": "boolean"
+    },
+    "attested": {
+      "type": "boolean"
+    },
+    "context_window": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supports_tools": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supports_streaming": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cost_metadata": {
+      "type": "object"
+    },
+    "readiness_snapshot_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "first_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

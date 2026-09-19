@@ -1377,3 +1377,43 @@ Generated from `schemas/objects`. Do not edit.
 - tenant scoped: true
 - project scoped: true
 - lock_version: false
+
+## GraphTrustProjection
+
+- table: `graph_trust_projections`
+- primary key: projection_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## ProviderModelAvailability
+
+- table: `provider_model_availability`
+- primary key: availability_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## AdaptiveExecutionRun
+
+- table: `adaptive_execution_runs`
+- primary key: adaptive_run_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## FrontendDesignOrchestrationRun
+
+- table: `frontend_design_orchestrations`
+- primary key: orchestration_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false
+
+## KnowledgeBorrowGrant
+
+- table: `knowledge_borrow_grants`
+- primary key: borrow_grant_id
+- tenant scoped: true
+- project scoped: true
+- lock_version: false

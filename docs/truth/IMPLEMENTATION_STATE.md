@@ -1071,3 +1071,61 @@ The integration blueprint overstated current DDE state in two places, and both c
 ### Residuals and next work packet
 
 `PLANNED` for every epic runtime (blueprint phases 3–10), in the dependency order recorded in `DEV_PLAN_REV3.md` §20B.1. The immediate next packet is **Phase 3 discovery runtime** — deterministic identity and dedupe, trust assignment, append-only transition enforcement in service code, the sanitizer, and the qualification bridge into `source_admissions`/`vekl_resources`. Phases 8–9 must not begin before phases 5–6 work, because an automation or browser runtime without readiness gating and postcondition verification is precisely the false-green surface this programme exists to remove.
+
+## 2026-09-19 — EDR-0019 Amendment 1: feature gaps closed and first runtime landed
+
+**State: `IMPLEMENTED_PARTIAL`.** The policy and persistence engines for the programme now exist with tests. **No production call site invokes any of them yet**, so under `AGENTS.md` this is not completion and must not be cited as delivering discovery, research, readiness, verified actions, steering or attention behaviour.
+
+### Feature-gap closure
+
+A feature-level inventory of the source artifact found it names 33 concrete features; the first tranche adopted 24, declined 2 deliberately (VAN `CommandAuthorityRecord` tables and Trading Core), and left 5 genuine gaps. All five are now closed as contracts plus migration `0042`:
+
+| Gap | Contract | Note |
+| --- | --- | --- |
+| Discovery graph projection | `GraphTrustProjection` | trust travels into the graph; anti-patterns stay retrievable but cannot fill positive slots |
+| Model availability discovery | `ProviderModelAvailability` | catalogue presence is never routing eligibility |
+| Adaptive execution runner | `AdaptiveExecutionRun` | fallback only at a declared checkpoint; forward-compatible with DDE-076/077 |
+| Guided frontend design orchestration | `FrontendDesignOrchestrationRun` | **owner-derived**: advisory-only over the existing DDE-069/082 Studio |
+| VATI/VTIL knowledge borrowing | `KnowledgeBorrowGrant` | **owner-derived**: copy-on-grant, never a live cross-project read |
+
+Two of the five carry owner-derived designs because the source artifact names them without specifying them. Both designs and their reasoning are recorded in EDR-0019 Amendment 1.
+
+### Migration 0042
+
+5 tables, 18 foreign keys, 2 indexes, 15 row-level-security statements, extracted verbatim from generated `schemas/sql/0001_stage1.sql` and guarded with the same `to_regclass` convention as `0040`/`0041`. Proven on PostgreSQL 16.13 with alembic invoked directly:
+
+| Proof | Result |
+| --- | --- |
+| from base: `upgrade head` → `downgrade base` → `upgrade head` | exit 0 / 0 / 0 |
+| true `0041 → 0042` upgrade, built from commit `258cae6` | exit 0; **5 of 5** tables created, **5 of 5** RLS forced |
+| `downgrade 0041` → `upgrade head` | exit 0 / 0 |
+
+The true upgrade path was measured against a database built from the previous commit's schema, verified beforehand to be at head `0041` with zero gap tables present, because a from-base build gets them via `0001` and would have made the test a no-op.
+
+**Six new gates induced.** Each deliberately illegal row was refused by its check constraint: an `ANTI_PATTERN` projection filling a positive slot; an invalidated projection still marked retrievable; a fallback applied with no checkpoint; a frontend orchestration claiming verification; a borrow grant from the same project; and a borrow grant laundering derived learning as first-party. Five legal counterparts were accepted.
+
+### Runtime landed
+
+| Module | What it enforces |
+| --- | --- |
+| `engine/source/discovery/` | deterministic identity and merge, lifecycle legality, append-only dense history, blocking sanitizer classes, bounded trials, capped qualification, graph projection, `SourceRecord` bridge |
+| `engine/capabilities/gates.py` | `READY` computed from the full evidence chain; stale evidence demotes |
+| `engine/recovery/postcondition.py` | completion refused while a required postcondition is unproven; high-impact effects need an independent observation |
+| `engine/missions/steering.py` | barrier bounds new claims only; read-only questions take no barrier |
+| `engine/attention/scoring.py` | scoring, dedupe, budget, quiet hours, security/approval bypass |
+| `engine/context/epistemics.py` | authority rank beats recency; inference never renders as settled fact |
+| `engine/research/` | coverage accounting, packet completeness, delta cursor, hard refusal of programme steering |
+
+The discovery admission bridge stops at `SourceRecord` on purpose: a `SourceAdmission` requires an acquired, hashed artifact, which belongs to the EDR-0018 acquisition pipeline rather than to discovery.
+
+### Tests
+
+70 new tests: 8 discovery-runtime integration tests against real PostgreSQL, 36 decision-engine tests, 21 research-runtime tests, and 5 added contract invariants. Repository totals: `pytest tests/unit tests/contract tests/recovery` at **1695 passed, 6 skipped, 0 failed**; `mypy` clean across **659** source files.
+
+Two invariants were deliberately broken to confirm the tests catch them. Making a passing sandbox trial raise `source_trust` failed exactly `test_a_passing_trial_advances_lifecycle_but_never_raises_trust` and nothing else. Removing a generated column from the hand-written `external_effects` table failed exactly the table-parity guard.
+
+**One test was rewritten after it proved nothing.** The first cross-project isolation test queried as the `dde` owner role, which is a superuser and bypasses RLS — so it would have passed whether or not a policy existed. It now runs through the non-superuser `dde_rls_probe` role, matching the existing Chapter 13.9 suite, and asserts only what it can prove: that another project sees none of these rows.
+
+### Residuals
+
+`PLANNED`: production call sites for every engine above; Phase 8 automation and browser runtimes; Phase 9 Studio projections; Phase 10 DDE-083 adversarial certification. Epic B's full fleet binding stays `BLOCKED_EXTERNAL` on DDE-076/077, which still do not exist.

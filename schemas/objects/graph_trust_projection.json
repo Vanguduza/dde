@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/graph_trust_projection.json",
+  "title": "GraphTrustProjection",
+  "description": "EDR-0019 Amendment 1. Projects a discovery candidate or qualified resource into the existing VEKL knowledge graph while carrying its trust and permitted uses with it, so graph retrieval cannot launder a low-trust source into a normative implementation slot. This is a projection over `vekl_knowledge_nodes`/`vekl_knowledge_edges`; it never becomes a second graph. projected_trust may never exceed the subject's own source_trust, and an ANTI_PATTERN or OBSERVATION_ONLY polarity can never satisfy a positive implementation slot however strong the graph signal. Revoking the subject invalidates the projection without deleting it.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "graph_trust_projections",
+    "order": 980,
+    "pk": [
+      "projection_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "graph_trust_projections_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "graph_trust_projections_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "graph_trust_projections_candidate_fkey",
+        "columns": [
+          "candidate_id"
+        ],
+        "ref_table": "discovery_candidates",
+        "ref_columns": [
+          "candidate_id"
+        ]
+      },
+      {
+        "name": "graph_trust_projections_resource_fkey",
+        "columns": [
+          "resource_id"
+        ],
+        "ref_table": "vekl_resources",
+        "ref_columns": [
+          "resource_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "graph_trust_projections_subject_idx",
+        "columns": [
+          "tenant_id",
+          "project_id",
+          "subject_kind"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "(guidance_polarity = 'POSITIVE') OR (NOT satisfies_positive_slots)"
+      },
+      {
+        "expression": "(invalidated_at IS NULL) OR (NOT retrievable)"
+      }
+    ]
+  },
+  "required": [
+    "projection_id",
+    "tenant_id",
+    "project_id",
+    "subject_kind",
+    "projected_trust",
+    "authority_ceiling",
+    "allowed_uses",
+    "forbidden_uses",
+    "guidance_polarity",
+    "graph_revision",
+    "projection_hash",
+    "retrievable",
+    "satisfies_positive_slots",
+    "projected_at",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "projection_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "candidate_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resource_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "knowledge_node_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subject_kind": {
+      "type": "string",
+      "enum": [
+        "DISCOVERY_CANDIDATE",
+        "VEKL_RESOURCE"
+      ]
+    },
+    "projected_trust": {
+      "type": "string",
+      "enum": [
+        "S1_NORMATIVE",
+        "S2_FIRST_PARTY",
+        "S3_VERIFIED_REGISTRY",
+        "S4_MAINTAINED_OSS",
+        "S5_MAINTAINER_COMMUNITY",
+        "S6_COMMUNITY_CORROBORATED",
+        "S7_DISCOVERY_ONLY",
+        "S8_UNTRUSTED"
+      ]
+    },
+    "authority_ceiling": {
+      "type": "string",
+      "enum": [
+        "S1_NORMATIVE",
+        "S2_FIRST_PARTY",
+        "S3_VERIFIED_REGISTRY",
+        "S4_MAINTAINED_OSS",
+        "S5_MAINTAINER_COMMUNITY",
+        "S6_COMMUNITY_CORROBORATED",
+        "S7_DISCOVERY_ONLY",
+        "S8_UNTRUSTED"
+      ]
+    },
+    "allowed_uses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DISCOVERY",
+          "CORROBORATION",
+          "REFERENCE",
+          "FAILURE_SIGNATURE",
+          "ANTI_PATTERN",
+          "NORMATIVE_IMPLEMENTATION",
+          "SECURITY_AUTHORITY",
+          "EXECUTABLE_ACTIVATION"
+        ]
+      }
+    },
+    "forbidden_uses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DISCOVERY",
+          "CORROBORATION",
+          "REFERENCE",
+          "FAILURE_SIGNATURE",
+          "ANTI_PATTERN",
+          "NORMATIVE_IMPLEMENTATION",
+          "SECURITY_AUTHORITY",
+          "EXECUTABLE_ACTIVATION"
+        ]
+      }
+    },
+    "guidance_polarity": {
+      "type": "string",
+      "enum": [
+        "POSITIVE",
+        "ANTI_PATTERN",
+        "OBSERVATION_ONLY"
+      ]
+    },
+    "graph_revision": {
+      "type": "string"
+    },
+    "projection_hash": {
+      "type": "string"
+    },
+    "retrievable": {
+      "type": "boolean"
+    },
+    "satisfies_positive_slots": {
+      "type": "boolean"
+    },
+    "projected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "invalidated_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "invalidation_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

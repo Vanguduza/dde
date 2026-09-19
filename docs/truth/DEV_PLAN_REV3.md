@@ -4051,16 +4051,27 @@ The source artifact's phase plan is adopted with one correction. Phases 0–2 ar
 ```text
 Phase 0  reconcile Source Intelligence branch / migration 0040   DONE
 Phase 1  contracts first (schemas + generated contracts)         DONE
-Phase 2  persistence (migration 0041, reversible)                DONE
-Phase 3  discovery runtime                                       NOT STARTED
-Phase 4  research runtime                                        NOT STARTED
-Phase 5  readiness runtime                                       NOT STARTED
-Phase 6  verified-action runtime                                 NOT STARTED
-Phase 7  mission steering runtime                                NOT STARTED
+Phase 2  persistence (migrations 0041 + 0042, reversible)        DONE
+Phase 3  discovery runtime                                       DONE (no call site)
+Phase 4  research runtime                                        DONE (no call site)
+Phase 5  readiness runtime                                       DONE (no call site)
+Phase 6  verified-action runtime                                 DONE (no call site)
+Phase 7  mission steering runtime                                DONE (no call site)
 Phase 8  automation + browser runtimes                           NOT STARTED
-Phase 9  attention + Studio projections                          NOT STARTED
+Phase 9  attention engine DONE (no call site); Studio surfaces   NOT STARTED
 Phase 10 DDE-083 adversarial certification                       NOT STARTED
 ```
+
+"DONE (no call site)" means the policy/persistence engine exists with tests but nothing in a
+production path invokes it yet. Under `AGENTS.md` that is not completion, and
+`IMPLEMENTATION_STATE.md` keeps the programme at `IMPLEMENTED_PARTIAL` until call sites land.
+
+Amendment 1 additionally closes the five feature gaps the first tranche left open:
+`GraphTrustProjection`, `ProviderModelAvailability`, `AdaptiveExecutionRun`,
+`FrontendDesignOrchestrationRun` and `KnowledgeBorrowGrant`. The last two carry owner-derived
+designs because the source artifact names them without specifying them: frontend orchestration
+is advisory-only over the existing DDE-069/082 Frontend Studio, and knowledge borrowing is
+copy-on-grant so cross-project RLS and the DDE-083 leakage proofs stay intact.
 
 **Epic B is partially blocked.** The source artifact instructs Epic B to extend `HarnessInstallation`, `HarnessRuntimeCapabilities`, `ModelControlCapabilities`, `WorkerConfiguration`, `WorkerProfileCertification`, `TaskExecutionDescriptor` and `ExecutionStrategy`. None of those contracts exist — they are Rev 3 designs owned by the unimplemented DDE-076/DDE-077, and `ChangePacket`/`WorkspaceLease` are likewise unbuilt. `ProviderReadinessSnapshot` and `ExecutionPlacementDecision` are therefore self-standing and reference a descriptor by an untyped `*_ref`. Full placement binding must wait for DDE-076/077 and must not be claimed before then.
 

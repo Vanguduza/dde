@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dde.dev/schemas/objects/frontend_design_orchestration.json",
+  "title": "FrontendDesignOrchestrationRun",
+  "description": "EDR-0019 Amendment 1, owner-derived design. Binds the frontend-relevant research dimensions (UX, FRONTEND_QUALITY, ACCESSIBILITY) to the existing DDE-069 Frontend Studio instead of creating a second design engine. An orchestration run may only PROPOSE: the existing frontend candidate, mutation and verification path remains the sole authority for applying a change, and visual, silhouette, pixel and accessibility verification remain independent verifier duties that this run can never satisfy. It holds no design tokens, no golden visual authority and no second candidate ledger.",
+  "type": "object",
+  "additionalProperties": false,
+  "x-dde-storage": {
+    "table": "frontend_design_orchestrations",
+    "order": 983,
+    "pk": [
+      "orchestration_id"
+    ],
+    "tenant_scoped": true,
+    "project_scoped": true,
+    "lock_version": false,
+    "foreign_keys": [
+      {
+        "name": "frontend_design_orchestrations_tenant_id_fkey",
+        "columns": [
+          "tenant_id"
+        ],
+        "ref_table": "tenants",
+        "ref_columns": [
+          "tenant_id"
+        ]
+      },
+      {
+        "name": "frontend_design_orchestrations_project_id_fkey",
+        "columns": [
+          "project_id"
+        ],
+        "ref_table": "projects",
+        "ref_columns": [
+          "project_id"
+        ]
+      },
+      {
+        "name": "frontend_design_orchestrations_packet_fkey",
+        "columns": [
+          "research_packet_id"
+        ],
+        "ref_table": "research_packets",
+        "ref_columns": [
+          "packet_id"
+        ]
+      }
+    ],
+    "checks": [
+      {
+        "expression": "NOT verification_satisfied"
+      }
+    ]
+  },
+  "required": [
+    "orchestration_id",
+    "tenant_id",
+    "project_id",
+    "screen_refs",
+    "guidance_dimensions",
+    "guidance_findings",
+    "proposed_candidate_refs",
+    "applied_mutation_refs",
+    "state",
+    "authority",
+    "verification_satisfied",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "orchestration_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "research_packet_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "design_session_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "frontend_contract_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "screen_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "guidance_dimensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "UX",
+          "FRONTEND_QUALITY",
+          "ACCESSIBILITY"
+        ]
+      }
+    },
+    "guidance_findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "proposed_candidate_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applied_mutation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PREPARED",
+        "GUIDANCE_COMPILED",
+        "CANDIDATES_PROPOSED",
+        "OPERATOR_REVIEW",
+        "APPLIED",
+        "REJECTED",
+        "SUPERSEDED"
+      ]
+    },
+    "authority": {
+      "type": "string",
+      "enum": [
+        "ADVISORY"
+      ]
+    },
+    "verification_satisfied": {
+      "type": "boolean"
+    },
+    "rejected_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

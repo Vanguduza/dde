@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from engine.contracts.acceptance_oracle import AcceptanceOracle
+from engine.contracts.adaptive_execution_run import AdaptiveExecutionRun
 from engine.contracts.agent_interop_endpoint import AgentInteropEndpoint
 from engine.contracts.ai_agent_team import AiAgentTeam
 from engine.contracts.ai_automation import AiAutomation
@@ -96,6 +97,9 @@ from engine.contracts.frontend_contract import FrontendContract
 from engine.contracts.frontend_conversation import FrontendConversation
 from engine.contracts.frontend_conversation_turn import FrontendConversationTurn
 from engine.contracts.frontend_coverage_snapshot import FrontendCoverageSnapshot
+from engine.contracts.frontend_design_orchestration import (
+    FrontendDesignOrchestrationRun,
+)
 from engine.contracts.frontend_editor_assist_state import FrontendEditorAssistState
 from engine.contracts.frontend_lock import FrontendLock
 from engine.contracts.frontend_mutation import FrontendMutation
@@ -108,11 +112,13 @@ from engine.contracts.frontend_source_blend_preference import (
 from engine.contracts.frontend_template import FrontendTemplate
 from engine.contracts.frontend_verification_request import FrontendVerificationRequest
 from engine.contracts.graph_amendment import GraphAmendment
+from engine.contracts.graph_trust_projection import GraphTrustProjection
 from engine.contracts.healthz import Healthz
 from engine.contracts.hook_ir import HookIR
 from engine.contracts.instruction_ir import InstructionIR
 from engine.contracts.integration_proposal import IntegrationProposal
 from engine.contracts.invariant_evaluation import InvariantEvaluation
+from engine.contracts.knowledge_borrow_grant import KnowledgeBorrowGrant
 from engine.contracts.learned_routing_policy import LearnedRoutingPolicy
 from engine.contracts.mission import Mission
 from engine.contracts.mission_control import MissionControl
@@ -129,6 +135,7 @@ from engine.contracts.product_environment import ProductEnvironment
 from engine.contracts.project import Project
 from engine.contracts.promotion_gate_run import PromotionGateRun
 from engine.contracts.provider_capacity_snapshot import ProviderCapacitySnapshot
+from engine.contracts.provider_model_availability import ProviderModelAvailability
 from engine.contracts.provider_readiness_snapshot import ProviderReadinessSnapshot
 from engine.contracts.pxg_edge import PxgEdge
 from engine.contracts.pxg_node import PxgNode
@@ -197,6 +204,7 @@ from engine.contracts.write_scope_lease import WriteScopeLease
 
 __all__ = [
     "AcceptanceOracle",
+    "AdaptiveExecutionRun",
     "AgentInteropEndpoint",
     "AiAgentTeam",
     "AiAutomation",
@@ -288,6 +296,7 @@ __all__ = [
     "FrontendConversation",
     "FrontendConversationTurn",
     "FrontendCoverageSnapshot",
+    "FrontendDesignOrchestrationRun",
     "FrontendEditorAssistState",
     "FrontendLock",
     "FrontendMutation",
@@ -298,11 +307,13 @@ __all__ = [
     "FrontendTemplate",
     "FrontendVerificationRequest",
     "GraphAmendment",
+    "GraphTrustProjection",
     "Healthz",
     "HookIR",
     "InstructionIR",
     "IntegrationProposal",
     "InvariantEvaluation",
+    "KnowledgeBorrowGrant",
     "LearnedRoutingPolicy",
     "Mission",
     "MissionControl",
@@ -319,6 +330,7 @@ __all__ = [
     "Project",
     "PromotionGateRun",
     "ProviderCapacitySnapshot",
+    "ProviderModelAvailability",
     "ProviderReadinessSnapshot",
     "PxgEdge",
     "PxgNode",
